@@ -4,6 +4,7 @@ import { errorHandler, corsMiddleware } from "./middleware/index.js";
 import { health } from "./routes/health.js";
 import { auth } from "./routes/auth.js";
 import { users } from "./routes/users.js";
+import { drive } from "./routes/drive.js";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -15,6 +16,7 @@ app.use("*", corsMiddleware());
 app.route("/health", health);
 app.route("/auth", auth);
 app.route("/users", users);
+app.route("/drive", drive);
 
 // 404 fallback
 app.notFound((c) => {
