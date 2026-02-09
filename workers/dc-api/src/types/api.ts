@@ -28,3 +28,36 @@ export interface PaginatedResponse<T> {
   cursor: string | null;
   hasMore: boolean;
 }
+
+/** User profile response */
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Drive connection status */
+export interface DriveStatus {
+  connected: boolean;
+  email?: string;
+  expiresAt?: string;
+}
+
+/** Project summary in user profile */
+export interface ProjectSummary {
+  id: string;
+  title: string;
+  status: string;
+  wordCount: number;
+  chapterCount: number;
+}
+
+/** GET /users/me response */
+export interface GetCurrentUserResponse {
+  user: UserProfile;
+  drive: DriveStatus;
+  projects: ProjectSummary[];
+  totalWordCount: number;
+}
