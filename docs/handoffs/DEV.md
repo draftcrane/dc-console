@@ -38,11 +38,13 @@
 ### Accomplished
 
 **1. ADR-001 Resolved: Tiptap Selected**
+
 - Created `docs/adr/ADR-001-editor-library.md`
 - Decision: Tiptap for iPad Safari reliability over Lexical/Slate
 - Includes 8-point iPad testing protocol
 
 **2. US-011 Rich Text Editor Implemented**
+
 - Created `web/src/components/chapter-editor.tsx`
 - Formatting: Bold, Italic, H2, H3, lists, blockquote
 - Keyboard shortcuts: Cmd+B/I/Z/Shift+Z/S
@@ -51,17 +53,20 @@
 - Google Docs paste handling
 
 **3. US-009 & US-010 Closed**
+
 - Verified all acceptance criteria met
 - Added Drive banner to editor (was missing)
 - Both issues closed on GitHub
 
 **4. CI Pipeline Fixed**
+
 - CI was broken since Feb 9
 - Root cause: npm lockfile missing Linux rollup deps
 - Fix: Regenerated lockfile, formatted all files
 - CI now green on main
 
 **5. Dev Workflow Plan Created**
+
 - Plan at `.claude/plans/enumerated-imagining-turtle.md`
 - Husky + lint-staged for pre-commit formatting
 - Pre-push verification script
@@ -96,6 +101,7 @@
 ### Priority 1: Implement Dev Workflow Enforcement
 
 Plan exists at `.claude/plans/enumerated-imagining-turtle.md`:
+
 1. Install husky + lint-staged
 2. Create pre-commit hook (auto-format)
 3. Create pre-push hook (verify script)
@@ -105,6 +111,7 @@ Plan exists at `.claude/plans/enumerated-imagining-turtle.md`:
 ### Priority 2: US-015 Auto-save
 
 Now unblocked. Implement three-tier save architecture:
+
 - IndexedDB (keystroke buffer)
 - API debounced save
 - Drive/R2 persistence
@@ -112,6 +119,7 @@ Now unblocked. Implement three-tier save architecture:
 ### Priority 3: AI Rewrite Epic (US-016-018)
 
 Now unblocked by ADR-001. Can proceed with:
+
 - Text selection floating action bar
 - AI rewrite API endpoint
 - Accept/reject/retry UI
@@ -120,14 +128,14 @@ Now unblocked by ADR-001. Can proceed with:
 
 ## Files Added/Modified This Session
 
-| File | Change |
-|------|--------|
-| `docs/adr/ADR-001-editor-library.md` | Created - Editor decision |
-| `web/src/components/chapter-editor.tsx` | Created - Tiptap editor |
+| File                                                  | Change                        |
+| ----------------------------------------------------- | ----------------------------- |
+| `docs/adr/ADR-001-editor-library.md`                  | Created - Editor decision     |
+| `web/src/components/chapter-editor.tsx`               | Created - Tiptap editor       |
 | `web/src/app/(protected)/editor/[projectId]/page.tsx` | Modified - Editor integration |
-| `web/package.json` | Modified - Tiptap deps |
-| `package-lock.json` | Regenerated - CI fix |
-| `.claude/plans/enumerated-imagining-turtle.md` | Created - Dev workflow plan |
+| `web/package.json`                                    | Modified - Tiptap deps        |
+| `package-lock.json`                                   | Regenerated - CI fix          |
+| `.claude/plans/enumerated-imagining-turtle.md`        | Created - Dev workflow plan   |
 
 ---
 
@@ -144,6 +152,7 @@ Now unblocked by ADR-001. Can proceed with:
 ## Previous Session (2026-02-09)
 
 **PR #46 Merged: DraftCrane Phase 0 Core Implementation**
+
 - Auth system (Clerk)
 - Google Drive integration
 - Project/Chapter CRUD
