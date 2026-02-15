@@ -4,15 +4,7 @@ This command prepares your session using MCP tools to validate context, show wor
 
 ## Execution
 
-### Step 1: Cache Documentation (Background)
-
-Run silently to cache docs for the session:
-
-```bash
-bash scripts/cache-docs.sh 2>/dev/null || true
-```
-
-### Step 2: Run Preflight Checks
+### Step 1: Run Preflight Checks
 
 Call the `crane_preflight` MCP tool to validate environment:
 
@@ -23,7 +15,7 @@ Call the `crane_preflight` MCP tool to validate environment:
 
 **If any critical check fails**, show the error and stop. The user needs to fix their environment.
 
-### Step 3: Start Session
+### Step 2: Start Session
 
 Call the `crane_sod` MCP tool to initialize the session.
 
@@ -34,8 +26,11 @@ The tool returns:
 - P0 issues (if any)
 - Weekly plan status
 - Active sessions (conflict detection)
+- Enterprise context (executive summaries)
 
-### Step 4: Display Context Confirmation
+> **Note:** The MCP tool reads the weekly plan but does not auto-create it. If the plan is missing, Step 5 below guides you through creating it.
+
+### Step 3: Display Context Confirmation
 
 Present a clear context confirmation box:
 
@@ -50,13 +45,26 @@ Present a clear context confirmation box:
 
 State: "You're in the correct repository and on the {branch} branch."
 
-### Step 5: Handle P0 Issues
+### Step 4: Handle P0 Issues
 
 If `p0_issues` is not empty:
 
 1. Display prominently with warning icon
 2. Say: "**There are P0 issues that need immediate attention.**"
 3. List each issue
+
+If the P0 lookup failed (e.g., `gh` CLI error), warn: "**Could not check for P0 issues.** Verify `gh auth status` is valid." Continue with the rest of SOD - do not block.
+
+### Step 5: Check Portfolio Review (vc only)
+
+If the SOD response includes `portfolio_review` (only present when venture is vc):
+
+Based on `portfolio_review.status`:
+
+- **current**: Note it briefly: "Portfolio review is current ({age_days} days old)"
+- **due**: Prompt: "Portfolio review is due ({age_days} days old). Run /portfolio-review to update."
+- **overdue**: Warn: "Portfolio review is overdue ({age_days} days old). Run /portfolio-review to update."
+- **missing**: Note: "No portfolio review data found. Run /portfolio-review to initialize."
 
 ### Step 6: Check Weekly Plan
 
