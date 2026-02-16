@@ -166,8 +166,11 @@ drive.get("/connection", requireAuth, standardRateLimit, async (c) => {
 
 /**
  * POST /drive/folders
- * Creates a Book Folder in Google Drive.
+ * Creates a Book Folder in Google Drive for a project.
  * Per PRD Section 8 (US-006): Auto-creates folder named after project title.
+ *
+ * Idempotent: If the project already has a drive_folder_id, returns the existing folder info.
+ * Stores the folder ID back on the project record.
  */
 drive.post("/folders", requireAuth, standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
@@ -179,24 +182,53 @@ drive.post("/folders", requireAuth, standardRateLimit, async (c) => {
     driveNotConnected();
   }
 
-  // Parse request body
-  const body = await c.req.json<{ title: string }>();
-  if (!body.title || typeof body.title !== "string") {
-    validationError("Folder title is required");
+  // Parse request body - requires projectId
+  const body = await c.req.json<{ projectId: string }>();
+  if (!body.projectId || typeof body.projectId !== "string") {
+    validationError("projectId is required");
   }
 
-  const folderName = body.title.trim();
+  // Look up the project (with ownership check)
+  const project = await c.env.DB.prepare(
+    `SELECT id, title, drive_folder_id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`,
+  )
+    .bind(body.projectId, userId)
+    .first<{ id: string; title: string; drive_folder_id: string | null }>();
+
+  if (!project) {
+    throw new AppError(404, "NOT_FOUND", "Project not found");
+  }
+
+  // Idempotent: if folder already exists, return existing info
+  if (project.drive_folder_id) {
+    return c.json({
+      id: project.drive_folder_id,
+      name: project.title,
+      webViewLink: `https://drive.google.com/drive/folders/${project.drive_folder_id}`,
+      alreadyExisted: true,
+    });
+  }
+
+  const folderName = project.title.trim();
   if (!folderName || folderName.length > 500) {
-    validationError("Folder title must be between 1 and 500 characters");
+    validationError("Project title must be between 1 and 500 characters for folder creation");
   }
 
   try {
     const folder = await driveService.createFolder(tokens.accessToken, folderName);
 
+    // Store the drive_folder_id on the project
+    await c.env.DB.prepare(
+      `UPDATE projects SET drive_folder_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ? AND user_id = ?`,
+    )
+      .bind(folder.id, project.id, userId)
+      .run();
+
     return c.json({
       id: folder.id,
       name: folder.name,
       webViewLink: folder.webViewLink,
+      alreadyExisted: false,
     });
   } catch (err) {
     console.error("Create folder failed:", err);
