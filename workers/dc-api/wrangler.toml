@@ -31,4 +31,4 @@ id = "15db632cefe04003a94f1e6e7460c858"
 # ENCRYPTION_KEY
 
 [vars]
-FRONTEND_URL = "https://draftcrane.com"
+FRONTEND_URL = "https://draftcrane.app"

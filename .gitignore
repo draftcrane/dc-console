@@ -22,5 +22,8 @@ dist/
 # Test
 coverage/
 
+# Vercel
+.vercel/
+
 # Infisical
 .infisical.json
