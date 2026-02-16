@@ -115,7 +115,10 @@ interface ProjectSummaryRow {
  * ProjectService handles all project and chapter CRUD operations
  */
 export class ProjectService {
-  constructor(private readonly db: D1Database) {}
+  constructor(
+    private readonly db: D1Database,
+    private readonly r2?: R2Bucket,
+  ) {}
 
   /**
    * Create a new project with a default "Chapter 1"
@@ -648,6 +651,145 @@ export class ProjectService {
     }
 
     return this.mapChapterRow(chapter);
+  }
+
+  /**
+   * Get chapter content from R2.
+   * Per PRD Section 12: GET /chapters/:chapterId/content fetches body from R2.
+   * Content is stored in R2 with key pattern: chapters/{chapterId}/content.html
+   *
+   * @param userId - The user ID (for ownership verification)
+   * @param chapterId - The chapter ID
+   * @returns The chapter content as HTML string, or empty string if no content yet
+   */
+  async getChapterContent(
+    userId: string,
+    chapterId: string,
+  ): Promise<{ content: string; version: number }> {
+    // Verify ownership via project
+    const chapter = await this.db
+      .prepare(
+        `SELECT ch.id, ch.r2_key, ch.version
+         FROM chapters ch
+         JOIN projects p ON p.id = ch.project_id
+         WHERE ch.id = ? AND p.user_id = ?`,
+      )
+      .bind(chapterId, userId)
+      .first<{ id: string; r2_key: string | null; version: number }>();
+
+    if (!chapter) {
+      notFound("Chapter not found");
+    }
+
+    // If no R2 key or no R2 bucket, return empty content
+    if (!chapter.r2_key || !this.r2) {
+      return { content: "", version: chapter.version };
+    }
+
+    try {
+      const object = await this.r2.get(chapter.r2_key);
+      if (!object) {
+        return { content: "", version: chapter.version };
+      }
+
+      const content = await object.text();
+      return { content, version: chapter.version };
+    } catch (err) {
+      console.error("Failed to read chapter content from R2:", err);
+      return { content: "", version: chapter.version };
+    }
+  }
+
+  /**
+   * Save chapter content to R2 and update word count in D1.
+   * Per PRD Section 12: PUT /chapters/:chapterId/content saves body to R2.
+   *
+   * @param userId - The user ID (for ownership verification)
+   * @param chapterId - The chapter ID
+   * @param content - The HTML content to save
+   * @param expectedVersion - The version the client expects (for optimistic concurrency)
+   * @returns Updated chapter metadata
+   */
+  async saveChapterContent(
+    userId: string,
+    chapterId: string,
+    content: string,
+    expectedVersion?: number,
+  ): Promise<Chapter> {
+    // Verify ownership via project
+    const chapter = await this.db
+      .prepare(
+        `SELECT ch.id, ch.project_id, ch.r2_key, ch.version
+         FROM chapters ch
+         JOIN projects p ON p.id = ch.project_id
+         WHERE ch.id = ? AND p.user_id = ?`,
+      )
+      .bind(chapterId, userId)
+      .first<{ id: string; project_id: string; r2_key: string | null; version: number }>();
+
+    if (!chapter) {
+      notFound("Chapter not found");
+    }
+
+    // Optimistic concurrency check
+    if (expectedVersion !== undefined && expectedVersion !== chapter.version) {
+      throw new AppError(
+        409,
+        "CONFLICT",
+        "Chapter has been modified. Please reload and try again.",
+      );
+    }
+
+    // Calculate word count from content
+    const wordCount = content
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .filter((w) => w.length > 0).length;
+
+    // Generate R2 key if not set
+    const r2Key = chapter.r2_key || `chapters/${chapterId}/content.html`;
+
+    // Write content to R2
+    if (this.r2) {
+      await this.r2.put(r2Key, content, {
+        httpMetadata: { contentType: "text/html" },
+      });
+    }
+
+    const now = new Date().toISOString();
+    const newVersion = chapter.version + 1;
+
+    // Update D1 metadata
+    await this.db
+      .prepare(
+        `UPDATE chapters SET r2_key = ?, word_count = ?, version = ?, updated_at = ? WHERE id = ?`,
+      )
+      .bind(r2Key, wordCount, newVersion, now, chapterId)
+      .run();
+
+    // Update project updated_at
+    await this.db
+      .prepare(`UPDATE projects SET updated_at = ? WHERE id = ?`)
+      .bind(now, chapter.project_id)
+      .run();
+
+    // Fetch and return updated chapter
+    const updated = await this.db
+      .prepare(
+        `SELECT id, project_id, title, sort_order, drive_file_id, r2_key, word_count, version, status, created_at, updated_at
+         FROM chapters
+         WHERE id = ?`,
+      )
+      .bind(chapterId)
+      .first<ChapterRow>();
+
+    if (!updated) {
+      notFound("Chapter not found");
+    }
+
+    return this.mapChapterRow(updated);
   }
 
   private mapProjectRow(row: ProjectRow): Project {

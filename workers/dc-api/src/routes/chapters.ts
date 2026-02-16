@@ -93,6 +93,52 @@ chapters.get("/chapters/:chapterId", async (c) => {
 });
 
 /**
+ * GET /chapters/:chapterId/content
+ * Fetch chapter body content from R2.
+ *
+ * Per PRD US-012: Chapter content loaded on demand when navigating.
+ * Content stored in R2 to keep D1 lean (metadata only).
+ * Returns HTML string and version number for optimistic concurrency.
+ */
+chapters.get("/chapters/:chapterId/content", async (c) => {
+  const { userId } = c.get("auth");
+  const chapterId = c.req.param("chapterId");
+
+  const service = new ProjectService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const { content, version } = await service.getChapterContent(userId, chapterId);
+
+  c.header("X-Chapter-Version", String(version));
+  return c.json({ content, version });
+});
+
+/**
+ * PUT /chapters/:chapterId/content
+ * Save chapter body content to R2.
+ *
+ * Per PRD US-012: Auto-save triggers before navigation.
+ * Accepts HTML content and optional version for optimistic concurrency.
+ * Updates word count in D1 metadata.
+ */
+chapters.put("/chapters/:chapterId/content", async (c) => {
+  const { userId } = c.get("auth");
+  const chapterId = c.req.param("chapterId");
+  const body = (await c.req.json().catch(() => ({}))) as {
+    content?: string;
+    version?: number;
+  };
+
+  if (body.content === undefined) {
+    validationError("content is required");
+  }
+
+  const service = new ProjectService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const chapter = await service.saveChapterContent(userId, chapterId, body.content, body.version);
+
+  c.header("X-Chapter-Version", String(chapter.version));
+  return c.json(chapter);
+});
+
+/**
  * PATCH /chapters/:chapterId
  * Update chapter title and/or status
  *

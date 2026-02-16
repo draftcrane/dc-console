@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Sidebar, SidebarOverlay, type ChapterData } from "@/components/sidebar";
@@ -49,7 +49,13 @@ interface ProjectData {
  * - Touch targets 44x44pt minimum
  * - Uses 100dvh for viewport height
  *
- * Note: Editor area is a placeholder pending ADR-001 (editor library) decision.
+ * Per PRD US-012 (Chapter Navigation):
+ * - Chapter list with titles and word counts
+ * - Active chapter highlighted
+ * - Auto-save before navigation to different chapter
+ * - Scroll position restored on return to previously edited chapter
+ * - Chapter content loaded on demand from API
+ * - Responsive sidebar: persistent on desktop/landscape, overlay on portrait
  */
 export default function EditorPage() {
   const params = useParams();
@@ -67,9 +73,21 @@ export default function EditorPage() {
 
   // Editor state
   const [chapterContent, setChapterContent] = useState<Record<string, string>>({});
+  const [chapterVersions, setChapterVersions] = useState<Record<string, number>>({});
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
+  const [contentLoading, setContentLoading] = useState(false);
+
+  // Track dirty chapters (modified since last save)
+  const dirtyChaptersRef = useRef<Set<string>>(new Set());
+
+  // Scroll position tracking per chapter
+  const scrollPositionsRef = useRef<Record<string, number>>({});
+  const editorScrollRef = useRef<HTMLDivElement>(null);
+
+  // Track whether content has been loaded for each chapter
+  const loadedChaptersRef = useRef<Set<string>>(new Set());
 
   // Fetch project data and drive status
   useEffect(() => {
@@ -119,14 +137,138 @@ export default function EditorPage() {
     fetchData();
   }, [projectId, getToken, router, activeChapterId]);
 
+  // Fetch chapter content when active chapter changes
+  useEffect(() => {
+    if (!activeChapterId) return;
+    if (loadedChaptersRef.current.has(activeChapterId)) return;
+
+    async function fetchContent() {
+      setContentLoading(true);
+      try {
+        const token = await getToken();
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/chapters/${activeChapterId}/content`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        if (response.ok) {
+          const data = (await response.json()) as { content: string; version: number };
+          setChapterContent((prev) => ({ ...prev, [activeChapterId!]: data.content }));
+          setChapterVersions((prev) => ({ ...prev, [activeChapterId!]: data.version }));
+          loadedChaptersRef.current.add(activeChapterId!);
+        }
+      } catch (err) {
+        console.error("Failed to fetch chapter content:", err);
+      } finally {
+        setContentLoading(false);
+      }
+    }
+
+    fetchContent();
+  }, [activeChapterId, getToken]);
+
+  // Restore scroll position when switching back to a chapter
+  useEffect(() => {
+    if (!activeChapterId || !editorScrollRef.current) return;
+
+    const savedPosition = scrollPositionsRef.current[activeChapterId] ?? 0;
+    // Use requestAnimationFrame to ensure DOM has rendered
+    requestAnimationFrame(() => {
+      if (editorScrollRef.current) {
+        editorScrollRef.current.scrollTop = savedPosition;
+      }
+    });
+  }, [activeChapterId]);
+
   // Get active chapter (needed early for handlers)
   const activeChapter = projectData?.chapters.find((ch) => ch.id === activeChapterId);
 
-  // Handle chapter selection
-  const handleChapterSelect = useCallback((chapterId: string) => {
-    setActiveChapterId(chapterId);
-    setMobileOverlayOpen(false);
-  }, []);
+  /**
+   * Save chapter content to the API.
+   * Called both on manual save and before navigation (auto-save).
+   */
+  const saveChapterContent = useCallback(
+    async (chapterId: string): Promise<boolean> => {
+      const content = chapterContent[chapterId];
+      if (content === undefined) return true;
+
+      try {
+        const token = await getToken();
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/chapters/${chapterId}/content`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              content,
+              version: chapterVersions[chapterId],
+            }),
+          },
+        );
+
+        if (response.ok) {
+          const updatedChapter = (await response.json()) as Chapter & { version: number };
+          dirtyChaptersRef.current.delete(chapterId);
+
+          // Update version for optimistic concurrency
+          setChapterVersions((prev) => ({ ...prev, [chapterId]: updatedChapter.version }));
+
+          // Update word count in project data
+          setProjectData((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              chapters: prev.chapters.map((ch) =>
+                ch.id === chapterId ? { ...ch, wordCount: updatedChapter.wordCount } : ch,
+              ),
+            };
+          });
+
+          return true;
+        }
+        return false;
+      } catch (err) {
+        console.error("Failed to save chapter content:", err);
+        return false;
+      }
+    },
+    [chapterContent, chapterVersions, getToken],
+  );
+
+  /**
+   * Handle chapter selection with auto-save and scroll position preservation.
+   * Per PRD US-012: Auto-save triggers before navigation to a different chapter.
+   */
+  const handleChapterSelect = useCallback(
+    async (chapterId: string) => {
+      if (chapterId === activeChapterId) {
+        setMobileOverlayOpen(false);
+        return;
+      }
+
+      // Save scroll position for current chapter
+      if (activeChapterId && editorScrollRef.current) {
+        scrollPositionsRef.current[activeChapterId] = editorScrollRef.current.scrollTop;
+      }
+
+      // Auto-save current chapter if dirty
+      if (activeChapterId && dirtyChaptersRef.current.has(activeChapterId)) {
+        setSaveStatus("saving");
+        const saved = await saveChapterContent(activeChapterId);
+        setSaveStatus(saved ? "saved" : "unsaved");
+      }
+
+      setActiveChapterId(chapterId);
+      setMobileOverlayOpen(false);
+      setEditingTitle(false);
+    },
+    [activeChapterId, saveChapterContent],
+  );
 
   // Handle add chapter
   const handleAddChapter = useCallback(async () => {
@@ -175,18 +317,20 @@ export default function EditorPage() {
     (html: string) => {
       if (!activeChapterId) return;
       setChapterContent((prev) => ({ ...prev, [activeChapterId]: html }));
+      dirtyChaptersRef.current.add(activeChapterId);
       setSaveStatus("unsaved");
     },
     [activeChapterId],
   );
 
-  // Handle save (placeholder - real implementation in US-015)
-  const handleSave = useCallback(() => {
+  // Handle explicit save (Cmd+S)
+  const handleSave = useCallback(async () => {
+    if (!activeChapterId) return;
+
     setSaveStatus("saving");
-    // TODO: Implement actual save to Drive/R2 in US-015
-    console.log("Save triggered for chapter:", activeChapterId);
-    setTimeout(() => setSaveStatus("saved"), 500);
-  }, [activeChapterId]);
+    const saved = await saveChapterContent(activeChapterId);
+    setSaveStatus(saved ? "saved" : "unsaved");
+  }, [activeChapterId, saveChapterContent]);
 
   // Handle chapter title update
   const handleTitleSave = useCallback(async () => {
@@ -287,7 +431,7 @@ export default function EditorPage() {
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)]">
-      {/* Desktop Sidebar - hidden on mobile */}
+      {/* Desktop/Landscape Sidebar - persistent at 1024px+ (iPad Landscape and Desktop) */}
       <div className="hidden lg:block">
         <Sidebar
           chapters={sidebarChapters}
@@ -300,7 +444,7 @@ export default function EditorPage() {
         />
       </div>
 
-      {/* Mobile Sidebar - collapsed pill on small screens */}
+      {/* Portrait/Mobile Sidebar - collapsed pill on screens under 1024px */}
       <div className="lg:hidden">
         <Sidebar
           chapters={sidebarChapters}
@@ -387,7 +531,7 @@ export default function EditorPage() {
         </div>
 
         {/* Editor area */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto" ref={editorScrollRef}>
           <div className="max-w-3xl mx-auto px-6 py-8">
             {/* Drive connection banner - contextual, not blocking */}
             {driveStatus && !driveStatus.connected && (
@@ -423,19 +567,29 @@ export default function EditorPage() {
               </h1>
             )}
 
-            {/* Rich Text Editor */}
-            <ChapterEditor
-              content={currentContent}
-              onUpdate={handleContentUpdate}
-              onSave={handleSave}
-            />
+            {/* Content loading state */}
+            {contentLoading ? (
+              <div className="min-h-[400px] flex items-center justify-center">
+                <div className="text-muted-foreground text-sm">Loading chapter...</div>
+              </div>
+            ) : (
+              <>
+                {/* Rich Text Editor */}
+                <ChapterEditor
+                  key={activeChapterId}
+                  content={currentContent}
+                  onUpdate={handleContentUpdate}
+                  onSave={handleSave}
+                />
 
-            {/* Word count display */}
-            <div className="mt-4 flex justify-end">
-              <span className="text-sm text-muted-foreground tabular-nums">
-                {currentWordCount.toLocaleString()} words
-              </span>
-            </div>
+                {/* Word count display */}
+                <div className="mt-4 flex justify-end">
+                  <span className="text-sm text-muted-foreground tabular-nums">
+                    {currentWordCount.toLocaleString()} words
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
