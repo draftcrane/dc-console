@@ -665,8 +665,15 @@ export default function EditorPage() {
             ) : (
               <h1
                 className="text-3xl font-semibold text-foreground mb-6 outline-none cursor-text
-                           hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
+                           hover:bg-gray-50 focus:bg-gray-50 focus:ring-2 focus:ring-blue-500
+                           rounded px-1 -mx-1 transition-colors"
                 onClick={handleTitleEdit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleTitleEdit();
+                  }
+                }}
                 role="button"
                 tabIndex={0}
                 aria-label={`Edit chapter title: ${activeChapter?.title || "Untitled Chapter"}`}
