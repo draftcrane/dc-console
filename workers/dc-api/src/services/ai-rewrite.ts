@@ -39,36 +39,12 @@ export interface RewriteStreamResult {
 
 const MAX_SELECTED_TEXT_CHARS = 10000;
 const MAX_CONTEXT_CHARS = 500;
-const RATE_LIMIT_WINDOW_SECONDS = 60;
-const RATE_LIMIT_MAX_REQUESTS = 10;
 
 export class AIRewriteService {
   constructor(
     private readonly db: D1Database,
-    private readonly cache: KVNamespace,
     private readonly aiProvider: AIProvider,
   ) {}
-
-  /**
-   * Check rate limit for a user (10 req/min)
-   * Uses KV for atomic counters with TTL
-   */
-  async checkRateLimit(userId: string): Promise<{ allowed: boolean; remaining: number }> {
-    const key = `ratelimit:ai-rewrite:${userId}`;
-    const current = await this.cache.get(key);
-    const count = current ? parseInt(current, 10) : 0;
-
-    if (count >= RATE_LIMIT_MAX_REQUESTS) {
-      return { allowed: false, remaining: 0 };
-    }
-
-    // Increment counter with TTL
-    await this.cache.put(key, String(count + 1), {
-      expirationTtl: RATE_LIMIT_WINDOW_SECONDS,
-    });
-
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - count - 1 };
-  }
 
   /**
    * Validate rewrite input

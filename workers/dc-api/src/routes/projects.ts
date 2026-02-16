@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../types/index.js";
 import { requireAuth } from "../middleware/auth.js";
+import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ProjectService } from "../services/project.js";
 
@@ -21,6 +22,7 @@ const projects = new Hono<{ Bindings: Env }>();
 
 // All project routes require authentication
 projects.use("*", requireAuth);
+projects.use("*", standardRateLimit);
 
 /**
  * POST /projects
