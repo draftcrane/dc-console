@@ -38,6 +38,7 @@ This ADR also resolves [Issue #41](https://github.com/venturecrane/dc-console/is
 Use Cloudflare's Browser Rendering `/pdf` REST API endpoint to render HTML+CSS into PDF. Build EPUB in-Worker using `JSZip` and OPF/XHTML templates.
 
 **PDF via Browser Rendering:**
+
 - The `/pdf` endpoint accepts raw HTML via the `html` parameter (up to 50 MB request body)
 - Supports `addStyleTag` for CSS injection, `pdfOptions` for paper size/margins/scale, `headerTemplate`/`footerTemplate` with `<span class="pageNumber">` and `<span class="totalPages">` placeholders
 - `preferCSSPageSize` flag respects CSS `@page` rules
@@ -47,11 +48,13 @@ Use Cloudflare's Browser Rendering `/pdf` REST API endpoint to render HTML+CSS i
 - Rate limit: 180 requests/minute on paid plan
 
 **Chromium CSS paged media limitations (well-documented):**
+
 - `@page` margin boxes (`@top-center`, `@bottom-center`) work but have inconsistencies across headless vs headed Chrome
 - Resources referenced via `url()` in `@page` rules fail silently in headless mode (must use base64 data URIs)
 - No CSS `page-margin-box` support for running headers/chapter titles per page (a feature Prince XML and WeasyPrint support). Workaround: use Puppeteer's `headerTemplate`/`footerTemplate` instead.
 
 **EPUB via in-Worker generation:**
+
 - EPUB is a ZIP file containing XHTML, CSS, and an OPF manifest. No rendering engine needed.
 - `JSZip` is proven in Cloudflare Workers (community examples using it with R2)
 - Build OPF, NCX (nav), and per-chapter XHTML from the same HTML source
@@ -62,6 +65,7 @@ Use Cloudflare's Browser Rendering `/pdf` REST API endpoint to render HTML+CSS i
 Use an external API that runs Prince XML (DocRaptor) or WeasyPrint for PDF generation. Build EPUB in-Worker as in Option A.
 
 **DocRaptor (Prince XML under the hood):**
+
 - Best CSS paged media engine available. Full `@page` margin boxes, running headers, proper widows/orphans, OpenType features.
 - No document size limit. Book-length manuscripts handled.
 - Pricing: $15/month for 125 documents, $0.12/document overage. Unlimited free watermarked test documents.
@@ -73,6 +77,7 @@ Use an external API that runs Prince XML (DocRaptor) or WeasyPrint for PDF gener
 Generate PDF in the user's browser rather than on the server.
 
 **`window.print()` / Save as PDF:**
+
 - Uses the browser's native print engine. iPad Safari supports "Save as PDF" from the share sheet.
 - Print stylesheet approach: inject `@media print` CSS with book layout.
 - Quality varies dramatically by browser and OS version. iPad Safari's print output is not configurable (no custom page size, limited CSS paged media support).
@@ -80,6 +85,7 @@ Generate PDF in the user's browser rather than on the server.
 - Cannot produce consistent, professional output across devices.
 
 **jsPDF / html2pdf.js:**
+
 - Canvas-based rendering with severe quality issues for book-length documents.
 - HTML5 canvas max height limit causes blank PDFs for long content.
 - CSS fidelity problems: ignores external stylesheets, struggles with complex layouts.
@@ -200,7 +206,7 @@ A single HTML+CSS template drives both PDF and EPUB output. The template produce
 }
 
 body {
-  font-family: 'Georgia', 'Times New Roman', serif;
+  font-family: "Georgia", "Times New Roman", serif;
   font-size: 11pt;
   line-height: 1.5;
   color: #1a1a1a;
@@ -226,7 +232,9 @@ p {
 }
 
 p:first-of-type,
-h1 + p, h2 + p, h3 + p,
+h1 + p,
+h2 + p,
+h3 + p,
 blockquote + p {
   text-indent: 0;
 }
