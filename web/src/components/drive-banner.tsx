@@ -10,6 +10,8 @@ interface DriveBannerProps {
   email?: string;
   /** Whether banner can be dismissed */
   dismissible?: boolean;
+  /** Optional custom connect handler (uses default OAuth flow if not provided) */
+  onConnect?: () => void | Promise<void>;
 }
 
 /**
@@ -25,7 +27,7 @@ interface DriveBannerProps {
  * - "Maybe later" option available
  * - When not connected, persistent indicator shows degraded state
  */
-export function DriveBanner({ connected, email, dismissible = true }: DriveBannerProps) {
+export function DriveBanner({ connected, email, dismissible = true, onConnect }: DriveBannerProps) {
   const { getToken } = useAuth();
   const [isDismissed, setIsDismissed] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -57,7 +59,7 @@ export function DriveBanner({ connected, email, dismissible = true }: DriveBanne
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-green-800">Google Drive connected</p>
+            <p className="text-sm font-medium text-green-800">Connected to Google Drive</p>
             {email && <p className="text-sm text-green-700 truncate">Connected as {email}</p>}
           </div>
 
@@ -77,6 +79,11 @@ export function DriveBanner({ connected, email, dismissible = true }: DriveBanne
 
   // Not connected state - show warning banner
   async function handleConnect() {
+    if (onConnect) {
+      await onConnect();
+      return;
+    }
+
     setIsConnecting(true);
     try {
       const token = await getToken();
@@ -129,9 +136,7 @@ export function DriveBanner({ connected, email, dismissible = true }: DriveBanne
         </div>
 
         <div className="flex-1">
-          <p className="text-sm font-medium text-amber-800">
-            Connect your Google Drive to keep your book safe
-          </p>
+          <p className="text-sm font-medium text-amber-800">Not connected to Google Drive</p>
           <p className="text-sm text-amber-700 mt-1">
             Your work is saved on this device only. Connect Drive to save your chapters in your own
             cloud account.
