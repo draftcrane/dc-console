@@ -93,17 +93,9 @@ export function useAIRewrite({ getToken, apiUrl }: UseAIRewriteOptions): UseAIRe
   );
 
   const handleRetry = useCallback(
-    async (result: AIRewriteResult, ...[]: [instruction: string]) => {
+    async (result: AIRewriteResult, _instruction: string) => {
       setIsRetrying(true);
-
-      // Log rejection for the current attempt
       logInteraction(result.interactionId, "reject");
-
-      // The actual retry request is handled by the parent component
-      // (US-017 rewrite flow). The parent should call showResult() with the
-      // new result when the AI responds, which will reset isRetrying.
-      // The instruction parameter is passed through to the parent's onRetry
-      // callback so it can send the updated instruction to the AI.
     },
     [logInteraction],
   );

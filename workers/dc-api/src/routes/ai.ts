@@ -66,6 +66,7 @@ ai.post("/rewrite", async (c) => {
     chapterTitle: body.chapterTitle ?? "",
     projectDescription: body.projectDescription ?? "",
     chapterId: body.chapterId ?? "",
+    parentInteractionId: body.parentInteractionId,
   };
 
   const validationErr = service.validateInput(input);

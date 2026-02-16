@@ -28,6 +28,8 @@ export interface RewriteInput {
   projectDescription: string;
   /** Chapter ID for logging */
   chapterId: string;
+  /** Parent interaction ID for retry chains (links retries to original request) */
+  parentInteractionId?: string;
 }
 
 export interface RewriteStreamResult {
@@ -150,11 +152,25 @@ export class AIRewriteService {
     const interactionId = ulid();
     const startTime = Date.now();
 
+    // Compute attempt number: if this is a retry, count prior attempts in the chain
+    let attemptNumber = 1;
+    const parentId = input.parentInteractionId ?? null;
+    if (parentId) {
+      const row = await this.db
+        .prepare(
+          `SELECT COUNT(*) as count FROM ai_interactions
+           WHERE (id = ? OR parent_interaction_id = ?) AND user_id = ?`,
+        )
+        .bind(parentId, parentId, userId)
+        .first<{ count: number }>();
+      attemptNumber = (row?.count ?? 0) + 1;
+    }
+
     // Record the interaction start (output_chars and latency_ms will be updated)
     await this.db
       .prepare(
-        `INSERT INTO ai_interactions (id, user_id, chapter_id, action, instruction, input_chars, output_chars, model, latency_ms, attempt_number, created_at)
-         VALUES (?, ?, ?, 'rewrite', ?, ?, 0, ?, 0, 1, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))`,
+        `INSERT INTO ai_interactions (id, user_id, chapter_id, action, instruction, input_chars, output_chars, model, latency_ms, attempt_number, parent_interaction_id, created_at)
+         VALUES (?, ?, ?, 'rewrite', ?, ?, 0, ?, 0, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))`,
       )
       .bind(
         interactionId,
@@ -163,6 +179,8 @@ export class AIRewriteService {
         input.instruction.slice(0, 500),
         input.selectedText.length,
         this.aiProvider.model,
+        attemptNumber,
+        parentId,
       )
       .run();
 

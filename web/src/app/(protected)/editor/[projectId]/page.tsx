@@ -116,11 +116,13 @@ export default function EditorPage() {
   // AI rewrite state
   const [hasTextSelection, setHasTextSelection] = useState(false);
   const [isStreamingRewrite, setIsStreamingRewrite] = useState(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const rewriteContextRef = useRef<{
     selectedText: string;
     contextBefore: string;
     contextAfter: string;
+    firstInteractionId?: string;
   } | null>(null);
 
   // Fetch project data and drive status
@@ -311,6 +313,7 @@ export default function EditorPage() {
       contextBefore: string,
       contextAfter: string,
       attemptNumber: number,
+      parentInteractionId?: string,
     ) => {
       abortControllerRef.current?.abort();
       const abortController = new AbortController();
@@ -336,12 +339,20 @@ export default function EditorPage() {
             chapterTitle: activeChapter?.title || "",
             projectDescription: projectData?.project.description || "",
             chapterId: activeChapterId || "",
+            parentInteractionId,
           }),
           signal: abortController.signal,
         });
 
         if (!response.ok) {
-          console.error("AI rewrite request failed:", response.status);
+          if (response.status === 429) {
+            const body = await response.json().catch(() => null);
+            const msg =
+              (body as { message?: string } | null)?.message ||
+              "You've used AI rewrite frequently. Please wait a moment.";
+            setRateLimitMessage(msg);
+            setTimeout(() => setRateLimitMessage(null), 5000);
+          }
           setIsStreamingRewrite(false);
           return;
         }
@@ -393,8 +404,15 @@ export default function EditorPage() {
         }
 
         if (streamedText) {
+          const resultId = interactionId || crypto.randomUUID();
+
+          // Track the first interaction ID for retry chains
+          if (attemptNumber === 1 && rewriteContextRef.current) {
+            rewriteContextRef.current.firstInteractionId = resultId;
+          }
+
           const result: AIRewriteResult = {
-            interactionId: interactionId || crypto.randomUUID(),
+            interactionId: resultId,
             originalText: selectedText,
             rewriteText: streamedText,
             instruction,
@@ -467,6 +485,7 @@ export default function EditorPage() {
           ctx.contextBefore,
           ctx.contextAfter,
           result.attemptNumber + 1,
+          ctx.firstInteractionId,
         );
       }
     },
@@ -664,6 +683,15 @@ export default function EditorPage() {
               onRewrite={handleOpenAiRewrite}
               onSelectionChange={handleSelectionChange}
             />
+
+            {rateLimitMessage && (
+              <div
+                role="alert"
+                className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800"
+              >
+                {rateLimitMessage}
+              </div>
+            )}
 
             <div className="mt-4 flex items-center justify-between">
               <div className="h-9">

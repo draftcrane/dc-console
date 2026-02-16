@@ -21,6 +21,7 @@ export interface AIInteraction {
   latencyMs: number;
   accepted: boolean | null;
   attemptNumber: number;
+  parentInteractionId: string | null;
   createdAt: string;
 }
 
@@ -36,6 +37,7 @@ interface AIInteractionRow {
   latency_ms: number;
   accepted: number | null;
   attempt_number: number;
+  parent_interaction_id: string | null;
   created_at: string;
 }
 
@@ -51,7 +53,7 @@ export class AIInteractionService {
     const interaction = await this.db
       .prepare(
         `SELECT id, user_id, chapter_id, action, instruction, input_chars, output_chars,
-                model, latency_ms, accepted, attempt_number, created_at
+                model, latency_ms, accepted, attempt_number, parent_interaction_id, created_at
          FROM ai_interactions
          WHERE id = ? AND user_id = ?`,
       )
@@ -80,7 +82,7 @@ export class AIInteractionService {
     const interaction = await this.db
       .prepare(
         `SELECT id, user_id, chapter_id, action, instruction, input_chars, output_chars,
-                model, latency_ms, accepted, attempt_number, created_at
+                model, latency_ms, accepted, attempt_number, parent_interaction_id, created_at
          FROM ai_interactions
          WHERE id = ? AND user_id = ?`,
       )
@@ -113,6 +115,7 @@ export class AIInteractionService {
       latencyMs: row.latency_ms,
       accepted: row.accepted === null ? null : row.accepted === 1,
       attemptNumber: row.attempt_number,
+      parentInteractionId: row.parent_interaction_id,
       createdAt: row.created_at,
     };
   }
