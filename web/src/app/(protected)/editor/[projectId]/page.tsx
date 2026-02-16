@@ -5,9 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Sidebar, SidebarOverlay, type ChapterData } from "@/components/sidebar";
 import { DriveBanner } from "@/components/drive-banner";
-import { ChapterEditor } from "@/components/chapter-editor";
-import { AIRewriteSheet } from "@/components/ai-rewrite-sheet";
-import type { Editor } from "@tiptap/react";
+import { ChapterEditor, type ChapterEditorHandle } from "@/components/chapter-editor";
+import { AIRewriteSheet, type AIRewriteResult } from "@/components/ai-rewrite-sheet";
+import { useAIRewrite } from "@/hooks/use-ai-rewrite";
 
 interface Project {
   id: string;
@@ -37,27 +37,12 @@ interface ProjectData {
   chapters: Chapter[];
 }
 
-/**
- * Writing Environment Page
- *
- * Per PRD Section 9 (Writing Environment Layout):
- * Three zones:
- * 1. Sidebar with chapter list, word counts, "+" button, total word count
- * 2. Editor with clean writing area, editable chapter title
- * 3. Toolbar with minimal formatting, save status, Export, Settings
- *
- * Per PRD Section 14 (iPad-First Design):
- * - Sidebar responsive: persistent in landscape (240-280pt), hidden in portrait with "Ch X" pill
- * - Touch targets 44x44pt minimum
- * - Uses 100dvh for viewport height
- *
- * Note: Editor area is a placeholder pending ADR-001 (editor library) decision.
- */
 export default function EditorPage() {
   const params = useParams();
   const router = useRouter();
   const { getToken } = useAuth();
   const projectId = params.projectId as string;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
@@ -67,33 +52,37 @@ export default function EditorPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOverlayOpen, setMobileOverlayOpen] = useState(false);
 
-  // Editor state
+  const editorRef = useRef<ChapterEditorHandle>(null);
+
+  const aiRewrite = useAIRewrite({
+    getToken,
+    apiUrl,
+  });
+
   const [chapterContent, setChapterContent] = useState<Record<string, string>>({});
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
 
-  // AI Rewrite state
-  const [aiRewriteOpen, setAiRewriteOpen] = useState(false);
-  const [aiRewriteKey, setAiRewriteKey] = useState(0);
-  const [selectedText, setSelectedText] = useState("");
-  const [contextBefore, setContextBefore] = useState("");
-  const [contextAfter, setContextAfter] = useState("");
   const [hasTextSelection, setHasTextSelection] = useState(false);
-  const editorRef = useRef<Editor | null>(null);
+  const [isStreamingRewrite, setIsStreamingRewrite] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const rewriteContextRef = useRef<{
+    selectedText: string;
+    contextBefore: string;
+    contextAfter: string;
+  } | null>(null);
 
-  // Fetch project data and drive status
   useEffect(() => {
     async function fetchData() {
       try {
         const token = await getToken();
 
-        // Fetch project and user data in parallel
         const [projectResponse, userResponse] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/projects/${projectId}`, {
+          fetch(`${apiUrl}/projects/${projectId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
+          fetch(`${apiUrl}/users/me`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -109,13 +98,11 @@ export default function EditorPage() {
         const data: ProjectData = await projectResponse.json();
         setProjectData(data);
 
-        // Set active chapter to first one if not already set
         if (data.chapters.length > 0 && !activeChapterId) {
           const sortedChapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
           setActiveChapterId(sortedChapters[0].id);
         }
 
-        // Set drive status if user data loaded successfully
         if (userResponse.ok) {
           const userData = await userResponse.json();
           setDriveStatus(userData.drive);
@@ -128,25 +115,28 @@ export default function EditorPage() {
     }
 
     fetchData();
-  }, [projectId, getToken, router, activeChapterId]);
+  }, [projectId, getToken, router, activeChapterId, apiUrl]);
 
-  // Get active chapter (needed early for handlers)
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const activeChapter = projectData?.chapters.find((ch) => ch.id === activeChapterId);
 
-  // Handle chapter selection
   const handleChapterSelect = useCallback((chapterId: string) => {
     setActiveChapterId(chapterId);
     setMobileOverlayOpen(false);
   }, []);
 
-  // Handle add chapter
   const handleAddChapter = useCallback(async () => {
     if (!projectData) return;
 
     try {
       const token = await getToken();
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/projects/${projectId}/chapters`,
+        `${apiUrl}/projects/${projectId}/chapters`,
         {
           method: "POST",
           headers: {
@@ -165,7 +155,6 @@ export default function EditorPage() {
 
       const newChapter: Chapter = await response.json();
 
-      // Update local state
       setProjectData((prev) => {
         if (!prev) return prev;
         return {
@@ -174,14 +163,12 @@ export default function EditorPage() {
         };
       });
 
-      // Select the new chapter
       setActiveChapterId(newChapter.id);
     } catch (err) {
       console.error("Failed to add chapter:", err);
     }
-  }, [projectData, projectId, getToken]);
+  }, [projectData, projectId, getToken, apiUrl]);
 
-  // Handle content changes
   const handleContentUpdate = useCallback(
     (html: string) => {
       if (!activeChapterId) return;
@@ -191,15 +178,12 @@ export default function EditorPage() {
     [activeChapterId],
   );
 
-  // Handle save (placeholder - real implementation in US-015)
   const handleSave = useCallback(() => {
     setSaveStatus("saving");
-    // TODO: Implement actual save to Drive/R2 in US-015
     console.log("Save triggered for chapter:", activeChapterId);
     setTimeout(() => setSaveStatus("saved"), 500);
   }, [activeChapterId]);
 
-  // Handle chapter title update
   const handleTitleSave = useCallback(async () => {
     if (!activeChapterId || !titleValue.trim()) {
       setEditingTitle(false);
@@ -209,7 +193,7 @@ export default function EditorPage() {
     try {
       const token = await getToken();
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/chapters/${activeChapterId}`,
+        `${apiUrl}/chapters/${activeChapterId}`,
         {
           method: "PATCH",
           headers: {
@@ -221,7 +205,6 @@ export default function EditorPage() {
       );
 
       if (response.ok) {
-        // Update local state
         setProjectData((prev) => {
           if (!prev) return prev;
           return {
@@ -237,9 +220,8 @@ export default function EditorPage() {
     } finally {
       setEditingTitle(false);
     }
-  }, [activeChapterId, titleValue, getToken]);
+  }, [activeChapterId, titleValue, getToken, apiUrl]);
 
-  // Start editing title
   const handleTitleEdit = useCallback(() => {
     if (activeChapter) {
       setTitleValue(activeChapter.title);
@@ -247,7 +229,183 @@ export default function EditorPage() {
     }
   }, [activeChapter]);
 
-  // Count words in HTML content
+  const requestRewrite = useCallback(
+    async (
+      selectedText: string,
+      instruction: string,
+      contextBefore: string,
+      contextAfter: string,
+      attemptNumber: number,
+    ) => {
+      abortControllerRef.current?.abort();
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
+      setIsStreamingRewrite(true);
+
+      try {
+        const token = await getToken();
+        if (!token) return;
+
+        const response = await fetch(`${apiUrl}/ai/rewrite`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            selectedText,
+            instruction,
+            contextBefore,
+            contextAfter,
+            chapterTitle: activeChapter?.title || "",
+            projectDescription: projectData?.project.description || "",
+            chapterId: activeChapterId || "",
+          }),
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          console.error("AI rewrite request failed:", response.status);
+          setIsStreamingRewrite(false);
+          return;
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          setIsStreamingRewrite(false);
+          return;
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let streamedText = "";
+        let interactionId = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6).trim();
+              if (!data) continue;
+
+              try {
+                const event = JSON.parse(data) as {
+                  type: string;
+                  text?: string;
+                  message?: string;
+                  interactionId?: string;
+                };
+
+                if (event.type === "token" && event.text) {
+                  streamedText += event.text;
+                }
+
+                if (event.type === "done" && event.interactionId) {
+                  interactionId = event.interactionId;
+                }
+              } catch {
+                // Skip malformed JSON
+              }
+            }
+          }
+        }
+
+        if (streamedText) {
+          const result: AIRewriteResult = {
+            interactionId: interactionId || crypto.randomUUID(),
+            originalText: selectedText,
+            rewriteText: streamedText,
+            instruction,
+            attemptNumber,
+          };
+          aiRewrite.showResult(result);
+        }
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        console.error("AI rewrite streaming error:", err);
+      } finally {
+        setIsStreamingRewrite(false);
+      }
+    },
+    [getToken, apiUrl, activeChapter, projectData, activeChapterId, aiRewrite],
+  );
+
+  const handleSelectionChange = useCallback((hasSelection: boolean) => {
+    setHasTextSelection(hasSelection);
+  }, []);
+
+  const handleOpenAiRewrite = useCallback(() => {
+    const editor = editorRef.current?.getEditor();
+    if (!editor) return;
+
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+
+    const selected = editor.state.doc.textBetween(from, to, "\n");
+    if (!selected.trim()) return;
+
+    const textBeforeSelection = editor.state.doc.textBetween(0, from, "\n");
+    const before = textBeforeSelection.slice(-500);
+
+    const docLength = editor.state.doc.content.size;
+    const textAfterSelection = editor.state.doc.textBetween(to, docLength, "\n");
+    const after = textAfterSelection.slice(0, 500);
+
+    rewriteContextRef.current = {
+      selectedText: selected,
+      contextBefore: before,
+      contextAfter: after,
+    };
+
+    requestRewrite(selected, "Improve this text", before, after, 1);
+  }, [requestRewrite]);
+
+  const handleAIAccept = useCallback(
+    async (result: AIRewriteResult) => {
+      const accepted = await aiRewrite.handleAccept(result);
+
+      if (editorRef.current) {
+        editorRef.current.replaceText(accepted.originalText, accepted.rewriteText);
+      }
+
+      rewriteContextRef.current = null;
+    },
+    [aiRewrite],
+  );
+
+  const handleAIRetry = useCallback(
+    async (result: AIRewriteResult, instruction: string) => {
+      await aiRewrite.handleRetry(result, instruction);
+
+      const ctx = rewriteContextRef.current;
+      if (ctx) {
+        requestRewrite(
+          ctx.selectedText,
+          instruction,
+          ctx.contextBefore,
+          ctx.contextAfter,
+          result.attemptNumber + 1,
+        );
+      }
+    },
+    [aiRewrite, requestRewrite],
+  );
+
+  const handleAIDiscard = useCallback(
+    async (result: AIRewriteResult) => {
+      await aiRewrite.handleDiscard(result);
+      rewriteContextRef.current = null;
+    },
+    [aiRewrite],
+  );
+
   const countWords = useCallback((html: string): number => {
     const text = html
       .replace(/<[^>]*>/g, " ")
@@ -256,70 +414,11 @@ export default function EditorPage() {
     return text ? text.split(" ").length : 0;
   }, []);
 
-  // Handle editor ref for AI rewrite text selection
-  const handleEditorReady = useCallback((editor: Editor) => {
-    editorRef.current = editor;
-  }, []);
-
-  // Track text selection changes in the editor
-  const handleSelectionChange = useCallback((hasSelection: boolean) => {
-    setHasTextSelection(hasSelection);
-  }, []);
-
-  /**
-   * Extract selected text with surrounding context for AI rewrite
-   * Per PRD US-017: 500 chars surrounding context (each side)
-   */
-  const handleOpenAiRewrite = useCallback(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    const { from, to } = editor.state.selection;
-    if (from === to) return; // No selection
-
-    // Get the selected text (plain text)
-    const selected = editor.state.doc.textBetween(from, to, "\n");
-    if (!selected.trim()) return;
-
-    // Get text before selection start (up to 500 chars)
-    const textBeforeSelection = editor.state.doc.textBetween(0, from, "\n");
-    const before = textBeforeSelection.slice(-500);
-
-    // Get text after selection end (up to 500 chars)
-    const docLength = editor.state.doc.content.size;
-    const textAfterSelection = editor.state.doc.textBetween(to, docLength, "\n");
-    const after = textAfterSelection.slice(0, 500);
-
-    setSelectedText(selected);
-    setContextBefore(before);
-    setContextAfter(after);
-    setAiRewriteKey((k) => k + 1); // Force re-mount to reset internal state
-    setAiRewriteOpen(true);
-  }, []);
-
-  /**
-   * Handle accepting a rewrite from the AI sheet
-   * Replaces the current selection in the editor with the new text
-   */
-  const handleAcceptRewrite = useCallback((newText: string) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-
-    const { from, to } = editor.state.selection;
-    if (from === to) return;
-
-    // Replace the selected text with the rewrite
-    editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, newText).run();
-  }, []);
-
-  // Get current content for active chapter
   const currentContent = activeChapterId ? chapterContent[activeChapterId] || "" : "";
   const currentWordCount = countWords(currentContent);
 
-  // Calculate total word count
   const totalWordCount = projectData?.chapters.reduce((sum, ch) => sum + ch.wordCount, 0) ?? 0;
 
-  // Convert chapters to sidebar format
   const sidebarChapters: ChapterData[] =
     projectData?.chapters.map((ch) => ({
       id: ch.id,
@@ -354,7 +453,6 @@ export default function EditorPage() {
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)]">
-      {/* Desktop Sidebar - hidden on mobile */}
       <div className="hidden lg:block">
         <Sidebar
           chapters={sidebarChapters}
@@ -367,7 +465,6 @@ export default function EditorPage() {
         />
       </div>
 
-      {/* Mobile Sidebar - collapsed pill on small screens */}
       <div className="lg:hidden">
         <Sidebar
           chapters={sidebarChapters}
@@ -379,7 +476,6 @@ export default function EditorPage() {
           onToggleCollapsed={() => setMobileOverlayOpen(true)}
         />
 
-        {/* Mobile overlay sidebar */}
         <SidebarOverlay isOpen={mobileOverlayOpen} onClose={() => setMobileOverlayOpen(false)}>
           <Sidebar
             chapters={sidebarChapters}
@@ -393,20 +489,15 @@ export default function EditorPage() {
         </SidebarOverlay>
       </div>
 
-      {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Toolbar */}
         <div className="flex items-center justify-between h-12 px-4 border-b border-border bg-background shrink-0">
-          {/* Project title / switcher */}
           <div className="flex items-center gap-2 min-w-0">
             <h2 className="text-sm font-medium text-foreground truncate">
               {projectData?.project.title}
             </h2>
           </div>
 
-          {/* Toolbar actions */}
           <div className="flex items-center gap-2">
-            {/* Save status */}
             <span
               className={`text-xs ${saveStatus === "unsaved" ? "text-amber-600" : "text-muted-foreground"}`}
             >
@@ -417,7 +508,6 @@ export default function EditorPage() {
                   : "Saved"}
             </span>
 
-            {/* Export button */}
             <button
               className="h-9 px-3 text-sm rounded-lg hover:bg-gray-100 transition-colors min-w-[44px]"
               aria-label="Export"
@@ -425,7 +515,6 @@ export default function EditorPage() {
               Export
             </button>
 
-            {/* Settings button */}
             <button
               className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Settings"
@@ -453,17 +542,14 @@ export default function EditorPage() {
           </div>
         </div>
 
-        {/* Editor area */}
         <div className="flex-1 overflow-auto">
           <div className="max-w-3xl mx-auto px-6 py-8">
-            {/* Drive connection banner - contextual, not blocking */}
             {driveStatus && !driveStatus.connected && (
               <div className="mb-6">
                 <DriveBanner connected={false} dismissible={true} />
               </div>
             )}
 
-            {/* Chapter title - editable via double-click */}
             {editingTitle ? (
               <input
                 type="text"
@@ -490,20 +576,18 @@ export default function EditorPage() {
               </h1>
             )}
 
-            {/* Rich Text Editor */}
             <ChapterEditor
+              ref={editorRef}
               content={currentContent}
               onUpdate={handleContentUpdate}
               onSave={handleSave}
-              onEditorReady={handleEditorReady}
+              onRewrite={handleOpenAiRewrite}
               onSelectionChange={handleSelectionChange}
             />
 
-            {/* Word count display */}
             <div className="mt-4 flex items-center justify-between">
-              {/* AI Rewrite button - visible when text is selected */}
               <div className="h-9">
-                {hasTextSelection && (
+                {hasTextSelection && !isStreamingRewrite && (
                   <button
                     onClick={handleOpenAiRewrite}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
@@ -522,6 +606,15 @@ export default function EditorPage() {
                     AI Rewrite
                   </button>
                 )}
+                {isStreamingRewrite && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Rewriting...
+                  </div>
+                )}
               </div>
 
               <span className="text-sm text-muted-foreground tabular-nums">
@@ -532,20 +625,13 @@ export default function EditorPage() {
         </div>
       </div>
 
-      {/* AI Rewrite Bottom Sheet */}
       <AIRewriteSheet
-        key={aiRewriteKey}
-        isOpen={aiRewriteOpen}
-        onClose={() => setAiRewriteOpen(false)}
-        selectedText={selectedText}
-        contextBefore={contextBefore}
-        contextAfter={contextAfter}
-        chapterTitle={activeChapter?.title || ""}
-        projectDescription={projectData?.project.description || ""}
-        chapterId={activeChapterId || ""}
-        getToken={getToken}
-        onAcceptRewrite={handleAcceptRewrite}
-        apiUrl={process.env.NEXT_PUBLIC_API_URL || ""}
+        isOpen={aiRewrite.isSheetOpen}
+        result={aiRewrite.currentResult}
+        isRetrying={aiRewrite.isRetrying || isStreamingRewrite}
+        onAccept={handleAIAccept}
+        onRetry={handleAIRetry}
+        onDiscard={handleAIDiscard}
       />
     </div>
   );

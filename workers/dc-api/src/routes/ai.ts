@@ -3,6 +3,7 @@ import type { Env } from "../types/index.js";
 import { requireAuth } from "../middleware/auth.js";
 import { validationError, rateLimited } from "../middleware/error-handler.js";
 import { AIRewriteService, type RewriteInput } from "../services/ai-rewrite.js";
+import { AIInteractionService } from "../services/ai-interaction.js";
 
 /**
  * AI API routes
@@ -14,6 +15,10 @@ import { AIRewriteService, type RewriteInput } from "../services/ai-rewrite.js";
  * - Sends selected text + instruction + context
  * - Response streams via SSE
  * - Rate limit: 10 req/min/user
+ *
+ * Per PRD US-018:
+ * - POST /ai/interactions/:id/accept - Record acceptance of AI rewrite result
+ * - POST /ai/interactions/:id/reject - Record rejection of AI rewrite result
  */
 const ai = new Hono<{ Bindings: Env }>();
 
@@ -78,6 +83,36 @@ ai.post("/rewrite", async (c) => {
       "X-RateLimit-Remaining": String(remaining),
     },
   });
+});
+
+/**
+ * POST /ai/interactions/:id/accept
+ * Record that the user accepted the AI rewrite result.
+ * Updates the interaction metadata (accepted = true).
+ */
+ai.post("/interactions/:id/accept", async (c) => {
+  const { userId } = c.get("auth");
+  const interactionId = c.req.param("id");
+
+  const service = new AIInteractionService(c.env.DB);
+  const interaction = await service.acceptInteraction(userId, interactionId);
+
+  return c.json(interaction);
+});
+
+/**
+ * POST /ai/interactions/:id/reject
+ * Record that the user rejected/discarded the AI rewrite result.
+ * Updates the interaction metadata (accepted = false).
+ */
+ai.post("/interactions/:id/reject", async (c) => {
+  const { userId } = c.get("auth");
+  const interactionId = c.req.param("id");
+
+  const service = new AIInteractionService(c.env.DB);
+  const interaction = await service.rejectInteraction(userId, interactionId);
+
+  return c.json(interaction);
 });
 
 export { ai };
