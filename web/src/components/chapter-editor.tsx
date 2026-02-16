@@ -3,7 +3,9 @@
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
+import { useTextSelection } from "@/hooks/use-text-selection";
+import { FloatingActionBar } from "@/components/floating-action-bar";
 
 interface ChapterEditorProps {
   /** Initial content (HTML string) */
@@ -12,6 +14,8 @@ interface ChapterEditorProps {
   onUpdate?: (html: string) => void;
   /** Callback for Cmd+S save shortcut */
   onSave?: () => void;
+  /** Callback when AI Rewrite is triggered on selected text */
+  onRewrite?: (selectedText: string) => void;
   /** Placeholder text */
   placeholder?: string;
   /** Whether editor is editable */
@@ -34,9 +38,11 @@ export function ChapterEditor({
   content = "",
   onUpdate,
   onSave,
+  onRewrite,
   placeholder = "Start writing, or paste your existing notes here...",
   editable = true,
 }: ChapterEditorProps) {
+  const editorContainerRef = useRef<HTMLDivElement>(null);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -70,6 +76,9 @@ export function ChapterEditor({
       onUpdate?.(editor.getHTML());
     },
   });
+
+  // Track text selection for floating action bar (200ms delay per US-016)
+  const textSelection = useTextSelection(editor, editorContainerRef, 200);
 
   // Handle Cmd+S for save
   useEffect(() => {
@@ -110,7 +119,7 @@ export function ChapterEditor({
   }
 
   return (
-    <div className="chapter-editor">
+    <div className="chapter-editor relative" ref={editorContainerRef}>
       {/* Formatting Toolbar */}
       <EditorToolbar editor={editor} />
 
@@ -127,6 +136,9 @@ export function ChapterEditor({
                    [&_.is-editor-empty]:before:pointer-events-none
                    [&_.is-editor-empty]:before:h-0"
       />
+
+      {/* Floating Action Bar for AI Rewrite (US-016) */}
+      <FloatingActionBar selection={textSelection} onRewrite={onRewrite} />
 
       {/* Editor Styles */}
       <style jsx global>{`
