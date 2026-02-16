@@ -77,6 +77,16 @@ export default function EditorPage() {
   // Drive connection status (US-005)
   const { status: driveStatus, connect: connectDrive } = useDriveStatus();
 
+  /**
+   * Connect Drive with project context (US-006).
+   * Stores the project ID in sessionStorage so the Drive success page
+   * can auto-create the book folder after OAuth completes.
+   */
+  const connectDriveWithProject = useCallback(() => {
+    sessionStorage.setItem("dc_pending_drive_project", projectId);
+    connectDrive();
+  }, [projectId, connectDrive]);
+
   // AI rewrite hook
   const aiRewrite = useAIRewrite({
     getToken,
@@ -605,7 +615,7 @@ export default function EditorPage() {
               <DriveStatusIndicator
                 connected={driveStatus.connected}
                 email={driveStatus.email}
-                onConnect={connectDrive}
+                onConnect={connectDriveWithProject}
               />
             )}
 
@@ -653,7 +663,11 @@ export default function EditorPage() {
             {/* Drive connection banner - contextual, not blocking (US-005) */}
             {driveStatus && !driveStatus.connected && (
               <div className="mb-6">
-                <DriveBanner connected={false} dismissible={true} onConnect={connectDrive} />
+                <DriveBanner
+                  connected={false}
+                  dismissible={true}
+                  onConnect={connectDriveWithProject}
+                />
               </div>
             )}
 

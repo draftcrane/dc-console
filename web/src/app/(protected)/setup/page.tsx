@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { DriveBanner } from "@/components/drive-banner";
 import { useDriveStatus } from "@/hooks/use-drive-status";
+import { useDriveFolder } from "@/hooks/use-drive-folder";
 
 /**
  * Book Setup Screen
@@ -19,6 +20,10 @@ import { useDriveStatus } from "@/hooks/use-drive-status";
  * - After project creation, shows "Connect Google Drive" option
  * - "Maybe later" link available - Drive connection is optional
  *
+ * Per PRD Section 8 (US-006):
+ * - After Drive OAuth completes, auto-create folder named after project title
+ * - Store project ID in sessionStorage so Drive success page can create the folder
+ *
  * Per PRD Section 8:
  * - Title max 500 chars
  * - Description max 1000 chars
@@ -27,6 +32,12 @@ export default function SetupPage() {
   const router = useRouter();
   const { getToken } = useAuth();
   const { status: driveStatus, connect: connectDrive } = useDriveStatus();
+  const {
+    createFolder,
+    folder: driveFolder,
+    isCreating: isFolderCreating,
+    error: folderError,
+  } = useDriveFolder();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -69,9 +80,11 @@ export default function SetupPage() {
 
       const project = await response.json();
 
-      // If Drive is already connected, go straight to the editor
+      // If Drive is already connected, auto-create the folder and go to editor
       if (driveStatus?.connected) {
-        router.push(`/editor/${project.id}`);
+        // Fire-and-forget folder creation; redirect immediately
+        createFolder(project.id);
+        setCreatedProjectId(project.id);
         return;
       }
 
@@ -84,8 +97,146 @@ export default function SetupPage() {
     }
   }
 
+  /**
+   * Connect Drive with project context.
+   * Stores the project ID in sessionStorage so the Drive success page
+   * can auto-create the book folder after OAuth completes.
+   */
+  const connectDriveWithProject = useCallback(() => {
+    if (createdProjectId) {
+      sessionStorage.setItem("dc_pending_drive_project", createdProjectId);
+    }
+    connectDrive();
+  }, [createdProjectId, connectDrive]);
+
+  const handleRetryFolderCreation = useCallback(() => {
+    if (createdProjectId) {
+      createFolder(createdProjectId);
+    }
+  }, [createdProjectId, createFolder]);
+
   // Step 2: Drive connection (shown after project creation)
   if (createdProjectId) {
+    // If Drive is already connected, show folder creation status
+    if (driveStatus?.connected) {
+      return (
+        <div className="min-h-dvh flex items-center justify-center p-4 bg-background">
+          <div className="w-full max-w-lg">
+            <div className="text-center mb-8">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                <svg
+                  className="h-6 w-6 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h1 className="text-2xl font-semibold text-foreground mb-2">Book Created</h1>
+            </div>
+
+            {/* Folder creation status */}
+            <div className="mb-6">
+              {isFolderCreating && (
+                <div className="flex items-center justify-center gap-2 text-muted-foreground p-4">
+                  <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  <span>Creating book folder in Drive...</span>
+                </div>
+              )}
+
+              {driveFolder && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 text-green-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-green-800">Book folder created</p>
+                      <p className="text-sm text-green-700 truncate">{driveFolder.name}</p>
+                    </div>
+                  </div>
+                  <a
+                    href={driveFolder.webViewLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-green-700 hover:text-green-900 underline"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      />
+                    </svg>
+                    View in Google Drive
+                  </a>
+                </div>
+              )}
+
+              {folderError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm font-medium text-red-800">Failed to create book folder</p>
+                  <p className="text-sm text-red-700 mt-1">{folderError}</p>
+                  <button
+                    onClick={handleRetryFolderCreation}
+                    className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors min-h-[44px]"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Continue to editor */}
+            {(driveFolder || folderError) && !isFolderCreating && (
+              <div className="text-center">
+                <button
+                  onClick={() => router.push(`/editor/${createdProjectId}`)}
+                  className="inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-6 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                >
+                  Start Writing
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Drive not connected - show connection prompt
     return (
       <div className="min-h-dvh flex items-center justify-center p-4 bg-background">
         <div className="w-full max-w-lg">
@@ -111,13 +262,12 @@ export default function SetupPage() {
             </p>
           </div>
 
-          {/* Drive connection banner */}
+          {/* Drive connection banner - uses project-aware connect handler */}
           <div className="mb-6">
             <DriveBanner
-              connected={driveStatus?.connected ?? false}
-              email={driveStatus?.email}
+              connected={false}
               dismissible={false}
-              onConnect={connectDrive}
+              onConnect={connectDriveWithProject}
             />
           </div>
 
