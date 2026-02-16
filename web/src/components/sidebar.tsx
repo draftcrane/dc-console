@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 /**
  * Chapter data structure
@@ -203,8 +203,21 @@ export function Sidebar({
 }
 
 /**
+ * Focusable element selector for focus management
+ */
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
  * Mobile sidebar overlay component
  * Used when sidebar is shown as overlay in portrait mode
+ *
+ * Accessibility:
+ * - role="dialog" + aria-modal for screen reader announcement
+ * - Escape key closes the overlay
+ * - Focus moves into the panel on open
+ * - Focus returns to the trigger element on close
+ * - Focus is trapped within the dialog while open
  */
 export function SidebarOverlay({
   isOpen,
@@ -215,6 +228,81 @@ export function SidebarOverlay({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<Element | null>(null);
+  const prevIsOpenRef = useRef(false);
+
+  // Focus management: capture trigger, focus first element, return focus on close
+  useEffect(() => {
+    const wasOpen = prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    if (isOpen && !wasOpen) {
+      // Opening: capture the element that triggered the overlay
+      triggerRef.current = document.activeElement;
+
+      // Focus the first focusable element inside the panel
+      if (panelRef.current) {
+        const firstFocusable = panelRef.current.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+        if (firstFocusable) {
+          firstFocusable.focus();
+        }
+      }
+    } else if (!isOpen && wasOpen) {
+      // Closing: return focus to the trigger element
+      const trigger = triggerRef.current;
+      triggerRef.current = null;
+      if (trigger instanceof HTMLElement) {
+        trigger.focus();
+      }
+    }
+  }, [isOpen]);
+
+  // Escape key handler
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Focus trap: keep focus within the dialog
+  const handleFocusTrap = useCallback((event: KeyboardEvent) => {
+    if (event.key !== "Tab" || !panelRef.current) return;
+
+    const focusableElements = panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+    if (focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey) {
+      if (document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      if (document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    document.addEventListener("keydown", handleFocusTrap);
+    return () => document.removeEventListener("keydown", handleFocusTrap);
+  }, [isOpen, handleFocusTrap]);
+
   if (!isOpen) return null;
 
   return (
@@ -223,7 +311,15 @@ export function SidebarOverlay({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
 
       {/* Sidebar container */}
-      <div className="absolute left-0 top-0 bottom-0 w-[280px] max-w-[85vw]">{children}</div>
+      <div
+        ref={panelRef}
+        className="absolute left-0 top-0 bottom-0 w-[280px] max-w-[85vw]"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Chapter navigation"
+      >
+        {children}
+      </div>
     </div>
   );
 }
