@@ -26,6 +26,8 @@ export interface SidebarProps {
   onAddChapter?: () => void;
   /** Total word count across all chapters */
   totalWordCount?: number;
+  /** Real-time word count for the active chapter (overrides stored value) */
+  activeChapterWordCount?: number;
   /** Whether the sidebar is collapsed (for responsive) */
   collapsed?: boolean;
   /** Callback to toggle collapsed state */
@@ -59,10 +61,19 @@ export function Sidebar({
   onChapterSelect,
   onAddChapter,
   totalWordCount = 0,
+  activeChapterWordCount,
   collapsed = false,
   onToggleCollapsed,
 }: SidebarProps) {
   const sortedChapters = [...chapters].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  // Compute the effective total word count using the real-time active chapter word count
+  const effectiveTotalWordCount =
+    activeChapterWordCount !== undefined && activeChapterId
+      ? totalWordCount -
+        (chapters.find((ch) => ch.id === activeChapterId)?.wordCount ?? 0) +
+        activeChapterWordCount
+      : totalWordCount;
 
   // Format word count with comma separators
   const formatWordCount = (count: number): string => {
@@ -124,8 +135,12 @@ export function Sidebar({
 
       {/* Chapter list */}
       <nav className="flex-1 overflow-y-auto py-2" role="list" aria-label="Chapter list">
-        {sortedChapters.map((chapter, index) => {
+        {sortedChapters.map((chapter) => {
           const isActive = chapter.id === activeChapterId;
+          const displayWordCount =
+            isActive && activeChapterWordCount !== undefined
+              ? activeChapterWordCount
+              : chapter.wordCount;
 
           return (
             <button
@@ -141,7 +156,7 @@ export function Sidebar({
                          }`}
               role="listitem"
               aria-current={isActive ? "page" : undefined}
-              aria-label={`${chapter.title}, ${formatWordCount(chapter.wordCount)} words`}
+              aria-label={`${chapter.title}, ${formatWordCount(displayWordCount)} words`}
             >
               <div className="flex-1 min-w-0">
                 <span className="block truncate text-sm font-medium">
@@ -153,7 +168,7 @@ export function Sidebar({
                   isActive ? "text-blue-700 dark:text-blue-300" : "text-muted-foreground"
                 }`}
               >
-                {formatWordCount(chapter.wordCount)}w
+                {formatWordCount(displayWordCount)}w
               </span>
             </button>
           );
@@ -194,7 +209,7 @@ export function Sidebar({
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Total</span>
           <span className="font-medium text-foreground tabular-nums">
-            {formatWordCount(totalWordCount)} words
+            {formatWordCount(effectiveTotalWordCount)} words
           </span>
         </div>
       </div>

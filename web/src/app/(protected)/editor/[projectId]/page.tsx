@@ -113,6 +113,9 @@ export default function EditorPage() {
     saveNowRef.current = saveNow;
   }, [saveNow]);
 
+  // Word count state (US-024)
+  const [selectionWordCount, setSelectionWordCount] = useState(0);
+
   // AI rewrite state
   const [hasTextSelection, setHasTextSelection] = useState(false);
   const [isStreamingRewrite, setIsStreamingRewrite] = useState(false);
@@ -434,6 +437,10 @@ export default function EditorPage() {
     setHasTextSelection(hasSelection);
   }, []);
 
+  const handleSelectionWordCountChange = useCallback((count: number) => {
+    setSelectionWordCount(count);
+  }, []);
+
   const handleOpenAiRewrite = useCallback(() => {
     const editor = editorRef.current?.getEditor();
     if (!editor) return;
@@ -562,6 +569,7 @@ export default function EditorPage() {
           onChapterSelect={handleChapterSelect}
           onAddChapter={handleAddChapter}
           totalWordCount={totalWordCount}
+          activeChapterWordCount={currentWordCount}
           collapsed={sidebarCollapsed}
           onToggleCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
@@ -574,6 +582,7 @@ export default function EditorPage() {
           onChapterSelect={handleChapterSelect}
           onAddChapter={handleAddChapter}
           totalWordCount={totalWordCount}
+          activeChapterWordCount={currentWordCount}
           collapsed={true}
           onToggleCollapsed={() => setMobileOverlayOpen(true)}
         />
@@ -585,6 +594,7 @@ export default function EditorPage() {
             onChapterSelect={handleChapterSelect}
             onAddChapter={handleAddChapter}
             totalWordCount={totalWordCount}
+            activeChapterWordCount={currentWordCount}
             collapsed={false}
             onToggleCollapsed={() => setMobileOverlayOpen(false)}
           />
@@ -689,6 +699,7 @@ export default function EditorPage() {
               onUpdate={handleContentChange}
               onRewrite={handleOpenAiRewrite}
               onSelectionChange={handleSelectionChange}
+              onSelectionWordCountChange={handleSelectionWordCountChange}
             />
 
             {rateLimitMessage && (
@@ -744,7 +755,9 @@ export default function EditorPage() {
               </div>
 
               <span className="text-sm text-muted-foreground tabular-nums">
-                {currentWordCount.toLocaleString()} words
+                {selectionWordCount > 0
+                  ? `${selectionWordCount.toLocaleString()} / ${currentWordCount.toLocaleString()} words`
+                  : `${currentWordCount.toLocaleString()} words`}
               </span>
             </div>
           </div>
