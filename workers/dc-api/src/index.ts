@@ -8,6 +8,7 @@ import { drive } from "./routes/drive.js";
 import { projects } from "./routes/projects.js";
 import { chapters } from "./routes/chapters.js";
 import { ai } from "./routes/ai.js";
+import { exportRoutes } from "./routes/export.js";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -22,6 +23,7 @@ app.route("/users", users);
 app.route("/drive", drive);
 app.route("/projects", projects);
 app.route("/ai", ai);
+app.route("/", exportRoutes);
 app.route("/", chapters);
 
 // 404 fallback

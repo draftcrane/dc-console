@@ -29,7 +29,10 @@ id = "15db632cefe04003a94f1e6e7460c858"
 # GOOGLE_REDIRECT_URI
 # OPENAI_API_KEY
 # ENCRYPTION_KEY
+# CF_ACCOUNT_ID
+# CF_API_TOKEN
 
 [vars]
 FRONTEND_URL = "https://draftcrane.app"
 AI_MODEL = "gpt-4o"
+API_BASE_URL = "https://dc-api.automation-ab6.workers.dev"
