@@ -14,6 +14,7 @@ import { Hono } from "hono";
 import { ulid } from "ulid";
 import type { Env } from "../types/index.js";
 import { requireAuth, validationError, AppError } from "../middleware/index.js";
+import { standardRateLimit } from "../middleware/rate-limit.js";
 import { DriveService } from "../services/drive.js";
 
 const drive = new Hono<{ Bindings: Env }>();
@@ -32,7 +33,7 @@ function driveNotConnected(message = "Google Drive not connected"): never {
  * Returns Google OAuth authorization URL.
  * Per PRD Section 8 (US-005): OAuth with drive.file scope, redirect-based flow only.
  */
-drive.get("/authorize", requireAuth, async (c) => {
+drive.get("/authorize", requireAuth, standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 
@@ -124,7 +125,7 @@ drive.get("/callback", async (c) => {
  * Creates a Book Folder in Google Drive.
  * Per PRD Section 8 (US-006): Auto-creates folder named after project title.
  */
-drive.post("/folders", requireAuth, async (c) => {
+drive.post("/folders", requireAuth, standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 
@@ -164,7 +165,7 @@ drive.post("/folders", requireAuth, async (c) => {
  * Lists DraftCrane-created files in a Book Folder.
  * Per PRD Section 8 (US-007): Read-only listing of DraftCrane-created files.
  */
-drive.get("/folders/:folderId/children", requireAuth, async (c) => {
+drive.get("/folders/:folderId/children", requireAuth, standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const folderId = c.req.param("folderId");
   const driveService = new DriveService(c.env);
@@ -203,7 +204,7 @@ drive.get("/folders/:folderId/children", requireAuth, async (c) => {
  * Disconnects Google Drive - revokes token and deletes from D1.
  * Per PRD Section 8 (US-008): Revokes OAuth token, deletes from D1. Drive files remain untouched.
  */
-drive.delete("/connection", requireAuth, async (c) => {
+drive.delete("/connection", requireAuth, standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 

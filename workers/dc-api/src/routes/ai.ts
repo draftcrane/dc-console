@@ -1,30 +1,19 @@
 import { Hono } from "hono";
 import type { Env } from "../types/index.js";
 import { requireAuth } from "../middleware/auth.js";
-import { validationError, rateLimited } from "../middleware/error-handler.js";
+import { validationError } from "../middleware/error-handler.js";
+import { aiRateLimit } from "../middleware/rate-limit.js";
 import { AIRewriteService, type RewriteInput } from "../services/ai-rewrite.js";
 import { AIInteractionService } from "../services/ai-interaction.js";
 import { OpenAIProvider } from "../services/ai-provider.js";
 
-/**
- * AI API routes
- *
- * Per PRD Section 12:
- * - POST /ai/rewrite - Streams AI rewrite via SSE
- *
- * Per PRD US-017:
- * - Sends selected text + instruction + context
- * - Response streams via SSE
- * - Rate limit: 10 req/min/user
- *
- * Per PRD US-018:
- * - POST /ai/interactions/:id/accept - Record acceptance of AI rewrite result
- * - POST /ai/interactions/:id/reject - Record rejection of AI rewrite result
- */
 const ai = new Hono<{ Bindings: Env }>();
 
 // All AI routes require authentication
 ai.use("*", requireAuth);
+
+// Rate limit: 10 req/min for AI rewrite (applied after auth)
+ai.use("/rewrite", aiRateLimit);
 
 /**
  * POST /ai/rewrite
@@ -47,15 +36,8 @@ ai.post("/rewrite", async (c) => {
   const { userId } = c.get("auth");
 
   const provider = new OpenAIProvider(c.env.OPENAI_API_KEY, c.env.AI_MODEL);
-  const service = new AIRewriteService(c.env.DB, c.env.CACHE, provider);
+  const service = new AIRewriteService(c.env.DB, provider);
 
-  // Check rate limit
-  const { allowed, remaining } = await service.checkRateLimit(userId);
-  if (!allowed) {
-    rateLimited("You've used AI rewrite frequently. Please wait a moment.");
-  }
-
-  // Parse and validate input
   const body = (await c.req.json().catch(() => ({}))) as Partial<RewriteInput>;
 
   const input: RewriteInput = {
@@ -74,16 +56,13 @@ ai.post("/rewrite", async (c) => {
     validationError(validationErr);
   }
 
-  // Stream the rewrite
   const { stream } = await service.streamRewrite(userId, input);
 
-  // Return SSE response
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
-      "X-RateLimit-Remaining": String(remaining),
     },
   });
 });
