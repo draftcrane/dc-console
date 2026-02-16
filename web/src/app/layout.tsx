@@ -22,6 +22,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Per ADR-001: interactive-widget=resizes-content keeps cursor visible
+  // above the virtual keyboard on iPad Safari
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({

@@ -39,17 +39,20 @@ interface ChapterEditorProps {
 }
 
 /**
- * ChapterEditor - Tiptap-based rich text editor
+ * ChapterEditor - Tiptap-based rich text editor for chapter content
  *
  * Per PRD US-011:
  * - Formatting: Bold, Italic, H2, H3, Bulleted list, Numbered list, Block quote
- * - 18px base font, max width ~680-720pt
+ * - 18px base font, max width ~680-720px (CSS pixels, equivalent to pt on iPad)
  * - Keyboard shortcuts: Cmd+B, Cmd+I, Cmd+Z, Cmd+Shift+Z, Cmd+S
  * - Placeholder: "Start writing, or paste your existing notes here..."
  * - Paste from Google Docs preserves supported formatting
+ * - Unsupported formatting silently stripped on paste
+ * - Input latency under 100ms on iPad Safari
+ * - Works with virtual keyboard (cursor visible via visualViewport API)
  *
- * Per ADR-001: Tiptap selected for iPad Safari reliability
- *
+ * Per ADR-001: Tiptap selected for iPad Safari reliability.
+ * Styles are in globals.css under .chapter-editor-content.
  * Ref: Exposes ChapterEditorHandle for programmatic operations (e.g., AI rewrite text replacement)
  */
 export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>(
@@ -85,7 +88,7 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
         attributes: {
           class: "chapter-editor-content outline-none",
         },
-        handlePaste: (view, event) => {
+        handlePaste: (_view, event) => {
           const html = event.clipboardData?.getData("text/html");
           if (html?.includes("docs-internal-guid")) {
             return false;
@@ -93,11 +96,11 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
           return false;
         },
       },
-      onUpdate: ({ editor }) => {
-        onUpdate?.(editor.getHTML());
+      onUpdate: ({ editor: ed }) => {
+        onUpdate?.(ed.getHTML());
       },
-      onSelectionUpdate: ({ editor }) => {
-        const { from, to } = editor.state.selection;
+      onSelectionUpdate: ({ editor: ed }) => {
+        const { from, to } = ed.state.selection;
         onSelectionChange?.(from !== to);
       },
     });
@@ -127,7 +130,7 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
       return () => document.removeEventListener("keydown", handleKeyDown);
     }, [editor, onSave]);
 
-    // Virtual keyboard handling for iPad
+    // Virtual keyboard handling for iPad Safari
     useEffect(() => {
       if (typeof window === "undefined" || !window.visualViewport) return;
 
@@ -221,59 +224,6 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
         />
 
         <FloatingActionBar selection={textSelection} onRewrite={onRewrite} />
-
-        <style jsx global>{`
-          .chapter-editor-content {
-            font-size: 18px;
-            line-height: 1.75;
-          }
-          .chapter-editor-content p {
-            margin-bottom: 1em;
-          }
-          .chapter-editor-content h2 {
-            font-size: 1.5em;
-            font-weight: 600;
-            margin-top: 1.5em;
-            margin-bottom: 0.5em;
-          }
-          .chapter-editor-content h3 {
-            font-size: 1.25em;
-            font-weight: 600;
-            margin-top: 1.25em;
-            margin-bottom: 0.5em;
-          }
-          .chapter-editor-content ul,
-          .chapter-editor-content ol {
-            padding-left: 1.5em;
-            margin-bottom: 1em;
-          }
-          .chapter-editor-content li {
-            margin-bottom: 0.25em;
-          }
-          .chapter-editor-content blockquote {
-            border-left: 3px solid #e5e7eb;
-            padding-left: 1em;
-            margin-left: 0;
-            margin-right: 0;
-            font-style: italic;
-            color: #6b7280;
-          }
-          .chapter-editor-content strong {
-            font-weight: 600;
-          }
-          .chapter-editor-content em {
-            font-style: italic;
-          }
-          .is-editor-empty:first-child::before {
-            content: attr(data-placeholder);
-            color: #9ca3af;
-            pointer-events: none;
-            position: absolute;
-          }
-          .chapter-editor-content:focus {
-            outline: none;
-          }
-        `}</style>
       </div>
     );
   },
@@ -289,7 +239,7 @@ function EditorToolbar({ editor }: { editor: Editor }) {
 
   return (
     <div
-      className="flex items-center gap-1 p-2 mb-4 border border-gray-200 rounded-lg bg-white sticky top-0 z-10"
+      className="flex flex-wrap items-center gap-1 p-2 mb-4 border border-gray-200 rounded-lg bg-white sticky top-0 z-10"
       role="toolbar"
       aria-label="Formatting toolbar"
     >
@@ -301,8 +251,18 @@ function EditorToolbar({ editor }: { editor: Editor }) {
         aria-pressed={editor.isActive("bold")}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"
+          />
         </svg>
       </button>
       <button
@@ -313,7 +273,9 @@ function EditorToolbar({ editor }: { editor: Editor }) {
         aria-pressed={editor.isActive("italic")}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 4h4m-2 0v16m0 0h-4m4 0h4" transform="skewX(-10)" />
+          <line x1="14" y1="4" x2="10" y2="20" strokeWidth={2} />
+          <line x1="10" y1="4" x2="18" y2="4" strokeWidth={2} />
+          <line x1="6" y1="20" x2="14" y2="20" strokeWidth={2} />
         </svg>
       </button>
       <div className="w-px h-6 bg-gray-200 mx-1" aria-hidden="true" />
@@ -344,10 +306,15 @@ function EditorToolbar({ editor }: { editor: Editor }) {
         aria-pressed={editor.isActive("bulletList")}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          <circle cx="2" cy="6" r="1" fill="currentColor" />
-          <circle cx="2" cy="12" r="1" fill="currentColor" />
-          <circle cx="2" cy="18" r="1" fill="currentColor" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 6h13M8 12h13M8 18h13"
+          />
+          <circle cx="3" cy="6" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="3" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none" />
         </svg>
       </button>
       <button
@@ -357,11 +324,23 @@ function EditorToolbar({ editor }: { editor: Editor }) {
         aria-label="Numbered List"
         aria-pressed={editor.isActive("orderedList")}
       >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 6h13M7 12h13M7 18h13" />
-          <text x="2" y="8" fontSize="8" fill="currentColor">1</text>
-          <text x="2" y="14" fontSize="8" fill="currentColor">2</text>
-          <text x="2" y="20" fontSize="8" fill="currentColor">3</text>
+        <svg className="w-5 h-5" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            fill="none"
+            d="M10 6h11M10 12h11M10 18h11"
+          />
+          <text x="2" y="8" fontSize="8" fontWeight="bold" stroke="none" fill="currentColor">
+            1
+          </text>
+          <text x="2" y="14" fontSize="8" fontWeight="bold" stroke="none" fill="currentColor">
+            2
+          </text>
+          <text x="2" y="20" fontSize="8" fontWeight="bold" stroke="none" fill="currentColor">
+            3
+          </text>
         </svg>
       </button>
       <button
@@ -372,7 +351,12 @@ function EditorToolbar({ editor }: { editor: Editor }) {
         aria-pressed={editor.isActive("blockquote")}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 6h4l2 4v8H3V10l2-4zm12 0h4l2 4v8h-6V10l2-4z"
+          />
         </svg>
       </button>
       <div className="w-px h-6 bg-gray-200 mx-1" aria-hidden="true" />
@@ -384,7 +368,12 @@ function EditorToolbar({ editor }: { editor: Editor }) {
         aria-label="Undo"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+          />
         </svg>
       </button>
       <button
@@ -395,7 +384,12 @@ function EditorToolbar({ editor }: { editor: Editor }) {
         aria-label="Redo"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10H11a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M21 10H11a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"
+          />
         </svg>
       </button>
     </div>

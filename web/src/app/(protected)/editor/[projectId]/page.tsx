@@ -37,6 +37,23 @@ interface ProjectData {
   chapters: Chapter[];
 }
 
+/**
+ * Writing Environment Page
+ *
+ * Per PRD Section 9 (Writing Environment Layout):
+ * Three zones:
+ * 1. Sidebar with chapter list, word counts, "+" button, total word count
+ * 2. Editor with clean writing area, editable chapter title
+ * 3. Toolbar with minimal formatting, save status, Export, Settings
+ *
+ * Per PRD Section 14 (iPad-First Design):
+ * - Sidebar responsive: persistent in landscape (240-280pt), hidden in portrait with "Ch X" pill
+ * - Touch targets 44x44pt minimum
+ * - Uses 100dvh for viewport height
+ *
+ * Per US-011: Editor content width constrained to ~680-720px.
+ * Chapter title is editable at the top of the editor via click.
+ */
 export default function EditorPage() {
   const params = useParams();
   const router = useRouter();
@@ -135,19 +152,16 @@ export default function EditorPage() {
 
     try {
       const token = await getToken();
-      const response = await fetch(
-        `${apiUrl}/projects/${projectId}/chapters`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            title: "Untitled Chapter",
-          }),
+      const response = await fetch(`${apiUrl}/projects/${projectId}/chapters`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({
+          title: "Untitled Chapter",
+        }),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to create chapter");
@@ -192,17 +206,14 @@ export default function EditorPage() {
 
     try {
       const token = await getToken();
-      const response = await fetch(
-        `${apiUrl}/chapters/${activeChapterId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ title: titleValue.trim() }),
+      const response = await fetch(`${apiUrl}/chapters/${activeChapterId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+        body: JSON.stringify({ title: titleValue.trim() }),
+      });
 
       if (response.ok) {
         setProjectData((prev) => {
@@ -543,13 +554,15 @@ export default function EditorPage() {
         </div>
 
         <div className="flex-1 overflow-auto">
-          <div className="max-w-3xl mx-auto px-6 py-8">
+          <div className="max-w-[700px] mx-auto px-6 py-8">
+            {/* Drive connection banner - contextual, not blocking */}
             {driveStatus && !driveStatus.connected && (
               <div className="mb-6">
                 <DriveBanner connected={false} dismissible={true} />
               </div>
             )}
 
+            {/* Chapter title - editable at top of editor (US-011) */}
             {editingTitle ? (
               <input
                 type="text"
@@ -569,8 +582,11 @@ export default function EditorPage() {
               <h1
                 className="text-3xl font-semibold text-foreground mb-6 outline-none cursor-text
                            hover:bg-gray-50 rounded px-1 -mx-1 transition-colors"
-                onDoubleClick={handleTitleEdit}
-                title="Double-click to edit"
+                onClick={handleTitleEdit}
+                role="button"
+                tabIndex={0}
+                aria-label={`Edit chapter title: ${activeChapter?.title || "Untitled Chapter"}`}
+                title="Click to edit title"
               >
                 {activeChapter?.title || "Untitled Chapter"}
               </h1>
@@ -609,8 +625,19 @@ export default function EditorPage() {
                 {isStreamingRewrite && (
                   <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600">
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
                     </svg>
                     Rewriting...
                   </div>

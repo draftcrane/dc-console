@@ -89,39 +89,39 @@ Migrations are forward-only and numbered sequentially in `workers/dc-api/migrati
 
 ## Tech Stack
 
-| Layer          | Technology                         | Notes                          |
-| -------------- | ---------------------------------- | ------------------------------ |
-| Frontend       | Next.js 16, React 19, Tailwind CSS | Tiptap editor for writing      |
-| Auth           | Clerk                              | Email + Google OAuth           |
-| Frontend Host  | Vercel                             | draftcrane.app                 |
-| Backend        | Cloudflare Workers (Hono)          | dc-api worker                  |
-| Database       | Cloudflare D1 (dc-main)           | Projects, chapters, metadata   |
-| Object Storage | Cloudflare R2 (dc-exports)        | Export artifacts, image cache  |
-| Cache          | Cloudflare KV (dc-cache)          | Rate limiting, session data    |
-| File Storage   | Google Drive (user's account)      | Canonical manuscript storage   |
-| AI             | Anthropic Claude API               | AI rewrite (claude-sonnet-4)   |
+| Layer          | Technology                         | Notes                         |
+| -------------- | ---------------------------------- | ----------------------------- |
+| Frontend       | Next.js 16, React 19, Tailwind CSS | Tiptap editor for writing     |
+| Auth           | Clerk                              | Email + Google OAuth          |
+| Frontend Host  | Vercel                             | draftcrane.app                |
+| Backend        | Cloudflare Workers (Hono)          | dc-api worker                 |
+| Database       | Cloudflare D1 (dc-main)            | Projects, chapters, metadata  |
+| Object Storage | Cloudflare R2 (dc-exports)         | Export artifacts, image cache |
+| Cache          | Cloudflare KV (dc-cache)           | Rate limiting, session data   |
+| File Storage   | Google Drive (user's account)      | Canonical manuscript storage  |
+| AI             | Anthropic Claude API               | AI rewrite (claude-sonnet-4)  |
 
 ## Cloudflare Resources
 
-| Type | Name       | Binding         |
-| ---- | ---------- | --------------- |
-| D1   | dc-main    | `DB`            |
-| R2   | dc-exports | `EXPORTS_BUCKET`|
-| KV   | dc-cache   | `CACHE`         |
+| Type | Name       | Binding          |
+| ---- | ---------- | ---------------- |
+| D1   | dc-main    | `DB`             |
+| R2   | dc-exports | `EXPORTS_BUCKET` |
+| KV   | dc-cache   | `CACHE`          |
 
 ## API Routes
 
-| Method | Path                          | Purpose                    |
-| ------ | ----------------------------- | -------------------------- |
-| GET    | /health                       | Health check               |
-| *      | /auth/*                       | Clerk webhook, user sync   |
-| *      | /users/*                      | User management            |
-| *      | /drive/*                      | Google Drive OAuth + sync  |
-| *      | /projects/*                   | Project CRUD               |
-| *      | /chapters/*                   | Chapter CRUD               |
-| POST   | /ai/rewrite                   | AI rewrite (SSE streaming) |
-| POST   | /ai/interactions/:id/accept   | Accept AI result           |
-| POST   | /ai/interactions/:id/reject   | Reject AI result           |
+| Method | Path                        | Purpose                    |
+| ------ | --------------------------- | -------------------------- |
+| GET    | /health                     | Health check               |
+| \*     | /auth/\*                    | Clerk webhook, user sync   |
+| \*     | /users/\*                   | User management            |
+| \*     | /drive/\*                   | Google Drive OAuth + sync  |
+| \*     | /projects/\*                | Project CRUD               |
+| \*     | /chapters/\*                | Chapter CRUD               |
+| POST   | /ai/rewrite                 | AI rewrite (SSE streaming) |
+| POST   | /ai/interactions/:id/accept | Accept AI result           |
+| POST   | /ai/interactions/:id/reject | Reject AI result           |
 
 ## Key Files
 
@@ -138,13 +138,13 @@ Migrations are forward-only and numbered sequentially in `workers/dc-api/migrati
 
 ## Slash Commands
 
-| Command    | When to Use          | What It Does                         |
-| ---------- | -------------------- | ------------------------------------ |
-| `/sod`     | Start of session     | Load context, show priorities        |
-| `/eod`     | End of session       | Create handoff for next session      |
-| `/status`  | During session       | View full work queue                 |
-| `/update`  | During session       | Sync progress mid-session            |
-| `/critique`| Before implementing  | Parallel critics review your plan    |
+| Command     | When to Use         | What It Does                      |
+| ----------- | ------------------- | --------------------------------- |
+| `/sod`      | Start of session    | Load context, show priorities     |
+| `/eod`      | End of session      | Create handoff for next session   |
+| `/status`   | During session      | View full work queue              |
+| `/update`   | During session      | Sync progress mid-session         |
+| `/critique` | Before implementing | Parallel critics review your plan |
 
 ## Design Principles
 

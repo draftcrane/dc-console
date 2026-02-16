@@ -177,9 +177,7 @@ export function AIRewriteSheet({
         <div className="px-6 pb-3 border-b border-gray-100">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">AI Rewrite</h2>
-            <span className="text-sm text-gray-500">
-              Attempt {result.attemptNumber}
-            </span>
+            <span className="text-sm text-gray-500">Attempt {result.attemptNumber}</span>
           </div>
         </div>
 
@@ -203,7 +201,10 @@ export function AIRewriteSheet({
 
           {/* Editable instruction field */}
           <div>
-            <label htmlFor="ai-instruction" className="text-sm font-medium text-gray-500 mb-2 block">
+            <label
+              htmlFor="ai-instruction"
+              className="text-sm font-medium text-gray-500 mb-2 block"
+            >
               Instruction
             </label>
             <textarea
@@ -247,8 +248,19 @@ export function AIRewriteSheet({
             {isRetrying ? (
               <span className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
                 Retrying...
               </span>
