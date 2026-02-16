@@ -3,6 +3,7 @@ import type { Env } from "../types/index.js";
 import { requireAuth } from "../middleware/auth.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ProjectService } from "../services/project.js";
+import { ContentService } from "../services/content.js";
 
 /**
  * Chapters API routes
@@ -13,6 +14,10 @@ import { ProjectService } from "../services/project.js";
  * - PATCH /chapters/:chapterId - Updates title, status
  * - DELETE /chapters/:chapterId - Deletes from D1, trashes Drive file. Rejects if last chapter.
  * - PATCH /projects/:projectId/chapters/reorder - Batch sort_order update
+ *
+ * Per US-015 (Three-Tier Save Architecture):
+ * - PUT /chapters/:chapterId/content - Save content to R2, update D1 metadata
+ * - GET /chapters/:chapterId/content - Load content from R2
  *
  * All routes require authentication.
  * Authorization: All queries include WHERE user_id = ? via project ownership
@@ -132,6 +137,57 @@ chapters.delete("/chapters/:chapterId", async (c) => {
   await service.deleteChapter(userId, chapterId);
 
   return c.json({ success: true });
+});
+
+/**
+ * PUT /chapters/:chapterId/content
+ * Save chapter content (Tier 2 of auto-save).
+ *
+ * Per US-015:
+ * - Writes content to R2 (or Drive if connected)
+ * - Updates D1 metadata: word_count, version, updated_at
+ * - Returns 409 CONFLICT on version mismatch
+ * - No content stored in D1 (Tier 3 metadata only)
+ */
+chapters.put("/chapters/:chapterId/content", async (c) => {
+  const { userId } = c.get("auth");
+  const chapterId = c.req.param("chapterId");
+  const body = (await c.req.json().catch(() => ({}))) as {
+    content?: string;
+    version?: number;
+  };
+
+  if (body.content === undefined) {
+    validationError("content is required");
+  }
+
+  if (body.version === undefined || typeof body.version !== "number") {
+    validationError("version number is required");
+  }
+
+  const service = new ContentService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const result = await service.saveContent(userId, chapterId, {
+    content: body.content,
+    version: body.version,
+  });
+
+  return c.json(result);
+});
+
+/**
+ * GET /chapters/:chapterId/content
+ * Load chapter content from R2.
+ *
+ * Per US-015: Used by editor to load content and for crash recovery comparison.
+ */
+chapters.get("/chapters/:chapterId/content", async (c) => {
+  const { userId } = c.get("auth");
+  const chapterId = c.req.param("chapterId");
+
+  const service = new ContentService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const result = await service.getContent(userId, chapterId);
+
+  return c.json(result);
 });
 
 export { chapters };
