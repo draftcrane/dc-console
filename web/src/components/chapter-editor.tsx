@@ -36,6 +36,8 @@ interface ChapterEditorProps {
   onEditorReady?: (editor: Editor) => void;
   /** Callback when text selection changes */
   onSelectionChange?: (hasSelection: boolean) => void;
+  /** Callback when selection word count changes (0 when no selection) */
+  onSelectionWordCountChange?: (selectionWordCount: number) => void;
 }
 
 /**
@@ -66,6 +68,7 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
       editable = true,
       onEditorReady,
       onSelectionChange,
+      onSelectionWordCountChange,
     },
     ref,
   ) {
@@ -107,6 +110,11 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
 
     // Track text selection for floating action bar (200ms delay per US-016)
     const textSelection = useTextSelection(editor, editorContainerRef, 200);
+
+    // Notify parent of selection word count changes (US-024)
+    useEffect(() => {
+      onSelectionWordCountChange?.(textSelection.wordCount);
+    }, [textSelection.wordCount, onSelectionWordCountChange]);
 
     // Notify parent when editor is ready
     useEffect(() => {
