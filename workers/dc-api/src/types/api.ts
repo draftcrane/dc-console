@@ -14,6 +14,7 @@ export type ErrorCode =
   | "DRIVE_NOT_CONNECTED"
   | "VALIDATION_ERROR"
   | "LAST_CHAPTER"
+  | "AI_ERROR"
   | "INTERNAL_ERROR";
 
 /** Pagination query parameters */

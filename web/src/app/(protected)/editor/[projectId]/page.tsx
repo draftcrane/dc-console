@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Sidebar, SidebarOverlay, type ChapterData } from "@/components/sidebar";
 import { DriveBanner } from "@/components/drive-banner";
 import { ChapterEditor } from "@/components/chapter-editor";
+import { AIRewriteSheet } from "@/components/ai-rewrite-sheet";
+import type { Editor } from "@tiptap/react";
 
 interface Project {
   id: string;
@@ -70,6 +72,15 @@ export default function EditorPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
+
+  // AI Rewrite state
+  const [aiRewriteOpen, setAiRewriteOpen] = useState(false);
+  const [aiRewriteKey, setAiRewriteKey] = useState(0);
+  const [selectedText, setSelectedText] = useState("");
+  const [contextBefore, setContextBefore] = useState("");
+  const [contextAfter, setContextAfter] = useState("");
+  const [hasTextSelection, setHasTextSelection] = useState(false);
+  const editorRef = useRef<Editor | null>(null);
 
   // Fetch project data and drive status
   useEffect(() => {
@@ -243,6 +254,62 @@ export default function EditorPage() {
       .replace(/\s+/g, " ")
       .trim();
     return text ? text.split(" ").length : 0;
+  }, []);
+
+  // Handle editor ref for AI rewrite text selection
+  const handleEditorReady = useCallback((editor: Editor) => {
+    editorRef.current = editor;
+  }, []);
+
+  // Track text selection changes in the editor
+  const handleSelectionChange = useCallback((hasSelection: boolean) => {
+    setHasTextSelection(hasSelection);
+  }, []);
+
+  /**
+   * Extract selected text with surrounding context for AI rewrite
+   * Per PRD US-017: 500 chars surrounding context (each side)
+   */
+  const handleOpenAiRewrite = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const { from, to } = editor.state.selection;
+    if (from === to) return; // No selection
+
+    // Get the selected text (plain text)
+    const selected = editor.state.doc.textBetween(from, to, "\n");
+    if (!selected.trim()) return;
+
+    // Get text before selection start (up to 500 chars)
+    const textBeforeSelection = editor.state.doc.textBetween(0, from, "\n");
+    const before = textBeforeSelection.slice(-500);
+
+    // Get text after selection end (up to 500 chars)
+    const docLength = editor.state.doc.content.size;
+    const textAfterSelection = editor.state.doc.textBetween(to, docLength, "\n");
+    const after = textAfterSelection.slice(0, 500);
+
+    setSelectedText(selected);
+    setContextBefore(before);
+    setContextAfter(after);
+    setAiRewriteKey((k) => k + 1); // Force re-mount to reset internal state
+    setAiRewriteOpen(true);
+  }, []);
+
+  /**
+   * Handle accepting a rewrite from the AI sheet
+   * Replaces the current selection in the editor with the new text
+   */
+  const handleAcceptRewrite = useCallback((newText: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+
+    // Replace the selected text with the rewrite
+    editor.chain().focus().deleteRange({ from, to }).insertContentAt(from, newText).run();
   }, []);
 
   // Get current content for active chapter
@@ -428,10 +495,35 @@ export default function EditorPage() {
               content={currentContent}
               onUpdate={handleContentUpdate}
               onSave={handleSave}
+              onEditorReady={handleEditorReady}
+              onSelectionChange={handleSelectionChange}
             />
 
             {/* Word count display */}
-            <div className="mt-4 flex justify-end">
+            <div className="mt-4 flex items-center justify-between">
+              {/* AI Rewrite button - visible when text is selected */}
+              <div className="h-9">
+                {hasTextSelection && (
+                  <button
+                    onClick={handleOpenAiRewrite}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+                               text-blue-700 bg-blue-50 border border-blue-200 rounded-lg
+                               hover:bg-blue-100 transition-colors min-h-[36px]"
+                    aria-label="AI Rewrite selected text"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                    AI Rewrite
+                  </button>
+                )}
+              </div>
+
               <span className="text-sm text-muted-foreground tabular-nums">
                 {currentWordCount.toLocaleString()} words
               </span>
@@ -439,6 +531,22 @@ export default function EditorPage() {
           </div>
         </div>
       </div>
+
+      {/* AI Rewrite Bottom Sheet */}
+      <AIRewriteSheet
+        key={aiRewriteKey}
+        isOpen={aiRewriteOpen}
+        onClose={() => setAiRewriteOpen(false)}
+        selectedText={selectedText}
+        contextBefore={contextBefore}
+        contextAfter={contextAfter}
+        chapterTitle={activeChapter?.title || ""}
+        projectDescription={projectData?.project.description || ""}
+        chapterId={activeChapterId || ""}
+        getToken={getToken}
+        onAcceptRewrite={handleAcceptRewrite}
+        apiUrl={process.env.NEXT_PUBLIC_API_URL || ""}
+      />
     </div>
   );
 }
