@@ -13,6 +13,7 @@ import { useDriveStatus } from "@/hooks/use-drive-status";
 import { SaveIndicator } from "@/components/save-indicator";
 import { CrashRecoveryDialog } from "@/components/crash-recovery-dialog";
 import { ExportMenu } from "@/components/export-menu";
+import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 import { useAutoSave } from "@/hooks/use-auto-save";
 
 interface Project {
@@ -115,6 +116,11 @@ export default function EditorPage() {
 
   // Word count state (US-024)
   const [selectionWordCount, setSelectionWordCount] = useState(0);
+
+  // Settings menu and delete dialog state (US-023)
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const settingsMenuRef = useRef<HTMLDivElement>(null);
 
   // AI rewrite state
   const [hasTextSelection, setHasTextSelection] = useState(false);
@@ -297,6 +303,69 @@ export default function EditorPage() {
       setEditingTitle(true);
     }
   }, [activeChapter]);
+
+  // Settings menu: close on outside click (US-023)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target as Node)) {
+        setSettingsMenuOpen(false);
+      }
+    }
+
+    if (settingsMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [settingsMenuOpen]);
+
+  // Settings menu: close on Escape (US-023)
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSettingsMenuOpen(false);
+      }
+    }
+
+    if (settingsMenuOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+      return () => document.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [settingsMenuOpen]);
+
+  // Handle project deletion (US-023)
+  const handleDeleteProject = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete project");
+      }
+
+      // Check if user has other projects to determine redirect target
+      const meResponse = await fetch(`${API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (meResponse.ok) {
+        const meData = (await meResponse.json()) as { projects: { id: string }[] };
+        if (meData.projects.length > 0) {
+          router.push("/dashboard");
+        } else {
+          router.push("/setup");
+        }
+      } else {
+        // Fallback: redirect to dashboard
+        router.push("/dashboard");
+      }
+    } catch (err) {
+      console.error("Failed to delete project:", err);
+      setDeleteDialogOpen(false);
+    }
+  }, [getToken, projectId, router]);
 
   // AI rewrite: request rewrite via SSE streaming
   const requestRewrite = useCallback(
@@ -621,30 +690,69 @@ export default function EditorPage() {
               apiUrl={API_URL}
             />
 
-            <button
-              className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
-              aria-label="Settings"
-            >
-              <svg
-                className="w-5 h-5 text-muted-foreground"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {/* Settings dropdown menu (US-023) */}
+            <div className="relative" ref={settingsMenuRef}>
+              <button
+                onClick={() => setSettingsMenuOpen(!settingsMenuOpen)}
+                className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Settings"
+                aria-expanded={settingsMenuOpen}
+                aria-haspopup="true"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="w-5 h-5 text-muted-foreground"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              </button>
+
+              {settingsMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                  role="menu"
+                  aria-label="Project settings"
+                >
+                  <button
+                    onClick={() => {
+                      setSettingsMenuOpen(false);
+                      setDeleteDialogOpen(true);
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50
+                               transition-colors min-h-[44px] flex items-center gap-2"
+                    role="menuitem"
+                  >
+                    <svg
+                      className="w-4 h-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                    Delete Project
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -771,6 +879,14 @@ export default function EditorPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete project confirmation dialog (US-023) */}
+      <DeleteProjectDialog
+        projectTitle={projectData?.project.title || ""}
+        isOpen={deleteDialogOpen}
+        onConfirm={handleDeleteProject}
+        onCancel={() => setDeleteDialogOpen(false)}
+      />
 
       <AIRewriteSheet
         isOpen={aiRewrite.isSheetOpen}
