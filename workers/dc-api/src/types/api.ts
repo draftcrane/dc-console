@@ -15,6 +15,7 @@ export type ErrorCode =
   | "VALIDATION_ERROR"
   | "LAST_CHAPTER"
   | "AI_ERROR"
+  | "EXPORT_ERROR"
   | "INTERNAL_ERROR";
 
 /** Pagination query parameters */

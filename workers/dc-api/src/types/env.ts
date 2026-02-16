@@ -19,7 +19,12 @@ export interface Env {
   OPENAI_API_KEY: string;
   AI_MODEL?: string; // Default: gpt-4o
 
+  // Cloudflare Browser Rendering (PDF export)
+  CF_ACCOUNT_ID: string;
+  CF_API_TOKEN: string;
+
   // App
   FRONTEND_URL: string;
+  API_BASE_URL?: string; // Base URL for API (used in export download URLs)
   ENCRYPTION_KEY: string;
 }

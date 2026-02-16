@@ -12,6 +12,7 @@ import { useAIRewrite } from "@/hooks/use-ai-rewrite";
 import { useDriveStatus } from "@/hooks/use-drive-status";
 import { SaveIndicator } from "@/components/save-indicator";
 import { CrashRecoveryDialog } from "@/components/crash-recovery-dialog";
+import { ExportMenu } from "@/components/export-menu";
 import { useAutoSave } from "@/hooks/use-auto-save";
 
 interface Project {
@@ -613,12 +614,12 @@ export default function EditorPage() {
             {/* Save status indicator (US-015) */}
             <SaveIndicator status={saveStatus} />
 
-            <button
-              className="h-9 px-3 text-sm rounded-lg hover:bg-gray-100 transition-colors min-w-[44px]"
-              aria-label="Export"
-            >
-              Export
-            </button>
+            <ExportMenu
+              projectId={projectId}
+              activeChapterId={activeChapterId}
+              getToken={getToken as () => Promise<string | null>}
+              apiUrl={API_URL}
+            />
 
             <button
               className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
