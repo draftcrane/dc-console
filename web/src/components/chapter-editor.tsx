@@ -20,6 +20,10 @@ interface ChapterEditorProps {
   placeholder?: string;
   /** Whether editor is editable */
   editable?: boolean;
+  /** Callback when editor instance is ready */
+  onEditorReady?: (editor: Editor) => void;
+  /** Callback when text selection changes */
+  onSelectionChange?: (hasSelection: boolean) => void;
 }
 
 /**
@@ -41,6 +45,8 @@ export function ChapterEditor({
   onRewrite,
   placeholder = "Start writing, or paste your existing notes here...",
   editable = true,
+  onEditorReady,
+  onSelectionChange,
 }: ChapterEditorProps) {
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const editor = useEditor({
@@ -75,10 +81,21 @@ export function ChapterEditor({
     onUpdate: ({ editor }) => {
       onUpdate?.(editor.getHTML());
     },
+    onSelectionUpdate: ({ editor }) => {
+      const { from, to } = editor.state.selection;
+      onSelectionChange?.(from !== to);
+    },
   });
 
   // Track text selection for floating action bar (200ms delay per US-016)
   const textSelection = useTextSelection(editor, editorContainerRef, 200);
+
+  // Notify parent when editor is ready
+  useEffect(() => {
+    if (editor && onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [editor, onEditorReady]);
 
   // Handle Cmd+S for save
   useEffect(() => {
