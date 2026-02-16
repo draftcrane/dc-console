@@ -28,6 +28,14 @@ function driveNotConnected(message = "Google Drive not connected"): never {
   throw new AppError(422, "DRIVE_NOT_CONNECTED", message);
 }
 
+/** Validate that a frontend redirect URL is safe (matches configured FRONTEND_URL origin) */
+function validateFrontendUrl(redirectUrl: URL, configuredFrontendUrl: string): void {
+  const allowed = new URL(configuredFrontendUrl);
+  if (redirectUrl.origin !== allowed.origin) {
+    throw new AppError(500, "INTERNAL_ERROR", "Frontend redirect URL origin mismatch");
+  }
+}
+
 /**
  * GET /drive/authorize
  * Returns Google OAuth authorization URL.
@@ -71,6 +79,7 @@ drive.get("/callback", async (c) => {
     const redirectUrl = new URL(c.env.FRONTEND_URL);
     redirectUrl.pathname = "/drive/error";
     redirectUrl.searchParams.set("error", error);
+    validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL);
     return c.redirect(redirectUrl.toString());
   }
 
@@ -109,6 +118,7 @@ drive.get("/callback", async (c) => {
     // Redirect to success page
     const redirectUrl = new URL(c.env.FRONTEND_URL);
     redirectUrl.pathname = "/drive/success";
+    validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL);
     return c.redirect(redirectUrl.toString());
   } catch (err) {
     console.error("Drive OAuth callback failed:", err);
@@ -116,6 +126,7 @@ drive.get("/callback", async (c) => {
     const redirectUrl = new URL(c.env.FRONTEND_URL);
     redirectUrl.pathname = "/drive/error";
     redirectUrl.searchParams.set("error", "token_exchange_failed");
+    validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL);
     return c.redirect(redirectUrl.toString());
   }
 });

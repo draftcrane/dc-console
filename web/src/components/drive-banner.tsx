@@ -90,9 +90,18 @@ export function DriveBanner({ connected, email, dismissible = true }: DriveBanne
         throw new Error("Failed to get authorization URL");
       }
 
-      const { url } = await response.json();
+      const { authorizationUrl } = await response.json();
+
+      // Validate URL points to Google OAuth before redirecting (open redirect prevention)
+      if (
+        typeof authorizationUrl !== "string" ||
+        !authorizationUrl.startsWith("https://accounts.google.com/")
+      ) {
+        throw new Error("Invalid authorization URL");
+      }
+
       // Redirect to Google OAuth - redirect-based flow per PRD (Safari popup blocker mitigation)
-      window.location.href = url;
+      window.location.href = authorizationUrl;
     } catch (err) {
       console.error("Failed to connect Drive:", err);
       setIsConnecting(false);
