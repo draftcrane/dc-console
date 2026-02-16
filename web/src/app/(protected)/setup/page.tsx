@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { DriveBanner } from "@/components/drive-banner";
+import { useDriveStatus } from "@/hooks/use-drive-status";
 
 /**
  * Book Setup Screen
@@ -13,6 +15,10 @@ import { useAuth } from "@clerk/nextjs";
  * - "Create Book" button
  * - Creates default "Chapter 1"
  *
+ * Per PRD Section 7 (Step 4) and US-005:
+ * - After project creation, shows "Connect Google Drive" option
+ * - "Maybe later" link available - Drive connection is optional
+ *
  * Per PRD Section 8:
  * - Title max 500 chars
  * - Description max 1000 chars
@@ -20,11 +26,13 @@ import { useAuth } from "@clerk/nextjs";
 export default function SetupPage() {
   const router = useRouter();
   const { getToken } = useAuth();
+  const { status: driveStatus, connect: connectDrive } = useDriveStatus();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
 
   const titleLength = title.length;
   const descriptionLength = description.length;
@@ -61,9 +69,14 @@ export default function SetupPage() {
 
       const project = await response.json();
 
-      // Redirect to the writing environment with the new project
-      // For now, redirect to a placeholder route
-      router.push(`/editor/${project.id}`);
+      // If Drive is already connected, go straight to the editor
+      if (driveStatus?.connected) {
+        router.push(`/editor/${project.id}`);
+        return;
+      }
+
+      // Otherwise show the Drive connection step
+      setCreatedProjectId(project.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -71,6 +84,58 @@ export default function SetupPage() {
     }
   }
 
+  // Step 2: Drive connection (shown after project creation)
+  if (createdProjectId) {
+    return (
+      <div className="min-h-dvh flex items-center justify-center p-4 bg-background">
+        <div className="w-full max-w-lg">
+          <div className="text-center mb-8">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+              <svg
+                className="h-6 w-6 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-semibold text-foreground mb-2">Book Created</h1>
+            <p className="text-muted-foreground">
+              Keep your chapters safe by connecting Google Drive.
+            </p>
+          </div>
+
+          {/* Drive connection banner */}
+          <div className="mb-6">
+            <DriveBanner
+              connected={driveStatus?.connected ?? false}
+              email={driveStatus?.email}
+              dismissible={false}
+              onConnect={connectDrive}
+            />
+          </div>
+
+          {/* Maybe later / skip to editor */}
+          <div className="text-center">
+            <button
+              onClick={() => router.push(`/editor/${createdProjectId}`)}
+              className="text-sm text-muted-foreground hover:text-foreground underline transition-colors"
+            >
+              Maybe later &mdash; start writing
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Step 1: Book creation form
   return (
     <div className="min-h-dvh flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-lg">

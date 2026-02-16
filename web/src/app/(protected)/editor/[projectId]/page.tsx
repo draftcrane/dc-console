@@ -5,9 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Sidebar, SidebarOverlay, type ChapterData } from "@/components/sidebar";
 import { DriveBanner } from "@/components/drive-banner";
+import { DriveStatusIndicator } from "@/components/drive-status-indicator";
 import { ChapterEditor, type ChapterEditorHandle } from "@/components/chapter-editor";
 import { AIRewriteSheet, type AIRewriteResult } from "@/components/ai-rewrite-sheet";
 import { useAIRewrite } from "@/hooks/use-ai-rewrite";
+import { useDriveStatus } from "@/hooks/use-drive-status";
 import { SaveIndicator } from "@/components/save-indicator";
 import { CrashRecoveryDialog } from "@/components/crash-recovery-dialog";
 import { useAutoSave } from "@/hooks/use-auto-save";
@@ -20,11 +22,6 @@ interface Project {
   status: string;
   createdAt: string;
   updatedAt: string;
-}
-
-interface DriveStatus {
-  connected: boolean;
-  email?: string;
 }
 
 interface Chapter {
@@ -68,7 +65,6 @@ export default function EditorPage() {
 
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
-  const [driveStatus, setDriveStatus] = useState<DriveStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -76,6 +72,9 @@ export default function EditorPage() {
 
   // Editor ref for AI rewrite text replacement
   const editorRef = useRef<ChapterEditorHandle>(null);
+
+  // Drive connection status (US-005)
+  const { status: driveStatus, connect: connectDrive } = useDriveStatus();
 
   // AI rewrite hook
   const aiRewrite = useAIRewrite({
@@ -128,20 +127,15 @@ export default function EditorPage() {
     firstInteractionId?: string;
   } | null>(null);
 
-  // Fetch project data and drive status
+  // Fetch project data
   useEffect(() => {
     async function fetchData() {
       try {
         const token = await getToken();
 
-        const [projectResponse, userResponse] = await Promise.all([
-          fetch(`${API_URL}/projects/${projectId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${API_URL}/users/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
+        const projectResponse = await fetch(`${API_URL}/projects/${projectId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (!projectResponse.ok) {
           if (projectResponse.status === 404) {
@@ -157,11 +151,6 @@ export default function EditorPage() {
         if (data.chapters.length > 0 && !activeChapterId) {
           const sortedChapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
           setActiveChapterId(sortedChapters[0].id);
-        }
-
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          setDriveStatus(userData.drive);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -610,6 +599,17 @@ export default function EditorPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Persistent Drive connection status (US-005) */}
+            {driveStatus && (
+              <DriveStatusIndicator
+                connected={driveStatus.connected}
+                email={driveStatus.email}
+                onConnect={connectDrive}
+              />
+            )}
+
+            <div className="w-px h-5 bg-border" aria-hidden="true" />
+
             {/* Save status indicator (US-015) */}
             <SaveIndicator status={saveStatus} />
 
@@ -649,10 +649,17 @@ export default function EditorPage() {
 
         <div className="flex-1 overflow-auto">
           <div className="max-w-[700px] mx-auto px-6 py-8">
-            {/* Drive connection banner - contextual, not blocking */}
+            {/* Drive connection banner - contextual, not blocking (US-005) */}
             {driveStatus && !driveStatus.connected && (
               <div className="mb-6">
-                <DriveBanner connected={false} dismissible={true} />
+                <DriveBanner connected={false} dismissible={true} onConnect={connectDrive} />
+              </div>
+            )}
+
+            {/* Drive connected confirmation banner */}
+            {driveStatus?.connected && (
+              <div className="mb-6">
+                <DriveBanner connected={true} email={driveStatus.email} dismissible={true} />
               </div>
             )}
 

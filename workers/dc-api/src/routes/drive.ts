@@ -5,6 +5,7 @@
  * Routes:
  * - GET /drive/authorize - Returns Google OAuth authorization URL
  * - GET /drive/callback - OAuth callback, exchanges code for tokens
+ * - GET /drive/connection - Returns Drive connection status (no tokens exposed)
  * - POST /drive/folders - Creates Book Folder in Drive
  * - GET /drive/folders/:folderId/children - Lists files in Book Folder
  * - DELETE /drive/connection - Disconnects Drive, revokes token
@@ -129,6 +130,38 @@ drive.get("/callback", async (c) => {
     validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL);
     return c.redirect(redirectUrl.toString());
   }
+});
+
+/**
+ * GET /drive/connection
+ * Returns Drive connection status for the authenticated user.
+ * Tokens are never exposed to the frontend per PRD Section 8 (US-005).
+ */
+drive.get("/connection", requireAuth, standardRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+
+  const row = await c.env.DB.prepare(
+    `SELECT id, drive_email, token_expires_at, created_at FROM drive_connections WHERE user_id = ?`,
+  )
+    .bind(userId)
+    .first<{
+      id: string;
+      drive_email: string;
+      token_expires_at: string;
+      created_at: string;
+    }>();
+
+  if (!row) {
+    return c.json({
+      connected: false,
+    });
+  }
+
+  return c.json({
+    connected: true,
+    email: row.drive_email,
+    connectedAt: row.created_at,
+  });
 });
 
 /**
