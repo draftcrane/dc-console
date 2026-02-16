@@ -1,457 +1,278 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 /**
- * Suggestion chips per PRD US-017:
- * "Simpler language" | "More concise" | "More conversational" | "Stronger" | "Expand"
+ * Data representing an AI rewrite result, passed in from the parent
+ * (created by the AI rewrite request flow in US-017).
  */
-const SUGGESTION_CHIPS = [
-  "Simpler language",
-  "More concise",
-  "More conversational",
-  "Stronger",
-  "Expand",
-] as const;
-
-interface AIRewriteSheetProps {
-  /** Whether the sheet is open */
-  isOpen: boolean;
-  /** Close the sheet */
-  onClose: () => void;
-  /** The selected text to rewrite */
-  selectedText: string;
-  /** Up to 500 chars before the selection for context */
-  contextBefore: string;
-  /** Up to 500 chars after the selection for context */
-  contextAfter: string;
-  /** Chapter title for prompt context */
-  chapterTitle: string;
-  /** Project description for prompt context */
-  projectDescription: string;
-  /** Chapter ID for logging */
-  chapterId: string;
-  /** Auth token getter */
-  getToken: () => Promise<string | null>;
-  /** Callback when the user accepts the rewrite */
-  onAcceptRewrite: (newText: string) => void;
-  /** API base URL */
-  apiUrl: string;
+export interface AIRewriteResult {
+  /** AI interaction ID from the API */
+  interactionId: string;
+  /** The original selected text before AI rewrite */
+  originalText: string;
+  /** The AI-generated rewrite suggestion */
+  rewriteText: string;
+  /** The instruction the user gave to the AI */
+  instruction: string;
+  /** Which attempt number this is (1-based) */
+  attemptNumber: number;
 }
 
-type SheetState = "idle" | "loading" | "streaming" | "done" | "error";
+interface AIRewriteSheetProps {
+  /** Whether the bottom sheet is open */
+  isOpen: boolean;
+  /** The current AI rewrite result to display */
+  result: AIRewriteResult | null;
+  /** Whether a retry request is currently loading */
+  isRetrying: boolean;
+  /** Called when user taps "Use This" — accepts the rewrite */
+  onAccept: (result: AIRewriteResult) => void;
+  /** Called when user taps "Try Again" — sends a new request with updated instruction */
+  onRetry: (result: AIRewriteResult, instruction: string) => void;
+  /** Called when user taps "Discard" or clicks outside — closes with no changes */
+  onDiscard: (result: AIRewriteResult) => void;
+}
 
 /**
- * AIRewriteSheet - Bottom sheet for AI rewrite flow
+ * AIRewriteSheet - Bottom sheet for reviewing AI rewrite results
  *
- * Per PRD US-017:
- * - Shows original text (read-only)
- * - Instruction text field (freeform)
- * - Suggestion chips
- * - Streams result token-by-token
- * - Loading state while waiting for first token
- * - Rate limit message when exceeded
+ * Per PRD US-018:
+ * - Shows three actions after AI response completes: "Use This", "Try Again", "Discard"
+ * - "Use This" replaces selected text with AI result
+ * - "Try Again" preserves original text, instruction field editable, new request sent
+ * - "Discard" closes bottom sheet with no changes
+ * - Tapping outside is equivalent to "Discard"
+ * - User always sees original and rewrite simultaneously
+ * - Focus trap for accessibility
+ * - Unlimited iterations (try again as many times as wanted)
  */
 export function AIRewriteSheet({
   isOpen,
-  onClose,
-  selectedText,
-  contextBefore,
-  contextAfter,
-  chapterTitle,
-  projectDescription,
-  chapterId,
-  getToken,
-  onAcceptRewrite,
-  apiUrl,
+  result,
+  isRetrying,
+  onAccept,
+  onRetry,
+  onDiscard,
 }: AIRewriteSheetProps) {
-  const [instruction, setInstruction] = useState("");
-  const [state, setState] = useState<SheetState>("idle");
-  const [streamedText, setStreamedText] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const resultRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const firstFocusableRef = useRef<HTMLTextAreaElement>(null);
+  const lastFocusableRef = useRef<HTMLButtonElement>(null);
+  const [editedInstruction, setEditedInstruction] = useState("");
+  const [lastResultId, setLastResultId] = useState<string | null>(null);
 
-  // Abort any in-flight request on unmount
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, []);
+  // Sync instruction field when a new result arrives (tracked by interactionId)
+  if (result && result.interactionId !== lastResultId) {
+    setEditedInstruction(result.instruction);
+    setLastResultId(result.interactionId);
+  }
 
-  // Auto-scroll result area during streaming
-  useEffect(() => {
-    if (state === "streaming" && resultRef.current) {
-      resultRef.current.scrollTop = resultRef.current.scrollHeight;
-    }
-  }, [streamedText, state]);
+  // Focus trap: trap Tab key within the bottom sheet
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (!isOpen || !result) return;
 
-  const handleSubmit = useCallback(
-    async (instructionText: string) => {
-      if (!instructionText.trim() || !selectedText.trim()) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onDiscard(result);
+        return;
+      }
 
-      // Cancel any previous request
-      abortControllerRef.current?.abort();
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
+      if (event.key !== "Tab") return;
 
-      setState("loading");
-      setStreamedText("");
-      setErrorMessage("");
+      const focusableElements = sheetRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
 
-      try {
-        const token = await getToken();
-        if (!token) {
-          setState("error");
-          setErrorMessage("Authentication required. Please sign in again.");
-          return;
+      if (!focusableElements || focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey) {
+        if (document.activeElement === firstElement) {
+          event.preventDefault();
+          lastElement.focus();
         }
-
-        const response = await fetch(`${apiUrl}/ai/rewrite`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            selectedText,
-            instruction: instructionText,
-            contextBefore,
-            contextAfter,
-            chapterTitle,
-            projectDescription,
-            chapterId,
-          }),
-          signal: abortController.signal,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: "Request failed" }));
-          const err = errorData as { error?: string; code?: string };
-
-          if (response.status === 429) {
-            setState("error");
-            setErrorMessage(
-              err.error || "You've used AI rewrite frequently. Please wait a moment.",
-            );
-            return;
-          }
-
-          setState("error");
-          setErrorMessage(err.error || "Something went wrong. Please try again.");
-          return;
+      } else {
+        if (document.activeElement === lastElement) {
+          event.preventDefault();
+          firstElement.focus();
         }
-
-        // Read SSE stream
-        const reader = response.body?.getReader();
-        if (!reader) {
-          setState("error");
-          setErrorMessage("Failed to read response stream.");
-          return;
-        }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let firstToken = false;
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          // Keep the last potentially incomplete line in the buffer
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6).trim();
-              if (!data) continue;
-
-              try {
-                const event = JSON.parse(data) as {
-                  type: string;
-                  text?: string;
-                  message?: string;
-                  interactionId?: string;
-                };
-
-                if (event.type === "token" && event.text) {
-                  if (!firstToken) {
-                    firstToken = true;
-                    setState("streaming");
-                  }
-                  setStreamedText((prev) => prev + event.text);
-                }
-
-                if (event.type === "done") {
-                  setState("done");
-                }
-
-                if (event.type === "error") {
-                  setState("error");
-                  setErrorMessage(event.message || "AI processing error.");
-                }
-              } catch {
-                // Skip malformed JSON
-              }
-            }
-          }
-        }
-
-        // If we finished reading without hitting "done", mark as done
-        if (firstToken) {
-          setState("done");
-        }
-      } catch (err) {
-        if ((err as Error).name === "AbortError") return;
-        setState("error");
-        setErrorMessage("Connection error. Please try again.");
       }
     },
-    [
-      selectedText,
-      contextBefore,
-      contextAfter,
-      chapterTitle,
-      projectDescription,
-      chapterId,
-      getToken,
-      apiUrl,
-    ],
+    [isOpen, result, onDiscard],
   );
 
-  const handleChipClick = useCallback(
-    (chip: string) => {
-      setInstruction(chip);
-      handleSubmit(chip);
-    },
-    [handleSubmit],
-  );
-
-  const handleFormSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      handleSubmit(instruction);
-    },
-    [instruction, handleSubmit],
-  );
-
-  const handleAccept = useCallback(() => {
-    if (streamedText) {
-      onAcceptRewrite(streamedText);
-      onClose();
+  // Add/remove keyboard listener
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener("keydown", handleKeyDown);
+      requestAnimationFrame(() => {
+        firstFocusableRef.current?.focus();
+      });
     }
-  }, [streamedText, onAcceptRewrite, onClose]);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, handleKeyDown]);
 
-  const handleRetry = useCallback(() => {
-    setState("idle");
-    setStreamedText("");
-    setErrorMessage("");
-  }, []);
+  // Prevent body scroll when sheet is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !result) return null;
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onDiscard(result);
+    }
+  };
+
+  const handleAccept = () => {
+    onAccept(result);
+  };
+
+  const handleRetry = () => {
+    onRetry(result, editedInstruction);
+  };
+
+  const handleDiscard = () => {
+    onDiscard(result);
+  };
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - clicking outside is equivalent to "Discard" */}
       <div
-        className="fixed inset-0 bg-black/30 z-40 transition-opacity"
-        onClick={onClose}
+        className="fixed inset-0 z-40 bg-black/30 transition-opacity"
+        onClick={handleBackdropClick}
         aria-hidden="true"
       />
 
       {/* Bottom Sheet */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl
-                   max-h-[85vh] flex flex-col animate-slide-up"
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        aria-label="AI Rewrite"
+        aria-label="AI Rewrite Result"
+        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl
+                   border-t border-gray-200 animate-slide-up
+                   max-h-[80vh] flex flex-col"
       >
-        {/* Handle bar */}
+        {/* Drag handle indicator */}
         <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+          <div className="w-10 h-1 rounded-full bg-gray-300" aria-hidden="true" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">AI Rewrite</h3>
+        <div className="px-6 pb-3 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">AI Rewrite</h2>
+            <span className="text-sm text-gray-500">
+              Attempt {result.attemptNumber}
+            </span>
+          </div>
+        </div>
+
+        {/* Scrollable content: original and rewrite side by side */}
+        <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
+          {/* Original text */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">Original</h3>
+            <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {result.originalText}
+            </div>
+          </div>
+
+          {/* AI Rewrite */}
+          <div>
+            <h3 className="text-sm font-medium text-blue-600 mb-2">Rewrite</h3>
+            <div className="p-3 bg-blue-50 rounded-lg text-sm text-gray-900 leading-relaxed whitespace-pre-wrap border border-blue-100">
+              {result.rewriteText}
+            </div>
+          </div>
+
+          {/* Editable instruction field */}
+          <div>
+            <label htmlFor="ai-instruction" className="text-sm font-medium text-gray-500 mb-2 block">
+              Instruction
+            </label>
+            <textarea
+              ref={firstFocusableRef}
+              id="ai-instruction"
+              value={editedInstruction}
+              onChange={(e) => setEditedInstruction(e.target.value)}
+              className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-900
+                         leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500
+                         focus:border-transparent min-h-[60px]"
+              placeholder="Adjust your instruction and try again..."
+              rows={2}
+              disabled={isRetrying}
+            />
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+          {/* Discard */}
           <button
-            onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center rounded-full
-                       hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px]"
-            aria-label="Close"
+            onClick={handleDiscard}
+            disabled={isRetrying}
+            className="flex-1 h-11 rounded-lg border border-gray-300 text-sm font-medium text-gray-700
+                       hover:bg-gray-50 transition-colors min-w-[44px] min-h-[44px]
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Discard rewrite and close"
           >
-            <svg
-              className="w-5 h-5 text-gray-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            Discard
+          </button>
+
+          {/* Try Again */}
+          <button
+            onClick={handleRetry}
+            disabled={isRetrying}
+            className="flex-1 h-11 rounded-lg border border-blue-300 text-sm font-medium text-blue-700
+                       hover:bg-blue-50 transition-colors min-w-[44px] min-h-[44px]
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Try again with current instruction"
+          >
+            {isRetrying ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Retrying...
+              </span>
+            ) : (
+              "Try Again"
+            )}
+          </button>
+
+          {/* Use This (primary action) */}
+          <button
+            ref={lastFocusableRef}
+            onClick={handleAccept}
+            disabled={isRetrying}
+            className="flex-1 h-11 rounded-lg bg-blue-600 text-sm font-medium text-white
+                       hover:bg-blue-700 transition-colors min-w-[44px] min-h-[44px]
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Use this rewrite to replace selected text"
+          >
+            Use This
           </button>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-auto px-5 py-4 space-y-4">
-          {/* Original text (read-only) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-500 mb-1">Original text</label>
-            <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 max-h-32 overflow-auto border border-gray-200">
-              {selectedText}
-            </div>
-          </div>
-
-          {/* Instruction input + chips (shown when idle or after error) */}
-          {(state === "idle" || state === "error") && (
-            <>
-              {/* Error message */}
-              {state === "error" && errorMessage && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-                  {errorMessage}
-                </div>
-              )}
-
-              {/* Suggestion chips */}
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-2">
-                  Quick suggestions
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {SUGGESTION_CHIPS.map((chip) => (
-                    <button
-                      key={chip}
-                      onClick={() => handleChipClick(chip)}
-                      className="px-3 py-1.5 text-sm rounded-full border border-gray-300
-                                 bg-white text-gray-700 hover:bg-blue-50 hover:border-blue-300
-                                 hover:text-blue-700 transition-colors min-h-[36px]"
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Freeform instruction */}
-              <form onSubmit={handleFormSubmit}>
-                <label
-                  htmlFor="ai-instruction"
-                  className="block text-sm font-medium text-gray-500 mb-1"
-                >
-                  Or describe how to rewrite
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    id="ai-instruction"
-                    type="text"
-                    value={instruction}
-                    onChange={(e) => setInstruction(e.target.value)}
-                    placeholder="e.g., Make it sound more confident..."
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg
-                               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                               min-h-[44px]"
-                    maxLength={500}
-                    autoFocus
-                  />
-                  <button
-                    type="submit"
-                    disabled={!instruction.trim()}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg
-                               hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed
-                               transition-colors min-w-[44px] min-h-[44px]"
-                  >
-                    Rewrite
-                  </button>
-                </div>
-              </form>
-            </>
-          )}
-
-          {/* Loading state */}
-          {state === "loading" && (
-            <div className="flex items-center gap-3 py-4">
-              <div className="flex gap-1">
-                <div
-                  className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "0ms" }}
-                />
-                <div
-                  className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "150ms" }}
-                />
-                <div
-                  className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
-                  style={{ animationDelay: "300ms" }}
-                />
-              </div>
-              <span className="text-sm text-gray-500">Rewriting...</span>
-            </div>
-          )}
-
-          {/* Streaming / Done result */}
-          {(state === "streaming" || state === "done") && (
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
-                Rewritten text
-                {state === "streaming" && (
-                  <span className="ml-2 text-blue-500 animate-pulse">streaming...</span>
-                )}
-              </label>
-              <div
-                ref={resultRef}
-                className="bg-blue-50 rounded-lg p-3 text-sm text-gray-800 max-h-48 overflow-auto
-                           border border-blue-200 whitespace-pre-wrap"
-              >
-                {streamedText}
-                {state === "streaming" && (
-                  <span className="inline-block w-0.5 h-4 bg-blue-500 ml-0.5 animate-pulse" />
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer actions */}
-        {state === "done" && streamedText && (
-          <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
-            <button
-              onClick={handleRetry}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100
-                         rounded-lg hover:bg-gray-200 transition-colors min-h-[44px]"
-            >
-              Try again
-            </button>
-            <button
-              onClick={handleAccept}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600
-                         rounded-lg hover:bg-blue-700 transition-colors min-h-[44px]"
-            >
-              Accept rewrite
-            </button>
-          </div>
-        )}
-
-        {/* Slide-up animation */}
-        <style jsx>{`
-          @keyframes slide-up {
-            from {
-              transform: translateY(100%);
-            }
-            to {
-              transform: translateY(0);
-            }
-          }
-          .animate-slide-up {
-            animation: slide-up 0.3s ease-out;
-          }
-        `}</style>
+        {/* Safe area for devices with home indicators */}
+        <div className="h-[env(safe-area-inset-bottom)]" />
       </div>
     </>
   );
