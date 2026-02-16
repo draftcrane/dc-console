@@ -7,21 +7,21 @@ import {
   type BookMetadata,
   type ChapterContent,
 } from "./book-template.js";
+import { generateEpub } from "./epub-generator.js";
 import { generatePdf, type PdfGeneratorConfig } from "./pdf-generator.js";
 
 /**
- * ExportService - Orchestrates PDF export for full books and single chapters.
+ * ExportService - Orchestrates PDF and EPUB export for full books and single chapters.
  *
  * Per ADR-004:
- * 1. Create export_jobs row (status: 'pending')
+ * 1. Create export_jobs row (status: 'processing')
  * 2. Fetch chapter content from R2 (sequential, memory-safe)
- * 3. Assemble HTML with print stylesheet
- * 4. Generate PDF via Browser Rendering REST API
- * 5. Store PDF in R2 (EXPORTS_BUCKET)
- * 6. Update export_jobs (status: 'completed', r2_key)
- * 7. Return signed R2 URL (1-hour expiry would require presigned URLs;
- *    R2 does not support presigned URLs without S3 API. We return the
- *    r2 key and serve the file via a download endpoint instead.)
+ * 3. Branch by format:
+ *    - PDF: Assemble HTML with print stylesheet, generate via Browser Rendering
+ *    - EPUB: Generate EPUB 3.0 ZIP via JSZip (EpubGenerator)
+ * 4. Store result in R2 (EXPORTS_BUCKET)
+ * 5. Update export_jobs (status: 'completed', r2_key)
+ * 6. Return download URL (served via download endpoint)
  */
 
 export interface ExportJobResult {
@@ -76,13 +76,18 @@ export class ExportService {
   ) {}
 
   /**
-   * Export a full book as PDF.
+   * Export a full book as PDF or EPUB.
    *
    * @param userId - Authenticated user ID
    * @param projectId - Project to export
+   * @param format - Export format: "pdf" or "epub"
    * @returns Export job result with download URL
    */
-  async exportBook(userId: string, projectId: string): Promise<ExportJobResult> {
+  async exportBook(
+    userId: string,
+    projectId: string,
+    format: "pdf" | "epub" = "pdf",
+  ): Promise<ExportJobResult> {
     // Verify project ownership
     const project = await this.db
       .prepare(
@@ -117,12 +122,13 @@ export class ExportService {
     await this.db
       .prepare(
         `INSERT INTO export_jobs (id, project_id, user_id, format, status, chapter_count, total_word_count, created_at)
-         VALUES (?, ?, ?, 'pdf', 'processing', ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, 'processing', ?, ?, ?)`,
       )
       .bind(
         jobId,
         projectId,
         userId,
+        format,
         chapterRows.length,
         chapterRows.reduce((sum, ch) => sum + ch.word_count, 0),
         now,
@@ -136,26 +142,35 @@ export class ExportService {
       // Get author name
       const authorName = await this.getAuthorName(userId);
 
-      // Assemble HTML
+      // Assemble metadata
       const metadata: BookMetadata = {
         title: project.title,
         authorName,
         generatedDate: this.formatDate(new Date()),
       };
 
-      const html = assembleBookHtml(metadata, chapters);
+      // Branch by format (ADR-004 architecture)
+      let fileData: ArrayBuffer;
+      let contentType: string;
 
-      // Generate PDF
-      const pdf = await generatePdf(html, PRINT_CSS, this.pdfConfig);
+      if (format === "epub") {
+        fileData = await generateEpub(metadata, chapters);
+        contentType = "application/epub+zip";
+      } else {
+        const html = assembleBookHtml(metadata, chapters);
+        const pdf = await generatePdf(html, PRINT_CSS, this.pdfConfig);
+        fileData = pdf.data;
+        contentType = "application/pdf";
+      }
 
-      // Build file name: {Book Title} - YYYY-MM-DD.pdf
-      const fileName = this.buildFileName(project.title, "pdf");
-      const r2Key = `exports/${jobId}.pdf`;
+      // Build file name: {Book Title} - YYYY-MM-DD.{ext}
+      const fileName = this.buildFileName(project.title, format);
+      const r2Key = `exports/${jobId}.${format}`;
 
       // Store in R2
-      await this.bucket.put(r2Key, pdf.data, {
+      await this.bucket.put(r2Key, fileData, {
         httpMetadata: {
-          contentType: "application/pdf",
+          contentType,
           contentDisposition: `attachment; filename="${fileName}"`,
         },
         customMetadata: {
@@ -202,17 +217,19 @@ export class ExportService {
   }
 
   /**
-   * Export a single chapter as PDF.
+   * Export a single chapter as PDF or EPUB.
    *
    * @param userId - Authenticated user ID
    * @param projectId - Project the chapter belongs to
    * @param chapterId - Chapter to export
+   * @param format - Export format: "pdf" or "epub"
    * @returns Export job result with download URL
    */
   async exportChapter(
     userId: string,
     projectId: string,
     chapterId: string,
+    format: "pdf" | "epub" = "pdf",
   ): Promise<ExportJobResult> {
     // Verify project ownership
     const project = await this.db
@@ -246,9 +263,9 @@ export class ExportService {
     await this.db
       .prepare(
         `INSERT INTO export_jobs (id, project_id, user_id, chapter_id, format, status, chapter_count, total_word_count, created_at)
-         VALUES (?, ?, ?, ?, 'pdf', 'processing', 1, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, 'processing', 1, ?, ?)`,
       )
-      .bind(jobId, projectId, userId, chapterId, chapter.word_count, now)
+      .bind(jobId, projectId, userId, chapterId, format, chapter.word_count, now)
       .run();
 
     try {
@@ -266,19 +283,28 @@ export class ExportService {
         generatedDate: this.formatDate(new Date()),
       };
 
-      const html = assembleChapterHtml(metadata, chapters[0]);
+      // Branch by format (ADR-004 architecture)
+      let fileData: ArrayBuffer;
+      let contentType: string;
 
-      // Generate PDF
-      const pdf = await generatePdf(html, PRINT_CSS, this.pdfConfig);
+      if (format === "epub") {
+        fileData = await generateEpub(metadata, chapters);
+        contentType = "application/epub+zip";
+      } else {
+        const html = assembleChapterHtml(metadata, chapters[0]);
+        const pdf = await generatePdf(html, PRINT_CSS, this.pdfConfig);
+        fileData = pdf.data;
+        contentType = "application/pdf";
+      }
 
-      // Build file name: {Book Title} - {Chapter Title} - YYYY-MM-DD.pdf
-      const fileName = this.buildFileName(`${project.title} - ${chapter.title}`, "pdf");
-      const r2Key = `exports/${jobId}.pdf`;
+      // Build file name: {Book Title} - {Chapter Title} - YYYY-MM-DD.{ext}
+      const fileName = this.buildFileName(`${project.title} - ${chapter.title}`, format);
+      const r2Key = `exports/${jobId}.${format}`;
 
       // Store in R2
-      await this.bucket.put(r2Key, pdf.data, {
+      await this.bucket.put(r2Key, fileData, {
         httpMetadata: {
-          contentType: "application/pdf",
+          contentType,
           contentDisposition: `attachment; filename="${fileName}"`,
         },
         customMetadata: {
@@ -325,17 +351,25 @@ export class ExportService {
   }
 
   /**
-   * Get the download URL for a completed export job.
-   * Streams the PDF directly from R2.
+   * Get the download for a completed export job.
+   * Streams the file directly from R2.
    */
   async getExportDownload(
     userId: string,
     jobId: string,
   ): Promise<{ data: ReadableStream; fileName: string; contentType: string }> {
     const job = await this.db
-      .prepare(`SELECT id, user_id, r2_key, status FROM export_jobs WHERE id = ? AND user_id = ?`)
+      .prepare(
+        `SELECT id, user_id, r2_key, format, status FROM export_jobs WHERE id = ? AND user_id = ?`,
+      )
       .bind(jobId, userId)
-      .first<{ id: string; user_id: string; r2_key: string | null; status: string }>();
+      .first<{
+        id: string;
+        user_id: string;
+        r2_key: string | null;
+        format: string;
+        status: string;
+      }>();
 
     if (!job) {
       notFound("Export not found");
@@ -350,12 +384,13 @@ export class ExportService {
       notFound("Export file not found in storage");
     }
 
-    const fileName = object.customMetadata?.fileName || `export-${jobId}.pdf`;
+    const fileName = object.customMetadata?.fileName || `export-${jobId}.${job.format || "pdf"}`;
+    const contentType = job.format === "epub" ? "application/epub+zip" : "application/pdf";
 
     return {
       data: object.body,
       fileName,
-      contentType: "application/pdf",
+      contentType,
     };
   }
 

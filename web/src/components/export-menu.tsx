@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 
+type ExportFormat = "pdf" | "epub";
+
 type ExportState =
   | { phase: "idle" }
   | { phase: "exporting"; scope: "book" | "chapter" }
@@ -16,10 +18,10 @@ interface ExportMenuProps {
 }
 
 /**
- * ExportMenu - Dropdown menu for PDF export.
+ * ExportMenu - Dropdown menu for PDF and EPUB export.
  *
- * Per US-019:
- * - "Export Book as PDF" and "Export This Chapter as PDF" options
+ * Per US-019 and US-020:
+ * - "Export Book as PDF/EPUB" and "Export This Chapter as PDF/EPUB" options
  * - Progress indicator during generation
  * - On completion, provide download link
  * - iPad-first: 44pt touch targets
@@ -58,7 +60,7 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
   }, [isOpen]);
 
   const handleExport = useCallback(
-    async (scope: "book" | "chapter") => {
+    async (scope: "book" | "chapter", format: ExportFormat = "pdf") => {
       setIsOpen(false);
       setState({ phase: "exporting", scope });
 
@@ -80,7 +82,7 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ format: "pdf" }),
+          body: JSON.stringify({ format }),
         });
 
         if (!response.ok) {
@@ -189,7 +191,7 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
           aria-label="Export options"
         >
           <button
-            onClick={() => handleExport("book")}
+            onClick={() => handleExport("book", "pdf")}
             className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
                        min-h-[44px] flex items-center gap-2"
             role="menuitem"
@@ -211,7 +213,31 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
           </button>
 
           <button
-            onClick={() => handleExport("chapter")}
+            onClick={() => handleExport("book", "epub")}
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
+                       min-h-[44px] flex items-center gap-2"
+            role="menuitem"
+          >
+            <svg
+              className="w-4 h-4 text-gray-500 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              />
+            </svg>
+            Export Book as EPUB
+          </button>
+
+          <div className="border-t border-gray-100 my-1" role="separator" />
+
+          <button
+            onClick={() => handleExport("chapter", "pdf")}
             disabled={!activeChapterId}
             className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
                        min-h-[44px] flex items-center gap-2
@@ -232,6 +258,30 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
               />
             </svg>
             Export This Chapter as PDF
+          </button>
+
+          <button
+            onClick={() => handleExport("chapter", "epub")}
+            disabled={!activeChapterId}
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
+                       min-h-[44px] flex items-center gap-2
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+            role="menuitem"
+          >
+            <svg
+              className="w-4 h-4 text-gray-500 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            Export This Chapter as EPUB
           </button>
         </div>
       )}

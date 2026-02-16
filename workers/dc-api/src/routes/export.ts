@@ -8,9 +8,9 @@ import { ExportService } from "../services/export.js";
 /**
  * Export API routes
  *
- * Per US-019 (PDF Export):
- * - POST /projects/:projectId/export - Full-book PDF export
- * - POST /projects/:projectId/chapters/:chapterId/export - Single-chapter PDF export
+ * Per US-019 (PDF Export) and US-020 (EPUB Export):
+ * - POST /projects/:projectId/export - Full-book export (format: "pdf" | "epub")
+ * - POST /projects/:projectId/chapters/:chapterId/export - Single-chapter export
  * - GET /exports/:jobId/download - Download a completed export
  *
  * Rate limit: 5 req/min per user (exportRateLimit middleware).
@@ -26,10 +26,10 @@ exportRoutes.use("/projects/*", exportRateLimit);
 
 /**
  * POST /projects/:projectId/export
- * Generate a full-book PDF export.
+ * Generate a full-book export.
  *
  * Request body:
- * - format: "pdf" (required, only "pdf" supported in Phase 0)
+ * - format: "pdf" | "epub" (required)
  *
  * Response: { jobId, status, fileName, downloadUrl, error }
  */
@@ -39,12 +39,13 @@ exportRoutes.post("/projects/:projectId/export", async (c) => {
 
   const body = (await c.req.json().catch(() => ({}))) as { format?: string };
 
-  if (!body.format || body.format !== "pdf") {
-    validationError('format must be "pdf"');
+  if (!body.format || (body.format !== "pdf" && body.format !== "epub")) {
+    validationError('format must be "pdf" or "epub"');
   }
 
+  const format = body.format as "pdf" | "epub";
   const service = createExportService(c.env);
-  const result = await service.exportBook(userId, projectId);
+  const result = await service.exportBook(userId, projectId, format);
 
   if (result.status === "failed") {
     return c.json(result, 500);
@@ -55,10 +56,10 @@ exportRoutes.post("/projects/:projectId/export", async (c) => {
 
 /**
  * POST /projects/:projectId/chapters/:chapterId/export
- * Generate a single-chapter PDF export.
+ * Generate a single-chapter export.
  *
  * Request body:
- * - format: "pdf" (required)
+ * - format: "pdf" | "epub" (required)
  *
  * Response: { jobId, status, fileName, downloadUrl, error }
  */
@@ -69,12 +70,13 @@ exportRoutes.post("/projects/:projectId/chapters/:chapterId/export", async (c) =
 
   const body = (await c.req.json().catch(() => ({}))) as { format?: string };
 
-  if (!body.format || body.format !== "pdf") {
-    validationError('format must be "pdf"');
+  if (!body.format || (body.format !== "pdf" && body.format !== "epub")) {
+    validationError('format must be "pdf" or "epub"');
   }
 
+  const format = body.format as "pdf" | "epub";
   const service = createExportService(c.env);
-  const result = await service.exportChapter(userId, projectId, chapterId);
+  const result = await service.exportChapter(userId, projectId, chapterId, format);
 
   if (result.status === "failed") {
     return c.json(result, 500);
