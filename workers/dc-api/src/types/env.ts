@@ -8,14 +8,16 @@ export interface Env {
   CLERK_PUBLISHABLE_KEY: string;
   CLERK_SECRET_KEY: string;
   CLERK_WEBHOOK_SECRET: string;
+  CLERK_ISSUER_URL: string; // e.g. https://<instance>.clerk.accounts.dev
 
   // Google OAuth
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   GOOGLE_REDIRECT_URI: string;
 
-  // Anthropic
-  ANTHROPIC_API_KEY: string;
+  // AI Provider
+  OPENAI_API_KEY: string;
+  AI_MODEL?: string; // Default: gpt-4o
 
   // App
   FRONTEND_URL: string;

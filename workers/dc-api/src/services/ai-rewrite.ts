@@ -1,7 +1,8 @@
 import { ulid } from "ulid";
+import type { AIProvider, AIStreamEvent } from "./ai-provider.js";
 
 /**
- * AIRewriteService - Handles AI rewrite requests via Anthropic Claude
+ * AIRewriteService - Handles AI rewrite requests via provider-agnostic AIProvider
  *
  * Per PRD Section 8 (AI: US-017):
  * - Sends selected text + instruction + 500 chars surrounding context + chapter title + project description
@@ -34,8 +35,6 @@ export interface RewriteStreamResult {
   interactionId: string;
 }
 
-const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
 const MAX_SELECTED_TEXT_CHARS = 10000;
 const MAX_CONTEXT_CHARS = 500;
 const RATE_LIMIT_WINDOW_SECONDS = 60;
@@ -45,7 +44,7 @@ export class AIRewriteService {
   constructor(
     private readonly db: D1Database,
     private readonly cache: KVNamespace,
-    private readonly anthropicApiKey: string,
+    private readonly aiProvider: AIProvider,
   ) {}
 
   /**
@@ -144,8 +143,8 @@ export class AIRewriteService {
   }
 
   /**
-   * Stream a rewrite response via Anthropic API
-   * Returns an SSE-compatible ReadableStream
+   * Stream a rewrite response via the AI provider.
+   * Returns an SSE-compatible ReadableStream with normalized events.
    */
   async streamRewrite(userId: string, input: RewriteInput): Promise<RewriteStreamResult> {
     const interactionId = ulid();
@@ -161,104 +160,45 @@ export class AIRewriteService {
         interactionId,
         userId,
         input.chapterId,
-        input.instruction.slice(0, 200), // Truncate instruction for logging (not user content)
+        input.instruction.slice(0, 500),
         input.selectedText.length,
-        MODEL,
+        this.aiProvider.model,
       )
       .run();
 
-    // Call Anthropic API with streaming
-    const response = await fetch(ANTHROPIC_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": this.anthropicApiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 4096,
-        stream: true,
-        system: this.buildSystemPrompt(input),
-        messages: [
-          {
-            role: "user",
-            content: this.buildUserMessage(input),
-          },
-        ],
-      }),
-    });
+    // Get the normalized AI stream
+    const aiStream = await this.aiProvider.streamCompletion(
+      this.buildSystemPrompt(input),
+      this.buildUserMessage(input),
+      { maxTokens: 4096 },
+    );
 
-    if (!response.ok) {
-      const errorBody = await response.text().catch(() => "Unknown error");
-      console.error("Anthropic API error:", response.status, errorBody);
-
-      // Update interaction with error
-      await this.db
-        .prepare(`UPDATE ai_interactions SET latency_ms = ? WHERE id = ?`)
-        .bind(Date.now() - startTime, interactionId)
-        .run();
-
-      throw new Error(`AI provider error: ${response.status}`);
-    }
-
-    const anthropicStream = response.body;
-    if (!anthropicStream) {
-      throw new Error("No response body from AI provider");
-    }
-
-    // Transform Anthropic SSE stream into our SSE format
+    // Transform AIStreamEvents into SSE-formatted bytes for the client
     let outputChars = 0;
     const db = this.db;
     const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
 
-    const transformStream = new TransformStream<Uint8Array, Uint8Array>({
-      transform(chunk, controller) {
-        const text = decoder.decode(chunk, { stream: true });
-        const lines = text.split("\n");
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") {
-              controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify({ type: "done", interactionId })}\n\n`),
-              );
-              continue;
-            }
-
-            try {
-              const event = JSON.parse(data);
-
-              // Handle content_block_delta events (text tokens)
-              if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
-                const token = event.delta.text;
-                outputChars += token.length;
-                controller.enqueue(
-                  encoder.encode(`data: ${JSON.stringify({ type: "token", text: token })}\n\n`),
-                );
-              }
-
-              // Handle message_stop - final event
-              if (event.type === "message_stop") {
-                controller.enqueue(
-                  encoder.encode(`data: ${JSON.stringify({ type: "done", interactionId })}\n\n`),
-                );
-              }
-
-              // Handle errors from the API
-              if (event.type === "error") {
-                controller.enqueue(
-                  encoder.encode(
-                    `data: ${JSON.stringify({ type: "error", message: "AI processing error" })}\n\n`,
-                  ),
-                );
-              }
-            } catch {
-              // Skip malformed JSON lines
-            }
-          }
+    const sseTransform = new TransformStream<AIStreamEvent, Uint8Array>({
+      transform(event, controller) {
+        switch (event.type) {
+          case "token":
+            outputChars += event.text.length;
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: "token", text: event.text })}\n\n`),
+            );
+            break;
+          case "done":
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ type: "done", interactionId })}\n\n`),
+            );
+            break;
+          case "error":
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: "error", message: event.message })}\n\n`,
+              ),
+            );
+            break;
         }
       },
 
@@ -276,7 +216,7 @@ export class AIRewriteService {
       },
     });
 
-    const stream = anthropicStream.pipeThrough(transformStream);
+    const stream = aiStream.pipeThrough(sseTransform);
 
     return { stream, interactionId };
   }

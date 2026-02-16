@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { validationError, rateLimited } from "../middleware/error-handler.js";
 import { AIRewriteService, type RewriteInput } from "../services/ai-rewrite.js";
 import { AIInteractionService } from "../services/ai-interaction.js";
+import { OpenAIProvider } from "../services/ai-provider.js";
 
 /**
  * AI API routes
@@ -45,7 +46,8 @@ ai.use("*", requireAuth);
 ai.post("/rewrite", async (c) => {
   const { userId } = c.get("auth");
 
-  const service = new AIRewriteService(c.env.DB, c.env.CACHE, c.env.ANTHROPIC_API_KEY);
+  const provider = new OpenAIProvider(c.env.OPENAI_API_KEY, c.env.AI_MODEL);
+  const service = new AIRewriteService(c.env.DB, c.env.CACHE, provider);
 
   // Check rate limit
   const { allowed, remaining } = await service.checkRateLimit(userId);
