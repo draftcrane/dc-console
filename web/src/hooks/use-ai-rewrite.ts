@@ -22,10 +22,7 @@ interface UseAIRewriteReturn {
   /** Handle "Use This" action — logs acceptance, returns the result */
   handleAccept: (result: AIRewriteResult) => Promise<AIRewriteResult>;
   /** Handle "Try Again" action — logs rejection, triggers new request */
-  handleRetry: (
-    result: AIRewriteResult,
-    instruction: string,
-  ) => Promise<void>;
+  handleRetry: (result: AIRewriteResult, instruction: string) => Promise<void>;
   /** Handle "Discard" action — logs rejection, closes sheet */
   handleDiscard: (result: AIRewriteResult) => Promise<void>;
   /** Close the sheet without logging (for internal use) */
