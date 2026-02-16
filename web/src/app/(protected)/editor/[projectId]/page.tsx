@@ -8,6 +8,9 @@ import { DriveBanner } from "@/components/drive-banner";
 import { ChapterEditor, type ChapterEditorHandle } from "@/components/chapter-editor";
 import { AIRewriteSheet, type AIRewriteResult } from "@/components/ai-rewrite-sheet";
 import { useAIRewrite } from "@/hooks/use-ai-rewrite";
+import { SaveIndicator } from "@/components/save-indicator";
+import { CrashRecoveryDialog } from "@/components/crash-recovery-dialog";
+import { useAutoSave } from "@/hooks/use-auto-save";
 
 interface Project {
   id: string;
@@ -29,6 +32,7 @@ interface Chapter {
   title: string;
   sortOrder: number;
   wordCount: number;
+  version: number;
   status: string;
 }
 
@@ -36,6 +40,8 @@ interface ProjectData {
   project: Project;
   chapters: Chapter[];
 }
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 /**
  * Writing Environment Page
@@ -52,14 +58,13 @@ interface ProjectData {
  * - Uses 100dvh for viewport height
  *
  * Per US-011: Editor content width constrained to ~680-720px.
- * Chapter title is editable at the top of the editor via click.
+ * Per US-015: Three-tier auto-save (IndexedDB → Drive/R2 → D1 metadata).
  */
 export default function EditorPage() {
   const params = useParams();
   const router = useRouter();
   const { getToken } = useAuth();
   const projectId = params.projectId as string;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
@@ -69,18 +74,46 @@ export default function EditorPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOverlayOpen, setMobileOverlayOpen] = useState(false);
 
+  // Editor ref for AI rewrite text replacement
   const editorRef = useRef<ChapterEditorHandle>(null);
 
+  // AI rewrite hook
   const aiRewrite = useAIRewrite({
     getToken,
-    apiUrl,
+    apiUrl: API_URL,
   });
 
-  const [chapterContent, setChapterContent] = useState<Record<string, string>>({});
+  // Editor state
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState("");
-  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
 
+  // Get active chapter for version
+  const activeChapter = projectData?.chapters.find((ch) => ch.id === activeChapterId);
+
+  // Three-tier auto-save hook (US-015)
+  const {
+    handleContentChange,
+    saveNow,
+    saveStatus,
+    recoveryPrompt,
+    acceptRecovery,
+    dismissRecovery,
+    content: currentContent,
+    setContent,
+  } = useAutoSave({
+    chapterId: activeChapterId,
+    version: activeChapter?.version ?? 1,
+    getToken: getToken as () => Promise<string | null>,
+    apiUrl: API_URL,
+  });
+
+  // Ref to hold saveNow for chapter switch
+  const saveNowRef = useRef(saveNow);
+  useEffect(() => {
+    saveNowRef.current = saveNow;
+  }, [saveNow]);
+
+  // AI rewrite state
   const [hasTextSelection, setHasTextSelection] = useState(false);
   const [isStreamingRewrite, setIsStreamingRewrite] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -90,16 +123,17 @@ export default function EditorPage() {
     contextAfter: string;
   } | null>(null);
 
+  // Fetch project data and drive status
   useEffect(() => {
     async function fetchData() {
       try {
         const token = await getToken();
 
         const [projectResponse, userResponse] = await Promise.all([
-          fetch(`${apiUrl}/projects/${projectId}`, {
+          fetch(`${API_URL}/projects/${projectId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`${apiUrl}/users/me`, {
+          fetch(`${API_URL}/users/me`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -132,27 +166,70 @@ export default function EditorPage() {
     }
 
     fetchData();
-  }, [projectId, getToken, router, activeChapterId, apiUrl]);
+  }, [projectId, getToken, router, activeChapterId]);
 
+  // Cleanup abort controller on unmount
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort();
     };
   }, []);
 
-  const activeChapter = projectData?.chapters.find((ch) => ch.id === activeChapterId);
+  // Load chapter content from API when active chapter changes
+  useEffect(() => {
+    if (!activeChapterId) return;
 
-  const handleChapterSelect = useCallback((chapterId: string) => {
-    setActiveChapterId(chapterId);
-    setMobileOverlayOpen(false);
-  }, []);
+    let cancelled = false;
 
+    async function loadContent() {
+      try {
+        const token = await getToken();
+        const response = await fetch(`${API_URL}/chapters/${activeChapterId}/content`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (cancelled) return;
+
+        if (response.ok) {
+          const data = (await response.json()) as { content: string; version: number };
+          setContent(data.content || "");
+        } else if (response.status === 404) {
+          setContent("");
+        }
+      } catch (err) {
+        console.error("Failed to load chapter content:", err);
+        if (!cancelled) {
+          setContent("");
+        }
+      }
+    }
+
+    loadContent();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeChapterId, getToken, setContent]);
+
+  // Handle chapter selection - save current chapter before switching
+  const handleChapterSelect = useCallback(
+    async (chapterId: string) => {
+      if (activeChapterId && currentContent) {
+        await saveNowRef.current();
+      }
+      setActiveChapterId(chapterId);
+      setMobileOverlayOpen(false);
+    },
+    [activeChapterId, currentContent],
+  );
+
+  // Handle add chapter
   const handleAddChapter = useCallback(async () => {
     if (!projectData) return;
 
     try {
       const token = await getToken();
-      const response = await fetch(`${apiUrl}/projects/${projectId}/chapters`, {
+      const response = await fetch(`${API_URL}/projects/${projectId}/chapters`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -181,23 +258,9 @@ export default function EditorPage() {
     } catch (err) {
       console.error("Failed to add chapter:", err);
     }
-  }, [projectData, projectId, getToken, apiUrl]);
+  }, [projectData, projectId, getToken]);
 
-  const handleContentUpdate = useCallback(
-    (html: string) => {
-      if (!activeChapterId) return;
-      setChapterContent((prev) => ({ ...prev, [activeChapterId]: html }));
-      setSaveStatus("unsaved");
-    },
-    [activeChapterId],
-  );
-
-  const handleSave = useCallback(() => {
-    setSaveStatus("saving");
-    console.log("Save triggered for chapter:", activeChapterId);
-    setTimeout(() => setSaveStatus("saved"), 500);
-  }, [activeChapterId]);
-
+  // Handle chapter title update
   const handleTitleSave = useCallback(async () => {
     if (!activeChapterId || !titleValue.trim()) {
       setEditingTitle(false);
@@ -206,7 +269,7 @@ export default function EditorPage() {
 
     try {
       const token = await getToken();
-      const response = await fetch(`${apiUrl}/chapters/${activeChapterId}`, {
+      const response = await fetch(`${API_URL}/chapters/${activeChapterId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -231,7 +294,7 @@ export default function EditorPage() {
     } finally {
       setEditingTitle(false);
     }
-  }, [activeChapterId, titleValue, getToken, apiUrl]);
+  }, [activeChapterId, titleValue, getToken]);
 
   const handleTitleEdit = useCallback(() => {
     if (activeChapter) {
@@ -240,6 +303,7 @@ export default function EditorPage() {
     }
   }, [activeChapter]);
 
+  // AI rewrite: request rewrite via SSE streaming
   const requestRewrite = useCallback(
     async (
       selectedText: string,
@@ -258,7 +322,7 @@ export default function EditorPage() {
         const token = await getToken();
         if (!token) return;
 
-        const response = await fetch(`${apiUrl}/ai/rewrite`, {
+        const response = await fetch(`${API_URL}/ai/rewrite`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -345,7 +409,7 @@ export default function EditorPage() {
         setIsStreamingRewrite(false);
       }
     },
-    [getToken, apiUrl, activeChapter, projectData, activeChapterId, aiRewrite],
+    [getToken, activeChapter, projectData, activeChapterId, aiRewrite],
   );
 
   const handleSelectionChange = useCallback((hasSelection: boolean) => {
@@ -425,7 +489,6 @@ export default function EditorPage() {
     return text ? text.split(" ").length : 0;
   }, []);
 
-  const currentContent = activeChapterId ? chapterContent[activeChapterId] || "" : "";
   const currentWordCount = countWords(currentContent);
 
   const totalWordCount = projectData?.chapters.reduce((sum, ch) => sum + ch.wordCount, 0) ?? 0;
@@ -464,6 +527,15 @@ export default function EditorPage() {
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)]">
+      {/* Crash recovery dialog */}
+      {recoveryPrompt && (
+        <CrashRecoveryDialog
+          recovery={recoveryPrompt}
+          onAccept={acceptRecovery}
+          onDismiss={dismissRecovery}
+        />
+      )}
+
       <div className="hidden lg:block">
         <Sidebar
           chapters={sidebarChapters}
@@ -509,15 +581,8 @@ export default function EditorPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span
-              className={`text-xs ${saveStatus === "unsaved" ? "text-amber-600" : "text-muted-foreground"}`}
-            >
-              {saveStatus === "saving"
-                ? "Saving..."
-                : saveStatus === "unsaved"
-                  ? "Unsaved"
-                  : "Saved"}
-            </span>
+            {/* Save status indicator (US-015) */}
+            <SaveIndicator status={saveStatus} />
 
             <button
               className="h-9 px-3 text-sm rounded-lg hover:bg-gray-100 transition-colors min-w-[44px]"
@@ -595,8 +660,7 @@ export default function EditorPage() {
             <ChapterEditor
               ref={editorRef}
               content={currentContent}
-              onUpdate={handleContentUpdate}
-              onSave={handleSave}
+              onUpdate={handleContentChange}
               onRewrite={handleOpenAiRewrite}
               onSelectionChange={handleSelectionChange}
             />
