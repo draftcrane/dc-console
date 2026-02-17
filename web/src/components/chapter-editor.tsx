@@ -97,6 +97,15 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
       },
     });
 
+    // Sync external content changes into the editor (e.g., after API load on refresh).
+    // Tiptap's useEditor only uses `content` for initialization, not prop updates.
+    useEffect(() => {
+      if (!editor) return;
+      if (content !== editor.getHTML()) {
+        editor.commands.setContent(content, { emitUpdate: false });
+      }
+    }, [editor, content]);
+
     // Track text selection for floating action bar (200ms delay per US-016)
     const textSelection = useTextSelection(editor, editorContainerRef, 200);
 
