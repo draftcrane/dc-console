@@ -1,0 +1,17 @@
+{
+  "name": "DraftCrane",
+  "short_name": "DC",
+  "description": "Your book. Your files. Your cloud. With an AI writing partner.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#1a1a2e",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
