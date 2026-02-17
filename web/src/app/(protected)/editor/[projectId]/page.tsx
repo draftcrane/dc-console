@@ -8,8 +8,10 @@ import { DriveBanner } from "@/components/drive-banner";
 import { DriveStatusIndicator } from "@/components/drive-status-indicator";
 import { ChapterEditor, type ChapterEditorHandle } from "@/components/chapter-editor";
 import { AIRewriteSheet, type AIRewriteResult } from "@/components/ai-rewrite-sheet";
+import { DriveFilesSheet } from "@/components/drive-files-sheet";
 import { useAIRewrite } from "@/hooks/use-ai-rewrite";
 import { useDriveStatus } from "@/hooks/use-drive-status";
+import { useDriveFiles } from "@/hooks/use-drive-files";
 import { SaveIndicator } from "@/components/save-indicator";
 import { CrashRecoveryDialog } from "@/components/crash-recovery-dialog";
 import { ExportMenu } from "@/components/export-menu";
@@ -81,6 +83,16 @@ export default function EditorPage() {
   // Drive connection status (US-005)
   const { status: driveStatus, connect: connectDrive } = useDriveStatus();
 
+  // Drive files listing (US-007)
+  const {
+    fetchFiles,
+    files: driveFiles,
+    isLoading: driveFilesLoading,
+    error: driveFilesError,
+    reset: resetDriveFiles,
+  } = useDriveFiles();
+  const [driveFilesOpen, setDriveFilesOpen] = useState(false);
+
   /**
    * Connect Drive with project context (US-006).
    * Stores the project ID in sessionStorage so the Drive success page
@@ -90,6 +102,28 @@ export default function EditorPage() {
     sessionStorage.setItem("dc_pending_drive_project", projectId);
     connectDrive();
   }, [projectId, connectDrive]);
+
+  /**
+   * Open the Drive files sheet (US-007).
+   * Fetches the file list from the project's Book Folder.
+   */
+  const openDriveFiles = useCallback(() => {
+    const folderId = projectData?.project.driveFolderId;
+    if (!folderId) return;
+    setDriveFilesOpen(true);
+    fetchFiles(folderId);
+  }, [projectData, fetchFiles]);
+
+  const closeDriveFiles = useCallback(() => {
+    setDriveFilesOpen(false);
+    resetDriveFiles();
+  }, [resetDriveFiles]);
+
+  const refreshDriveFiles = useCallback(() => {
+    const folderId = projectData?.project.driveFolderId;
+    if (!folderId) return;
+    fetchFiles(folderId);
+  }, [projectData, fetchFiles]);
 
   // AI rewrite hook
   const aiRewrite = useAIRewrite({
@@ -850,6 +884,11 @@ export default function EditorPage() {
                 connected={driveStatus.connected}
                 email={driveStatus.email}
                 onConnect={connectDriveWithProject}
+                onViewFiles={
+                  driveStatus.connected && projectData?.project.driveFolderId
+                    ? openDriveFiles
+                    : undefined
+                }
               />
             )}
 
@@ -902,6 +941,27 @@ export default function EditorPage() {
                   role="menu"
                   aria-label="Project settings"
                 >
+                  {/* View Drive Files (US-007) - shown when Drive is connected and project has a folder */}
+                  {driveStatus?.connected && projectData?.project.driveFolderId && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setSettingsMenuOpen(false);
+                          openDriveFiles();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+                                   transition-colors min-h-[44px] flex items-center gap-2"
+                        role="menuitem"
+                      >
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
+                        </svg>
+                        View Drive Files
+                      </button>
+                      <div className="my-1 border-t border-gray-200" role="separator" />
+                    </>
+                  )}
+
                   <button
                     onClick={() => {
                       setSettingsMenuOpen(false);
@@ -1119,6 +1179,16 @@ export default function EditorPage() {
         onAccept={handleAIAccept}
         onRetry={handleAIRetry}
         onDiscard={handleAIDiscard}
+      />
+
+      {/* Drive files listing sheet (US-007) */}
+      <DriveFilesSheet
+        isOpen={driveFilesOpen}
+        files={driveFiles}
+        isLoading={driveFilesLoading}
+        error={driveFilesError}
+        onClose={closeDriveFiles}
+        onRefresh={refreshDriveFiles}
       />
     </div>
   );
