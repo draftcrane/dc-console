@@ -1,6 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 /**
  * Chapter data structure
@@ -28,6 +47,8 @@ export interface SidebarProps {
   onDeleteChapter?: (chapterId: string) => void;
   /** Callback when a chapter is renamed via double-tap inline editing (US-013) */
   onChapterRename?: (chapterId: string, newTitle: string) => void;
+  /** Callback when chapters are reordered via drag-and-drop (US-012A) */
+  onChapterReorder?: (chapterIds: string[]) => void;
   /** Total word count across all chapters */
   totalWordCount?: number;
   /** Real-time word count for the active chapter (overrides stored value) */
@@ -60,6 +81,12 @@ export interface SidebarProps {
  * - Double-tap on chapter title enables inline editing
  * - Max 200 characters
  * - Empty title reverts to "Untitled Chapter"
+ *
+ * Per PRD US-012A (Reorder Chapters):
+ * - Long-press-and-drag to reorder chapters
+ * - Visual feedback during drag (ghost/placeholder)
+ * - Keyboard alternative: Ctrl+Up / Ctrl+Down
+ * - Works with touch on iPad Safari
  */
 export function Sidebar({
   chapters,
@@ -68,6 +95,7 @@ export function Sidebar({
   onAddChapter,
   onDeleteChapter,
   onChapterRename,
+  onChapterReorder,
   totalWordCount = 0,
   activeChapterWordCount,
   collapsed = false,
@@ -77,6 +105,9 @@ export function Sidebar({
 
   // Track which chapter is being renamed inline
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
+
+  // Track the currently dragged chapter for DragOverlay
+  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
 
   // Compute the effective total word count using the real-time active chapter word count
   const effectiveTotalWordCount =
@@ -113,6 +144,78 @@ export function Sidebar({
     setEditingChapterId(null);
   }, []);
 
+  // DnD sensors: touch (long press for iPad) + pointer (desktop) + keyboard
+  const pointerSensor = useSensor(PointerSensor, {
+    activationConstraint: { distance: 8 },
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: 250, tolerance: 5 },
+  });
+  const keyboardSensor = useSensor(KeyboardSensor, {
+    coordinateGetter: sortableKeyboardCoordinates,
+  });
+  const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setDragActiveId(event.active.id as string);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      setDragActiveId(null);
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = sortedChapters.findIndex((ch) => ch.id === active.id);
+      const newIndex = sortedChapters.findIndex((ch) => ch.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      // Compute the new order
+      const reordered = [...sortedChapters];
+      const [moved] = reordered.splice(oldIndex, 1);
+      reordered.splice(newIndex, 0, moved);
+
+      onChapterReorder?.(reordered.map((ch) => ch.id));
+    },
+    [sortedChapters, onChapterReorder],
+  );
+
+  const handleDragCancel = useCallback(() => {
+    setDragActiveId(null);
+  }, []);
+
+  // Keyboard shortcut: Ctrl+ArrowUp / Ctrl+ArrowDown to move the active chapter
+  useEffect(() => {
+    if (!onChapterReorder || !activeChapterId) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+
+      // Only respond when focus is within the sidebar or the body
+      const target = e.target as HTMLElement;
+      const sidebar = target.closest('[aria-label="Chapter navigation"]');
+      if (!sidebar) return;
+
+      e.preventDefault();
+
+      const currentIndex = sortedChapters.findIndex((ch) => ch.id === activeChapterId);
+      if (currentIndex === -1) return;
+
+      const newIndex = e.key === "ArrowUp" ? currentIndex - 1 : currentIndex + 1;
+      if (newIndex < 0 || newIndex >= sortedChapters.length) return;
+
+      const reordered = [...sortedChapters];
+      const [moved] = reordered.splice(currentIndex, 1);
+      reordered.splice(newIndex, 0, moved);
+
+      onChapterReorder(reordered.map((ch) => ch.id));
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onChapterReorder, activeChapterId, sortedChapters]);
+
   if (collapsed) {
     // Collapsed state - show only a pill indicator
     const activeChapter = sortedChapters.find((ch) => ch.id === activeChapterId);
@@ -131,6 +234,9 @@ export function Sidebar({
       </button>
     );
   }
+
+  // Find the dragged chapter for overlay rendering
+  const draggedChapter = dragActiveId ? sortedChapters.find((ch) => ch.id === dragActiveId) : null;
 
   return (
     <aside
@@ -166,35 +272,72 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Chapter list */}
-      <nav className="flex-1 overflow-y-auto py-2" role="list" aria-label="Chapter list">
-        {sortedChapters.map((chapter) => {
-          const isActive = chapter.id === activeChapterId;
-          const displayWordCount =
-            isActive && activeChapterWordCount !== undefined
-              ? activeChapterWordCount
-              : chapter.wordCount;
-          const isEditing = editingChapterId === chapter.id;
-          const canDelete = sortedChapters.length > 1;
+      {/* Chapter list with drag-and-drop */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        <SortableContext
+          items={sortedChapters.map((ch) => ch.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <nav className="flex-1 overflow-y-auto py-2" role="list" aria-label="Chapter list">
+            {sortedChapters.map((chapter) => {
+              const isActive = chapter.id === activeChapterId;
+              const displayWordCount =
+                isActive && activeChapterWordCount !== undefined
+                  ? activeChapterWordCount
+                  : chapter.wordCount;
+              const isEditing = editingChapterId === chapter.id;
+              const canDelete = sortedChapters.length > 1;
 
-          return (
+              return (
+                <SortableChapterItem
+                  key={chapter.id}
+                  chapter={chapter}
+                  isActive={isActive}
+                  isEditing={isEditing}
+                  canDelete={canDelete}
+                  displayWordCount={displayWordCount}
+                  formatWordCount={formatWordCount}
+                  onSelect={() => onChapterSelect?.(chapter.id)}
+                  onRenameStart={() => handleRenameStart(chapter.id)}
+                  onRenameEnd={(newTitle) => handleRenameEnd(chapter.id, newTitle)}
+                  onRenameCancel={handleRenameCancel}
+                  onDelete={onDeleteChapter ? () => onDeleteChapter(chapter.id) : undefined}
+                  isDragOverlay={false}
+                />
+              );
+            })}
+          </nav>
+        </SortableContext>
+
+        {/* Drag overlay - rendered outside the list for smooth visual feedback */}
+        <DragOverlay>
+          {draggedChapter ? (
             <ChapterListItem
-              key={chapter.id}
-              chapter={chapter}
-              isActive={isActive}
-              isEditing={isEditing}
-              canDelete={canDelete}
-              displayWordCount={displayWordCount}
+              chapter={draggedChapter}
+              isActive={draggedChapter.id === activeChapterId}
+              isEditing={false}
+              canDelete={false}
+              displayWordCount={
+                draggedChapter.id === activeChapterId && activeChapterWordCount !== undefined
+                  ? activeChapterWordCount
+                  : draggedChapter.wordCount
+              }
               formatWordCount={formatWordCount}
-              onSelect={() => onChapterSelect?.(chapter.id)}
-              onRenameStart={() => handleRenameStart(chapter.id)}
-              onRenameEnd={(newTitle) => handleRenameEnd(chapter.id, newTitle)}
-              onRenameCancel={handleRenameCancel}
-              onDelete={onDeleteChapter ? () => onDeleteChapter(chapter.id) : undefined}
+              onSelect={() => {}}
+              onRenameStart={() => {}}
+              onRenameEnd={() => {}}
+              onRenameCancel={() => {}}
+              isDragOverlay={true}
             />
-          );
-        })}
-      </nav>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Add chapter button */}
       <div className="px-4 py-2 border-t border-border">
@@ -239,6 +382,48 @@ export function Sidebar({
 }
 
 /**
+ * Sortable wrapper for ChapterListItem using @dnd-kit/sortable.
+ * Provides transform/transition styles and drag handle attributes.
+ */
+function SortableChapterItem(props: ChapterListItemProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: props.chapter.id,
+  });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <ChapterListItem {...props} dragListeners={listeners} />
+    </div>
+  );
+}
+
+/**
+ * Props for ChapterListItem (extracted for reuse in SortableChapterItem)
+ */
+interface ChapterListItemProps {
+  chapter: ChapterData;
+  isActive: boolean;
+  isEditing: boolean;
+  canDelete: boolean;
+  displayWordCount: number;
+  formatWordCount: (count: number) => string;
+  onSelect: () => void;
+  onRenameStart: () => void;
+  onRenameEnd: (newTitle: string) => void;
+  onRenameCancel: () => void;
+  onDelete?: () => void;
+  isDragOverlay: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dragListeners?: Record<string, any>;
+}
+
+/**
  * Individual chapter list item with double-tap rename support.
  *
  * Per PRD US-013:
@@ -247,6 +432,10 @@ export function Sidebar({
  * - Max 200 characters for title
  * - Empty title reverts to "Untitled Chapter"
  * - Enter commits the rename, Escape cancels
+ *
+ * Per PRD US-012A:
+ * - Drag handle (grip dots) for reorder via drag-and-drop
+ * - Visual feedback: shadow and slight scale on drag overlay
  */
 function ChapterListItem({
   chapter,
@@ -260,19 +449,9 @@ function ChapterListItem({
   onRenameEnd,
   onRenameCancel,
   onDelete,
-}: {
-  chapter: ChapterData;
-  isActive: boolean;
-  isEditing: boolean;
-  canDelete: boolean;
-  displayWordCount: number;
-  formatWordCount: (count: number) => string;
-  onSelect: () => void;
-  onRenameStart: () => void;
-  onRenameEnd: (newTitle: string) => void;
-  onRenameCancel: () => void;
-  onDelete?: () => void;
-}) {
+  isDragOverlay,
+  dragListeners,
+}: ChapterListItemProps) {
   if (isEditing) {
     return (
       <InlineRenameInput
@@ -293,16 +472,42 @@ function ChapterListItem({
                    isActive
                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100"
                      : "hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground"
-                 }`}
+                 }
+                 ${isDragOverlay ? "shadow-lg rounded-lg bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-600" : ""}`}
       role="listitem"
     >
+      {/* Drag handle */}
+      <button
+        className="flex items-center justify-center w-6 shrink-0 ml-1 cursor-grab
+                   text-muted-foreground hover:text-foreground transition-colors
+                   touch-none select-none"
+        aria-label={`Drag to reorder ${chapter.title || "Untitled Chapter"}`}
+        tabIndex={-1}
+        {...dragListeners}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <circle cx="9" cy="5" r="2" />
+          <circle cx="15" cy="5" r="2" />
+          <circle cx="9" cy="12" r="2" />
+          <circle cx="15" cy="12" r="2" />
+          <circle cx="9" cy="19" r="2" />
+          <circle cx="15" cy="19" r="2" />
+        </svg>
+      </button>
+
       <button
         onClick={onSelect}
         onDoubleClick={(e) => {
           e.preventDefault();
           onRenameStart();
         }}
-        className="flex-1 px-4 py-3 text-left flex items-center justify-between min-w-0
+        className="flex-1 px-2 py-3 text-left flex items-center justify-between min-w-0
                    focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
         aria-current={isActive ? "page" : undefined}
         aria-label={`${chapter.title || "Untitled Chapter"}, ${formatWordCount(displayWordCount)} words. Double-tap to rename.`}
