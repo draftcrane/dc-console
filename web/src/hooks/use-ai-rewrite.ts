@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { AIRewriteResult } from "@/components/ai-rewrite-sheet";
+
+export type SheetState = "idle" | "streaming" | "complete";
 
 interface UseAIRewriteOptions {
   /** Function to get the auth token */
@@ -11,26 +13,35 @@ interface UseAIRewriteOptions {
 }
 
 interface UseAIRewriteReturn {
-  /** Whether the bottom sheet is open */
-  isSheetOpen: boolean;
+  /** Current state of the AI rewrite sheet */
+  sheetState: SheetState;
   /** The current AI rewrite result being reviewed */
   currentResult: AIRewriteResult | null;
-  /** Whether a retry request is in progress */
-  isRetrying: boolean;
-  /** Open the sheet with a new AI rewrite result */
-  showResult: (result: AIRewriteResult) => void;
+  /** Error message to display inline in the sheet */
+  errorMessage: string | null;
+  /** Transition idle → streaming: opens sheet immediately with placeholder */
+  startStreaming: (originalText: string, instruction: string, tier: "edge" | "frontier") => void;
+  /** Append a token to the streaming result */
+  appendToken: (text: string) => void;
+  /** Transition streaming → complete: finalize the result */
+  completeStreaming: (interactionId: string, attemptNumber: number) => void;
+  /** Abort streaming: show error or close sheet */
+  abortStreaming: (errorMessage?: string) => void;
   /** Handle "Use This" action — logs acceptance, returns the result */
   handleAccept: (result: AIRewriteResult) => Promise<AIRewriteResult>;
   /** Handle "Try Again" action — logs rejection, triggers new request */
   handleRetry: (result: AIRewriteResult, instruction: string) => Promise<void>;
-  /** Handle "Discard" action — logs rejection, closes sheet */
+  /** Handle "Discard" / "Cancel" action — logs rejection if complete, closes sheet */
   handleDiscard: (result: AIRewriteResult) => Promise<void>;
-  /** Close the sheet without logging (for internal use) */
+  /** Close the sheet and reset all state */
   closeSheet: () => void;
 }
 
 /**
  * useAIRewrite - Hook for managing AI rewrite accept/reject/retry flow
+ *
+ * Models the sheet as a three-state machine: idle → streaming → complete.
+ * Streaming state opens the sheet immediately and shows tokens progressively.
  *
  * Per PRD US-018:
  * - Each acceptance/rejection logged via API
@@ -38,19 +49,73 @@ interface UseAIRewriteReturn {
  * - No silent rewrites — user must explicitly tap "Use This"
  */
 export function useAIRewrite({ getToken, apiUrl }: UseAIRewriteOptions): UseAIRewriteReturn {
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [sheetState, setSheetState] = useState<SheetState>("idle");
   const [currentResult, setCurrentResult] = useState<AIRewriteResult | null>(null);
-  const [isRetrying, setIsRetrying] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const showResult = useCallback((result: AIRewriteResult) => {
-    setCurrentResult(result);
-    setIsSheetOpen(true);
+  // Accumulate streamed text in a ref for performance (avoid re-render per token)
+  const streamedTextRef = useRef("");
+
+  const startStreaming = useCallback(
+    (originalText: string, instruction: string, tier: "edge" | "frontier") => {
+      streamedTextRef.current = "";
+      setErrorMessage(null);
+      setCurrentResult({
+        interactionId: "",
+        originalText,
+        rewriteText: "",
+        instruction,
+        attemptNumber: 0,
+        tier,
+      });
+      setSheetState("streaming");
+    },
+    [],
+  );
+
+  const appendToken = useCallback((text: string) => {
+    streamedTextRef.current += text;
+    setCurrentResult((prev) => {
+      if (!prev) return prev;
+      return { ...prev, rewriteText: streamedTextRef.current };
+    });
+  }, []);
+
+  const completeStreaming = useCallback((interactionId: string, attemptNumber: number) => {
+    setCurrentResult((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        interactionId,
+        attemptNumber,
+        rewriteText: streamedTextRef.current,
+      };
+    });
+    setSheetState("complete");
+  }, []);
+
+  const abortStreaming = useCallback((msg?: string) => {
+    if (msg && streamedTextRef.current) {
+      // Have partial text — show error inline, keep sheet open
+      setErrorMessage(msg);
+      setSheetState("complete");
+    } else if (msg) {
+      // No text yet — show error inline briefly then close
+      setErrorMessage(msg);
+      setSheetState("complete");
+    } else {
+      // Clean abort (user cancelled)
+      setSheetState("idle");
+      setCurrentResult(null);
+      setErrorMessage(null);
+    }
   }, []);
 
   const closeSheet = useCallback(() => {
-    setIsSheetOpen(false);
+    setSheetState("idle");
     setCurrentResult(null);
-    setIsRetrying(false);
+    setErrorMessage(null);
+    streamedTextRef.current = "";
   }, []);
 
   /**
@@ -59,6 +124,7 @@ export function useAIRewrite({ getToken, apiUrl }: UseAIRewriteOptions): UseAIRe
    */
   const logInteraction = useCallback(
     async (interactionId: string, action: "accept" | "reject") => {
+      if (!interactionId) return;
       try {
         const token = await getToken();
         if (!token) return;
@@ -71,7 +137,6 @@ export function useAIRewrite({ getToken, apiUrl }: UseAIRewriteOptions): UseAIRe
           },
         });
       } catch (err) {
-        // Log but don't block the user flow on logging failures
         console.error(`Failed to log AI interaction ${action}:`, err);
       }
     },
@@ -80,42 +145,40 @@ export function useAIRewrite({ getToken, apiUrl }: UseAIRewriteOptions): UseAIRe
 
   const handleAccept = useCallback(
     async (result: AIRewriteResult): Promise<AIRewriteResult> => {
-      // Log acceptance (fire-and-forget)
       logInteraction(result.interactionId, "accept");
-
-      // Close the sheet
-      setIsSheetOpen(false);
-      setCurrentResult(null);
-
+      closeSheet();
       return result;
     },
-    [logInteraction],
+    [logInteraction, closeSheet],
   );
 
   const handleRetry = useCallback(
     async (result: AIRewriteResult, _instruction: string) => {
-      setIsRetrying(true);
       logInteraction(result.interactionId, "reject");
+      // Transition back to streaming — caller will initiate new request
+      // startStreaming will be called by the page's requestRewrite
     },
     [logInteraction],
   );
 
   const handleDiscard = useCallback(
     async (result: AIRewriteResult) => {
-      // Log rejection
-      logInteraction(result.interactionId, "reject");
-
-      // Close the sheet
+      if (result.interactionId) {
+        logInteraction(result.interactionId, "reject");
+      }
       closeSheet();
     },
     [logInteraction, closeSheet],
   );
 
   return {
-    isSheetOpen,
+    sheetState,
     currentResult,
-    isRetrying,
-    showResult,
+    errorMessage,
+    startStreaming,
+    appendToken,
+    completeStreaming,
+    abortStreaming,
     handleAccept,
     handleRetry,
     handleDiscard,

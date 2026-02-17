@@ -1,11 +1,12 @@
 /**
  * Provider-agnostic AI interface.
  *
- * Phase 0 ships with OpenAI because the target user lives in the ChatGPT ecosystem.
- * The UI says "AI" everywhere - no provider name is exposed to users.
- * Post-validation: user-selectable AI provider.
+ * Two tiers:
+ * - "edge": Workers AI (GLM-4.7-Flash) — fast, runs on Cloudflare edge
+ * - "frontier": OpenAI (GPT-4o) — higher quality, higher latency
  *
- * See ADR-003-ai-provider.md for the full decision record.
+ * The UI says "AI" everywhere — no provider name is exposed to users.
+ * See ADR-003-ai-provider.md and ADR-004-multi-tier-ai.md.
  */
 
 /** A single event from an AI completion stream */
@@ -153,6 +154,105 @@ function processSSEBlock(
       // OpenAI signals completion via finish_reason
       if (parsed.choices?.[0]?.finish_reason === "stop") {
         controller.enqueue({ type: "done" });
+      }
+    } catch {
+      // Skip malformed JSON
+    }
+  }
+}
+
+const WORKERS_AI_MODEL = "@cf/zai-org/glm-4.7-flash";
+
+/**
+ * Cloudflare Workers AI implementation of AIProvider.
+ *
+ * Uses the Workers AI binding (`env.AI`) for edge inference.
+ * The streaming format differs from OpenAI: events contain `{"response":"token text"}`.
+ * A separate transform function handles this format.
+ */
+export class WorkersAIProvider implements AIProvider {
+  readonly model: string;
+
+  constructor(private readonly ai: Ai) {
+    this.model = WORKERS_AI_MODEL;
+  }
+
+  async streamCompletion(
+    systemPrompt: string,
+    userMessage: string,
+    options?: CompletionOptions,
+  ): Promise<ReadableStream<AIStreamEvent>> {
+    const response = await this.ai.run(this.model as Parameters<Ai["run"]>[0], {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
+      max_tokens: options?.maxTokens ?? 4096,
+      stream: true,
+    });
+
+    // Workers AI with stream: true returns a ReadableStream
+    if (!(response instanceof ReadableStream)) {
+      throw new Error("Expected streaming response from Workers AI");
+    }
+
+    return (response as ReadableStream<Uint8Array>).pipeThrough(createWorkersAITransform());
+  }
+}
+
+/**
+ * Creates a TransformStream that converts Workers AI SSE bytes into normalized AIStreamEvents.
+ *
+ * Workers AI streaming format:
+ * - data: {"response":"token text"}
+ * - data: [DONE]
+ *
+ * This is different from OpenAI's format (which uses choices[0].delta.content).
+ */
+function createWorkersAITransform(): TransformStream<Uint8Array, AIStreamEvent> {
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  return new TransformStream<Uint8Array, AIStreamEvent>({
+    transform(chunk, controller) {
+      buffer += decoder.decode(chunk, { stream: true });
+
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || "";
+
+      for (const eventBlock of parts) {
+        processWorkersAIBlock(eventBlock, controller);
+      }
+    },
+
+    flush(controller) {
+      if (buffer.trim()) {
+        processWorkersAIBlock(buffer, controller);
+      }
+    },
+  });
+}
+
+/**
+ * Parse a single Workers AI SSE event block.
+ */
+function processWorkersAIBlock(
+  eventBlock: string,
+  controller: TransformStreamDefaultController<AIStreamEvent>,
+): void {
+  for (const line of eventBlock.split("\n")) {
+    if (!line.startsWith("data: ")) continue;
+
+    const data = line.slice(6).trim();
+    if (data === "[DONE]") {
+      controller.enqueue({ type: "done" });
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(data) as { response?: string };
+      if (parsed.response) {
+        controller.enqueue({ type: "token", text: parsed.response });
       }
     } catch {
       // Skip malformed JSON

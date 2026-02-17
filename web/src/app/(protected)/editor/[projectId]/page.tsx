@@ -186,9 +186,6 @@ export default function EditorPage() {
   const [disconnectDriveDialogOpen, setDisconnectDriveDialogOpen] = useState(false);
 
   // AI rewrite state
-  const [hasTextSelection, setHasTextSelection] = useState(false);
-  const [isStreamingRewrite, setIsStreamingRewrite] = useState(false);
-  const [rateLimitMessage, setRateLimitMessage] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const rewriteContextRef = useRef<{
     selectedText: string;
@@ -573,25 +570,29 @@ export default function EditorPage() {
     }
   }, [chapterToDelete, projectData, getToken, activeChapterId]);
 
-  // AI rewrite: request rewrite via SSE streaming
+  // AI rewrite: request rewrite via SSE streaming (progressive — opens sheet immediately)
   const requestRewrite = useCallback(
     async (
       selectedText: string,
       instruction: string,
       contextBefore: string,
       contextAfter: string,
-      attemptNumber: number,
+      tier: "edge" | "frontier" = "edge",
       parentInteractionId?: string,
     ) => {
       abortControllerRef.current?.abort();
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-      setIsStreamingRewrite(true);
+      // Open the sheet immediately — user sees it before tokens arrive
+      aiRewrite.startStreaming(selectedText, instruction, tier);
 
       try {
         const token = await getToken();
-        if (!token) return;
+        if (!token) {
+          aiRewrite.abortStreaming("Authentication required");
+          return;
+        }
 
         const response = await fetch(`${API_URL}/ai/rewrite`, {
           method: "POST",
@@ -608,6 +609,7 @@ export default function EditorPage() {
             projectDescription: projectData?.description || "",
             chapterId: activeChapterId || "",
             parentInteractionId,
+            tier,
           }),
           signal: abortController.signal,
         });
@@ -618,23 +620,23 @@ export default function EditorPage() {
             const msg =
               (body as { message?: string } | null)?.message ||
               "You've used AI rewrite frequently. Please wait a moment.";
-            setRateLimitMessage(msg);
-            setTimeout(() => setRateLimitMessage(null), 5000);
+            aiRewrite.abortStreaming(msg);
+          } else {
+            aiRewrite.abortStreaming("Something went wrong. Please try again.");
           }
-          setIsStreamingRewrite(false);
           return;
         }
 
         const reader = response.body?.getReader();
         if (!reader) {
-          setIsStreamingRewrite(false);
+          aiRewrite.abortStreaming("No response received");
           return;
         }
 
         const decoder = new TextDecoder();
         let buffer = "";
-        let streamedText = "";
         let interactionId = "";
+        let attemptNumber = 1;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -655,14 +657,30 @@ export default function EditorPage() {
                   text?: string;
                   message?: string;
                   interactionId?: string;
+                  attemptNumber?: number;
                 };
 
+                if (event.type === "start" && event.interactionId) {
+                  interactionId = event.interactionId;
+                  attemptNumber = event.attemptNumber ?? 1;
+
+                  // Track the first interaction ID for retry chains
+                  if (attemptNumber === 1 && rewriteContextRef.current) {
+                    rewriteContextRef.current.firstInteractionId = interactionId;
+                  }
+                }
+
                 if (event.type === "token" && event.text) {
-                  streamedText += event.text;
+                  aiRewrite.appendToken(event.text);
                 }
 
                 if (event.type === "done" && event.interactionId) {
                   interactionId = event.interactionId;
+                }
+
+                if (event.type === "error" && event.message) {
+                  aiRewrite.abortStreaming(event.message);
+                  return;
                 }
               } catch {
                 // Skip malformed JSON
@@ -671,36 +689,20 @@ export default function EditorPage() {
           }
         }
 
-        if (streamedText) {
-          const resultId = interactionId || crypto.randomUUID();
-
-          // Track the first interaction ID for retry chains
-          if (attemptNumber === 1 && rewriteContextRef.current) {
-            rewriteContextRef.current.firstInteractionId = resultId;
-          }
-
-          const result: AIRewriteResult = {
-            interactionId: resultId,
-            originalText: selectedText,
-            rewriteText: streamedText,
-            instruction,
-            attemptNumber,
-          };
-          aiRewrite.showResult(result);
-        }
+        // Finalize — interactionId from start event or done event
+        const resultId = interactionId || crypto.randomUUID();
+        aiRewrite.completeStreaming(resultId, attemptNumber);
       } catch (err) {
-        if ((err as Error).name === "AbortError") return;
+        if ((err as Error).name === "AbortError") {
+          aiRewrite.abortStreaming();
+          return;
+        }
         console.error("AI rewrite streaming error:", err);
-      } finally {
-        setIsStreamingRewrite(false);
+        aiRewrite.abortStreaming("Connection error. Please try again.");
       }
     },
     [getToken, activeChapter, projectData, activeChapterId, aiRewrite],
   );
-
-  const handleSelectionChange = useCallback((hasSelection: boolean) => {
-    setHasTextSelection(hasSelection);
-  }, []);
 
   const handleSelectionWordCountChange = useCallback((count: number) => {
     setSelectionWordCount(count);
@@ -729,17 +731,23 @@ export default function EditorPage() {
       contextAfter: after,
     };
 
-    requestRewrite(selected, "Improve this text", before, after, 1);
+    requestRewrite(selected, "Improve this text", before, after, "edge");
   }, [requestRewrite]);
 
   const handleAIAccept = useCallback(
     async (result: AIRewriteResult) => {
-      const accepted = await aiRewrite.handleAccept(result);
-
       if (editorRef.current) {
-        editorRef.current.replaceText(accepted.originalText, accepted.rewriteText);
+        const replaced = editorRef.current.replaceText(result.originalText, result.rewriteText);
+        if (!replaced) {
+          // Text changed since rewrite was requested — user can copy manually
+          aiRewrite.abortStreaming(
+            "The selected text has changed. Please select it again and retry. You can copy the rewrite text above.",
+          );
+          return;
+        }
       }
 
+      await aiRewrite.handleAccept(result);
       rewriteContextRef.current = null;
     },
     [aiRewrite],
@@ -756,7 +764,7 @@ export default function EditorPage() {
           instruction,
           ctx.contextBefore,
           ctx.contextAfter,
-          result.attemptNumber + 1,
+          "edge",
           ctx.firstInteractionId,
         );
       }
@@ -766,10 +774,30 @@ export default function EditorPage() {
 
   const handleAIDiscard = useCallback(
     async (result: AIRewriteResult) => {
+      // Abort any in-flight request
+      abortControllerRef.current?.abort();
       await aiRewrite.handleDiscard(result);
       rewriteContextRef.current = null;
     },
     [aiRewrite],
+  );
+
+  const handleGoDeeper = useCallback(
+    (result: AIRewriteResult) => {
+      const ctx = rewriteContextRef.current;
+      if (!ctx) return;
+
+      // Re-submit same text/instruction with frontier tier
+      requestRewrite(
+        ctx.selectedText,
+        result.instruction,
+        ctx.contextBefore,
+        ctx.contextAfter,
+        "frontier",
+        ctx.firstInteractionId,
+      );
+    },
+    [requestRewrite],
   );
 
   const countWords = useCallback((html: string): number => {
@@ -895,6 +923,35 @@ export default function EditorPage() {
                   driveStatus.connected && projectData?.driveFolderId ? openDriveFiles : undefined
                 }
               />
+            )}
+
+            {/* Toolbar AI Rewrite fallback — visible when text is selected */}
+            {selectionWordCount > 0 && aiRewrite.sheetState === "idle" && (
+              <>
+                <button
+                  onClick={handleOpenAiRewrite}
+                  className="h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
+                             text-blue-700 hover:bg-blue-50 transition-colors"
+                  aria-label="AI Rewrite selected text"
+                >
+                  <svg
+                    className="w-4 h-4 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">AI Rewrite</span>
+                </button>
+                <div className="w-px h-5 bg-border" aria-hidden="true" />
+              </>
             )}
 
             <div className="w-px h-5 bg-border" aria-hidden="true" />
@@ -1121,62 +1178,10 @@ export default function EditorPage() {
               content={currentContent}
               onUpdate={handleContentChange}
               onRewrite={handleOpenAiRewrite}
-              onSelectionChange={handleSelectionChange}
               onSelectionWordCountChange={handleSelectionWordCountChange}
             />
 
-            {rateLimitMessage && (
-              <div
-                role="alert"
-                className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800"
-              >
-                {rateLimitMessage}
-              </div>
-            )}
-
-            <div className="mt-4 flex items-center justify-between">
-              <div className="h-9">
-                {hasTextSelection && !isStreamingRewrite && (
-                  <button
-                    onClick={handleOpenAiRewrite}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
-                               text-blue-700 bg-blue-50 border border-blue-200 rounded-lg
-                               hover:bg-blue-100 transition-colors min-h-[36px]"
-                    aria-label="AI Rewrite selected text"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    AI Rewrite
-                  </button>
-                )}
-                {isStreamingRewrite && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-blue-600">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                    Rewriting...
-                  </div>
-                )}
-              </div>
-
+            <div className="mt-4 flex items-center justify-end">
               <span className="text-sm text-muted-foreground tabular-nums">
                 {selectionWordCount > 0
                   ? `${selectionWordCount.toLocaleString()} / ${currentWordCount.toLocaleString()} words`
@@ -1220,12 +1225,13 @@ export default function EditorPage() {
       />
 
       <AIRewriteSheet
-        isOpen={aiRewrite.isSheetOpen}
+        sheetState={aiRewrite.sheetState}
         result={aiRewrite.currentResult}
-        isRetrying={aiRewrite.isRetrying || isStreamingRewrite}
+        errorMessage={aiRewrite.errorMessage}
         onAccept={handleAIAccept}
         onRetry={handleAIRetry}
         onDiscard={handleAIDiscard}
+        onGoDeeper={handleGoDeeper}
       />
 
       {/* Drive files listing sheet (US-007) */}

@@ -5,7 +5,7 @@ import { validationError } from "../middleware/error-handler.js";
 import { aiRateLimit } from "../middleware/rate-limit.js";
 import { AIRewriteService, type RewriteInput } from "../services/ai-rewrite.js";
 import { AIInteractionService } from "../services/ai-interaction.js";
-import { OpenAIProvider } from "../services/ai-provider.js";
+import { OpenAIProvider, WorkersAIProvider } from "../services/ai-provider.js";
 
 const ai = new Hono<{ Bindings: Env }>();
 
@@ -26,8 +26,10 @@ ai.use("/rewrite", aiRateLimit);
  * - chapterTitle: string (optional) - Chapter title for context
  * - projectDescription: string (optional) - Project description for context
  * - chapterId: string (required) - Chapter ID for logging
+ * - tier: "edge" | "frontier" (optional) - AI tier to use (default from env)
  *
  * Response: SSE stream with events:
+ * - { type: "start", interactionId: string, attemptNumber: number } - Stream started
  * - { type: "token", text: string } - Each token as it arrives
  * - { type: "done", interactionId: string } - Stream complete
  * - { type: "error", message: string } - Error occurred
@@ -35,10 +37,19 @@ ai.use("/rewrite", aiRateLimit);
 ai.post("/rewrite", async (c) => {
   const { userId } = c.get("auth");
 
-  const provider = new OpenAIProvider(c.env.OPENAI_API_KEY, c.env.AI_MODEL);
-  const service = new AIRewriteService(c.env.DB, provider);
+  const body = (await c.req.json().catch(() => ({}))) as Partial<RewriteInput> & {
+    tier?: "edge" | "frontier";
+  };
 
-  const body = (await c.req.json().catch(() => ({}))) as Partial<RewriteInput>;
+  const defaultTier = (c.env.AI_DEFAULT_TIER as "edge" | "frontier") || "frontier";
+  const tier = body.tier === "edge" || body.tier === "frontier" ? body.tier : defaultTier;
+
+  const provider =
+    tier === "edge"
+      ? new WorkersAIProvider(c.env.AI)
+      : new OpenAIProvider(c.env.OPENAI_API_KEY, c.env.AI_MODEL);
+
+  const service = new AIRewriteService(c.env.DB, provider);
 
   const input: RewriteInput = {
     selectedText: body.selectedText ?? "",
@@ -49,6 +60,7 @@ ai.post("/rewrite", async (c) => {
     projectDescription: body.projectDescription ?? "",
     chapterId: body.chapterId ?? "",
     parentInteractionId: body.parentInteractionId,
+    tier,
   };
 
   const validationErr = service.validateInput(input);

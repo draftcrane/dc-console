@@ -30,6 +30,8 @@ export interface RewriteInput {
   chapterId: string;
   /** Parent interaction ID for retry chains (links retries to original request) */
   parentInteractionId?: string;
+  /** AI tier: "edge" (Workers AI) or "frontier" (OpenAI) */
+  tier?: "edge" | "frontier";
 }
 
 export interface RewriteStreamResult {
@@ -142,11 +144,13 @@ export class AIRewriteService {
       attemptNumber = (row?.count ?? 0) + 1;
     }
 
+    const tier = input.tier ?? "frontier";
+
     // Record the interaction start (output_chars and latency_ms will be updated)
     await this.db
       .prepare(
-        `INSERT INTO ai_interactions (id, user_id, chapter_id, action, instruction, input_chars, output_chars, model, latency_ms, attempt_number, parent_interaction_id, created_at)
-         VALUES (?, ?, ?, 'rewrite', ?, ?, 0, ?, 0, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))`,
+        `INSERT INTO ai_interactions (id, user_id, chapter_id, action, instruction, input_chars, output_chars, model, latency_ms, attempt_number, parent_interaction_id, tier, created_at)
+         VALUES (?, ?, ?, 'rewrite', ?, ?, 0, ?, 0, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))`,
       )
       .bind(
         interactionId,
@@ -157,6 +161,7 @@ export class AIRewriteService {
         this.aiProvider.model,
         attemptNumber,
         parentId,
+        tier,
       )
       .run();
 
@@ -173,6 +178,15 @@ export class AIRewriteService {
     const encoder = new TextEncoder();
 
     const sseTransform = new TransformStream<AIStreamEvent, Uint8Array>({
+      start(controller) {
+        // Emit interactionId immediately so the frontend can track it before tokens arrive
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: "start", interactionId, attemptNumber })}\n\n`,
+          ),
+        );
+      },
+
       transform(event, controller) {
         switch (event.type) {
           case "token":

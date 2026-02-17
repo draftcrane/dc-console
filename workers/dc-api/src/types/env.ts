@@ -3,6 +3,7 @@ export interface Env {
   DB: D1Database;
   EXPORTS_BUCKET: R2Bucket;
   CACHE: KVNamespace;
+  AI: Ai;
 
   // Clerk
   CLERK_PUBLISHABLE_KEY: string;
@@ -18,6 +19,7 @@ export interface Env {
   // AI Provider
   OPENAI_API_KEY: string;
   AI_MODEL?: string; // Default: gpt-4o
+  AI_DEFAULT_TIER?: string; // "edge" | "frontier", default: "frontier"
 
   // Cloudflare Browser Rendering (PDF export)
   CF_ACCOUNT_ID: string;

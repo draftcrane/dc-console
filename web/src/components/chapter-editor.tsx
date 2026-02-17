@@ -34,8 +34,6 @@ interface ChapterEditorProps {
   editable?: boolean;
   /** Callback when editor instance is ready */
   onEditorReady?: (editor: Editor) => void;
-  /** Callback when text selection changes */
-  onSelectionChange?: (hasSelection: boolean) => void;
   /** Callback when selection word count changes (0 when no selection) */
   onSelectionWordCountChange?: (selectionWordCount: number) => void;
 }
@@ -67,7 +65,6 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
       placeholder = "Start writing, or paste your existing notes here...",
       editable = true,
       onEditorReady,
-      onSelectionChange,
       onSelectionWordCountChange,
     },
     ref,
@@ -101,10 +98,6 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
       },
       onUpdate: ({ editor: ed }) => {
         onUpdate?.(ed.getHTML());
-      },
-      onSelectionUpdate: ({ editor: ed }) => {
-        const { from, to } = ed.state.selection;
-        onSelectionChange?.(from !== to);
       },
     });
 

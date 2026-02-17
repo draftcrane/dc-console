@@ -22,6 +22,7 @@ export interface AIInteraction {
   accepted: boolean | null;
   attemptNumber: number;
   parentInteractionId: string | null;
+  tier: "edge" | "frontier";
   createdAt: string;
 }
 
@@ -38,6 +39,7 @@ interface AIInteractionRow {
   accepted: number | null;
   attempt_number: number;
   parent_interaction_id: string | null;
+  tier: string;
   created_at: string;
 }
 
@@ -53,7 +55,7 @@ export class AIInteractionService {
     const interaction = await this.db
       .prepare(
         `SELECT id, user_id, chapter_id, action, instruction, input_chars, output_chars,
-                model, latency_ms, accepted, attempt_number, parent_interaction_id, created_at
+                model, latency_ms, accepted, attempt_number, parent_interaction_id, tier, created_at
          FROM ai_interactions
          WHERE id = ? AND user_id = ?`,
       )
@@ -82,7 +84,7 @@ export class AIInteractionService {
     const interaction = await this.db
       .prepare(
         `SELECT id, user_id, chapter_id, action, instruction, input_chars, output_chars,
-                model, latency_ms, accepted, attempt_number, parent_interaction_id, created_at
+                model, latency_ms, accepted, attempt_number, parent_interaction_id, tier, created_at
          FROM ai_interactions
          WHERE id = ? AND user_id = ?`,
       )
@@ -116,6 +118,7 @@ export class AIInteractionService {
       accepted: row.accepted === null ? null : row.accepted === 1,
       attemptNumber: row.attempt_number,
       parentInteractionId: row.parent_interaction_id,
+      tier: (row.tier as "edge" | "frontier") || "frontier",
       createdAt: row.created_at,
     };
   }

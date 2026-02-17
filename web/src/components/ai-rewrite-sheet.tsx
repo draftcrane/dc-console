@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
+import type { SheetState } from "@/hooks/use-ai-rewrite";
 
 /**
  * Data representing an AI rewrite result, passed in from the parent
@@ -17,21 +18,25 @@ export interface AIRewriteResult {
   instruction: string;
   /** Which attempt number this is (1-based) */
   attemptNumber: number;
+  /** Which AI tier produced this result */
+  tier: "edge" | "frontier";
 }
 
 interface AIRewriteSheetProps {
-  /** Whether the bottom sheet is open */
-  isOpen: boolean;
+  /** Current state of the sheet: idle (closed), streaming, or complete */
+  sheetState: SheetState;
   /** The current AI rewrite result to display */
   result: AIRewriteResult | null;
-  /** Whether a retry request is currently loading */
-  isRetrying: boolean;
+  /** Inline error message to display in the rewrite area */
+  errorMessage: string | null;
   /** Called when user taps "Use This" — accepts the rewrite */
   onAccept: (result: AIRewriteResult) => void;
   /** Called when user taps "Try Again" — sends a new request with updated instruction */
   onRetry: (result: AIRewriteResult, instruction: string) => void;
-  /** Called when user taps "Discard" or clicks outside — closes with no changes */
+  /** Called when user taps "Discard"/"Cancel" or clicks outside */
   onDiscard: (result: AIRewriteResult) => void;
+  /** Called when user taps "Go Deeper" — escalate to frontier model */
+  onGoDeeper?: (result: AIRewriteResult) => void;
 }
 
 /**
@@ -46,26 +51,56 @@ interface AIRewriteSheetProps {
  * - User always sees original and rewrite simultaneously
  * - Focus trap for accessibility
  * - Unlimited iterations (try again as many times as wanted)
+ *
+ * Streaming enhancements:
+ * - Opens immediately when streaming starts (sheetState = "streaming")
+ * - Shows tokens progressively with a blinking cursor
+ * - "Use This" / "Try Again" disabled during streaming; "Cancel" enabled
+ * - After completion: full behavior restored
  */
 export function AIRewriteSheet({
-  isOpen,
+  sheetState,
   result,
-  isRetrying,
+  errorMessage,
   onAccept,
   onRetry,
   onDiscard,
+  onGoDeeper,
 }: AIRewriteSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLTextAreaElement>(null);
   const lastFocusableRef = useRef<HTMLButtonElement>(null);
   const [editedInstruction, setEditedInstruction] = useState("");
   const [lastResultId, setLastResultId] = useState<string | null>(null);
+  const rewriteEndRef = useRef<HTMLSpanElement>(null);
+
+  const isOpen = sheetState !== "idle";
+  const isStreaming = sheetState === "streaming";
+  const isComplete = sheetState === "complete";
 
   // Sync instruction field when a new result arrives (tracked by interactionId)
-  if (result && result.interactionId !== lastResultId) {
+  if (result && result.interactionId && result.interactionId !== lastResultId) {
     setEditedInstruction(result.instruction);
     setLastResultId(result.interactionId);
   }
+
+  // When sheet first opens with a new result, sync instruction
+  if (
+    result &&
+    !result.interactionId &&
+    sheetState === "streaming" &&
+    lastResultId !== "streaming"
+  ) {
+    setEditedInstruction(result.instruction);
+    setLastResultId("streaming");
+  }
+
+  // Auto-scroll to bottom of rewrite area during streaming
+  useEffect(() => {
+    if (isStreaming && rewriteEndRef.current) {
+      rewriteEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [isStreaming, result?.rewriteText]);
 
   // Focus trap: trap Tab key within the bottom sheet
   const handleKeyDown = useCallback(
@@ -149,6 +184,10 @@ export function AIRewriteSheet({
     onDiscard(result);
   };
 
+  const handleGoDeeper = () => {
+    onGoDeeper?.(result);
+  };
+
   return (
     <>
       {/* Backdrop - clicking outside is equivalent to "Discard" */}
@@ -176,12 +215,36 @@ export function AIRewriteSheet({
         {/* Header */}
         <div className="px-6 pb-3 border-b border-gray-100">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">AI Rewrite</h2>
-            <span className="text-sm text-gray-500">Attempt {result.attemptNumber}</span>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-gray-900">AI Rewrite</h2>
+              {isStreaming && (
+                <span className="text-sm text-blue-600 flex items-center gap-1">
+                  <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Writing...
+                </span>
+              )}
+            </div>
+            {isComplete && result.attemptNumber > 0 && (
+              <span className="text-sm text-gray-500">Attempt {result.attemptNumber}</span>
+            )}
           </div>
         </div>
 
-        {/* Scrollable content: original and rewrite side by side */}
+        {/* Scrollable content: original and rewrite */}
         <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
           {/* Original text */}
           <div>
@@ -194,8 +257,31 @@ export function AIRewriteSheet({
           {/* AI Rewrite */}
           <div>
             <h3 className="text-sm font-medium text-blue-600 mb-2">Rewrite</h3>
-            <div className="p-3 bg-blue-50 rounded-lg text-sm text-gray-900 leading-relaxed whitespace-pre-wrap border border-blue-100">
-              {result.rewriteText}
+            <div className="p-3 bg-blue-50 rounded-lg text-sm text-gray-900 leading-relaxed whitespace-pre-wrap border border-blue-100 min-h-[60px]">
+              {errorMessage && !result.rewriteText ? (
+                <span className="text-red-600">{errorMessage}</span>
+              ) : (
+                <>
+                  {result.rewriteText}
+                  {isStreaming && (
+                    <span
+                      ref={rewriteEndRef}
+                      className="inline-block w-0.5 h-4 bg-blue-600 ml-0.5 align-text-bottom animate-pulse"
+                      aria-hidden="true"
+                    />
+                  )}
+                  {errorMessage && result.rewriteText && (
+                    <div className="mt-3 text-red-600 text-xs">{errorMessage}</div>
+                  )}
+                </>
+              )}
+              {isStreaming && !result.rewriteText && !errorMessage && (
+                <span
+                  ref={rewriteEndRef}
+                  className="inline-block w-0.5 h-4 bg-blue-600 animate-pulse"
+                  aria-hidden="true"
+                />
+              )}
             </div>
           </div>
 
@@ -217,63 +303,52 @@ export function AIRewriteSheet({
                          focus:border-transparent min-h-[60px]"
               placeholder="Adjust your instruction and try again..."
               rows={2}
-              disabled={isRetrying}
+              disabled={isStreaming}
             />
           </div>
         </div>
 
         {/* Action buttons */}
         <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
-          {/* Discard */}
+          {/* Discard / Cancel */}
           <button
             onClick={handleDiscard}
-            disabled={isRetrying}
             className="flex-1 h-11 rounded-lg border border-gray-300 text-sm font-medium text-gray-700
-                       hover:bg-gray-50 transition-colors min-w-[44px] min-h-[44px]
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Discard rewrite and close"
+                       hover:bg-gray-50 transition-colors min-w-[44px] min-h-[44px]"
+            aria-label={isStreaming ? "Cancel rewrite" : "Discard rewrite and close"}
           >
-            Discard
+            {isStreaming ? "Cancel" : "Discard"}
           </button>
 
           {/* Try Again */}
           <button
             onClick={handleRetry}
-            disabled={isRetrying}
+            disabled={isStreaming}
             className="flex-1 h-11 rounded-lg border border-blue-300 text-sm font-medium text-blue-700
                        hover:bg-blue-50 transition-colors min-w-[44px] min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Try again with current instruction"
           >
-            {isRetrying ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                Retrying...
-              </span>
-            ) : (
-              "Try Again"
-            )}
+            Try Again
           </button>
+
+          {/* Go Deeper — shown only for edge tier results that are complete */}
+          {isComplete && result.tier === "edge" && onGoDeeper && (
+            <button
+              onClick={handleGoDeeper}
+              className="flex-1 h-11 rounded-lg border border-purple-300 text-sm font-medium text-purple-700
+                         hover:bg-purple-50 transition-colors min-w-[44px] min-h-[44px]"
+              aria-label="Rewrite with more powerful AI model"
+            >
+              Go Deeper
+            </button>
+          )}
 
           {/* Use This (primary action) */}
           <button
             ref={lastFocusableRef}
             onClick={handleAccept}
-            disabled={isRetrying}
+            disabled={isStreaming || !result.rewriteText}
             className="flex-1 h-11 rounded-lg bg-blue-600 text-sm font-medium text-white
                        hover:bg-blue-700 transition-colors min-w-[44px] min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed"
