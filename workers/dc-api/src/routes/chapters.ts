@@ -147,13 +147,28 @@ chapters.patch("/chapters/:chapterId", async (c) => {
  *
  * Per PRD US-014: Confirmation required. Hard delete in D1.
  * Minimum one chapter per project - rejects if last chapter.
+ * If Drive is connected and chapter has a Drive file, trash it.
  */
 chapters.delete("/chapters/:chapterId", async (c) => {
   const { userId } = c.get("auth");
   const chapterId = c.req.param("chapterId");
 
   const service = new ProjectService(c.env.DB);
-  await service.deleteChapter(userId, chapterId);
+  const { driveFileId } = await service.deleteChapter(userId, chapterId);
+
+  // If the chapter had a Drive file, move it to trash (best effort)
+  if (driveFileId) {
+    try {
+      const driveService = new DriveService(c.env);
+      const tokens = await driveService.getValidTokens(userId);
+      if (tokens) {
+        await driveService.trashFile(tokens.accessToken, driveFileId);
+      }
+    } catch (err) {
+      // Log but don't fail the delete - D1 record is already gone
+      console.warn("Failed to trash Drive file for deleted chapter:", err);
+    }
+  }
 
   return c.json({ success: true });
 });
