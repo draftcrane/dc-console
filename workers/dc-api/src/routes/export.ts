@@ -86,6 +86,26 @@ exportRoutes.post("/projects/:projectId/chapters/:chapterId/export", async (c) =
 });
 
 /**
+ * GET /exports/:jobId
+ * Get the status of an export job.
+ *
+ * Per US-022: Returns job status + download URL for completed exports.
+ * Download URL points to the authenticated download endpoint (1-hour cache).
+ *
+ * Response: { jobId, status, format, fileName, downloadUrl, chapterCount,
+ *             totalWordCount, error, createdAt, completedAt }
+ */
+exportRoutes.get("/exports/:jobId", async (c) => {
+  const { userId } = c.get("auth");
+  const jobId = c.req.param("jobId");
+
+  const service = createExportService(c.env);
+  const status = await service.getExportStatus(userId, jobId);
+
+  return c.json(status);
+});
+
+/**
  * GET /exports/:jobId/download
  * Download a completed export file from R2.
  *
