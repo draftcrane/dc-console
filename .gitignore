@@ -27,3 +27,4 @@ coverage/
 
 # Infisical
 .infisical.json
+.vercel

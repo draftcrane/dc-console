@@ -13,7 +13,7 @@ const ContentSecurityPolicy = `
   style-src 'self' 'unsafe-inline';
   img-src 'self' blob: data: https://*.clerk.com https://img.clerk.com;
   font-src 'self';
-  connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://dc-api.automation-ab6.workers.dev;
+  connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://api.draftcrane.app;
   frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com;
   worker-src 'self' blob:;
   object-src 'none';
