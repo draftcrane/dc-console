@@ -5,6 +5,7 @@ import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ProjectService } from "../services/project.js";
 import { ContentService } from "../services/content.js";
+import { DriveService } from "../services/drive.js";
 
 /**
  * Chapters API routes
@@ -120,6 +121,22 @@ chapters.patch("/chapters/:chapterId", async (c) => {
 
   const service = new ProjectService(c.env.DB);
   const chapter = await service.updateChapter(userId, chapterId, body);
+
+  // If title was updated and chapter has a Drive file, rename it (fire-and-forget)
+  // Per PRD US-013: If Drive is connected, Drive file renamed to match new chapter title
+  if (body.title !== undefined && chapter.driveFileId) {
+    const driveService = new DriveService(c.env);
+    driveService
+      .getValidTokens(userId)
+      .then((tokens) => {
+        if (tokens) {
+          return driveService.renameFile(tokens.accessToken, chapter.driveFileId!, chapter.title);
+        }
+      })
+      .catch((err) => {
+        console.error("Drive file rename failed (non-blocking):", err);
+      });
+  }
 
   return c.json(chapter);
 });
