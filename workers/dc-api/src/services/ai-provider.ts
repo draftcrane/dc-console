@@ -2,11 +2,11 @@
  * Provider-agnostic AI interface.
  *
  * Two tiers:
- * - "edge": Workers AI (GLM-4.7-Flash) — fast, runs on Cloudflare edge
+ * - "edge": Workers AI (Mistral Small 3.1 24B) — fast, runs on Cloudflare edge
  * - "frontier": OpenAI (GPT-4o) — higher quality, higher latency
  *
  * The UI says "AI" everywhere — no provider name is exposed to users.
- * See ADR-003-ai-provider.md and ADR-004-multi-tier-ai.md.
+ * See ADR-003-ai-provider.md and ADR-006-multi-tier-ai.md.
  */
 
 /** A single event from an AI completion stream */
@@ -161,7 +161,7 @@ function processSSEBlock(
   }
 }
 
-const WORKERS_AI_MODEL = "@cf/zai-org/glm-4.7-flash";
+const WORKERS_AI_MODEL = "@cf/mistralai/mistral-small-3.1-24b-instruct";
 
 /**
  * Cloudflare Workers AI implementation of AIProvider.

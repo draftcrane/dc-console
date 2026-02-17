@@ -42,6 +42,55 @@ export interface RewriteStreamResult {
 const MAX_SELECTED_TEXT_CHARS = 10000;
 const MAX_CONTEXT_CHARS = 500;
 
+/**
+ * Build the system prompt for a rewrite request.
+ * Exported for use by the quality gate script.
+ */
+export function buildSystemPrompt(input: RewriteInput): string {
+  const parts = [
+    "You are a professional writing assistant helping an author rewrite selected text from their book.",
+    "Rewrite ONLY the selected text according to the author's instruction.",
+    "Maintain the original meaning and tone unless the instruction specifically asks to change it.",
+    "Return ONLY the rewritten text with no preamble, explanation, or quotes.",
+    "Match the original formatting style (paragraphs, line breaks).",
+  ];
+
+  if (input.projectDescription?.trim()) {
+    parts.push(`\nBook description: ${input.projectDescription.trim()}`);
+  }
+
+  if (input.chapterTitle?.trim()) {
+    parts.push(`Chapter: ${input.chapterTitle.trim()}`);
+  }
+
+  return parts.join("\n");
+}
+
+/**
+ * Build the user message with surrounding context.
+ * Exported for use by the quality gate script.
+ */
+export function buildUserMessage(input: RewriteInput): string {
+  const parts: string[] = [];
+
+  const contextBefore = input.contextBefore?.slice(-MAX_CONTEXT_CHARS) || "";
+  const contextAfter = input.contextAfter?.slice(0, MAX_CONTEXT_CHARS) || "";
+
+  if (contextBefore) {
+    parts.push(`[Text before selection]\n${contextBefore}\n`);
+  }
+
+  parts.push(`[Selected text to rewrite]\n${input.selectedText}\n`);
+
+  if (contextAfter) {
+    parts.push(`[Text after selection]\n${contextAfter}\n`);
+  }
+
+  parts.push(`[Instruction]\n${input.instruction}`);
+
+  return parts.join("\n");
+}
+
 export class AIRewriteService {
   constructor(
     private readonly db: D1Database,
@@ -73,53 +122,6 @@ export class AIRewriteService {
     }
 
     return null;
-  }
-
-  /**
-   * Build the system prompt for the rewrite
-   */
-  private buildSystemPrompt(input: RewriteInput): string {
-    const parts = [
-      "You are a professional writing assistant helping an author rewrite selected text from their book.",
-      "Rewrite ONLY the selected text according to the author's instruction.",
-      "Maintain the original meaning and tone unless the instruction specifically asks to change it.",
-      "Return ONLY the rewritten text with no preamble, explanation, or quotes.",
-      "Match the original formatting style (paragraphs, line breaks).",
-    ];
-
-    if (input.projectDescription?.trim()) {
-      parts.push(`\nBook description: ${input.projectDescription.trim()}`);
-    }
-
-    if (input.chapterTitle?.trim()) {
-      parts.push(`Chapter: ${input.chapterTitle.trim()}`);
-    }
-
-    return parts.join("\n");
-  }
-
-  /**
-   * Build the user message with context
-   */
-  private buildUserMessage(input: RewriteInput): string {
-    const parts: string[] = [];
-
-    const contextBefore = input.contextBefore?.slice(-MAX_CONTEXT_CHARS) || "";
-    const contextAfter = input.contextAfter?.slice(0, MAX_CONTEXT_CHARS) || "";
-
-    if (contextBefore) {
-      parts.push(`[Text before selection]\n${contextBefore}\n`);
-    }
-
-    parts.push(`[Selected text to rewrite]\n${input.selectedText}\n`);
-
-    if (contextAfter) {
-      parts.push(`[Text after selection]\n${contextAfter}\n`);
-    }
-
-    parts.push(`[Instruction]\n${input.instruction}`);
-
-    return parts.join("\n");
   }
 
   /**
@@ -167,8 +169,8 @@ export class AIRewriteService {
 
     // Get the normalized AI stream
     const aiStream = await this.aiProvider.streamCompletion(
-      this.buildSystemPrompt(input),
-      this.buildUserMessage(input),
+      buildSystemPrompt(input),
+      buildUserMessage(input),
       { maxTokens: 4096 },
     );
 
