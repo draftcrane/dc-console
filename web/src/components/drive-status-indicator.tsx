@@ -14,9 +14,8 @@ interface DriveStatusIndicatorProps {
 /**
  * Compact Drive connection status indicator for the editor toolbar.
  *
- * Per PRD Section 8 (US-005):
- * - When Drive NOT connected: persistent indicator "Not connected to Google Drive.
- *   Your work is saved on this device only."
+ * - When Drive NOT connected: neutral invite to connect (muted styling).
+ *   Drive is optional — not connecting is a valid choice, not a degraded state.
  * - When Drive IS connected: green checkmark with "Connected to Google Drive"
  *
  * This is a compact version for the toolbar; the full DriveBanner is shown
@@ -80,19 +79,23 @@ export function DriveStatusIndicator({
   return (
     <button
       onClick={onConnect}
-      className="flex items-center gap-1.5 text-xs text-amber-700 hover:text-amber-900 transition-colors min-h-[44px]"
-      title="Not connected to Google Drive. Your work is saved on this device only."
+      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
+      title="Connect Google Drive to back up your chapters"
     >
       <svg
-        className="w-3.5 h-3.5 text-amber-500 shrink-0"
+        className="w-3.5 h-3.5 text-muted-foreground shrink-0"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
       >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
-        <circle cx="12" cy="12" r="10" strokeWidth={2} />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+        />
       </svg>
-      <span className="hidden sm:inline">Drive not connected</span>
+      <span className="hidden sm:inline">Connect Drive</span>
     </button>
   );
 }
