@@ -18,14 +18,13 @@ interface DriveBannerProps {
  * Drive Connection Banner
  *
  * Per PRD Section 7 (Step 4):
- * - When Drive not connected: gentle banner "Connect your Google Drive to keep your book safe."
+ * - When Drive not connected: gentle invite to connect (gray, non-alarming)
  * - Button: "Connect Google Drive"
  * - Link: "Maybe later"
  * - When connected: confirmation with folder name, green checkmark, "View in Google Drive" link
  *
- * Per PRD Section 8 (US-005):
- * - "Maybe later" option available
- * - When not connected, persistent indicator shows degraded state
+ * Drive connection is optional — not connecting is a valid choice,
+ * not a degraded state. The invite uses neutral styling to reflect this.
  */
 export function DriveBanner({ connected, email, dismissible = true, onConnect }: DriveBannerProps) {
   const { getToken } = useAuth();
@@ -77,7 +76,7 @@ export function DriveBanner({ connected, email, dismissible = true, onConnect }:
     );
   }
 
-  // Not connected state - show warning banner
+  // Not connected state - show connection invite
   async function handleConnect() {
     if (onConnect) {
       await onConnect();
@@ -116,12 +115,12 @@ export function DriveBanner({ connected, email, dismissible = true, onConnect }:
   }
 
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
       <div className="flex items-start gap-3">
-        {/* Warning icon */}
+        {/* Cloud upload icon */}
         <div className="shrink-0 mt-0.5">
           <svg
-            className="w-5 h-5 text-amber-600"
+            className="w-5 h-5 text-gray-500"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -130,16 +129,16 @@ export function DriveBanner({ connected, email, dismissible = true, onConnect }:
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
             />
           </svg>
         </div>
 
         <div className="flex-1">
-          <p className="text-sm font-medium text-amber-800">Not connected to Google Drive</p>
-          <p className="text-sm text-amber-700 mt-1">
-            Your work is saved on this device only. Connect Drive to save your chapters in your own
-            cloud account.
+          <p className="text-sm font-medium text-gray-800">Save chapters to your Google Drive</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Connect your Google Drive to automatically back up your chapters to your own cloud
+            account.
           </p>
 
           <div className="mt-3 flex items-center gap-4">
@@ -147,8 +146,8 @@ export function DriveBanner({ connected, email, dismissible = true, onConnect }:
               onClick={handleConnect}
               disabled={isConnecting}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium
-                         bg-amber-600 text-white rounded-lg
-                         hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed
+                         bg-gray-900 text-white rounded-lg
+                         hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed
                          transition-colors min-h-[44px]"
             >
               {isConnecting ? (
@@ -169,7 +168,7 @@ export function DriveBanner({ connected, email, dismissible = true, onConnect }:
             {dismissible && (
               <button
                 onClick={() => setIsDismissed(true)}
-                className="text-sm text-amber-700 hover:text-amber-900 underline"
+                className="text-sm text-muted-foreground hover:text-foreground underline"
               >
                 Maybe later
               </button>
