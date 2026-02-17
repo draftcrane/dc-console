@@ -41,7 +41,7 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
         {/* Logo/Title - links to dashboard */}
         <Link
           href="/dashboard"
-          className="flex h-11 items-center text-lg font-semibold text-gray-900"
+          className="flex h-11 items-center font-serif text-xl font-semibold text-gray-900"
         >
           DraftCrane
         </Link>

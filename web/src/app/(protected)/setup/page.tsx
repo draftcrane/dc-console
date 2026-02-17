@@ -138,7 +138,9 @@ export default function SetupPage() {
                   />
                 </svg>
               </div>
-              <h1 className="text-2xl font-semibold text-foreground mb-2">Book Created</h1>
+              <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">
+                Book Created
+              </h1>
             </div>
 
             {/* Folder creation status */}
@@ -225,7 +227,7 @@ export default function SetupPage() {
               <div className="text-center">
                 <button
                   onClick={() => router.push(`/editor/${createdProjectId}`)}
-                  className="inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-6 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                  className="inline-flex h-11 items-center justify-center rounded-lg bg-gray-900 px-6 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
                 >
                   Start Writing
                 </button>
@@ -256,9 +258,9 @@ export default function SetupPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-2xl font-semibold text-foreground mb-2">Book Created</h1>
+            <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">Book Created</h1>
             <p className="text-muted-foreground">
-              Keep your chapters safe by connecting Google Drive.
+              Your chapters can be saved to your own Google Drive, always under your control.
             </p>
           </div>
 
@@ -290,8 +292,12 @@ export default function SetupPage() {
     <div className="min-h-dvh flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-lg">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold text-foreground mb-2">Create Your Book</h1>
-          <p className="text-muted-foreground">Start your writing journey with a working title.</p>
+          <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">
+            Create Your Book
+          </h1>
+          <p className="text-muted-foreground">
+            Give your book a working title. You can change it anytime.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -369,8 +375,8 @@ export default function SetupPage() {
           <button
             type="submit"
             disabled={!isValid || isSubmitting}
-            className="w-full py-3 px-4 rounded-lg bg-blue-600 text-white font-medium
-                       hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+            className="w-full py-3 px-4 rounded-lg bg-gray-900 text-white font-medium
+                       hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2
                        disabled:opacity-50 disabled:cursor-not-allowed
                        transition-all"
           >
@@ -379,7 +385,7 @@ export default function SetupPage() {
         </form>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Your book will start with a first chapter ready for writing.
+          Your first chapter will be waiting for you.
         </p>
       </div>
     </div>

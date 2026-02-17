@@ -468,11 +468,7 @@ function ChapterListItem({
   return (
     <div
       className={`group w-full flex items-center min-h-[48px] transition-colors
-                 ${
-                   isActive
-                     ? "bg-blue-100 text-blue-900"
-                     : "hover:bg-gray-100 text-foreground"
-                 }
+                 ${isActive ? "bg-blue-100 text-blue-900" : "hover:bg-gray-100 text-foreground"}
                  ${isDragOverlay ? "shadow-lg rounded-lg bg-white border border-blue-300" : ""}`}
       role="listitem"
     >
@@ -613,11 +609,7 @@ function InlineRenameInput({
     <div
       className={`w-full px-4 py-3 flex items-center justify-between
                  min-h-[48px] transition-colors
-                 ${
-                   isActive
-                     ? "bg-blue-100 text-blue-900"
-                     : "bg-gray-100 text-foreground"
-                 }`}
+                 ${isActive ? "bg-blue-100 text-blue-900" : "bg-gray-100 text-foreground"}`}
       role="listitem"
     >
       <input

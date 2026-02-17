@@ -45,14 +45,16 @@ function DriveErrorContent() {
           </svg>
         </div>
 
-        <h1 className="text-2xl font-semibold text-foreground mb-2">Drive Connection Issue</h1>
+        <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">
+          Drive Connection Issue
+        </h1>
 
         <p className="text-muted-foreground">{errorMessage}</p>
 
         <div className="mt-6 flex flex-col items-center gap-3">
           <button
             onClick={() => router.push("/dashboard")}
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-6 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="inline-flex h-11 items-center justify-center rounded-lg bg-gray-900 px-6 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
           >
             Back to DraftCrane
           </button>

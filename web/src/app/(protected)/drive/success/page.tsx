@@ -118,7 +118,9 @@ export default function DriveSuccessPage() {
           </svg>
         </div>
 
-        <h1 className="text-2xl font-semibold text-foreground mb-2">Google Drive Connected</h1>
+        <h1 className="font-serif text-3xl font-semibold text-foreground mb-2">
+          Google Drive Connected
+        </h1>
 
         {isLoadingDrive ? (
           <p className="text-muted-foreground">Verifying connection...</p>
@@ -220,7 +222,7 @@ export default function DriveSuccessPage() {
         {(folder || folderError || !projectId) && !isCreating && (
           <button
             onClick={handleContinue}
-            className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-blue-600 px-6 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="mt-6 inline-flex h-11 items-center justify-center rounded-lg bg-gray-900 px-6 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
           >
             {projectId ? "Continue to Editor" : "Continue to DraftCrane"}
           </button>
