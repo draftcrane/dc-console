@@ -182,7 +182,7 @@ export class AIRewriteService {
         // Emit interactionId immediately so the frontend can track it before tokens arrive
         controller.enqueue(
           encoder.encode(
-            `data: ${JSON.stringify({ type: "start", interactionId, attemptNumber })}\n\n`,
+            `data: ${JSON.stringify({ type: "start", interactionId, attemptNumber, tier })}\n\n`,
           ),
         );
       },

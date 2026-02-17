@@ -35,6 +35,10 @@ interface UseAIRewriteReturn {
   handleDiscard: (result: AIRewriteResult) => Promise<void>;
   /** Close the sheet and reset all state */
   closeSheet: () => void;
+  /** Update the tier on the current result (called when server reports actual tier) */
+  setTier: (tier: "edge" | "frontier") => void;
+  /** Check if any tokens have been accumulated */
+  hasTokens: () => boolean;
 }
 
 /**
@@ -171,6 +175,17 @@ export function useAIRewrite({ getToken, apiUrl }: UseAIRewriteOptions): UseAIRe
     [logInteraction, closeSheet],
   );
 
+  const setTier = useCallback((tier: "edge" | "frontier") => {
+    setCurrentResult((prev) => {
+      if (!prev) return prev;
+      return { ...prev, tier };
+    });
+  }, []);
+
+  const hasTokens = useCallback(() => {
+    return streamedTextRef.current.length > 0;
+  }, []);
+
   return {
     sheetState,
     currentResult,
@@ -183,5 +198,7 @@ export function useAIRewrite({ getToken, apiUrl }: UseAIRewriteOptions): UseAIRe
     handleRetry,
     handleDiscard,
     closeSheet,
+    setTier,
+    hasTokens,
   };
 }

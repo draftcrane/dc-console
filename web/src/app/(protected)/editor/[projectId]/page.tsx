@@ -577,7 +577,7 @@ export default function EditorPage() {
       instruction: string,
       contextBefore: string,
       contextAfter: string,
-      tier: "edge" | "frontier" = "edge",
+      tier?: "edge" | "frontier",
       parentInteractionId?: string,
     ) => {
       abortControllerRef.current?.abort();
@@ -585,7 +585,7 @@ export default function EditorPage() {
       abortControllerRef.current = abortController;
 
       // Open the sheet immediately — user sees it before tokens arrive
-      aiRewrite.startStreaming(selectedText, instruction, tier);
+      aiRewrite.startStreaming(selectedText, instruction, tier ?? "frontier");
 
       try {
         const token = await getToken();
@@ -609,7 +609,7 @@ export default function EditorPage() {
             projectDescription: projectData?.description || "",
             chapterId: activeChapterId || "",
             parentInteractionId,
-            tier,
+            ...(tier && { tier }),
           }),
           signal: abortController.signal,
         });
@@ -658,11 +658,17 @@ export default function EditorPage() {
                   message?: string;
                   interactionId?: string;
                   attemptNumber?: number;
+                  tier?: "edge" | "frontier";
                 };
 
                 if (event.type === "start" && event.interactionId) {
                   interactionId = event.interactionId;
                   attemptNumber = event.attemptNumber ?? 1;
+
+                  // Update result with server-resolved tier
+                  if (event.tier) {
+                    aiRewrite.setTier(event.tier);
+                  }
 
                   // Track the first interaction ID for retry chains
                   if (attemptNumber === 1 && rewriteContextRef.current) {
@@ -691,6 +697,10 @@ export default function EditorPage() {
 
         // Finalize — interactionId from start event or done event
         const resultId = interactionId || crypto.randomUUID();
+        if (!aiRewrite.hasTokens()) {
+          aiRewrite.abortStreaming("No rewrite was generated. Please try again.");
+          return;
+        }
         aiRewrite.completeStreaming(resultId, attemptNumber);
       } catch (err) {
         if ((err as Error).name === "AbortError") {
@@ -731,7 +741,7 @@ export default function EditorPage() {
       contextAfter: after,
     };
 
-    requestRewrite(selected, "Improve this text", before, after, "edge");
+    requestRewrite(selected, "Improve this text", before, after);
   }, [requestRewrite]);
 
   const handleAIAccept = useCallback(
@@ -764,7 +774,7 @@ export default function EditorPage() {
           instruction,
           ctx.contextBefore,
           ctx.contextAfter,
-          "edge",
+          undefined,
           ctx.firstInteractionId,
         );
       }
