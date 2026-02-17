@@ -1,5 +1,6 @@
 import { ulid } from "ulid";
 import { notFound, validationError } from "../middleware/error-handler.js";
+import type { DriveService } from "./drive.js";
 import {
   assembleBookHtml,
   assembleChapterHtml,
@@ -30,6 +31,12 @@ export interface ExportJobResult {
   fileName: string | null;
   downloadUrl: string | null;
   error: string | null;
+}
+
+export interface ExportToDriveResult {
+  driveFileId: string;
+  fileName: string;
+  webViewLink: string;
 }
 
 export interface ExportJobStatus {
@@ -448,6 +455,127 @@ export class ExportService {
       data: object.body,
       fileName,
       contentType,
+    };
+  }
+
+  /**
+   * Save a completed export to Google Drive.
+   *
+   * Per US-021:
+   * 1. Verify the export job belongs to the user and is completed
+   * 2. Look up the project's drive_folder_id
+   * 3. Find or create the _exports/ subfolder
+   * 4. Fetch the export artifact from R2
+   * 5. Upload to Drive with date-stamped file name
+   * 6. Update the export_jobs row with drive_file_id
+   *
+   * @param userId - Authenticated user ID
+   * @param jobId - Export job ID
+   * @param driveService - DriveService instance for Drive API calls
+   * @returns Drive file metadata (id, fileName, webViewLink)
+   */
+  async saveToDrive(
+    userId: string,
+    jobId: string,
+    driveService: DriveService,
+  ): Promise<ExportToDriveResult> {
+    // 1. Verify the export job belongs to the user and is completed
+    const job = await this.db
+      .prepare(
+        `SELECT id, project_id, user_id, r2_key, format, status, drive_file_id
+         FROM export_jobs WHERE id = ? AND user_id = ?`,
+      )
+      .bind(jobId, userId)
+      .first<{
+        id: string;
+        project_id: string;
+        user_id: string;
+        r2_key: string | null;
+        format: string;
+        status: string;
+        drive_file_id: string | null;
+      }>();
+
+    if (!job) {
+      notFound("Export not found");
+    }
+
+    if (job.status !== "completed" || !job.r2_key) {
+      validationError("Export is not available for saving to Drive");
+    }
+
+    // If already saved to Drive, return the existing info
+    if (job.drive_file_id) {
+      // Fetch the file name from R2 metadata
+      const head = await this.bucket.head(job.r2_key);
+      const fileName = head?.customMetadata?.fileName || `export-${jobId}.${job.format}`;
+      return {
+        driveFileId: job.drive_file_id,
+        fileName,
+        webViewLink: `https://drive.google.com/file/d/${job.drive_file_id}/view`,
+      };
+    }
+
+    // 2. Look up the project's drive_folder_id
+    const project = await this.db
+      .prepare(
+        `SELECT id, title, drive_folder_id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`,
+      )
+      .bind(job.project_id, userId)
+      .first<{ id: string; title: string; drive_folder_id: string | null }>();
+
+    if (!project) {
+      notFound("Project not found");
+    }
+
+    if (!project.drive_folder_id) {
+      validationError(
+        "Project does not have a Google Drive folder. Connect Drive and create a book folder first.",
+      );
+    }
+
+    // 3. Get valid Drive tokens
+    const tokens = await driveService.getValidTokens(userId);
+    if (!tokens) {
+      validationError("Google Drive is not connected");
+    }
+
+    // 4. Find or create the _exports/ subfolder
+    const exportsFolderId = await driveService.findOrCreateSubfolder(
+      tokens.accessToken,
+      project.drive_folder_id,
+      "_exports",
+    );
+
+    // 5. Fetch the export artifact from R2
+    const object = await this.bucket.get(job.r2_key);
+    if (!object) {
+      notFound("Export file not found in storage");
+    }
+
+    const fileName = object.customMetadata?.fileName || `export-${jobId}.${job.format}`;
+    const contentType = job.format === "epub" ? "application/epub+zip" : "application/pdf";
+    const fileData = await object.arrayBuffer();
+
+    // 6. Upload to Drive
+    const driveFile = await driveService.uploadFile(
+      tokens.accessToken,
+      exportsFolderId,
+      fileName,
+      contentType,
+      fileData,
+    );
+
+    // 7. Update the export_jobs row with drive_file_id
+    await this.db
+      .prepare(`UPDATE export_jobs SET drive_file_id = ? WHERE id = ?`)
+      .bind(driveFile.id, jobId)
+      .run();
+
+    return {
+      driveFileId: driveFile.id,
+      fileName,
+      webViewLink: driveFile.webViewLink || `https://drive.google.com/file/d/${driveFile.id}/view`,
     };
   }
 

@@ -859,6 +859,7 @@ export default function EditorPage() {
               activeChapterId={activeChapterId}
               getToken={getToken as () => Promise<string | null>}
               apiUrl={API_URL}
+              driveConnected={driveStatus?.connected ?? false}
             />
 
             {/* Settings dropdown menu (US-023) */}

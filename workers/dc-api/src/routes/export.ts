@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import type { Env } from "../types/index.js";
 import { requireAuth } from "../middleware/auth.js";
-import { exportRateLimit } from "../middleware/rate-limit.js";
+import { exportRateLimit, standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ExportService } from "../services/export.js";
+import { DriveService } from "../services/drive.js";
 
 /**
  * Export API routes
@@ -126,6 +127,27 @@ exportRoutes.get("/exports/:jobId/download", async (c) => {
       "Cache-Control": "private, max-age=3600",
     },
   });
+});
+
+/**
+ * POST /exports/:jobId/to-drive
+ * Save a completed export to Google Drive.
+ *
+ * Per US-021: Uploads the export artifact to _exports/ subfolder in the Book Folder.
+ * Date-stamped file names prevent overwrites.
+ * Idempotent: if already saved, returns the existing Drive file info.
+ *
+ * Response: { driveFileId, fileName, webViewLink }
+ */
+exportRoutes.post("/exports/:jobId/to-drive", standardRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const jobId = c.req.param("jobId");
+
+  const service = createExportService(c.env);
+  const driveService = new DriveService(c.env);
+  const result = await service.saveToDrive(userId, jobId, driveService);
+
+  return c.json(result);
 });
 
 /**

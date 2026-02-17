@@ -359,6 +359,131 @@ export class DriveService {
   }
 
   /**
+   * Finds an existing subfolder by name within a parent folder, or creates it.
+   * Per PRD Section 11: _exports/ subfolder in the Book Folder.
+   *
+   * @param accessToken - Valid access token
+   * @param parentFolderId - The parent folder ID
+   * @param folderName - Name for the subfolder (e.g. "_exports")
+   * @returns The subfolder ID
+   */
+  async findOrCreateSubfolder(
+    accessToken: string,
+    parentFolderId: string,
+    folderName: string,
+  ): Promise<string> {
+    // Search for existing subfolder
+    const searchParams = new URLSearchParams({
+      q: `'${parentFolderId}' in parents and name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+      fields: "files(id,name)",
+    });
+
+    const searchResponse = await fetch(`${GOOGLE_DRIVE_API}/files?${searchParams.toString()}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (searchResponse.ok) {
+      const data = (await searchResponse.json()) as { files: DriveFile[] };
+      if (data.files && data.files.length > 0) {
+        return data.files[0].id;
+      }
+    }
+
+    // Create the subfolder
+    const createResponse = await fetch(`${GOOGLE_DRIVE_API}/files`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: folderName,
+        mimeType: "application/vnd.google-apps.folder",
+        parents: [parentFolderId],
+      }),
+    });
+
+    if (!createResponse.ok) {
+      const error = await createResponse.text();
+      console.error("Subfolder creation failed:", error);
+      throw new Error(`Failed to create ${folderName} subfolder in Drive`);
+    }
+
+    const folder = (await createResponse.json()) as DriveFile;
+    return folder.id;
+  }
+
+  /**
+   * Uploads a file to Google Drive using multipart upload.
+   * Per PRD Section 8 (US-021): Upload export artifacts to _exports/ subfolder.
+   *
+   * @param accessToken - Valid access token
+   * @param parentFolderId - The folder to upload into
+   * @param fileName - Name for the file in Drive
+   * @param mimeType - MIME type of the file content
+   * @param data - The file content as ArrayBuffer
+   * @returns The uploaded file metadata including webViewLink
+   */
+  async uploadFile(
+    accessToken: string,
+    parentFolderId: string,
+    fileName: string,
+    mimeType: string,
+    data: ArrayBuffer,
+  ): Promise<DriveFile> {
+    // Use multipart upload for files with metadata
+    const boundary = "---DraftCraneUploadBoundary";
+    const metadata = JSON.stringify({
+      name: fileName,
+      parents: [parentFolderId],
+    });
+
+    // Build multipart body
+    const encoder = new TextEncoder();
+    const metadataPart = encoder.encode(
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
+    );
+    const filePart = encoder.encode(`--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`);
+    const fileData = new Uint8Array(data);
+    const closingBoundary = encoder.encode(`\r\n--${boundary}--`);
+
+    // Concatenate all parts
+    const bodyLength =
+      metadataPart.length + filePart.length + fileData.length + closingBoundary.length;
+    const body = new Uint8Array(bodyLength);
+    let offset = 0;
+    body.set(metadataPart, offset);
+    offset += metadataPart.length;
+    body.set(filePart, offset);
+    offset += filePart.length;
+    body.set(fileData, offset);
+    offset += fileData.length;
+    body.set(closingBoundary, offset);
+
+    const uploadResponse = await fetch(
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": `multipart/related; boundary=${boundary}`,
+        },
+        body: body.buffer,
+      },
+    );
+
+    if (!uploadResponse.ok) {
+      const error = await uploadResponse.text();
+      console.error("Drive file upload failed:", error);
+      throw new Error("Failed to upload file to Google Drive");
+    }
+
+    return uploadResponse.json() as Promise<DriveFile>;
+  }
+
+  /**
    * Moves a file to Google Drive trash.
    * Per PRD US-014: When deleting a chapter, trash the Drive file (30-day retention by Google).
    *
