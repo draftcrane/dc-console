@@ -4,6 +4,12 @@ import { useState, useRef, useEffect, useCallback } from "react";
 
 type ExportFormat = "pdf" | "epub";
 
+type DriveState =
+  | { phase: "idle" }
+  | { phase: "saving" }
+  | { phase: "saved"; driveFileId: string; webViewLink: string }
+  | { phase: "error"; message: string };
+
 type ExportState =
   | { phase: "idle" }
   | { phase: "exporting"; scope: "book" | "chapter" }
@@ -15,20 +21,30 @@ interface ExportMenuProps {
   activeChapterId: string | null;
   getToken: () => Promise<string | null>;
   apiUrl: string;
+  /** Whether Google Drive is connected. When false, "Save to Drive" button is hidden. */
+  driveConnected?: boolean;
 }
 
 /**
  * ExportMenu - Dropdown menu for PDF and EPUB export.
  *
- * Per US-019 and US-020:
+ * Per US-019, US-020, and US-021:
  * - "Export Book as PDF/EPUB" and "Export This Chapter as PDF/EPUB" options
  * - Progress indicator during generation
  * - On completion, provide download link
+ * - "Save to Google Drive" button when Drive is connected (US-021)
  * - iPad-first: 44pt touch targets
  */
-export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: ExportMenuProps) {
+export function ExportMenu({
+  projectId,
+  activeChapterId,
+  getToken,
+  apiUrl,
+  driveConnected = false,
+}: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [state, setState] = useState<ExportState>({ phase: "idle" });
+  const [driveState, setDriveState] = useState<DriveState>({ phase: "idle" });
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu on outside click
@@ -63,6 +79,7 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
     async (scope: "book" | "chapter", format: ExportFormat = "pdf") => {
       setIsOpen(false);
       setState({ phase: "exporting", scope });
+      setDriveState({ phase: "idle" });
 
       try {
         const token = await getToken();
@@ -138,8 +155,58 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
     [projectId, activeChapterId, getToken, apiUrl],
   );
 
+  /**
+   * Save the completed export to Google Drive.
+   * Per US-021: POST /exports/:jobId/to-drive
+   */
+  const handleSaveToDrive = useCallback(async () => {
+    if (state.phase !== "complete") return;
+
+    setDriveState({ phase: "saving" });
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        setDriveState({ phase: "error", message: "Authentication required" });
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/exports/${state.jobId}/to-drive`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        const msg = (body as { error?: string } | null)?.error || "Failed to save to Google Drive";
+        setDriveState({ phase: "error", message: msg });
+        return;
+      }
+
+      const result = (await response.json()) as {
+        driveFileId: string;
+        fileName: string;
+        webViewLink: string;
+      };
+
+      setDriveState({
+        phase: "saved",
+        driveFileId: result.driveFileId,
+        webViewLink: result.webViewLink,
+      });
+    } catch (err) {
+      setDriveState({
+        phase: "error",
+        message: err instanceof Error ? err.message : "Failed to save to Google Drive",
+      });
+    }
+  }, [state, getToken, apiUrl]);
+
   const handleDismiss = useCallback(() => {
     setState({ phase: "idle" });
+    setDriveState({ phase: "idle" });
   }, []);
 
   const isExporting = state.phase === "exporting";
@@ -307,33 +374,98 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-green-800">Export complete</p>
               <p className="text-xs text-green-600 truncate mt-0.5">{state.fileName}</p>
-              <button
-                onClick={async () => {
-                  const token = await getToken();
-                  if (token && state.phase === "complete") {
-                    await triggerDownload(state.downloadUrl, state.fileName, token);
-                  }
-                }}
-                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
-                           text-green-700 bg-green-100 hover:bg-green-200 rounded-md
-                           transition-colors min-h-[44px]"
-                aria-label={`Download ${state.fileName}`}
-              >
-                <svg
-                  className="w-4 h-4 shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button
+                  onClick={async () => {
+                    const token = await getToken();
+                    if (token && state.phase === "complete") {
+                      await triggerDownload(state.downloadUrl, state.fileName, token);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+                             text-green-700 bg-green-100 hover:bg-green-200 rounded-md
+                             transition-colors min-h-[44px]"
+                  aria-label={`Download ${state.fileName}`}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                </svg>
-                Download
-              </button>
+                  <svg
+                    className="w-4 h-4 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  Download
+                </button>
+
+                {/* Save to Google Drive button (US-021) - hidden if Drive not connected */}
+                {driveConnected && driveState.phase === "idle" && (
+                  <button
+                    onClick={handleSaveToDrive}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+                               text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md
+                               transition-colors min-h-[44px]"
+                    aria-label="Save to Google Drive"
+                  >
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
+                    </svg>
+                    Save to Drive
+                  </button>
+                )}
+
+                {/* Saving to Drive indicator */}
+                {driveConnected && driveState.phase === "saving" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 min-h-[44px]">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    Saving to Drive...
+                  </span>
+                )}
+
+                {/* Saved to Drive - View in Google Drive link */}
+                {driveState.phase === "saved" && (
+                  <a
+                    href={driveState.webViewLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+                               text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md
+                               transition-colors min-h-[44px]"
+                    aria-label="View in Google Drive"
+                  >
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
+                    </svg>
+                    View in Drive
+                  </a>
+                )}
+
+                {/* Drive save error */}
+                {driveState.phase === "error" && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600">
+                    {driveState.message}
+                  </span>
+                )}
+              </div>
             </div>
             <button
               onClick={handleDismiss}
