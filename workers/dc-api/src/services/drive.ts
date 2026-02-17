@@ -383,6 +383,31 @@ export class DriveService {
   }
 
   /**
+   * Renames a file in Google Drive.
+   * Per PRD US-013: When a chapter is renamed, the Drive file name should match.
+   *
+   * @param accessToken - Valid access token
+   * @param fileId - The Drive file ID to rename
+   * @param newName - The new file name
+   */
+  async renameFile(accessToken: string, fileId: string, newName: string): Promise<void> {
+    const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: newName }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Drive file rename failed:", error);
+      throw new Error("Failed to rename Drive file");
+    }
+  }
+
+  /**
    * Revokes the OAuth token with Google.
    * Per PRD Section 8 (US-008): Disconnects Drive, revokes token.
    *

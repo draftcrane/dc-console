@@ -32,6 +32,19 @@ export interface ExportJobResult {
   error: string | null;
 }
 
+export interface ExportJobStatus {
+  jobId: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  format: string;
+  fileName: string | null;
+  downloadUrl: string | null;
+  chapterCount: number;
+  totalWordCount: number;
+  error: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
 interface ExportJobRow {
   id: string;
   project_id: string;
@@ -348,6 +361,50 @@ export class ExportService {
         error: errorMessage,
       };
     }
+  }
+
+  /**
+   * Get the status of an export job.
+   *
+   * Per US-022: GET /exports/:jobId returns job status + signed download URL.
+   * Download URL is only included for completed jobs (1-hour cache via download endpoint).
+   */
+  async getExportStatus(userId: string, jobId: string): Promise<ExportJobStatus> {
+    const job = await this.db
+      .prepare(
+        `SELECT id, user_id, format, status, r2_key, error_message, chapter_count,
+                total_word_count, created_at, completed_at
+         FROM export_jobs WHERE id = ? AND user_id = ?`,
+      )
+      .bind(jobId, userId)
+      .first<ExportJobRow>();
+
+    if (!job) {
+      notFound("Export not found");
+    }
+
+    let fileName: string | null = null;
+    let downloadUrl: string | null = null;
+
+    if (job.status === "completed" && job.r2_key) {
+      // Retrieve the file name from R2 custom metadata
+      const head = await this.bucket.head(job.r2_key);
+      fileName = head?.customMetadata?.fileName || `export-${jobId}.${job.format}`;
+      downloadUrl = `${this.apiBaseUrl}/exports/${jobId}/download`;
+    }
+
+    return {
+      jobId: job.id,
+      status: job.status as ExportJobStatus["status"],
+      format: job.format,
+      fileName,
+      downloadUrl,
+      chapterCount: job.chapter_count,
+      totalWordCount: job.total_word_count,
+      error: job.error_message,
+      createdAt: job.created_at,
+      completedAt: job.completed_at,
+    };
   }
 
   /**

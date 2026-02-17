@@ -7,7 +7,7 @@ type ExportFormat = "pdf" | "epub";
 type ExportState =
   | { phase: "idle" }
   | { phase: "exporting"; scope: "book" | "chapter" }
-  | { phase: "complete"; fileName: string; downloadUrl: string }
+  | { phase: "complete"; fileName: string; downloadUrl: string; jobId: string }
   | { phase: "error"; message: string };
 
 interface ExportMenuProps {
@@ -120,6 +120,7 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
             phase: "complete",
             fileName: result.fileName,
             downloadUrl: result.downloadUrl,
+            jobId: result.jobId,
           });
 
           // Trigger download automatically
@@ -306,6 +307,33 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-green-800">Export complete</p>
               <p className="text-xs text-green-600 truncate mt-0.5">{state.fileName}</p>
+              <button
+                onClick={async () => {
+                  const token = await getToken();
+                  if (token && state.phase === "complete") {
+                    await triggerDownload(state.downloadUrl, state.fileName, token);
+                  }
+                }}
+                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+                           text-green-700 bg-green-100 hover:bg-green-200 rounded-md
+                           transition-colors min-h-[44px]"
+                aria-label={`Download ${state.fileName}`}
+              >
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                Download
+              </button>
             </div>
             <button
               onClick={handleDismiss}
@@ -367,7 +395,12 @@ export function ExportMenu({ projectId, activeChapterId, getToken, apiUrl }: Exp
 }
 
 /**
- * Trigger a file download by fetching the PDF with auth and creating a blob URL.
+ * Trigger a file download by fetching the file with auth and creating a blob URL.
+ *
+ * Per US-022:
+ * - Works on Safari (iPad), Chrome, and Firefox
+ * - On iPad Safari, the file is saved to the Files app via the blob download
+ * - Uses correct MIME type so the OS knows how to handle the file
  */
 async function triggerDownload(
   downloadUrl: string,
@@ -381,23 +414,31 @@ async function triggerDownload(
 
     if (!response.ok) return;
 
-    const blob = await response.blob();
+    // Determine the correct MIME type from the response or file extension
+    const contentType =
+      response.headers.get("Content-Type") ||
+      (fileName.endsWith(".epub") ? "application/epub+zip" : "application/pdf");
+
+    const arrayBuffer = await response.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: contentType });
     const blobUrl = URL.createObjectURL(blob);
 
     const link = document.createElement("a");
     link.href = blobUrl;
     link.download = fileName;
+    // Set type attribute to help Safari identify the file type
+    link.type = contentType;
     link.style.display = "none";
     document.body.appendChild(link);
     link.click();
 
-    // Cleanup
+    // Cleanup after a delay to ensure the download has started
     setTimeout(() => {
       URL.revokeObjectURL(blobUrl);
       document.body.removeChild(link);
-    }, 1000);
+    }, 5000);
   } catch {
-    // Download trigger failed silently - user can still use the download URL
+    // Download trigger failed silently - user can still use the Download button
   }
 }
 
