@@ -271,41 +271,55 @@ export default function EditorPage() {
     }
   }, [projectData, projectId, getToken]);
 
-  // Handle chapter title update
+  /**
+   * Rename a chapter via the API.
+   * Shared by both the sidebar inline rename (US-013) and editor title field.
+   * Empty title reverts to "Untitled Chapter" per acceptance criteria.
+   */
+  const handleChapterRename = useCallback(
+    async (chapterId: string, newTitle: string) => {
+      const trimmed = newTitle.trim();
+      const finalTitle = trimmed || "Untitled Chapter";
+
+      try {
+        const token = await getToken();
+        const response = await fetch(`${API_URL}/chapters/${chapterId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ title: finalTitle }),
+        });
+
+        if (response.ok) {
+          setProjectData((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              chapters: prev.chapters.map((ch) =>
+                ch.id === chapterId ? { ...ch, title: finalTitle } : ch,
+              ),
+            };
+          });
+        }
+      } catch (err) {
+        console.error("Failed to update chapter title:", err);
+      }
+    },
+    [getToken],
+  );
+
+  // Handle editor title field save (wraps handleChapterRename for the active chapter)
   const handleTitleSave = useCallback(async () => {
-    if (!activeChapterId || !titleValue.trim()) {
+    if (!activeChapterId) {
       setEditingTitle(false);
       return;
     }
 
-    try {
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/chapters/${activeChapterId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title: titleValue.trim() }),
-      });
-
-      if (response.ok) {
-        setProjectData((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            chapters: prev.chapters.map((ch) =>
-              ch.id === activeChapterId ? { ...ch, title: titleValue.trim() } : ch,
-            ),
-          };
-        });
-      }
-    } catch (err) {
-      console.error("Failed to update chapter title:", err);
-    } finally {
-      setEditingTitle(false);
-    }
-  }, [activeChapterId, titleValue, getToken]);
+    await handleChapterRename(activeChapterId, titleValue);
+    setEditingTitle(false);
+  }, [activeChapterId, titleValue, handleChapterRename]);
 
   const handleTitleEdit = useCallback(() => {
     if (activeChapter) {
@@ -637,6 +651,7 @@ export default function EditorPage() {
           activeChapterId={activeChapterId ?? undefined}
           onChapterSelect={handleChapterSelect}
           onAddChapter={handleAddChapter}
+          onChapterRename={handleChapterRename}
           totalWordCount={totalWordCount}
           activeChapterWordCount={currentWordCount}
           collapsed={sidebarCollapsed}
@@ -650,6 +665,7 @@ export default function EditorPage() {
           activeChapterId={activeChapterId ?? undefined}
           onChapterSelect={handleChapterSelect}
           onAddChapter={handleAddChapter}
+          onChapterRename={handleChapterRename}
           totalWordCount={totalWordCount}
           activeChapterWordCount={currentWordCount}
           collapsed={true}
@@ -662,6 +678,7 @@ export default function EditorPage() {
             activeChapterId={activeChapterId ?? undefined}
             onChapterSelect={handleChapterSelect}
             onAddChapter={handleAddChapter}
+            onChapterRename={handleChapterRename}
             totalWordCount={totalWordCount}
             activeChapterWordCount={currentWordCount}
             collapsed={false}
