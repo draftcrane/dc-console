@@ -22,16 +22,6 @@ import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { OnboardingTooltips } from "@/components/onboarding-tooltips";
 
-interface Project {
-  id: string;
-  title: string;
-  description?: string;
-  driveFolderId?: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface Chapter {
   id: string;
   title: string;
@@ -41,8 +31,19 @@ interface Chapter {
   status: string;
 }
 
+/**
+ * Shape returned by GET /projects/:projectId.
+ * The API returns a flat object with project fields + chapters array,
+ * NOT a nested { project, chapters } structure.
+ */
 interface ProjectData {
-  project: Project;
+  id: string;
+  title: string;
+  description?: string;
+  driveFolderId?: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
   chapters: Chapter[];
 }
 
@@ -113,7 +114,7 @@ export default function EditorPage() {
    * Fetches the file list from the project's Book Folder.
    */
   const openDriveFiles = useCallback(() => {
-    const folderId = projectData?.project.driveFolderId;
+    const folderId = projectData?.driveFolderId;
     if (!folderId) return;
     setDriveFilesOpen(true);
     fetchFiles(folderId);
@@ -125,7 +126,7 @@ export default function EditorPage() {
   }, [resetDriveFiles]);
 
   const refreshDriveFiles = useCallback(() => {
-    const folderId = projectData?.project.driveFolderId;
+    const folderId = projectData?.driveFolderId;
     if (!folderId) return;
     fetchFiles(folderId);
   }, [projectData, fetchFiles]);
@@ -604,7 +605,7 @@ export default function EditorPage() {
             contextBefore,
             contextAfter,
             chapterTitle: activeChapter?.title || "",
-            projectDescription: projectData?.project.description || "",
+            projectDescription: projectData?.description || "",
             chapterId: activeChapterId || "",
             parentInteractionId,
           }),
@@ -880,9 +881,7 @@ export default function EditorPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center justify-between h-12 px-4 border-b border-border bg-background shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <h2 className="text-sm font-medium text-foreground truncate">
-              {projectData?.project.title}
-            </h2>
+            <h2 className="text-sm font-medium text-foreground truncate">{projectData?.title}</h2>
           </div>
 
           <div className="flex items-center gap-2">
@@ -893,9 +892,7 @@ export default function EditorPage() {
                 email={driveStatus.email}
                 onConnect={connectDriveWithProject}
                 onViewFiles={
-                  driveStatus.connected && projectData?.project.driveFolderId
-                    ? openDriveFiles
-                    : undefined
+                  driveStatus.connected && projectData?.driveFolderId ? openDriveFiles : undefined
                 }
               />
             )}
@@ -950,7 +947,7 @@ export default function EditorPage() {
                   aria-label="Project settings"
                 >
                   {/* View Drive Files (US-007) - shown when Drive is connected and project has a folder */}
-                  {driveStatus?.connected && projectData?.project.driveFolderId && (
+                  {driveStatus?.connected && projectData?.driveFolderId && (
                     <>
                       <button
                         onClick={() => {
@@ -1192,7 +1189,7 @@ export default function EditorPage() {
 
       {/* Delete project confirmation dialog (US-023) */}
       <DeleteProjectDialog
-        projectTitle={projectData?.project.title || ""}
+        projectTitle={projectData?.title || ""}
         isOpen={deleteDialogOpen}
         onConfirm={handleDeleteProject}
         onCancel={() => setDeleteDialogOpen(false)}
