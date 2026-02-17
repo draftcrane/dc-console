@@ -127,12 +127,14 @@ export default function DashboardPage() {
           to Google Drive.
         </p>
 
-        <Link
-          href="/setup"
-          className="inline-flex h-12 items-center justify-center rounded-lg bg-blue-600 px-8 text-lg font-medium text-white hover:bg-blue-700 transition-colors"
-        >
-          Create Your First Book
-        </Link>
+        <div>
+          <Link
+            href="/setup"
+            className="inline-flex h-12 items-center justify-center rounded-lg bg-blue-600 px-8 text-lg font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            Create Your First Book
+          </Link>
+        </div>
 
         {driveStatus?.connected && (
           <p className="mt-6 text-sm text-green-600">
@@ -140,15 +142,17 @@ export default function DashboardPage() {
           </p>
         )}
 
-        {/* Sign out option (US-003) */}
-        <button
-          onClick={handleSignOut}
-          disabled={isSigningOut}
-          className="mt-8 text-sm text-gray-500 hover:text-gray-700 transition-colors
-                     disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isSigningOut ? "Signing out\u2026" : "Sign out"}
-        </button>
+        {/* Sign out option (US-003) - Clerk UserButton in header handles this too */}
+        <div className="mt-8">
+          <button
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="text-sm text-gray-500 hover:text-gray-700 transition-colors
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSigningOut ? "Signing out\u2026" : "Sign out"}
+          </button>
+        </div>
       </div>
     </div>
   );
