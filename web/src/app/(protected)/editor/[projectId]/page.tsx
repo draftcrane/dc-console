@@ -17,6 +17,7 @@ import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 import { DeleteChapterDialog } from "@/components/delete-chapter-dialog";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
+import { OnboardingTooltips } from "@/components/onboarding-tooltips";
 
 interface Project {
   id: string;
@@ -774,6 +775,9 @@ export default function EditorPage() {
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)]">
+      {/* First-time onboarding tooltips (#38) */}
+      <OnboardingTooltips />
+
       {/* Crash recovery dialog */}
       {recoveryPrompt && (
         <CrashRecoveryDialog
