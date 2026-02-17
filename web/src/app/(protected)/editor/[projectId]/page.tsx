@@ -15,6 +15,7 @@ import { CrashRecoveryDialog } from "@/components/crash-recovery-dialog";
 import { ExportMenu } from "@/components/export-menu";
 import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 import { DeleteChapterDialog } from "@/components/delete-chapter-dialog";
+import { DisconnectDriveDialog } from "@/components/disconnect-drive-dialog";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { OnboardingTooltips } from "@/components/onboarding-tooltips";
@@ -78,8 +79,12 @@ export default function EditorPage() {
   // Editor ref for AI rewrite text replacement
   const editorRef = useRef<ChapterEditorHandle>(null);
 
-  // Drive connection status (US-005)
-  const { status: driveStatus, connect: connectDrive } = useDriveStatus();
+  // Drive connection status (US-005, US-008)
+  const {
+    status: driveStatus,
+    connect: connectDrive,
+    disconnect: disconnectDrive,
+  } = useDriveStatus();
 
   /**
    * Connect Drive with project context (US-006).
@@ -141,6 +146,9 @@ export default function EditorPage() {
   // Delete chapter dialog state (US-014)
   const [deleteChapterDialogOpen, setDeleteChapterDialogOpen] = useState(false);
   const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
+
+  // Disconnect Drive dialog state (US-008)
+  const [disconnectDriveDialogOpen, setDisconnectDriveDialogOpen] = useState(false);
 
   // AI rewrite state
   const [hasTextSelection, setHasTextSelection] = useState(false);
@@ -902,6 +910,37 @@ export default function EditorPage() {
                   role="menu"
                   aria-label="Project settings"
                 >
+                  {/* Disconnect Google Drive (US-008) - only shown when connected */}
+                  {driveStatus?.connected && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setSettingsMenuOpen(false);
+                          setDisconnectDriveDialogOpen(true);
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+                                   transition-colors min-h-[44px] flex items-center gap-2"
+                        role="menuitem"
+                      >
+                        <svg
+                          className="w-4 h-4 shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18"
+                          />
+                        </svg>
+                        Disconnect Google Drive
+                      </button>
+                      <div className="my-1 border-t border-gray-200" role="separator" />
+                    </>
+                  )}
+
                   <button
                     onClick={() => {
                       setSettingsMenuOpen(false);
@@ -1110,6 +1149,17 @@ export default function EditorPage() {
           setDeleteChapterDialogOpen(false);
           setChapterToDelete(null);
         }}
+      />
+
+      {/* Disconnect Google Drive confirmation dialog (US-008) */}
+      <DisconnectDriveDialog
+        email={driveStatus?.email}
+        isOpen={disconnectDriveDialogOpen}
+        onConfirm={async () => {
+          await disconnectDrive();
+          setDisconnectDriveDialogOpen(false);
+        }}
+        onCancel={() => setDisconnectDriveDialogOpen(false)}
       />
 
       <AIRewriteSheet

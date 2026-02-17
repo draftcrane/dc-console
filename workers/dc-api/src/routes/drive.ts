@@ -300,6 +300,13 @@ drive.delete("/connection", requireAuth, standardRateLimit, async (c) => {
   // Delete from D1
   await driveService.deleteConnection(userId);
 
+  // Clear drive_folder_id from all user's projects so they can reconnect fresh
+  await c.env.DB.prepare(
+    `UPDATE projects SET drive_folder_id = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE user_id = ?`,
+  )
+    .bind(userId)
+    .run();
+
   return c.json({
     success: true,
     message: "Google Drive disconnected. Your files in Drive remain untouched.",
