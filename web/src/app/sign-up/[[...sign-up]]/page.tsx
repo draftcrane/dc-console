@@ -50,6 +50,19 @@ export default function SignUpPage() {
         }}
         forceRedirectUrl="/dashboard"
       />
+
+      {/* Consent notice */}
+      <p className="mt-6 max-w-md text-center text-xs leading-relaxed text-gray-500">
+        By signing up, you agree to our{" "}
+        <Link href="/terms" className="text-gray-700 underline hover:text-gray-900">
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="text-gray-700 underline hover:text-gray-900">
+          Privacy Policy
+        </Link>
+        .
+      </p>
     </div>
   );
 }

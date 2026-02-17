@@ -5,7 +5,13 @@ import { NextResponse } from "next/server";
  * Routes that are publicly accessible without authentication.
  * Per PRD Section 7: Landing page is pre-auth.
  */
-const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)"]);
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/privacy",
+  "/terms",
+]);
 
 /**
  * Clerk middleware for route protection.
