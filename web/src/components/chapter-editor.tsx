@@ -5,7 +5,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from "react";
 import { useTextSelection } from "@/hooks/use-text-selection";
-import { FloatingActionBar } from "@/components/floating-action-bar";
 
 /** Handle exposed by ChapterEditor for programmatic operations */
 export interface ChapterEditorHandle {
@@ -26,8 +25,6 @@ interface ChapterEditorProps {
   onUpdate?: (html: string) => void;
   /** Callback for Cmd+S save shortcut */
   onSave?: () => void;
-  /** Callback when AI Rewrite is triggered on selected text */
-  onRewrite?: (selectedText: string) => void;
   /** Placeholder text */
   placeholder?: string;
   /** Whether editor is editable */
@@ -61,7 +58,6 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
       content = "",
       onUpdate,
       onSave,
-      onRewrite,
       placeholder = "Start writing, or paste your existing notes here...",
       editable = true,
       onEditorReady,
@@ -224,7 +220,6 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
                      [&_.is-editor-empty]:before:h-0"
         />
 
-        <FloatingActionBar selection={textSelection} onRewrite={onRewrite} />
       </div>
     );
   },

@@ -1187,7 +1187,6 @@ export default function EditorPage() {
               ref={editorRef}
               content={currentContent}
               onUpdate={handleContentChange}
-              onRewrite={handleOpenAiRewrite}
               onSelectionWordCountChange={handleSelectionWordCountChange}
             />
 
