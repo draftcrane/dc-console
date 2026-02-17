@@ -14,6 +14,7 @@ import { SaveIndicator } from "@/components/save-indicator";
 import { CrashRecoveryDialog } from "@/components/crash-recovery-dialog";
 import { ExportMenu } from "@/components/export-menu";
 import { DeleteProjectDialog } from "@/components/delete-project-dialog";
+import { DeleteChapterDialog } from "@/components/delete-chapter-dialog";
 import { useAutoSave } from "@/hooks/use-auto-save";
 
 interface Project {
@@ -131,6 +132,10 @@ export default function EditorPage() {
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Delete chapter dialog state (US-014)
+  const [deleteChapterDialogOpen, setDeleteChapterDialogOpen] = useState(false);
+  const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
 
   // AI rewrite state
   const [hasTextSelection, setHasTextSelection] = useState(false);
@@ -376,6 +381,73 @@ export default function EditorPage() {
       setDeleteDialogOpen(false);
     }
   }, [getToken, projectId, router]);
+
+  // Handle opening delete chapter dialog (US-014)
+  const handleDeleteChapterRequest = useCallback((chapterId: string) => {
+    setChapterToDelete(chapterId);
+    setDeleteChapterDialogOpen(true);
+  }, []);
+
+  // Handle chapter deletion (US-014)
+  const handleDeleteChapter = useCallback(async () => {
+    if (!chapterToDelete || !projectData) return;
+
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/chapters/${chapterToDelete}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        const code = (body as { code?: string } | null)?.code;
+        if (code === "LAST_CHAPTER") {
+          console.error("Cannot delete the last chapter of a project");
+          setDeleteChapterDialogOpen(false);
+          setChapterToDelete(null);
+          return;
+        }
+        throw new Error("Failed to delete chapter");
+      }
+
+      // Determine the adjacent chapter to navigate to
+      const sortedChapters = [...projectData.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
+      const deletedIndex = sortedChapters.findIndex((ch) => ch.id === chapterToDelete);
+      const remainingChapters = sortedChapters.filter((ch) => ch.id !== chapterToDelete);
+
+      // Navigate to the next chapter, or the previous if we deleted the last one
+      let nextChapterId: string | null = null;
+      if (remainingChapters.length > 0) {
+        if (deletedIndex < remainingChapters.length) {
+          nextChapterId = remainingChapters[deletedIndex].id;
+        } else {
+          nextChapterId = remainingChapters[remainingChapters.length - 1].id;
+        }
+      }
+
+      // Update local state - remove deleted chapter
+      setProjectData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          chapters: prev.chapters.filter((ch) => ch.id !== chapterToDelete),
+        };
+      });
+
+      // Navigate to adjacent chapter if the deleted one was active
+      if (chapterToDelete === activeChapterId && nextChapterId) {
+        setActiveChapterId(nextChapterId);
+      }
+
+      setDeleteChapterDialogOpen(false);
+      setChapterToDelete(null);
+    } catch (err) {
+      console.error("Failed to delete chapter:", err);
+      setDeleteChapterDialogOpen(false);
+      setChapterToDelete(null);
+    }
+  }, [chapterToDelete, projectData, getToken, activeChapterId]);
 
   // AI rewrite: request rewrite via SSE streaming
   const requestRewrite = useCallback(
@@ -637,6 +709,7 @@ export default function EditorPage() {
           activeChapterId={activeChapterId ?? undefined}
           onChapterSelect={handleChapterSelect}
           onAddChapter={handleAddChapter}
+          onDeleteChapter={handleDeleteChapterRequest}
           totalWordCount={totalWordCount}
           activeChapterWordCount={currentWordCount}
           collapsed={sidebarCollapsed}
@@ -650,6 +723,7 @@ export default function EditorPage() {
           activeChapterId={activeChapterId ?? undefined}
           onChapterSelect={handleChapterSelect}
           onAddChapter={handleAddChapter}
+          onDeleteChapter={handleDeleteChapterRequest}
           totalWordCount={totalWordCount}
           activeChapterWordCount={currentWordCount}
           collapsed={true}
@@ -662,6 +736,7 @@ export default function EditorPage() {
             activeChapterId={activeChapterId ?? undefined}
             onChapterSelect={handleChapterSelect}
             onAddChapter={handleAddChapter}
+            onDeleteChapter={handleDeleteChapterRequest}
             totalWordCount={totalWordCount}
             activeChapterWordCount={currentWordCount}
             collapsed={false}
@@ -900,6 +975,19 @@ export default function EditorPage() {
         isOpen={deleteDialogOpen}
         onConfirm={handleDeleteProject}
         onCancel={() => setDeleteDialogOpen(false)}
+      />
+
+      {/* Delete chapter confirmation dialog (US-014) */}
+      <DeleteChapterDialog
+        chapterTitle={
+          projectData?.chapters.find((ch) => ch.id === chapterToDelete)?.title || "Untitled Chapter"
+        }
+        isOpen={deleteChapterDialogOpen}
+        onConfirm={handleDeleteChapter}
+        onCancel={() => {
+          setDeleteChapterDialogOpen(false);
+          setChapterToDelete(null);
+        }}
       />
 
       <AIRewriteSheet

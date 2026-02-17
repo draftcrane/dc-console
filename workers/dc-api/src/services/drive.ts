@@ -359,6 +359,30 @@ export class DriveService {
   }
 
   /**
+   * Moves a file to Google Drive trash.
+   * Per PRD US-014: When deleting a chapter, trash the Drive file (30-day retention by Google).
+   *
+   * @param accessToken - Valid access token
+   * @param fileId - The Drive file ID to trash
+   */
+  async trashFile(accessToken: string, fileId: string): Promise<void> {
+    const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ trashed: true }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Drive file trash failed:", error);
+      throw new Error("Failed to trash Drive file");
+    }
+  }
+
+  /**
    * Revokes the OAuth token with Google.
    * Per PRD Section 8 (US-008): Disconnects Drive, revokes token.
    *

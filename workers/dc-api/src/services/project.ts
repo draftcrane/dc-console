@@ -528,18 +528,24 @@ export class ProjectService {
   /**
    * Delete a chapter (with minimum 1 per project enforcement)
    * Per PRD US-014: Minimum one chapter per project
+   *
+   * Returns the deleted chapter's metadata so the caller can
+   * handle Drive file trashing if applicable.
    */
-  async deleteChapter(userId: string, chapterId: string): Promise<void> {
-    // Verify ownership and get project_id
+  async deleteChapter(
+    userId: string,
+    chapterId: string,
+  ): Promise<{ projectId: string; driveFileId: string | null }> {
+    // Verify ownership and get project_id + drive_file_id
     const chapter = await this.db
       .prepare(
-        `SELECT ch.id, ch.project_id
+        `SELECT ch.id, ch.project_id, ch.drive_file_id
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
          WHERE ch.id = ? AND p.user_id = ?`,
       )
       .bind(chapterId, userId)
-      .first<{ id: string; project_id: string }>();
+      .first<{ id: string; project_id: string; drive_file_id: string | null }>();
 
     if (!chapter) {
       notFound("Chapter not found");
@@ -563,6 +569,8 @@ export class ProjectService {
       .prepare(`UPDATE projects SET updated_at = ? WHERE id = ?`)
       .bind(new Date().toISOString(), chapter.project_id)
       .run();
+
+    return { projectId: chapter.project_id, driveFileId: chapter.drive_file_id };
   }
 
   /**

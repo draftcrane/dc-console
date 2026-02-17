@@ -24,6 +24,8 @@ export interface SidebarProps {
   onChapterSelect?: (chapterId: string) => void;
   /** Callback when "+" button is clicked to add a new chapter */
   onAddChapter?: () => void;
+  /** Callback when delete is requested for a chapter */
+  onDeleteChapter?: (chapterId: string) => void;
   /** Total word count across all chapters */
   totalWordCount?: number;
   /** Real-time word count for the active chapter (overrides stored value) */
@@ -60,6 +62,7 @@ export function Sidebar({
   activeChapterId,
   onChapterSelect,
   onAddChapter,
+  onDeleteChapter,
   totalWordCount = 0,
   activeChapterWordCount,
   collapsed = false,
@@ -141,36 +144,72 @@ export function Sidebar({
             isActive && activeChapterWordCount !== undefined
               ? activeChapterWordCount
               : chapter.wordCount;
+          const canDelete = sortedChapters.length > 1;
 
           return (
-            <button
+            <div
               key={chapter.id}
-              onClick={() => onChapterSelect?.(chapter.id)}
-              className={`w-full px-4 py-3 text-left flex items-center justify-between
-                         min-h-[48px] transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500
+              className={`group w-full flex items-center min-h-[48px] transition-colors
                          ${
                            isActive
                              ? "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100"
                              : "hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground"
                          }`}
               role="listitem"
-              aria-current={isActive ? "page" : undefined}
-              aria-label={`${chapter.title}, ${formatWordCount(displayWordCount)} words`}
             >
-              <div className="flex-1 min-w-0">
-                <span className="block truncate text-sm font-medium">
-                  {chapter.title || "Untitled Chapter"}
-                </span>
-              </div>
-              <span
-                className={`ml-2 text-xs tabular-nums ${
-                  isActive ? "text-blue-700 dark:text-blue-300" : "text-muted-foreground"
-                }`}
+              <button
+                onClick={() => onChapterSelect?.(chapter.id)}
+                className="flex-1 px-4 py-3 text-left flex items-center justify-between min-w-0
+                           focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                aria-current={isActive ? "page" : undefined}
+                aria-label={`${chapter.title}, ${formatWordCount(displayWordCount)} words`}
               >
-                {formatWordCount(displayWordCount)}w
-              </span>
-            </button>
+                <div className="flex-1 min-w-0">
+                  <span className="block truncate text-sm font-medium">
+                    {chapter.title || "Untitled Chapter"}
+                  </span>
+                </div>
+                <span
+                  className={`ml-2 text-xs tabular-nums ${
+                    isActive ? "text-blue-700 dark:text-blue-300" : "text-muted-foreground"
+                  }`}
+                >
+                  {formatWordCount(displayWordCount)}w
+                </span>
+              </button>
+
+              {/* Delete button - visible on hover/focus, only when more than 1 chapter */}
+              {canDelete && onDeleteChapter && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteChapter(chapter.id);
+                  }}
+                  className="mr-2 p-1.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100
+                             hover:bg-red-100 dark:hover:bg-red-900/30 text-muted-foreground
+                             hover:text-red-600 dark:hover:text-red-400 transition-all
+                             focus:outline-none focus:ring-2 focus:ring-red-500
+                             min-w-[32px] min-h-[32px] flex items-center justify-center shrink-0"
+                  aria-label={`Delete ${chapter.title || "Untitled Chapter"}`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  </svg>
+                </button>
+              )}
+            </div>
           );
         })}
       </nav>
