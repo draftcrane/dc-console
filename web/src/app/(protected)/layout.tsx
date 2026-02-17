@@ -11,7 +11,13 @@ interface ProtectedLayoutProps {
  * Protected layout that requires authentication.
  * Per PRD Section 8:
  * - US-002: Returning user signs in and is taken directly to Writing Environment
- * - US-004: 30-day session lifetime
+ * - US-004: 30-day session lifetime (configured in Clerk Dashboard)
+ *
+ * Session expiry handling (US-004):
+ * - When a session expires (after 30 days of inactivity), auth() returns no userId.
+ * - This layout redirects to /sign-in cleanly with no error page or stale state.
+ * - Returning users within the 30-day window are served directly without re-auth
+ *   because the Clerk middleware refreshes the session token automatically.
  *
  * This layout wraps all authenticated routes and redirects to sign-in if not authenticated.
  * Includes a simple header with DraftCrane logo/title and user button for sign out.
