@@ -52,6 +52,18 @@ export default function LandingPage() {
           </Link>
         </p>
       </main>
+
+      {/* Footer with legal links */}
+      <footer className="mt-auto pb-8 pt-12 text-center text-sm text-gray-400">
+        <div className="flex justify-center gap-6">
+          <Link href="/privacy" className="hover:text-gray-600">
+            Privacy Policy
+          </Link>
+          <Link href="/terms" className="hover:text-gray-600">
+            Terms of Service
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }
