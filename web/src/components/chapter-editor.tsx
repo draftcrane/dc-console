@@ -155,45 +155,70 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
           if (!editor) return false;
 
           const { doc } = editor.state;
-          let found = false;
+          // Search full document text so multi-node selections (paragraphs, lists) match
+          const fullText = doc.textBetween(0, doc.content.size, "\n");
+          const index = fullText.indexOf(searchText);
+          if (index === -1) return false;
+
+          // Map the plain-text offset back to a document position.
+          // textBetween inserts "\n" between blocks, so we walk block boundaries
+          // to compute the real document positions.
+          let charsSeen = 0;
+          let from = -1;
+          let to = -1;
+          const targetEnd = index + searchText.length;
 
           doc.descendants((node, pos) => {
-            if (found) return false;
-            if (!node.isText || !node.text) return;
+            if (to !== -1) return false;
+            if (node.isText && node.text) {
+              const nodeStart = charsSeen;
+              const nodeEnd = charsSeen + node.text.length;
 
-            const index = node.text.indexOf(searchText);
-            if (index !== -1) {
-              const from = pos + index;
-              const to = from + searchText.length;
+              if (from === -1 && index >= nodeStart && index < nodeEnd) {
+                from = pos + (index - nodeStart);
+              }
+              if (from !== -1 && targetEnd >= nodeStart && targetEnd <= nodeEnd) {
+                to = pos + (targetEnd - nodeStart);
+              }
 
-              editor
-                .chain()
-                .focus()
-                .setTextSelection({ from, to })
-                .deleteSelection()
-                .insertContent(replacementText)
-                .run();
-
-              requestAnimationFrame(() => {
-                const editorElement = editor.view.dom;
-                const { from: cursorPos } = editor.state.selection;
-                const highlightFrom = cursorPos - replacementText.length;
-
-                editor.chain().setTextSelection({ from: highlightFrom, to: cursorPos }).run();
-
-                editorElement.classList.add("ai-rewrite-highlight");
-                setTimeout(() => {
-                  editorElement.classList.remove("ai-rewrite-highlight");
-                  editor.chain().setTextSelection(cursorPos).run();
-                }, 1500);
-              });
-
-              found = true;
-              return false;
+              charsSeen += node.text.length;
+            } else if (node.isBlock && charsSeen > 0) {
+              // Block boundaries produce the "\n" separator in textBetween
+              if (from === -1 && index === charsSeen) {
+                from = pos;
+              }
+              if (from !== -1 && targetEnd === charsSeen) {
+                to = pos;
+              }
+              charsSeen += 1; // the "\n"
             }
           });
 
-          return found;
+          if (from === -1 || to === -1) return false;
+
+          editor
+            .chain()
+            .focus()
+            .setTextSelection({ from, to })
+            .deleteSelection()
+            .insertContent(replacementText)
+            .run();
+
+          requestAnimationFrame(() => {
+            const editorElement = editor.view.dom;
+            const { from: cursorPos } = editor.state.selection;
+            const highlightFrom = cursorPos - replacementText.length;
+
+            editor.chain().setTextSelection({ from: highlightFrom, to: cursorPos }).run();
+
+            editorElement.classList.add("ai-rewrite-highlight");
+            setTimeout(() => {
+              editorElement.classList.remove("ai-rewrite-highlight");
+              editor.chain().setTextSelection(cursorPos).run();
+            }, 1500);
+          });
+
+          return true;
         },
       }),
       [editor],
