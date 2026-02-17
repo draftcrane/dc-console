@@ -71,6 +71,7 @@ export function AIRewriteSheet({
   const firstFocusableRef = useRef<HTMLTextAreaElement>(null);
   const lastFocusableRef = useRef<HTMLButtonElement>(null);
   const [editedInstruction, setEditedInstruction] = useState("");
+  const hasUserEdited = useRef(false);
   const [lastResultId, setLastResultId] = useState<string | null>(null);
   const rewriteEndRef = useRef<HTMLSpanElement>(null);
 
@@ -81,7 +82,7 @@ export function AIRewriteSheet({
 
   // Sync instruction field when a new result arrives (tracked by interactionId)
   if (result && result.interactionId && result.interactionId !== lastResultId) {
-    setEditedInstruction(result.instruction);
+    if (!hasUserEdited.current) setEditedInstruction("");
     setLastResultId(result.interactionId);
   }
 
@@ -92,7 +93,7 @@ export function AIRewriteSheet({
     sheetState === "streaming" &&
     lastResultId !== "streaming"
   ) {
-    setEditedInstruction(result.instruction);
+    if (!hasUserEdited.current) setEditedInstruction("");
     setLastResultId("streaming");
   }
 
@@ -186,7 +187,8 @@ export function AIRewriteSheet({
   };
 
   const handleRetry = () => {
-    onRetry(result, editedInstruction);
+    onRetry(result, editedInstruction.trim() || result.instruction);
+    hasUserEdited.current = false;
   };
 
   const handleDiscard = () => {
@@ -331,11 +333,24 @@ export function AIRewriteSheet({
               ref={firstFocusableRef}
               id="ai-instruction"
               value={editedInstruction}
-              onChange={(e) => setEditedInstruction(e.target.value)}
+              onChange={(e) => {
+                hasUserEdited.current = true;
+                setEditedInstruction(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !isStreaming) {
+                  e.preventDefault();
+                  handleRetry();
+                }
+              }}
               className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-900
                          leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500
                          focus:border-transparent min-h-[60px]"
-              placeholder="Adjust your instruction and try again..."
+              placeholder={
+                result.instruction && result.instruction.length > 80
+                  ? result.instruction.slice(0, 80) + "\u2026"
+                  : result.instruction || "Enter instruction..."
+              }
               rows={2}
               disabled={isStreaming}
             />
