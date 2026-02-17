@@ -315,6 +315,68 @@ export default function EditorPage() {
     [getToken],
   );
 
+  /**
+   * Reorder chapters via the API (US-012A).
+   * Optimistically updates local state, then persists to the server.
+   * Drive file names are NOT renamed on reorder (per acceptance criteria).
+   */
+  const handleChapterReorder = useCallback(
+    async (chapterIds: string[]) => {
+      if (!projectData) return;
+
+      // Optimistic update: assign new sortOrder based on position
+      setProjectData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          chapters: prev.chapters.map((ch) => {
+            const newIndex = chapterIds.indexOf(ch.id);
+            return newIndex !== -1 ? { ...ch, sortOrder: newIndex + 1 } : ch;
+          }),
+        };
+      });
+
+      try {
+        const token = await getToken();
+        const response = await fetch(`${API_URL}/projects/${projectId}/chapters/reorder`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ chapterIds }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to reorder chapters");
+        }
+
+        // Sync with server response
+        const data = (await response.json()) as { chapters: Chapter[] };
+        setProjectData((prev) => {
+          if (!prev) return prev;
+          return { ...prev, chapters: data.chapters };
+        });
+      } catch (err) {
+        console.error("Failed to reorder chapters:", err);
+        // Revert optimistic update by re-fetching
+        try {
+          const token = await getToken();
+          const response = await fetch(`${API_URL}/projects/${projectId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.ok) {
+            const data: ProjectData = await response.json();
+            setProjectData(data);
+          }
+        } catch {
+          // Silent fallback - user can refresh
+        }
+      }
+    },
+    [projectData, projectId, getToken],
+  );
+
   // Handle editor title field save (wraps handleChapterRename for the active chapter)
   const handleTitleSave = useCallback(async () => {
     if (!activeChapterId) {
@@ -725,6 +787,7 @@ export default function EditorPage() {
           onAddChapter={handleAddChapter}
           onDeleteChapter={handleDeleteChapterRequest}
           onChapterRename={handleChapterRename}
+          onChapterReorder={handleChapterReorder}
           totalWordCount={totalWordCount}
           activeChapterWordCount={currentWordCount}
           collapsed={sidebarCollapsed}
@@ -740,6 +803,7 @@ export default function EditorPage() {
           onAddChapter={handleAddChapter}
           onDeleteChapter={handleDeleteChapterRequest}
           onChapterRename={handleChapterRename}
+          onChapterReorder={handleChapterReorder}
           totalWordCount={totalWordCount}
           activeChapterWordCount={currentWordCount}
           collapsed={true}
@@ -754,6 +818,7 @@ export default function EditorPage() {
             onAddChapter={handleAddChapter}
             onDeleteChapter={handleDeleteChapterRequest}
             onChapterRename={handleChapterRename}
+            onChapterReorder={handleChapterReorder}
             totalWordCount={totalWordCount}
             activeChapterWordCount={currentWordCount}
             collapsed={false}
