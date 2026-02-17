@@ -252,6 +252,54 @@ When deploying your application to a serverless platform, cold starts can interf
 
 ## Verdict
 
-**Result:** ___________________ (PASS / FAIL / CONDITIONAL)
+**Result:** CONDITIONAL
 
-**Notes:**
+**Score:** Edge 5, Frontier 5. Dead even on win count across 10 blinded cases.
+
+| Case | Winner | Margin |
+|------|--------|--------|
+| 1 simplify-memoir | Edge | Slight |
+| 2 simplify-technical | Edge | Clear |
+| 3 concision-memoir | Frontier | Moderate |
+| 4 concision-technical | Frontier | Moderate |
+| 5 expand-memoir | Frontier | Clear |
+| 6 expand-technical | Edge | Clear |
+| 7 tone-shift-memoir | Frontier | Clear (Edge hallucinated) |
+| 8 tone-shift-technical | Edge | Clear |
+| 9 clarity-memoir | Frontier | Slight |
+| 10 clarity-technical | Edge | Slight |
+
+### Edge strengths
+
+- Simplification tasks - natural, faithful, doesn't editorialize (Cases 1, 2)
+- Conversational tone shift - the keys analogy in Case 8 is genuinely good writing
+- Technical concrete example was better than Frontier's generic restatement (Case 6)
+
+### Edge weaknesses
+
+- **Case 7 is a real problem.** The model invented grief, a backstory about fleeing the past, and assumed a cat's gender. For a writing tool, hallucinating content into someone's memoir is a trust-breaking failure. Users need to know the tool won't put words in their mouth.
+- Case 5 had tonal awareness issues (comforting atmosphere at a funeral)
+
+### Frontier strengths
+
+- More consistent on creative/emotional tasks (Cases 5, 7)
+- Better at aggressive concision (Cases 3, 4)
+- Didn't hallucinate in any case
+
+### Frontier weaknesses
+
+- Case 2 dropped "at scale" and added editorial tone ("Embracing")
+- Case 6 gave a generic restatement instead of a concrete example
+- Case 8 barely shifted tone at all
+
+### Latency
+
+Edge mean 2,626ms vs Frontier mean 2,077ms. Frontier is actually faster, which eliminates the usual latency argument for the edge model. Edge P95 (4,691ms) is notably worse than Frontier P95 (2,883ms).
+
+### Conditions for PASS
+
+1. **Hallucination guardrail.** Implement detection for when the edge model introduces semantic content not present in the original. Case 7's invented backstory is the worst possible failure mode for a writing tool - users trust the tool to transform their words, not invent new ones.
+2. **Route by task type.** The edge model is viable for simpler rewrite types (simplify, concision, clarity). Tone-shift and expand tasks on creative/memoir content should route to frontier until the hallucination risk is better understood with a larger sample.
+3. **Latency parity.** The edge model is slower on average and has a much worse tail. Cost savings need to justify the quality risk on their own since there is no speed advantage.
+
+**Action:** Keep `AI_DEFAULT_TIER=frontier`. Do not flip to edge until conditions above are met.
