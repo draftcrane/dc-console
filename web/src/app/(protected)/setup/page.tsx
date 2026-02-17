@@ -359,7 +359,7 @@ export default function SetupPage() {
           {error && (
             <div
               role="alert"
-              className="p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm"
+              className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm"
             >
               {error}
             </div>

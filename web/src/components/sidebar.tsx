@@ -241,7 +241,7 @@ export function Sidebar({
   return (
     <aside
       className="flex flex-col h-full w-[260px] min-w-[240px] max-w-[280px]
-                 bg-gray-50 dark:bg-gray-900 border-r border-border"
+                 bg-gray-50 border-r border-border"
       role="navigation"
       aria-label="Chapter navigation"
     >
@@ -250,7 +250,7 @@ export function Sidebar({
         <h2 className="text-sm font-semibold text-foreground">Chapters</h2>
         <button
           onClick={onToggleCollapsed}
-          className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800
+          className="p-2 rounded-lg hover:bg-gray-200
                      focus:outline-none focus:ring-2 focus:ring-blue-500
                      transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Collapse sidebar"
@@ -343,7 +343,7 @@ export function Sidebar({
       <div className="px-4 py-2 border-t border-border">
         <button
           onClick={onAddChapter}
-          className="w-full py-3 px-4 rounded-lg border border-dashed border-gray-300 dark:border-gray-700
+          className="w-full py-3 px-4 rounded-lg border border-dashed border-gray-300
                      text-muted-foreground hover:border-blue-500 hover:text-blue-600
                      focus:outline-none focus:ring-2 focus:ring-blue-500
                      transition-colors flex items-center justify-center gap-2
@@ -369,7 +369,7 @@ export function Sidebar({
       </div>
 
       {/* Total word count */}
-      <div className="px-4 py-3 border-t border-border bg-gray-100 dark:bg-gray-800/50">
+      <div className="px-4 py-3 border-t border-border bg-gray-100">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Total</span>
           <span className="font-medium text-foreground tabular-nums">
@@ -470,10 +470,10 @@ function ChapterListItem({
       className={`group w-full flex items-center min-h-[48px] transition-colors
                  ${
                    isActive
-                     ? "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100"
-                     : "hover:bg-gray-100 dark:hover:bg-gray-800 text-foreground"
+                     ? "bg-blue-100 text-blue-900"
+                     : "hover:bg-gray-100 text-foreground"
                  }
-                 ${isDragOverlay ? "shadow-lg rounded-lg bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-600" : ""}`}
+                 ${isDragOverlay ? "shadow-lg rounded-lg bg-white border border-blue-300" : ""}`}
       role="listitem"
     >
       {/* Drag handle */}
@@ -519,7 +519,7 @@ function ChapterListItem({
         </div>
         <span
           className={`ml-2 text-xs tabular-nums ${
-            isActive ? "text-blue-700 dark:text-blue-300" : "text-muted-foreground"
+            isActive ? "text-blue-700" : "text-muted-foreground"
           }`}
         >
           {formatWordCount(displayWordCount)}w
@@ -534,8 +534,8 @@ function ChapterListItem({
             onDelete();
           }}
           className="mr-2 p-1.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100
-                     hover:bg-red-100 dark:hover:bg-red-900/30 text-muted-foreground
-                     hover:text-red-600 dark:hover:text-red-400 transition-all
+                     hover:bg-red-100 text-muted-foreground
+                     hover:text-red-600 transition-all
                      focus:outline-none focus:ring-2 focus:ring-red-500
                      min-w-[32px] min-h-[32px] flex items-center justify-center shrink-0"
           aria-label={`Delete ${chapter.title || "Untitled Chapter"}`}
@@ -615,8 +615,8 @@ function InlineRenameInput({
                  min-h-[48px] transition-colors
                  ${
                    isActive
-                     ? "bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-100"
-                     : "bg-gray-100 dark:bg-gray-800 text-foreground"
+                     ? "bg-blue-100 text-blue-900"
+                     : "bg-gray-100 text-foreground"
                  }`}
       role="listitem"
     >
@@ -628,14 +628,14 @@ function InlineRenameInput({
         onBlur={handleCommit}
         onKeyDown={handleKeyDown}
         maxLength={200}
-        className="flex-1 min-w-0 text-sm font-medium bg-white dark:bg-gray-900
+        className="flex-1 min-w-0 text-sm font-medium bg-white
                    border border-blue-500 rounded px-2 py-1 outline-none
                    focus:ring-2 focus:ring-blue-500"
         aria-label="Chapter title"
       />
       <span
         className={`ml-2 text-xs tabular-nums shrink-0 ${
-          isActive ? "text-blue-700 dark:text-blue-300" : "text-muted-foreground"
+          isActive ? "text-blue-700" : "text-muted-foreground"
         }`}
       >
         {formatWordCount(displayWordCount)}w

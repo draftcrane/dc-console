@@ -35,7 +35,7 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="flex min-h-dvh flex-col bg-background">
       {/* Header with safe area padding for iPad Safari */}
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-gray-200 px-4 pt-[env(safe-area-inset-top)]">
         {/* Logo/Title - links to dashboard */}
