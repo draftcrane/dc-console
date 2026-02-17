@@ -77,6 +77,7 @@ export function AIRewriteSheet({
   const isOpen = sheetState !== "idle";
   const isStreaming = sheetState === "streaming";
   const isComplete = sheetState === "complete";
+  const [originalExpanded, setOriginalExpanded] = useState(false);
 
   // Sync instruction field when a new result arrives (tracked by interactionId)
   if (result && result.interactionId && result.interactionId !== lastResultId) {
@@ -94,6 +95,14 @@ export function AIRewriteSheet({
     setEditedInstruction(result.instruction);
     setLastResultId("streaming");
   }
+
+  // Reset original expanded state when result changes; expand by default for short selections
+  useEffect(() => {
+    if (result) {
+      const isShort = result.originalText.split(/\s+/).length < 50;
+      setOriginalExpanded(isShort);
+    }
+  }, [result?.interactionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-scroll to bottom of rewrite area during streaming
   useEffect(() => {
@@ -244,17 +253,9 @@ export function AIRewriteSheet({
           </div>
         </div>
 
-        {/* Scrollable content: original and rewrite */}
+        {/* Scrollable content: rewrite first, then original */}
         <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
-          {/* Original text */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Original</h3>
-            <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {result.originalText}
-            </div>
-          </div>
-
-          {/* AI Rewrite */}
+          {/* AI Rewrite (primary — visible above the fold) */}
           <div>
             <h3 className="text-sm font-medium text-blue-600 mb-2">Rewrite</h3>
             <div className="p-3 bg-blue-50 rounded-lg text-sm text-gray-900 leading-relaxed whitespace-pre-wrap border border-blue-100 min-h-[60px]">
@@ -283,6 +284,39 @@ export function AIRewriteSheet({
                 />
               )}
             </div>
+          </div>
+
+          {/* Original text — collapsible disclosure */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setOriginalExpanded((prev) => !prev)}
+              className="flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              aria-expanded={originalExpanded}
+              aria-controls="original-text-content"
+            >
+              <svg
+                className={`h-4 w-4 transition-transform duration-200 ${originalExpanded ? "rotate-90" : ""}`}
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Original
+            </button>
+            {originalExpanded && (
+              <div
+                id="original-text-content"
+                className="mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-[20]"
+              >
+                {result.originalText}
+              </div>
+            )}
           </div>
 
           {/* Editable instruction field */}
