@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "./types/index.js";
 import { AppError, corsMiddleware } from "./middleware/index.js";
+import { requestLogger } from "./middleware/request-logger.js";
 import { health } from "./routes/health.js";
 import { auth } from "./routes/auth.js";
 import { users } from "./routes/users.js";
@@ -17,16 +18,52 @@ const app = new Hono<{ Bindings: Env }>();
 // function and reliably catches errors thrown in sub-route middleware,
 // unlike a middleware-based try/catch which can be bypassed by compose).
 app.onError((err, c) => {
+  const requestId = c.get("requestId") ?? "unknown";
+  const auth = c.get("auth");
+
   if (err instanceof AppError) {
-    return c.json({ error: err.message, code: err.code }, err.statusCode as 400);
+    return c.json({ error: err.message, code: err.code, requestId }, err.statusCode as 400);
   }
 
-  console.error("Unhandled error:", err);
-  return c.json({ error: "Internal server error", code: "INTERNAL_ERROR" as ErrorCode }, 500);
+  console.error(
+    JSON.stringify({
+      level: "error",
+      request_id: requestId,
+      user_id: auth?.userId ?? null,
+      method: c.req.method,
+      path: c.req.path,
+      error: err.message,
+      stack: err.stack,
+    }),
+  );
+
+  // Write unhandled errors to KV for post-session review (7-day TTL)
+  c.env.CACHE.put(
+    `error:${Date.now()}:${requestId}`,
+    JSON.stringify({
+      request_id: requestId,
+      user_id: auth?.userId ?? null,
+      method: c.req.method,
+      path: c.req.path,
+      status: 500,
+      error: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+    }),
+    { expirationTtl: 604800 },
+  ).catch(() => {
+    // KV write failure is non-blocking
+  });
+
+  return c.json(
+    { error: "Internal server error", code: "INTERNAL_ERROR" as ErrorCode, requestId },
+    500,
+  );
 });
 
 // Global middleware
 app.use("*", corsMiddleware());
+app.use("*", requestLogger);
 
 // Route mounting
 app.route("/health", health);

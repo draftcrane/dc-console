@@ -87,11 +87,9 @@ export class ContentService {
     const wordCount = countWords(input.content);
     const r2Key = `chapters/${chapterId}/content.html`;
 
-    // Tier 2: Write content to R2 (cache) and Google Drive (canonical) per ADR-005
-    // TODO: When Drive OAuth is connected, write content to Drive as the canonical
-    // store. R2 remains the fast cache for app reads. If Drive write fails, content
-    // is safe in R2 and should be retried. Drive connection status should be checked
-    // via the user's stored OAuth tokens. See Issue #14 (Google Drive file sync).
+    // Tier 2: Write content to R2 (fast cache per ADR-005)
+    // Drive write-through is handled at the route layer (chapters.ts PUT handler)
+    // with 30s coalescing to avoid hammering Google API on 2s auto-save cadence.
     await this.bucket.put(r2Key, input.content, {
       httpMetadata: {
         contentType: "text/html; charset=utf-8",

@@ -35,6 +35,7 @@ chapters.use("*", standardRateLimit);
  * Create a new chapter at the end of the list
  *
  * Per PRD US-010: "+" button creates chapter at end of list with editable title
+ * If Drive is connected and project has a folder, creates an HTML file on Drive.
  */
 chapters.post("/projects/:projectId/chapters", async (c) => {
   const { userId } = c.get("auth");
@@ -45,6 +46,43 @@ chapters.post("/projects/:projectId/chapters", async (c) => {
   const chapter = await service.createChapter(userId, projectId, {
     title: body.title,
   });
+
+  // If Drive is connected and project has a folder, create an HTML file on Drive (fire-and-forget)
+  const driveService = new DriveService(c.env);
+  driveService
+    .getValidTokens(userId)
+    .then(async (tokens) => {
+      if (!tokens) return;
+
+      // Check if project has a Drive folder
+      const project = await c.env.DB.prepare(
+        `SELECT drive_folder_id FROM projects WHERE id = ? AND user_id = ?`,
+      )
+        .bind(projectId, userId)
+        .first<{ drive_folder_id: string | null }>();
+
+      if (!project?.drive_folder_id) return;
+
+      // Create empty HTML file on Drive
+      const fileName = `${chapter.title}.html`;
+      const emptyHtml = "";
+      const encoder = new TextEncoder();
+      const driveFile = await driveService.uploadFile(
+        tokens.accessToken,
+        project.drive_folder_id,
+        fileName,
+        "text/html",
+        encoder.encode(emptyHtml).buffer as ArrayBuffer,
+      );
+
+      // Store drive_file_id on the chapter
+      await c.env.DB.prepare(`UPDATE chapters SET drive_file_id = ? WHERE id = ?`)
+        .bind(driveFile.id, chapter.id)
+        .run();
+    })
+    .catch((err) => {
+      console.error("Drive file creation on chapter create failed (non-blocking):", err);
+    });
 
   return c.json(chapter, 201);
 });
@@ -178,10 +216,15 @@ chapters.delete("/chapters/:chapterId", async (c) => {
  * Save chapter content (Tier 2 of auto-save).
  *
  * Per US-015:
- * - Writes content to R2 (or Drive if connected)
+ * - Writes content to R2 (fast cache)
  * - Updates D1 metadata: word_count, version, updated_at
  * - Returns 409 CONFLICT on version mismatch
  * - No content stored in D1 (Tier 3 metadata only)
+ *
+ * Per ADR-005 (Drive write-through):
+ * - After R2 save, syncs content to Google Drive (fire-and-forget)
+ * - 30s coalescing via KV to avoid hammering Google API (~2s auto-save cadence)
+ * - Lazy migration: creates Drive file if drive_file_id is null but Drive is connected
  */
 chapters.put("/chapters/:chapterId/content", async (c) => {
   const { userId } = c.get("auth");
@@ -199,10 +242,71 @@ chapters.put("/chapters/:chapterId/content", async (c) => {
     validationError("version number is required");
   }
 
+  // Capture validated values for use in async closure
+  const content: string = body.content;
+
   const service = new ContentService(c.env.DB, c.env.EXPORTS_BUCKET);
   const result = await service.saveContent(userId, chapterId, {
-    content: body.content,
+    content,
     version: body.version,
+  });
+
+  // Drive write-through (fire-and-forget, follows rename/trash pattern)
+  // Coalesce writes to 30s intervals to avoid hitting Google API rate limits
+  const driveWriteThrough = async () => {
+    // Check coalescing: skip if last Drive write was <30s ago
+    const coalesceKey = `drive-sync:${chapterId}`;
+    const lastSync = await c.env.CACHE.get(coalesceKey);
+    if (lastSync) return; // Within 30s window, skip
+
+    const driveService = new DriveService(c.env);
+    const tokens = await driveService.getValidTokens(userId);
+    if (!tokens) return; // Drive not connected
+
+    // Get chapter's drive_file_id and project's drive_folder_id
+    const chapter = await c.env.DB.prepare(
+      `SELECT ch.drive_file_id, ch.title, p.drive_folder_id
+       FROM chapters ch
+       JOIN projects p ON p.id = ch.project_id
+       WHERE ch.id = ? AND p.user_id = ?`,
+    )
+      .bind(chapterId, userId)
+      .first<{ drive_file_id: string | null; title: string; drive_folder_id: string | null }>();
+
+    if (!chapter?.drive_folder_id) return; // No Drive folder on project
+
+    // Mark coalescing window (30s TTL)
+    await c.env.CACHE.put(coalesceKey, String(Date.now()), { expirationTtl: 30 });
+
+    if (chapter.drive_file_id) {
+      // Update existing Drive file
+      await driveService.updateFile(
+        tokens.accessToken,
+        chapter.drive_file_id,
+        "text/html",
+        content,
+      );
+    } else {
+      // Lazy migration: create Drive file for this chapter
+      const fileName = `${chapter.title}.html`;
+      const encoder = new TextEncoder();
+      const driveFile = await driveService.uploadFile(
+        tokens.accessToken,
+        chapter.drive_folder_id,
+        fileName,
+        "text/html",
+        encoder.encode(content).buffer as ArrayBuffer,
+      );
+
+      // Store drive_file_id
+      await c.env.DB.prepare(`UPDATE chapters SET drive_file_id = ? WHERE id = ?`)
+        .bind(driveFile.id, chapterId)
+        .run();
+    }
+  };
+
+  driveWriteThrough().catch((err) => {
+    console.error("Drive write-through failed (non-blocking):", err);
   });
 
   return c.json(result);

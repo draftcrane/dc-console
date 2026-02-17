@@ -14,10 +14,14 @@ interface RateLimitConfig {
 /**
  * Rate limiting middleware using Cloudflare KV counters with TTL.
  *
- * Per project instructions:
- * - Standard endpoints: 60 req/min
+ * Phase 0 limits (bumped to avoid false positives with 2s auto-save cadence):
+ * - Standard endpoints: 120 req/min
  * - AI endpoints: 10 req/min
  * - Export endpoints: 5 req/min
+ *
+ * Note: The KV-based sliding window pushes TTL forward on each PUT, causing
+ * false positives at lower limits with frequent writes. Fixed-window rate
+ * limiting is a post-Phase 0 follow-up.
  *
  * Must be applied after requireAuth so userId is available.
  * Sets X-RateLimit-Remaining header on successful responses.
@@ -36,6 +40,17 @@ export function rateLimit(config: RateLimitConfig): MiddlewareHandler<{ Bindings
     const count = current ? parseInt(current, 10) : 0;
 
     if (count >= config.maxRequests) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          event: "rate_limit_hit",
+          user_id: auth.userId,
+          prefix: config.prefix,
+          limit: config.maxRequests,
+          method: c.req.method,
+          path: c.req.path,
+        }),
+      );
       rateLimited(`Rate limit exceeded. Please wait before making more requests.`);
     }
 
@@ -50,10 +65,10 @@ export function rateLimit(config: RateLimitConfig): MiddlewareHandler<{ Bindings
   };
 }
 
-/** Standard rate limit: 60 req/min */
+/** Standard rate limit: 120 req/min (bumped from 60 for Phase 0 auto-save cadence) */
 export const standardRateLimit = rateLimit({
   prefix: "standard",
-  maxRequests: 60,
+  maxRequests: 120,
   windowSeconds: 60,
 });
 

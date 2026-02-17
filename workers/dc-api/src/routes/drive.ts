@@ -307,6 +307,15 @@ drive.delete("/connection", requireAuth, standardRateLimit, async (c) => {
     .bind(userId)
     .run();
 
+  // Clear drive_file_id from all user's chapters to avoid stale references
+  // When Drive reconnects and folder is created, lazy migration handles re-uploading
+  await c.env.DB.prepare(
+    `UPDATE chapters SET drive_file_id = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+     WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)`,
+  )
+    .bind(userId)
+    .run();
+
   return c.json({
     success: true,
     message: "Google Drive disconnected. Your files in Drive remain untouched.",

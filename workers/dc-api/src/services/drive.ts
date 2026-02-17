@@ -533,6 +533,40 @@ export class DriveService {
   }
 
   /**
+   * Updates an existing file's content in Google Drive.
+   * Used for Drive write-through: syncing chapter content from R2 to Drive.
+   *
+   * @param accessToken - Valid access token
+   * @param fileId - The Drive file ID to update
+   * @param mimeType - MIME type of the content
+   * @param data - The file content as string or ArrayBuffer
+   */
+  async updateFile(
+    accessToken: string,
+    fileId: string,
+    mimeType: string,
+    data: string | ArrayBuffer,
+  ): Promise<void> {
+    const response = await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": mimeType,
+        },
+        body: data,
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Drive file update failed:", error);
+      throw new Error("Failed to update file in Google Drive");
+    }
+  }
+
+  /**
    * Revokes the OAuth token with Google.
    * Per PRD Section 8 (US-008): Disconnects Drive, revokes token.
    *
