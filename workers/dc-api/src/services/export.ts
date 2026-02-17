@@ -1,5 +1,6 @@
-import { ulid } from "ulid";
+import { ulid } from "ulidx";
 import { notFound, validationError } from "../middleware/error-handler.js";
+import { buildFileName, formatDate } from "../utils/file-names.js";
 import type { DriveService } from "./drive.js";
 import {
   assembleBookHtml,
@@ -166,7 +167,7 @@ export class ExportService {
       const metadata: BookMetadata = {
         title: project.title,
         authorName,
-        generatedDate: this.formatDate(new Date()),
+        generatedDate: formatDate(new Date()),
       };
 
       // Branch by format (ADR-004 architecture)
@@ -184,7 +185,7 @@ export class ExportService {
       }
 
       // Build file name: {Book Title} - YYYY-MM-DD.{ext}
-      const fileName = this.buildFileName(project.title, format);
+      const fileName = buildFileName(project.title, format);
       const r2Key = `exports/${jobId}.${format}`;
 
       // Store in R2
@@ -300,7 +301,7 @@ export class ExportService {
       const metadata: BookMetadata = {
         title: project.title,
         authorName,
-        generatedDate: this.formatDate(new Date()),
+        generatedDate: formatDate(new Date()),
       };
 
       // Branch by format (ADR-004 architecture)
@@ -318,7 +319,7 @@ export class ExportService {
       }
 
       // Build file name: {Book Title} - {Chapter Title} - YYYY-MM-DD.{ext}
-      const fileName = this.buildFileName(`${project.title} - ${chapter.title}`, format);
+      const fileName = buildFileName(`${project.title} - ${chapter.title}`, format);
       const r2Key = `exports/${jobId}.${format}`;
 
       // Store in R2
@@ -628,28 +629,5 @@ export class ExportService {
     }
 
     return "Author";
-  }
-
-  /**
-   * Build a sanitized file name: {title} - YYYY-MM-DD.{ext}
-   * Per acceptance criteria: {Book Title} - YYYY-MM-DD.pdf
-   */
-  private buildFileName(title: string, extension: string): string {
-    const sanitized = title
-      .replace(/[<>:"/\\|?*]/g, "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 200);
-
-    const date = this.formatDate(new Date());
-
-    return `${sanitized} - ${date}.${extension}`;
-  }
-
-  /**
-   * Format date as YYYY-MM-DD.
-   */
-  private formatDate(date: Date): string {
-    return date.toISOString().split("T")[0];
   }
 }

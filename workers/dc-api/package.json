@@ -16,10 +16,10 @@
     "hono": "^4.7.0",
     "jszip": "^3.10.1",
     "svix": "^1.84.1",
-    "ulid": "^2.3.0"
+    "ulidx": "^2.4.1"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.8.0",
+    "@cloudflare/vitest-pool-workers": "^0.12.13",
     "@cloudflare/workers-types": "^4.20250124.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0",

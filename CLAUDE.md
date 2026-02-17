@@ -89,17 +89,17 @@ Migrations are forward-only and numbered sequentially in `workers/dc-api/migrati
 
 ## Tech Stack
 
-| Layer          | Technology                         | Notes                         |
-| -------------- | ---------------------------------- | ----------------------------- |
-| Frontend       | Next.js 16, React 19, Tailwind CSS | Tiptap editor for writing     |
-| Auth           | Clerk                              | Email + Google OAuth          |
-| Frontend Host  | Vercel                             | draftcrane.app                |
-| Backend        | Cloudflare Workers (Hono)          | dc-api worker                 |
-| Database       | Cloudflare D1 (dc-main)            | Projects, chapters, metadata  |
-| Object Storage | Cloudflare R2 (dc-exports)         | Export artifacts, image cache |
-| Cache          | Cloudflare KV (dc-cache)           | Rate limiting, session data   |
-| File Storage   | Google Drive (user's account)      | Canonical manuscript storage  |
-| AI             | Anthropic Claude API               | AI rewrite (claude-sonnet-4)  |
+| Layer          | Technology                                       | Notes                                         |
+| -------------- | ------------------------------------------------ | --------------------------------------------- |
+| Frontend       | Next.js 16, React 19, Tailwind CSS               | Tiptap editor for writing                     |
+| Auth           | Clerk                                            | Email + Google OAuth                          |
+| Frontend Host  | Vercel                                           | draftcrane.app                                |
+| Backend        | Cloudflare Workers (Hono)                        | dc-api worker                                 |
+| Database       | Cloudflare D1 (dc-main)                          | Projects, chapters, metadata                  |
+| Object Storage | Cloudflare R2 (dc-exports)                       | Export artifacts, image cache                 |
+| Cache          | Cloudflare KV (dc-cache)                         | Rate limiting, session data                   |
+| File Storage   | Google Drive (user's account)                    | Canonical manuscript storage                  |
+| AI             | Workers AI (Mistral Small 3.1) / OpenAI (gpt-4o) | Edge tier + frontier tier (default: frontier) |
 
 ## Cloudflare Resources
 

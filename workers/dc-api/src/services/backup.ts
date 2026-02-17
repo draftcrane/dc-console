@@ -1,6 +1,8 @@
 import JSZip from "jszip";
-import { ulid } from "ulid";
+import { ulid } from "ulidx";
 import { notFound, validationError } from "../middleware/error-handler.js";
+import { countWords } from "../utils/word-count.js";
+import { sanitizeFileName, formatDate } from "../utils/file-names.js";
 
 /**
  * BackupService - Generates downloadable ZIP backups and restores from them.
@@ -249,35 +251,4 @@ function buildChapterFileName(sortOrder: number, title: string): string {
     .replace(/^-|-$/g, "")
     .slice(0, 50);
   return `${padded}-${slug || "untitled"}.html`;
-}
-
-/**
- * Sanitize a string for use in a file name.
- */
-function sanitizeFileName(name: string): string {
-  return name
-    .replace(/[<>:"/\\|?*]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 200);
-}
-
-/**
- * Format date as YYYY-MM-DD.
- */
-function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
-
-/**
- * Count words in HTML content.
- * Same logic as ContentService (content.ts:181-188).
- */
-function countWords(html: string): number {
-  const text = html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return text.length > 0 ? text.split(" ").length : 0;
 }

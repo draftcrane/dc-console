@@ -1,4 +1,4 @@
-import { ulid } from "ulid";
+import { ulid } from "ulidx";
 import { notFound, validationError, AppError } from "../middleware/error-handler.js";
 
 /**

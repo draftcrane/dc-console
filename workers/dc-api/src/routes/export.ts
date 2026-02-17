@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { exportRateLimit, standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ExportService } from "../services/export.js";
+import { safeContentDisposition } from "../utils/file-names.js";
 import { DriveService } from "../services/drive.js";
 
 /**
@@ -123,7 +124,7 @@ exportRoutes.get("/exports/:jobId/download", async (c) => {
   return new Response(download.data, {
     headers: {
       "Content-Type": download.contentType,
-      "Content-Disposition": `attachment; filename="${download.fileName}"`,
+      "Content-Disposition": safeContentDisposition(download.fileName),
       "Cache-Control": "private, max-age=3600",
     },
   });

@@ -1,4 +1,5 @@
 import { notFound, conflict } from "../middleware/error-handler.js";
+import { countWords } from "../utils/word-count.js";
 
 /**
  * ContentService - Manages chapter content storage (Tier 2 & 3 of auto-save).
@@ -172,17 +173,4 @@ export class ContentService {
       version: chapter.version,
     };
   }
-}
-
-/**
- * Count words in HTML content.
- * Strips HTML tags and counts whitespace-separated words.
- */
-function countWords(html: string): number {
-  const text = html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return text.length > 0 ? text.split(" ").length : 0;
 }

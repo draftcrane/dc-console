@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from "hono";
-import { ulid } from "ulid";
+import { ulid } from "ulidx";
 import type { Env } from "../types/index.js";
 
 declare module "hono" {

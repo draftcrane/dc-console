@@ -10,6 +10,7 @@
 
 import { encrypt, decrypt } from "./crypto.js";
 import type { Env } from "../types/index.js";
+import { validateDriveId, escapeDriveQuery } from "../utils/drive-query.js";
 
 /** Google OAuth token response */
 interface GoogleTokenResponse {
@@ -337,7 +338,7 @@ export class DriveService {
    */
   async listFolderChildren(accessToken: string, folderId: string): Promise<DriveFile[]> {
     const params = new URLSearchParams({
-      q: `'${folderId}' in parents and trashed = false`,
+      q: `'${validateDriveId(folderId)}' in parents and trashed = false`,
       fields: "files(id,name,mimeType,webViewLink,createdTime,modifiedTime)",
       orderBy: "modifiedTime desc",
     });
@@ -374,7 +375,7 @@ export class DriveService {
   ): Promise<string> {
     // Search for existing subfolder
     const searchParams = new URLSearchParams({
-      q: `'${parentFolderId}' in parents and name = '${folderName}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+      q: `'${validateDriveId(parentFolderId)}' in parents and name = '${escapeDriveQuery(folderName)}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
       fields: "files(id,name)",
     });
 

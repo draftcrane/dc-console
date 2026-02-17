@@ -5,6 +5,7 @@ import { standardRateLimit, exportRateLimit } from "../middleware/rate-limit.js"
 import { validationError } from "../middleware/error-handler.js";
 import { ProjectService } from "../services/project.js";
 import { BackupService } from "../services/backup.js";
+import { safeContentDisposition } from "../utils/file-names.js";
 
 /**
  * Projects API routes
@@ -157,7 +158,7 @@ projects.get("/:projectId/backup", exportRateLimit, async (c) => {
   return new Response(data, {
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="${fileName}"`,
+      "Content-Disposition": safeContentDisposition(fileName),
       "Cache-Control": "no-store",
     },
   });

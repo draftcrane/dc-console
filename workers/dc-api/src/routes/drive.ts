@@ -12,7 +12,7 @@
  */
 
 import { Hono } from "hono";
-import { ulid } from "ulid";
+import { ulid } from "ulidx";
 import type { Env } from "../types/index.js";
 import { requireAuth, validationError, AppError } from "../middleware/index.js";
 import { standardRateLimit } from "../middleware/rate-limit.js";
