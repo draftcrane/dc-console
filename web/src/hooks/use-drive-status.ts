@@ -90,11 +90,35 @@ export function useDriveStatus(options: UseDriveStatusOptions = {}) {
     }
   }, [getToken]);
 
+  /** Disconnect Google Drive by calling DELETE /drive/connection and refreshing status. */
+  const disconnect = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/drive/connection`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to disconnect Google Drive");
+      }
+
+      // Refresh status to reflect disconnected state
+      await fetchStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to disconnect");
+      throw err;
+    }
+  }, [getToken, fetchStatus]);
+
   return {
     status,
     isLoading,
     error,
     connect,
+    disconnect,
     refetch: fetchStatus,
   };
 }
