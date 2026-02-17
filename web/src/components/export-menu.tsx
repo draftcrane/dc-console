@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useBackup } from "@/hooks/use-backup";
 
 type ExportFormat = "pdf" | "epub";
 
@@ -46,6 +47,7 @@ export function ExportMenu({
   const [state, setState] = useState<ExportState>({ phase: "idle" });
   const [driveState, setDriveState] = useState<DriveState>({ phase: "idle" });
   const menuRef = useRef<HTMLDivElement>(null);
+  const { downloadBackup, isDownloading } = useBackup();
 
   // Close menu on outside click
   useEffect(() => {
@@ -209,7 +211,7 @@ export function ExportMenu({
     setDriveState({ phase: "idle" });
   }, []);
 
-  const isExporting = state.phase === "exporting";
+  const isExporting = state.phase === "exporting" || isDownloading;
 
   return (
     <div className="relative" ref={menuRef}>
@@ -350,6 +352,35 @@ export function ExportMenu({
               />
             </svg>
             Export This Chapter as EPUB
+          </button>
+
+          <div className="border-t border-gray-100 my-1" role="separator" />
+
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              downloadBackup(projectId);
+            }}
+            disabled={isDownloading}
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
+                       min-h-[44px] flex items-center gap-2
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+            role="menuitem"
+          >
+            <svg
+              className="w-4 h-4 text-gray-500 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+              />
+            </svg>
+            {isDownloading ? "Saving..." : "Save to Files"}
           </button>
         </div>
       )}

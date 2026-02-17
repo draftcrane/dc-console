@@ -174,6 +174,9 @@ export function DriveBanner({ connected, email, dismissible = true, onConnect }:
               </button>
             )}
           </div>
+          <p className="mt-2 text-xs text-gray-400">
+            You can also save a backup from the Export menu &mdash; no account needed.
+          </p>
         </div>
       </div>
     </div>

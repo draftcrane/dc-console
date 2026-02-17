@@ -302,6 +302,9 @@ export default function SetupPage() {
             >
               Maybe later &mdash; start writing
             </button>
+            <p className="mt-4 text-xs text-gray-400">
+              You can always save a backup to your device from the editor&apos;s Export menu.
+            </p>
           </div>
         </div>
       </div>

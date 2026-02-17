@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { useSignOut } from "@/hooks/use-sign-out";
+import { useBackup } from "@/hooks/use-backup";
 
 interface Project {
   id: string;
@@ -38,6 +39,8 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { handleSignOut, isSigningOut } = useSignOut();
+  const { importBackup, isImporting, error: importError } = useBackup();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function fetchUserData() {
@@ -115,6 +118,34 @@ export default function DashboardPage() {
         </div>
 
         <p className="mt-4 text-sm text-gray-400">Your first chapter will be waiting for you.</p>
+
+        <div className="mt-3">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const projectId = await importBackup(file);
+              if (projectId) {
+                router.push(`/editor/${projectId}`);
+              }
+              // Reset input so the same file can be selected again
+              e.target.value = "";
+            }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+            className="text-sm text-gray-400 hover:text-gray-700 transition-colors
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isImporting ? "Importing..." : "Import from a backup file"}
+          </button>
+          {importError && <p className="text-sm text-red-600 mt-1">{importError}</p>}
+        </div>
 
         {/* Sign out option (US-003) - Clerk UserButton in header handles this too */}
         <div className="mt-8">

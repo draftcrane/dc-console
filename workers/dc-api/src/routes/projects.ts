@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import type { Env } from "../types/index.js";
 import { requireAuth } from "../middleware/auth.js";
-import { standardRateLimit } from "../middleware/rate-limit.js";
+import { standardRateLimit, exportRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ProjectService } from "../services/project.js";
+import { BackupService } from "../services/backup.js";
 
 /**
  * Projects API routes
@@ -48,6 +49,34 @@ projects.post("/", async (c) => {
   });
 
   return c.json(project, 201);
+});
+
+/**
+ * POST /projects/import
+ * Import a project from a ZIP backup file.
+ * Registered before /:projectId routes to avoid parameter matching.
+ */
+projects.post("/import", exportRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const formData = await c.req.formData();
+  const file = formData.get("file");
+
+  if (!file || !(file instanceof File)) {
+    validationError("A .zip file is required");
+  }
+
+  if (file.size > 50 * 1024 * 1024) {
+    validationError("Backup file must be under 50MB");
+  }
+
+  if (!file.name.endsWith(".zip")) {
+    validationError("File must be a .zip file");
+  }
+
+  const service = new BackupService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const result = await service.importBackup(userId, await file.arrayBuffer());
+
+  return c.json(result, 201);
 });
 
 /**
@@ -114,6 +143,24 @@ projects.delete("/:projectId", async (c) => {
   await service.deleteProject(userId, projectId);
 
   return c.json({ success: true });
+});
+
+/**
+ * GET /projects/:projectId/backup
+ * Download a ZIP backup of the project (manifest + chapter HTML)
+ */
+projects.get("/:projectId/backup", exportRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const service = new BackupService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const { data, fileName } = await service.generateBackup(userId, c.req.param("projectId"));
+
+  return new Response(data, {
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${fileName}"`,
+      "Cache-Control": "no-store",
+    },
+  });
 });
 
 export { projects };
