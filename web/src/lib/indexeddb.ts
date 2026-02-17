@@ -109,3 +109,42 @@ export async function deleteDraft(chapterId: string): Promise<void> {
     console.warn("IndexedDB deleteDraft failed:", err);
   }
 }
+
+/**
+ * Clear all cached data from IndexedDB.
+ * Per US-003: on sign-out, all cached data must be cleared from the browser
+ * including IndexedDB, to protect account security on shared devices.
+ *
+ * Deletes the entire draftcrane_autosave database and resets the cached
+ * connection so it will be re-created on next use.
+ */
+export async function clearAllDrafts(): Promise<void> {
+  // Close the existing connection if open, so the deleteDatabase call can proceed
+  if (dbPromise) {
+    try {
+      const db = await dbPromise;
+      db.close();
+    } catch {
+      // Connection may already be closed or failed to open
+    }
+    dbPromise = null;
+  }
+
+  return new Promise<void>((resolve) => {
+    if (typeof window === "undefined" || !window.indexedDB) {
+      resolve();
+      return;
+    }
+
+    const request = indexedDB.deleteDatabase(DB_NAME);
+    request.onsuccess = () => resolve();
+    request.onerror = () => {
+      console.warn("IndexedDB clearAllDrafts: deleteDatabase failed");
+      resolve(); // Non-fatal: proceed with sign-out even if DB cleanup fails
+    };
+    request.onblocked = () => {
+      console.warn("IndexedDB clearAllDrafts: deleteDatabase blocked");
+      resolve(); // Non-fatal: proceed with sign-out even if DB is blocked
+    };
+  });
+}

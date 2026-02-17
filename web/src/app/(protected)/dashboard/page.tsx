@@ -6,6 +6,7 @@ import { useAuth } from "@clerk/nextjs";
 import Link from "next/link";
 import { DriveBanner } from "@/components/drive-banner";
 import { useDriveStatus } from "@/hooks/use-drive-status";
+import { useSignOut } from "@/hooks/use-sign-out";
 
 interface Project {
   id: string;
@@ -46,6 +47,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { status: driveStatus, connect: connectDrive } = useDriveStatus();
+  const { handleSignOut, isSigningOut } = useSignOut();
 
   useEffect(() => {
     async function fetchUserData() {
@@ -137,6 +139,16 @@ export default function DashboardPage() {
             Connected to Google Drive{driveStatus.email ? ` as ${driveStatus.email}` : ""}
           </p>
         )}
+
+        {/* Sign out option (US-003) */}
+        <button
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+          className="mt-8 text-sm text-gray-500 hover:text-gray-700 transition-colors
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSigningOut ? "Signing out\u2026" : "Sign out"}
+        </button>
       </div>
     </div>
   );

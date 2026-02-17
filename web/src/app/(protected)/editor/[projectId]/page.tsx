@@ -16,6 +16,7 @@ import { ExportMenu } from "@/components/export-menu";
 import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 import { DeleteChapterDialog } from "@/components/delete-chapter-dialog";
 import { useAutoSave } from "@/hooks/use-auto-save";
+import { useSignOut } from "@/hooks/use-sign-out";
 
 interface Project {
   id: string;
@@ -118,6 +119,9 @@ export default function EditorPage() {
     getToken: getToken as () => Promise<string | null>,
     apiUrl: API_URL,
   });
+
+  // Sign-out with auto-save flush (US-003)
+  const { handleSignOut, isSigningOut } = useSignOut(saveNow);
 
   // Ref to hold saveNow for chapter switch
   const saveNowRef = useRef(saveNow);
@@ -851,6 +855,37 @@ export default function EditorPage() {
                       />
                     </svg>
                     Delete Project
+                  </button>
+
+                  {/* Separator */}
+                  <div className="my-1 border-t border-gray-200" role="separator" />
+
+                  {/* Sign out (US-003) */}
+                  <button
+                    onClick={() => {
+                      setSettingsMenuOpen(false);
+                      handleSignOut();
+                    }}
+                    disabled={isSigningOut}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+                               transition-colors min-h-[44px] flex items-center gap-2
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                    role="menuitem"
+                  >
+                    <svg
+                      className="w-4 h-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    {isSigningOut ? "Signing out\u2026" : "Sign Out"}
                   </button>
                 </div>
               )}
