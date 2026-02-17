@@ -27,11 +27,11 @@ After evaluating all cases, check the **Reveal Key** at the bottom to see which 
 
 ### Version A
 
-The steady march of time slowly wore away at the defenses I had built around my most sensitive emotions. I found myself more and more often drawn back to memories I had tried to lock away. Each one brought a rush of related sensations—the way autumn light filled a room, a familiar tune playing faintly in the distance, the lingering warmth of a hand that was no longer there.
+Time had gradually worn away the strong defenses I had built around my emotions. Increasingly, I found myself pulled into memories I had tried to forget. Each one brought with it sensory details—the autumn light through windows, a familiar melody I couldn't fully remember, the remembered warmth of a hand that was no longer there.
 
 ### Version B
 
-Time, over what felt like endless days turning into weeks and months, slowly wore down the strong walls I had built to protect my heart. I found myself more frequently drawn into memories I had tried to forget, each one carrying flashes of familiar sensations—the autumn light through the curtains, a tune whose words I couldn't quite remember, the warmth of a hand I could no longer hold.
+Time wore away at the defenses I had built around my emotions. More and more often, I found myself pulled into memories I had tried to forget. Each one brought a rush of sensations—the way autumn light looked through curtains, a familiar tune I couldn't quite recall, the faint warmth of a hand that was no longer there.
 
 ---
 
@@ -47,11 +47,11 @@ Time, over what felt like endless days turning into weeks and months, slowly wor
 
 ### Version A
 
-Implementing microservices requires a solid grasp of distributed systems, where each service runs independently and communicates via APIs. Breaking down monolithic apps into separate, deployable services adds complexity, especially in managing communication, distributed state, and data consistency. Containerization tools like Docker and orchestration platforms like Kubernetes provide the infrastructure to run and manage these services reliably at scale.
+A microservices architecture requires a good grasp of distributed systems, where each service runs independently and communicates via APIs. Breaking down monolithic apps into separate, deployable services adds complexity, especially in managing communication, state, and data consistency. Containerization tools like Docker and orchestration platforms like Kubernetes provide the infrastructure needed to run and manage these services reliably at scale.
 
 ### Version B
 
-Implementing a microservices architecture requires a solid grasp of distributed systems, where services function independently and communicate via clear APIs. Breaking down a monolithic app into individual services increases complexity, especially in coordinating communication, managing distributed states, and keeping data consistent. Tools like Docker and Kubernetes offer the necessary infrastructure to effectively deploy and manage these services on a large scale.
+Embracing a microservices architecture requires understanding distributed systems, where services act independently and communicate via APIs. Breaking down monolithic apps into separate, deployable services adds complexity, especially in coordinating service communication, managing distributed data, and ensuring consistency. Technologies like Docker and Kubernetes offer the infrastructure to deploy and manage these services effectively.
 
 ---
 
@@ -67,13 +67,11 @@ Implementing a microservices architecture requires a solid grasp of distributed 
 
 ### Version A
 
-My grandmother's kitchen was always cozy. It was warm in winter with the old cast-iron radiator and in summer with the sun heating the linoleum. But the true warmth came from her presence—humming hymns, rolling dough, and filling the air with the scent of baking. She made that kitchen feel like the safest place on earth, and for a long time, it was.
-
-I wish I had paid more attention to her recipes. They died with her, leaving me with only sense memories.
+My grandmother's kitchen was always cozy. It was warm in winter with the old cast-iron radiator and in summer with the afternoon sun heating the linoleum. The warmth came from her presence, her humming hymns while rolling dough, and the constant smell of baking or simmering food. She made that kitchen feel like the safest place in the world, and for a long time, it was.
 
 ### Version B
 
-My grandmother's kitchen was always warm, whether from the clanking radiator in winter or the summer sun heating the floor. But the true warmth came from her presence—humming hymns as she rolled dough, the smell of something always baking or cooling. Her kitchen felt like the safest place, and for a long time, it was.
+My grandmother's kitchen was always warm, from the radiator in winter to the sun-heated floor in summer. Her presence added to this warmth as she moved, hummed hymns, and filled the space with the smell of baking, making it feel like the safest place in the world.
 
 ---
 
@@ -89,11 +87,11 @@ My grandmother's kitchen was always warm, whether from the clanking radiator in 
 
 ### Version A
 
-Database indexing creates auxiliary data structures to help the database management system quickly locate and retrieve specific rows. The most common type is the B-tree index, which organizes key values in a balanced tree structure, enabling logarithmic-time lookups. This means the number of disk pages read grows with the logarithm of the total records, not linearly, significantly improving performance for large tables.
+Database indexing creates auxiliary data structures that help the database management system quickly locate and retrieve specific rows. The most common type is the B-tree index, which organizes key values in a balanced tree structure, enabling logarithmic-time lookups. This means the number of disk pages read grows with the logarithm of the total records, not the total number of records. This is crucial for performance, especially with large tables.
 
 ### Version B
 
-Database indexing involves creating auxiliary data structures to help the database system efficiently locate and retrieve specific rows from tables without requiring a full scan. The B-tree index, the most common type in modern relational databases, organizes key values in a balanced tree, allowing logarithmic-time lookups. This drastically improves performance, especially with tables containing millions or billions of rows.
+Database indexing involves creating auxiliary structures to help the management system efficiently locate and retrieve specific rows without scanning every row. The most common index type in modern systems is the B-tree index, which arranges key values in a balanced tree for logarithmic-time lookups. This significantly improves performance, especially in large tables with millions or billions of rows.
 
 ---
 
@@ -109,11 +107,11 @@ Database indexing involves creating auxiliary data structures to help the databa
 
 ### Version A
 
-The morning of the funeral was cold and gray, the sky a blanket of overcast clouds. I stood outside the church in a borrowed suit that felt both too tight and too loose, scratching at my skin. The crisp air nipped at my cheeks, and a light drizzle began to fall, marking the pavements with dark spots. I watched as people arrived, some familiar faces softened with shared memories, while others were strangers whose glances lingered on my mother and me, perhaps offering silent condolences through their eyes. My mother's hand gripped mine with a force that communicated both her fear and her need for connection, the coolness of her fingers contrasting sharply with the warmth of her palm. The scent of damp earth and fading autumn leaves filled my senses, mingling with the faint hint of incense wafting from the church door.
+The morning of the funeral was cold and gray, the air thick with a damp chill that seeped into my bones. I stood outside the church in my borrowed suit, the fabric stiff and itchy against my skin, watching people arrive. Some faces were familiar, others were strangers. My mother stood beside me, her grip on my hand tight enough to hurt, her breath coming in short, shaky gasps. The scent of damp earth and distant smoke from a neighbor's chimney filled the air, while the muted hum of whispered condolences and the rustle of coats created an eerie soundtrack to the somber procession.
 
 ### Version B
 
-The morning of the funeral was cold and gray, the sky a blanket of dull, unbroken clouds. A sharp wind cut through my borrowed suit, which hung loosely on my frame, as if it belonged to someone else. I stood outside the church, the stone facade cold and unyielding against my back, watching people arrive. Some faces were familiar, others were strangers who moved with a somber purpose. The air was thick with the scent of damp earth and the faint, underlying smell of lilies from the floral arrangements inside. My mother stood beside me, her hand gripping mine too tightly, her fingers cold and trembling. The crunch of gravel underfoot and the muffled whispers of condolences filled the air, each sound echoing the finality of the day.
+The morning of the funeral was cold and gray, the kind of chill that seeped through layers of clothing and settled into bones. I stood outside the church in my borrowed suit, its stiff fabric scratching at my neck. The air was thick, carrying the murmured conversations of the mourners as they arrived. Some faces I recognized, their expressions a mix of sorrow and silent acknowledgment, while others were strangers to me, their eyes cast downward in shared solemnity. Beside me, my mother's grip on my hand was almost painful, her fingers trembling slightly, yet she held on as if anchoring herself in an unfamiliar sea of grief.
 
 ---
 
@@ -129,11 +127,11 @@ The morning of the funeral was cold and gray, the sky a blanket of dull, unbroke
 
 ### Version A
 
-Rate limiting is a crucial mechanism to protect your API from abuse and ensure fair resource allocation across clients. Without it, a single misbehaving client can monopolize server resources, leading to degraded performance and a poor experience for all other users. For instance, consider an e-commerce platform where a rogue client makes thousands of requests per second to check product availability. This can overwhelm the server, causing legitimate users to experience slow response times or even timeouts. By implementing rate limiting, you can cap the number of requests a client can make within a specific time frame, thereby preventing such abuse and maintaining a consistent and reliable service for all users.
+Rate limiting protects your API from abuse and ensures fair resource allocation across clients. Without it, a single misbehaving client can monopolize server resources and degrade the experience for everyone else. For instance, imagine an e-commerce platform where one client makes thousands of requests per second to check product availability. This could overwhelm the server, leading to slow responses or even outages for other legitimate users trying to browse or purchase items.
 
 ### Version B
 
-Rate limiting acts as a safeguard against API abuse, ensuring that resources are fairly distributed among all clients. Imagine a scenario where your API serves an online shopping platform. Without rate limiting, a single client could repeatedly call the endpoint to check product availability, consuming excessive server resources and potentially slowing down response times for legitimate shoppers looking to make purchases. By implementing rate limiting, you can set a cap on the number of requests a client can make within a given timeframe. For instance, you might allow 100 requests per minute per user. If this threshold is exceeded, further requests from that client could either be delayed or denied temporarily, thereby maintaining optimal server performance for all users.
+Rate limiting protects your API from abuse and ensures fair resource allocation across clients. For example, consider an API serving data to multiple clients, each with numerous requests per second. Without rate limiting, a single client could flood the API with requests, consuming excessive server resources and disrupting service for others. By implementing rate limiting, such as allowing only 100 requests per client per minute, you can prevent one client from overwhelming the system, thereby maintaining stable performance and access for all users.
 
 ---
 
@@ -149,11 +147,11 @@ Rate limiting acts as a safeguard against API abuse, ensuring that resources are
 
 ### Version A
 
-In 2018, I chose Portland as the backdrop for my fresh start. I secured a position at a bustling downtown coffee shop, and found a small apartment that offered a glimpse of the river. The city was a blank slate, devoid of familiar faces or shared histories. My days were filled with the rhythm of work, the quiet of my apartment, and the pages of countless books. It was a solitary existence, but it was mine. After three months of this routine, I welcomed a feline companion named Pepper into my life. His presence began to soften the edges of my solitude, making the world feel a little less empty and a little more like home.
+In 2018, I found myself in Portland, a city chosen more for its distance from my past than any particular allure. I secured a position at a bustling coffee shop downtown, where the aroma of fresh brews filled the air and the chatter of strangers created a comforting hum. My apartment was modest, a cozy space with a view of the river that offered a sense of tranquility amidst the city's constant motion. I was a stranger in a new land, with no familiar faces to greet me at the end of the day. My routine became simple: work, return home, and lose myself in the pages of books. It was a solitary existence, but after three months, I welcomed a feline companion named Pepper into my life. His presence began to fill the void, making the apartment feel more like a home and my days less empty. Slowly, the sharp edges of my grief started to soften, and life began to feel almost normal again.
 
 ### Version B
 
-In 2018, I found myself starting anew in Portland. Securing a job at a downtown coffee shop, I settled into a modest apartment that offered a glimpse of the river. The city was unfamiliar, and my social circle was non-existent, leaving my days filled with work, quiet evenings, and the comfort of books. After a few months, I welcomed Pepper, a spirited cat, into my life. Her presence marked the beginning of feeling a bit more at ease in the world.
+In 2018, I made the decision to move to Portland. I found work at a cozy coffee shop nestled in the heart of downtown. My apartment was modest, yet the view of the river offered a comforting sense of tranquility. In this unfamiliar city, I faced the challenge of solitude, with my days revolving around work and evenings spent absorbed in the pages of various books. It was three months in when I welcomed Pepper, a cat whose presence gently nudged my life towards a semblance of normalcy once more.
 
 ---
 
@@ -169,14 +167,11 @@ In 2018, I found myself starting anew in Portland. Securing a job at a downtown 
 
 ### Version A
 
-The principle of least privilege is all about giving each process, user, or system component only the permissions it absolutely needs to do its job. Think of it like giving someone a key to your house—you wouldn't hand over the master key if all they need is access to the guest room, right? This approach is a cornerstone of good security design and helps minimize the damage if something goes wrong, like if credentials are compromised or there's a software vulnerability.
-
-[Text after selection]
-In practice, this means your database user for a read-only reporting service should not have write permissions. Your frontend deployment pipeline should not have access to production secrets.
+The principle of least privilege means that any process, user, or system part should only have the permissions and access needed to do its job. Sticking to this approach is key in information security and helps reduce risks from compromised credentials, software bugs, or access control mistakes.
 
 ### Version B
 
-The principle of least privilege means that any task, user, or system part should only have the permissions absolutely necessary to do its job. Sticking to this idea is key in information security because it helps limit damage if credentials are stolen, software bugs pop up, or access settings get messed up.
+The principle of least privilege is all about giving each process, user, or system component only the permissions it absolutely needs to do its job. Think of it as handing out keys—you wouldn't give someone the keys to the entire building if they only need to access one room. This approach is a cornerstone of good security design. It helps limit the damage if something goes wrong, like if credentials are stolen, there's a software bug, or access controls are set up incorrectly.
 
 ---
 
@@ -192,11 +187,11 @@ The principle of least privilege means that any task, user, or system part shoul
 
 ### Version A
 
-The way it happened took everyone by surprise. Even if someone had noticed the warning signs, they hadn’t mentioned them. In hindsight, that silence might have been more detrimental because with some forewarning, we could have taken steps or at least steeled ourselves for the upheaval ahead. Instead, we continued with our daily routines, unaware of the upcoming transformation. When the change finally occurred, it was even more shocking because of our blissful ignorance, amplifying the devastation we felt without the benefit of any advance warning.
+The way it happened caught everyone off guard. If anyone noticed the signs, they didn't speak up, which might have been worse. At least with some warning, we could have prepared or braced ourselves. Instead, we continued our routines, unaware of the impending change. When it finally hit, the shock was even greater because of our ignorance, making the event feel more devastating than it might have been with forewarning.
 
 ### Version B
 
-The way it happened caught us off guard. No one anticipated it, and even if they did, they kept quiet. In hindsight, a warning might have softened the blow, allowing us to brace ourselves. Instead, we carried on with our daily routines, oblivious to the impending change. When it struck, the shock was amplified by our ignorance, making the impact even more devastating than it might have been with some forewarning.
+The way it happened caught us all off guard. No one anticipated it, and even if they did, they kept quiet. In hindsight, a warning might have been better, as it would have given us a chance to prepare or at least brace ourselves. Instead, we carried on with our daily lives, oblivious to the impending change. When it finally struck, the shock was intensified by our complete lack of awareness, making the experience even more devastating than it might have been with some forewarning.
 
 ---
 
@@ -212,11 +207,11 @@ The way it happened caught us off guard. No one anticipated it, and even if they
 
 ### Version A
 
-When your application is deployed to a serverless platform, cold starts can affect the connection pooling behavior of your database driver. This can lead to scenarios where, under certain traffic patterns—especially bursty requests after inactivity—the number of database connections established may exceed expectations. Each connection uses memory and file descriptors on the database server. When multiple instances of your function spin up simultaneously to manage the burst, you may reach the database's connection limit, leading to connection refused errors that propagate through your application stack.
+Deploying your application to a serverless platform can create issues with database connection pooling, especially during cold starts. In scenarios involving bursts of requests after inactivity, the number of database connections can exceed expectations. This happens because each connection consumes memory and file descriptors on the database server. Additionally, the serverless platform might spin up multiple instances of your function to handle the surge in traffic, causing the database's maximum connection limit to be reached and leading to connection refused errors cascading through your application stack.
 
 ### Version B
 
-When deploying your application to a serverless platform, cold starts can interact with your database driver's connection pooling in ways that lead to unexpected behavior. Specifically, bursty traffic patterns following periods of inactivity can cause the number of established database connections to spike. Each connection consumes memory and file descriptors on the database server. Additionally, the serverless platform may spin up multiple instances of your function concurrently to handle the burst, further exacerbating the issue. This can result in exceeding your database's maximum connection limit, leading to connection refused errors that propagate through your application stack.
+When deploying your application to a serverless platform, cold starts can interfere with your database driver's connection pooling. This interference can lead to an unexpected surge in database connections, especially during bursty traffic following idle periods. Each of these connections consumes memory and file descriptors on the database server. Additionally, the serverless platform may spin up multiple instances of your function simultaneously to handle the burst, further exacerbating the issue. As a result, you might hit your database's maximum connection limit, leading to connection refused errors that propagate through your application stack.
 
 ---
 
@@ -224,32 +219,32 @@ When deploying your application to a serverless platform, cold starts can intera
 
 | Case | Edge (ms) | Frontier (ms) |
 |------|-----------|---------------|
-| simplify-memoir | 2360 | 3520 |
-| simplify-technical | 2045 | 2417 |
-| concision-memoir | 3087 | 2569 |
-| concision-technical | 1952 | 1121 |
-| expand-memoir | 4131 | 5967 |
-| expand-technical | 3444 | 2273 |
-| tone-shift-memoir | 3609 | 2954 |
-| tone-shift-technical | 3063 | 1119 |
-| clarity-memoir | 2170 | 3562 |
-| clarity-technical | 2939 | 1702 |
-| **Mean** | **2880** | **2720** |
-| **P95** | **4131** | **5967** |
+| simplify-memoir | 1830 | 2111 |
+| simplify-technical | 2151 | 2272 |
+| concision-memoir | 2263 | 2486 |
+| concision-technical | 2156 | 1472 |
+| expand-memoir | 3031 | 2883 |
+| expand-technical | 2141 | 2370 |
+| tone-shift-memoir | 4691 | 2633 |
+| tone-shift-technical | 2585 | 1310 |
+| clarity-memoir | 2742 | 1777 |
+| clarity-technical | 2673 | 1460 |
+| **Mean** | **2626** | **2077** |
+| **P95** | **4691** | **2883** |
 
 <details>
 <summary>Reveal Key (click after evaluating)</summary>
 
 | Case | Version A | Version B |
 |------|-----------|-----------|
-| simplify-memoir | Edge | Frontier |
+| simplify-memoir | Frontier | Edge |
 | simplify-technical | Edge | Frontier |
 | concision-memoir | Edge | Frontier |
 | concision-technical | Edge | Frontier |
-| expand-memoir | Frontier | Edge |
+| expand-memoir | Edge | Frontier |
 | expand-technical | Edge | Frontier |
 | tone-shift-memoir | Edge | Frontier |
-| tone-shift-technical | Edge | Frontier |
+| tone-shift-technical | Frontier | Edge |
 | clarity-memoir | Frontier | Edge |
 | clarity-technical | Frontier | Edge |
 

@@ -53,6 +53,11 @@ export function buildSystemPrompt(input: RewriteInput): string {
     "Maintain the original meaning and tone unless the instruction specifically asks to change it.",
     "Return ONLY the rewritten text with no preamble, explanation, or quotes.",
     "Match the original formatting style (paragraphs, line breaks).",
+    "",
+    "STRICT RULES:",
+    "- Do NOT add new sentences, ideas, or content beyond what is in the selected text.",
+    "- Surrounding context is for reference ONLY. NEVER include it in your response.",
+    "- NEVER include labels, tags, or prompt formatting in your response.",
   ];
 
   if (input.projectDescription?.trim()) {
@@ -77,16 +82,20 @@ export function buildUserMessage(input: RewriteInput): string {
   const contextAfter = input.contextAfter?.slice(0, MAX_CONTEXT_CHARS) || "";
 
   if (contextBefore) {
-    parts.push(`[Text before selection]\n${contextBefore}\n`);
+    parts.push(`<context-before>\n${contextBefore}\n</context-before>\n`);
   }
 
-  parts.push(`[Selected text to rewrite]\n${input.selectedText}\n`);
+  parts.push(`<selected-text>\n${input.selectedText}\n</selected-text>\n`);
 
   if (contextAfter) {
-    parts.push(`[Text after selection]\n${contextAfter}\n`);
+    parts.push(`<context-after>\n${contextAfter}\n</context-after>\n`);
   }
 
-  parts.push(`[Instruction]\n${input.instruction}`);
+  parts.push(`<instruction>\n${input.instruction}\n</instruction>`);
+
+  parts.push(
+    "\nRewrite ONLY the text inside <selected-text>. Output the rewritten text and nothing else.",
+  );
 
   return parts.join("\n");
 }
