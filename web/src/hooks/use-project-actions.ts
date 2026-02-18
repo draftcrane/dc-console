@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -15,13 +16,34 @@ export interface ProjectSummary {
 
 interface UseProjectActionsOptions {
   getToken: () => Promise<string | null>;
+  /** Required for delete/Drive features; omit when used on dashboard */
+  projectId?: string;
+  /** Drive file-listing hook's fetchFiles fn */
+  fetchDriveFiles?: (folderId: string) => void;
+  /** Drive file-listing hook's reset fn */
+  resetDriveFiles?: () => void;
+  /** Drive status hook's connect fn */
+  connectDrive?: () => void;
+  /** Current project's driveFolderId (for opening Drive files sheet) */
+  driveFolderId?: string | null;
 }
 
 /**
- * Encapsulates project-level actions: list, rename, duplicate.
- * Used by both the editor (ProjectSwitcher, settings menu) and dashboard.
+ * Encapsulates project-level actions: list, rename, duplicate, delete,
+ * Drive files sheet, and disconnect Drive dialog state.
+ *
+ * Used by the editor page to centralise state that was previously inline.
  */
-export function useProjectActions({ getToken }: UseProjectActionsOptions) {
+export function useProjectActions({
+  getToken,
+  projectId,
+  fetchDriveFiles,
+  resetDriveFiles,
+  connectDrive,
+  driveFolderId,
+}: UseProjectActionsOptions) {
+  const router = useRouter();
+
   // Project list
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
@@ -33,6 +55,15 @@ export function useProjectActions({ getToken }: UseProjectActionsOptions) {
   // Duplicate
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [isDuplicating, setIsDuplicating] = useState(false);
+
+  // Delete (US-023)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Drive files sheet (US-007)
+  const [driveFilesOpen, setDriveFilesOpen] = useState(false);
+
+  // Disconnect Drive dialog (US-008)
+  const [disconnectDriveDialogOpen, setDisconnectDriveDialogOpen] = useState(false);
 
   const fetchProjects = useCallback(async () => {
     setIsLoadingProjects(true);
@@ -58,6 +89,7 @@ export function useProjectActions({ getToken }: UseProjectActionsOptions) {
     fetchProjects();
   }, [fetchProjects]);
 
+  // --- Rename ---
   const openRenameDialog = useCallback(() => setRenameDialogOpen(true), []);
   const closeRenameDialog = useCallback(() => setRenameDialogOpen(false), []);
 
@@ -95,6 +127,7 @@ export function useProjectActions({ getToken }: UseProjectActionsOptions) {
     [getToken],
   );
 
+  // --- Duplicate ---
   const openDuplicateDialog = useCallback(() => setDuplicateDialogOpen(true), []);
   const closeDuplicateDialog = useCallback(() => setDuplicateDialogOpen(false), []);
 
@@ -134,6 +167,77 @@ export function useProjectActions({ getToken }: UseProjectActionsOptions) {
     [getToken, fetchProjects],
   );
 
+  // --- Delete (US-023) ---
+  const openDeleteDialog = useCallback(() => setDeleteDialogOpen(true), []);
+  const closeDeleteDialog = useCallback(() => setDeleteDialogOpen(false), []);
+
+  const handleDeleteProject = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/projects/${projectId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete project");
+      }
+
+      // Check if user has other projects to determine redirect target
+      const meResponse = await fetch(`${API_URL}/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (meResponse.ok) {
+        const meData = (await meResponse.json()) as { projects: { id: string }[] };
+        if (meData.projects.length > 0) {
+          router.push("/dashboard");
+        } else {
+          router.push("/setup");
+        }
+      } else {
+        // Fallback: redirect to dashboard
+        router.push("/dashboard");
+      }
+    } catch (err) {
+      console.error("Failed to delete project:", err);
+      setDeleteDialogOpen(false);
+    }
+  }, [getToken, projectId, router]);
+
+  // --- Drive files sheet (US-007) ---
+  const openDriveFiles = useCallback(() => {
+    if (!driveFolderId || !fetchDriveFiles) return;
+    setDriveFilesOpen(true);
+    fetchDriveFiles(driveFolderId);
+  }, [driveFolderId, fetchDriveFiles]);
+
+  const closeDriveFiles = useCallback(() => {
+    setDriveFilesOpen(false);
+    resetDriveFiles?.();
+  }, [resetDriveFiles]);
+
+  const refreshDriveFiles = useCallback(() => {
+    if (!driveFolderId || !fetchDriveFiles) return;
+    fetchDriveFiles(driveFolderId);
+  }, [driveFolderId, fetchDriveFiles]);
+
+  /**
+   * Connect Drive with project context (US-006).
+   * Stores the project ID in sessionStorage so the Drive success page
+   * can auto-create the book folder after OAuth completes.
+   */
+  const connectDriveWithProject = useCallback(() => {
+    if (!projectId) return;
+    sessionStorage.setItem("dc_pending_drive_project", projectId);
+    connectDrive?.();
+  }, [projectId, connectDrive]);
+
+  // --- Disconnect Drive dialog (US-008) ---
+  const openDisconnectDriveDialog = useCallback(() => setDisconnectDriveDialogOpen(true), []);
+  const closeDisconnectDriveDialog = useCallback(() => setDisconnectDriveDialogOpen(false), []);
+
   return {
     projects,
     isLoadingProjects,
@@ -150,5 +254,20 @@ export function useProjectActions({ getToken }: UseProjectActionsOptions) {
     closeDuplicateDialog,
     duplicateProject,
     isDuplicating,
+
+    deleteDialogOpen,
+    openDeleteDialog,
+    closeDeleteDialog,
+    handleDeleteProject,
+
+    driveFilesOpen,
+    openDriveFiles,
+    closeDriveFiles,
+    refreshDriveFiles,
+    connectDriveWithProject,
+
+    disconnectDriveDialogOpen,
+    openDisconnectDriveDialog,
+    closeDisconnectDriveDialog,
   };
 }

@@ -17,6 +17,8 @@ import { ExportMenu } from "@/components/export-menu";
 import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 import { DeleteChapterDialog } from "@/components/delete-chapter-dialog";
 import { DisconnectDriveDialog } from "@/components/disconnect-drive-dialog";
+import { RenameProjectDialog } from "@/components/rename-project-dialog";
+import { DuplicateProjectDialog } from "@/components/duplicate-project-dialog";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { OnboardingTooltips } from "@/components/onboarding-tooltips";
@@ -102,39 +104,6 @@ export default function EditorPage() {
     error: driveFilesError,
     reset: resetDriveFiles,
   } = useDriveFiles();
-  const [driveFilesOpen, setDriveFilesOpen] = useState(false);
-
-  /**
-   * Connect Drive with project context (US-006).
-   * Stores the project ID in sessionStorage so the Drive success page
-   * can auto-create the book folder after OAuth completes.
-   */
-  const connectDriveWithProject = useCallback(() => {
-    sessionStorage.setItem("dc_pending_drive_project", projectId);
-    connectDrive();
-  }, [projectId, connectDrive]);
-
-  /**
-   * Open the Drive files sheet (US-007).
-   * Fetches the file list from the project's Book Folder.
-   */
-  const openDriveFiles = useCallback(() => {
-    const folderId = projectData?.driveFolderId;
-    if (!folderId) return;
-    setDriveFilesOpen(true);
-    fetchFiles(folderId);
-  }, [projectData, fetchFiles]);
-
-  const closeDriveFiles = useCallback(() => {
-    setDriveFilesOpen(false);
-    resetDriveFiles();
-  }, [resetDriveFiles]);
-
-  const refreshDriveFiles = useCallback(() => {
-    const folderId = projectData?.driveFolderId;
-    if (!folderId) return;
-    fetchFiles(folderId);
-  }, [projectData, fetchFiles]);
 
   // Get active chapter for version
   const activeChapter = projectData?.chapters.find((ch) => ch.id === activeChapterId);
@@ -226,53 +195,38 @@ export default function EditorPage() {
   // Word count state (US-024)
   const [selectionWordCount, setSelectionWordCount] = useState(0);
 
-  // Delete dialog state (US-023)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  // Disconnect Drive dialog state (US-008)
-  const [disconnectDriveDialogOpen, setDisconnectDriveDialogOpen] = useState(false);
-
-  // Project actions: list (for switcher), rename, duplicate
+  // Project actions: list, rename, duplicate, delete, Drive files, disconnect
   const {
     projects: allProjects,
     renameDialogOpen,
     openRenameDialog,
     closeRenameDialog,
     renameProject,
-    isRenaming,
     duplicateDialogOpen,
     openDuplicateDialog,
     closeDuplicateDialog,
     duplicateProject,
     isDuplicating,
+    deleteDialogOpen,
+    openDeleteDialog,
+    closeDeleteDialog,
+    handleDeleteProject,
+    driveFilesOpen,
+    openDriveFiles,
+    closeDriveFiles,
+    refreshDriveFiles,
+    connectDriveWithProject,
+    disconnectDriveDialogOpen,
+    openDisconnectDriveDialog,
+    closeDisconnectDriveDialog,
   } = useProjectActions({
     getToken: getToken as () => Promise<string | null>,
+    projectId,
+    fetchDriveFiles: fetchFiles,
+    resetDriveFiles,
+    connectDrive,
+    driveFolderId: projectData?.driveFolderId,
   });
-
-  // Rename dialog local state
-  const [renameValue, setRenameValue] = useState("");
-
-  const handleOpenRenameDialog = useCallback(() => {
-    setRenameValue(projectData?.title || "");
-    openRenameDialog();
-  }, [projectData, openRenameDialog]);
-
-  const handleRenameSubmit = useCallback(async () => {
-    if (!renameValue.trim()) return;
-    const success = await renameProject(projectId, renameValue.trim());
-    if (success) {
-      setProjectData((prev) => (prev ? { ...prev, title: renameValue.trim() } : prev));
-      closeRenameDialog();
-    }
-  }, [projectId, renameValue, renameProject, closeRenameDialog, setProjectData]);
-
-  const handleDuplicateConfirm = useCallback(async () => {
-    const newProjectId = await duplicateProject(projectId);
-    closeDuplicateDialog();
-    if (newProjectId) {
-      router.push(`/editor/${newProjectId}`);
-    }
-  }, [projectId, duplicateProject, closeDuplicateDialog, router]);
 
   // Fetch project data
   useEffect(() => {
@@ -344,41 +298,6 @@ export default function EditorPage() {
       cancelled = true;
     };
   }, [activeChapterId, getToken, setContent]);
-
-  // Handle project deletion (US-023)
-  const handleDeleteProject = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/projects/${projectId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete project");
-      }
-
-      // Check if user has other projects to determine redirect target
-      const meResponse = await fetch(`${API_URL}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (meResponse.ok) {
-        const meData = (await meResponse.json()) as { projects: { id: string }[] };
-        if (meData.projects.length > 0) {
-          router.push("/dashboard");
-        } else {
-          router.push("/setup");
-        }
-      } else {
-        // Fallback: redirect to dashboard
-        router.push("/dashboard");
-      }
-    } catch (err) {
-      console.error("Failed to delete project:", err);
-      setDeleteDialogOpen(false);
-    }
-  }, [getToken, projectId, router]);
 
   const handleSelectionWordCountChange = useCallback((count: number) => {
     setSelectionWordCount(count);
@@ -570,11 +489,11 @@ export default function EditorPage() {
               driveConnected={driveStatus?.connected ?? false}
               hasDriveFolder={!!projectData?.driveFolderId}
               onViewDriveFiles={openDriveFiles}
-              onDisconnectDrive={() => setDisconnectDriveDialogOpen(true)}
-              onRenameBook={handleOpenRenameDialog}
+              onDisconnectDrive={openDisconnectDriveDialog}
+              onRenameBook={openRenameDialog}
               onDuplicateBook={openDuplicateDialog}
               isDuplicating={isDuplicating}
-              onDeleteProject={() => setDeleteDialogOpen(true)}
+              onDeleteProject={openDeleteDialog}
               onSignOut={handleSignOut}
               isSigningOut={isSigningOut}
             />
@@ -661,97 +580,36 @@ export default function EditorPage() {
         projectTitle={projectData?.title || ""}
         isOpen={deleteDialogOpen}
         onConfirm={handleDeleteProject}
-        onCancel={() => setDeleteDialogOpen(false)}
+        onCancel={closeDeleteDialog}
       />
 
       {/* Rename book dialog */}
-      {renameDialogOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="rename-dialog-title"
-        >
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-            <h2 id="rename-dialog-title" className="text-lg font-semibold text-gray-900 mb-4">
-              Rename Book
-            </h2>
-            <input
-              type="text"
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleRenameSubmit();
-                if (e.key === "Escape") closeRenameDialog();
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              maxLength={500}
-              autoFocus
-            />
-            <div className="flex gap-3 justify-end mt-4">
-              <button
-                onClick={closeRenameDialog}
-                disabled={isRenaming}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg
-                           hover:bg-gray-200 transition-colors min-h-[44px]
-                           disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRenameSubmit}
-                disabled={isRenaming || !renameValue.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg
-                           hover:bg-gray-800 transition-colors min-h-[44px]
-                           disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isRenaming ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RenameProjectDialog
+        isOpen={renameDialogOpen}
+        projectTitle={projectData?.title || ""}
+        onConfirm={async (newTitle) => {
+          const success = await renameProject(projectId, newTitle);
+          if (success) {
+            setProjectData((prev) => (prev ? { ...prev, title: newTitle } : prev));
+            closeRenameDialog();
+          }
+        }}
+        onCancel={closeRenameDialog}
+      />
 
       {/* Duplicate book confirmation dialog */}
-      {duplicateDialogOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="duplicate-dialog-title"
-        >
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-            <h2 id="duplicate-dialog-title" className="text-lg font-semibold text-gray-900 mb-2">
-              Duplicate Book
-            </h2>
-            <p className="text-sm text-gray-600 mb-6">
-              Duplicate &ldquo;{projectData?.title}&rdquo;? This creates a full copy of all
-              chapters.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={closeDuplicateDialog}
-                disabled={isDuplicating}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg
-                           hover:bg-gray-200 transition-colors min-h-[44px]
-                           disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDuplicateConfirm}
-                disabled={isDuplicating}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg
-                           hover:bg-gray-800 transition-colors min-h-[44px]
-                           disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isDuplicating ? "Duplicating..." : "Duplicate"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DuplicateProjectDialog
+        isOpen={duplicateDialogOpen}
+        projectTitle={projectData?.title || ""}
+        onConfirm={async () => {
+          const newProjectId = await duplicateProject(projectId);
+          closeDuplicateDialog();
+          if (newProjectId) {
+            router.push(`/editor/${newProjectId}`);
+          }
+        }}
+        onCancel={closeDuplicateDialog}
+      />
 
       {/* Delete chapter confirmation dialog (US-014) */}
       <DeleteChapterDialog
@@ -772,9 +630,9 @@ export default function EditorPage() {
         isOpen={disconnectDriveDialogOpen}
         onConfirm={async () => {
           await disconnectDrive();
-          setDisconnectDriveDialogOpen(false);
+          closeDisconnectDriveDialog();
         }}
-        onCancel={() => setDisconnectDriveDialogOpen(false)}
+        onCancel={closeDisconnectDriveDialog}
       />
 
       <AIRewriteSheet
