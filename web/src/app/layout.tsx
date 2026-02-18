@@ -22,6 +22,16 @@ const lora = Lora({
 export const metadata: Metadata = {
   title: "DraftCrane",
   description: "Your book. Your files. Your cloud. With an AI writing partner.",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "DraftCrane",
+  },
 };
 
 export const viewport: Viewport = {
@@ -31,6 +41,7 @@ export const viewport: Viewport = {
   // Per ADR-001: interactive-widget=resizes-content keeps cursor visible
   // above the virtual keyboard on iPad Safari
   interactiveWidget: "resizes-content",
+  themeColor: "#1a1a2e",
 };
 
 export default function RootLayout({
