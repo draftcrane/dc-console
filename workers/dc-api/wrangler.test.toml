@@ -1,0 +1,34 @@
+# Test-only wrangler config — mirrors wrangler.toml but omits [ai] to avoid
+# requiring a remote proxy session (wrangler login) in CI.
+# If you add new bindings to wrangler.toml, add them here too.
+
+name = "dc-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-29"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "dc-main"
+database_id = "da753071-4176-4efa-9b7f-4f744b8e1aa2"
+migrations_dir = "migrations"
+
+# R2 Bucket
+[[r2_buckets]]
+binding = "EXPORTS_BUCKET"
+bucket_name = "dc-exports"
+
+# KV Namespace
+[[kv_namespaces]]
+binding = "CACHE"
+id = "15db632cefe04003a94f1e6e7460c858"
+
+[vars]
+FRONTEND_URL = "https://draftcrane.app"
+AI_MODEL = "gpt-4o"
+AI_DEFAULT_TIER = "frontier"
+API_BASE_URL = "https://api.draftcrane.app"
+CLERK_ISSUER_URL = "https://viable-wombat-59.clerk.accounts.dev"
+GOOGLE_REDIRECT_URI = "https://api.draftcrane.app/drive/callback"
+CF_ACCOUNT_ID = "ab6cc9362f7e51ba9a610aec1fc3a833"

@@ -11,12 +11,10 @@ export default defineWorkersConfig(async () => {
       poolOptions: {
         workers: {
           singleWorker: true,
-          wrangler: { configPath: "./wrangler.toml" },
+          // Use test config that omits [ai] to avoid remote proxy session in CI
+          wrangler: { configPath: "./wrangler.test.toml" },
           miniflare: {
             bindings: { TEST_MIGRATIONS: migrations },
-            // Disable AI binding's remote requirement for CI
-            // (AI functionality is not under test — it uses external APIs)
-            ai: { binding: "AI", models: [] },
           },
         },
       },
