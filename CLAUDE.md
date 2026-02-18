@@ -23,6 +23,15 @@ This creates a session in the Context Worker, downloads venture documentation, a
 
 **Read `docs/process/dc-project-instructions.md` before making any infrastructure or stack decisions.** It defines the tech stack, coding standards, quality requirements, and Phase 0 scope. Deviations require an ADR.
 
+## Enterprise Rules
+
+- **All changes through PRs.** Never push directly to main. Branch, PR, CI, QA, merge.
+- **Never echo secret values.** Transcripts persist in ~/.claude/ and are sent to API providers. Pipe from Infisical, never inline.
+- **Verify secret VALUES, not just key existence.** Agents have stored descriptions as values before.
+- **Never auto-save to VCMS** without explicit Captain approval.
+- **Scope discipline.** Discover additional work mid-task - finish current scope, file a new issue.
+- **Escalation triggers.** Credential not found in 2 min, same error 3 times, blocked >30 min - stop and escalate.
+
 ## Secrets Management
 
 Secrets are managed through **Infisical** at path `/dc`. Never hardcode secrets.
@@ -38,7 +47,7 @@ infisical run --path /dc -- claude
 infisical secrets set NEW_KEY="value" --path /dc --env dev
 ```
 
-Worker secrets are set via `wrangler secret put <NAME>` after adding to Infisical.
+Worker secrets are provisioned by piping from Infisical - never echo values inline. See Enterprise Rules above.
 
 ## Build Commands
 
@@ -138,13 +147,21 @@ Migrations are forward-only and numbered sequentially in `workers/dc-api/migrati
 
 ## Slash Commands
 
-| Command     | When to Use         | What It Does                      |
-| ----------- | ------------------- | --------------------------------- |
-| `/sod`      | Start of session    | Load context, show priorities     |
-| `/eod`      | End of session      | Create handoff for next session   |
-| `/status`   | During session      | View full work queue              |
-| `/update`   | During session      | Sync progress mid-session         |
-| `/critique` | Before implementing | Parallel critics review your plan |
+Session start uses MCP tools (see Session Start above). Additional workflow commands are available in `.claude/commands/`. Key commands include `/eod` for end-of-day handoffs, `/status` for work queue, and `/critique` for plan review.
+
+## Instruction Modules
+
+Detailed domain instructions stored as on-demand documents.
+Fetch the relevant module when working in that domain.
+
+| Module              | Key Rule (always applies)                                                | Fetch for details                             |
+| ------------------- | ------------------------------------------------------------------------ | --------------------------------------------- |
+| `secrets.md`        | Verify secret VALUES, not just key existence                             | Infisical, vault, API keys, GitHub App        |
+| `content-policy.md` | Never auto-save to VCMS; agents ARE the voice                            | VCMS tags, storage rules, editorial, style    |
+| `team-workflow.md`  | All changes through PRs; never push to main                              | Full workflow, QA grades, escalation triggers |
+| `fleet-ops.md`      | Bootstrap phases IN ORDER: Tailscale > CLI > bootstrap > optimize > mesh | SSH, machines, Tailscale, macOS               |
+
+Fetch with: `crane_doc('global', '<module>')`
 
 ## Design Principles
 
