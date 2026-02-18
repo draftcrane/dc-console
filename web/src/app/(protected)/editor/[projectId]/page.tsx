@@ -528,23 +528,9 @@ export default function EditorPage() {
 
         <div className="flex-1 overflow-auto">
           <div className="max-w-[700px] mx-auto px-6 py-8">
-            {/* Drive connection banner - contextual, not blocking (US-005) */}
-            {driveStatus && !driveStatus.connected && (
-              <div className="mb-6">
-                <DriveBanner
-                  connected={false}
-                  dismissible={true}
-                  onConnect={connectDriveWithProject}
-                />
-              </div>
-            )}
 
-            {/* Drive connected confirmation banner */}
-            {driveStatus?.connected && (
-              <div className="mb-6">
-                <DriveBanner connected={true} email={driveStatus.email} dismissible={true} />
-              </div>
-            )}
+
+
 
             {/* Chapter title - editable at top of editor (US-011) */}
             {editingTitle ? (
