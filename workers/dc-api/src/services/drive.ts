@@ -492,6 +492,7 @@ export class DriveService {
    * @param fileId - The Drive file ID to trash
    */
   async trashFile(accessToken: string, fileId: string): Promise<void> {
+    validateDriveId(fileId);
     const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}`, {
       method: "PATCH",
       headers: {
@@ -517,6 +518,7 @@ export class DriveService {
    * @param newName - The new file name
    */
   async renameFile(accessToken: string, fileId: string, newName: string): Promise<void> {
+    validateDriveId(fileId);
     const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}`, {
       method: "PATCH",
       headers: {
@@ -548,6 +550,7 @@ export class DriveService {
     mimeType: string,
     data: string | ArrayBuffer,
   ): Promise<void> {
+    validateDriveId(fileId);
     const response = await fetch(
       `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
       {

@@ -41,6 +41,7 @@ users.get("/me", async (c) => {
        p.id,
        p.title,
        p.status,
+       p.updated_at,
        COALESCE(SUM(ch.word_count), 0) as total_words,
        COUNT(ch.id) as chapter_count
      FROM projects p
@@ -80,6 +81,7 @@ users.get("/me", async (c) => {
       status: p.status,
       wordCount: p.total_words || 0,
       chapterCount: p.chapter_count || 0,
+      updatedAt: p.updated_at,
     })),
     totalWordCount,
   });
@@ -104,6 +106,7 @@ interface ProjectSummaryRow {
   id: string;
   title: string;
   status: string;
+  updated_at: string;
   total_words: number;
   chapter_count: number;
 }

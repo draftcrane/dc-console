@@ -47,7 +47,7 @@ ai.post("/rewrite", async (c) => {
   const provider =
     tier === "edge"
       ? new WorkersAIProvider(c.env.AI)
-      : new OpenAIProvider(c.env.OPENAI_API_KEY, c.env.AI_MODEL);
+      : new OpenAIProvider(c.env.AI_API_KEY, c.env.AI_MODEL);
 
   const service = new AIRewriteService(c.env.DB, provider);
 

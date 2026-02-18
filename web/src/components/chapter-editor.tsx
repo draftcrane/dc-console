@@ -253,7 +253,6 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
                      [&_.is-editor-empty]:before:pointer-events-none
                      [&_.is-editor-empty]:before:h-0"
         />
-
       </div>
     );
   },

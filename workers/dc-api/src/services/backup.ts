@@ -3,6 +3,7 @@ import { ulid } from "ulidx";
 import { notFound, validationError } from "../middleware/error-handler.js";
 import { countWords } from "../utils/word-count.js";
 import { sanitizeFileName, formatDate } from "../utils/file-names.js";
+import { fetchChapterContentsFromR2 } from "../utils/r2-content.js";
 
 /**
  * BackupService - Generates downloadable ZIP backups and restores from them.
@@ -103,16 +104,10 @@ export class BackupService {
     const manifestChapters: BackupManifest["chapters"] = [];
 
     // Fetch chapter content from R2 sequentially (memory-safe)
+    const contentMap = await fetchChapterContentsFromR2(this.bucket, chapterRows);
+
     for (const row of chapterRows) {
-      let html = "";
-
-      if (row.r2_key) {
-        const object = await this.bucket.get(row.r2_key);
-        if (object) {
-          html = await object.text();
-        }
-      }
-
+      const html = contentMap.get(row) ?? "";
       const fileName = buildChapterFileName(row.sort_order, row.title);
       chaptersFolder.file(fileName, html);
 

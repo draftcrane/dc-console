@@ -2,6 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useState } from "react";
+import { useDriveBannerDismiss } from "@/hooks/use-drive-banner-dismiss";
 
 interface DriveBannerProps {
   /** Whether Drive is connected */
@@ -30,8 +31,13 @@ export function DriveBanner({ connected, email, dismissible = true, onConnect }:
   const { getToken } = useAuth();
   const [isDismissed, setIsDismissed] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const {
+    shouldShow: shouldShowPersistent,
+    dismissCount,
+    dismiss: persistDismiss,
+  } = useDriveBannerDismiss();
 
-  if (isDismissed && dismissible) {
+  if (dismissible && (isDismissed || !shouldShowPersistent)) {
     return null;
   }
 
@@ -167,10 +173,13 @@ export function DriveBanner({ connected, email, dismissible = true, onConnect }:
 
             {dismissible && (
               <button
-                onClick={() => setIsDismissed(true)}
+                onClick={() => {
+                  persistDismiss();
+                  setIsDismissed(true);
+                }}
                 className="text-sm text-muted-foreground hover:text-foreground underline"
               >
-                Maybe later
+                {dismissCount >= 1 ? "Don\u2019t show again" : "Maybe later"}
               </button>
             )}
           </div>

@@ -1,6 +1,7 @@
 import { ulid } from "ulidx";
 import { notFound, validationError } from "../middleware/error-handler.js";
 import { buildFileName, formatDate } from "../utils/file-names.js";
+import { fetchChapterContentsFromR2 } from "../utils/r2-content.js";
 import type { DriveService } from "./drive.js";
 import {
   assembleBookHtml,
@@ -585,29 +586,16 @@ export class ExportService {
    * Per ADR-004: sequential fetching is memory-safe for book-length documents.
    */
   private async fetchChapterContents(chapterRows: ChapterRow[]): Promise<ChapterContent[]> {
-    const chapters: ChapterContent[] = [];
+    const contentMap = await fetchChapterContentsFromR2(this.bucket, chapterRows);
 
-    for (const row of chapterRows) {
-      let html = "";
-
-      if (row.r2_key) {
-        const object = await this.bucket.get(row.r2_key);
-        if (object) {
-          html = await object.text();
-        }
-      }
-
-      // Include chapters even with empty content (they'll just have the heading)
-      chapters.push({
-        id: row.id,
-        title: row.title,
-        sortOrder: row.sort_order,
-        html,
-        wordCount: row.word_count,
-      });
-    }
-
-    return chapters;
+    // Include chapters even with empty content (they'll just have the heading)
+    return chapterRows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      sortOrder: row.sort_order,
+      html: contentMap.get(row) ?? "",
+      wordCount: row.word_count,
+    }));
   }
 
   /**

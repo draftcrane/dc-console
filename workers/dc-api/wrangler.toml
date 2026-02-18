@@ -13,6 +13,7 @@ custom_domain = true
 binding = "DB"
 database_name = "dc-main"
 database_id = "da753071-4176-4efa-9b7f-4f744b8e1aa2"
+migrations_dir = "migrations"
 
 # R2 Bucket
 [[r2_buckets]]
@@ -30,7 +31,7 @@ id = "15db632cefe04003a94f1e6e7460c858"
 # CLERK_WEBHOOK_SECRET   - Clerk webhook signature verification
 # GOOGLE_CLIENT_ID       - Google Drive OAuth
 # GOOGLE_CLIENT_SECRET   - Google Drive OAuth
-# OPENAI_API_KEY         - AI rewrite (frontier tier: OpenAI gpt-4o)
+# AI_API_KEY            - AI rewrite API key (frontier tier)
 # CF_API_TOKEN           - Cloudflare Browser Rendering (PDF export)
 # ENCRYPTION_KEY         - AES-256-GCM token encryption
 
