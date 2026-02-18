@@ -80,30 +80,25 @@ export function AIRewriteSheet({
   const isComplete = sheetState === "complete";
   const [originalExpanded, setOriginalExpanded] = useState(false);
 
-  // Sync instruction field when a new result arrives (tracked by interactionId)
-  if (result && result.interactionId && result.interactionId !== lastResultId) {
-    if (!hasUserEdited.current) setEditedInstruction("");
-    setLastResultId(result.interactionId);
-  }
+  // Sync instruction field when a new result arrives or streaming starts.
+  // This uses the React-documented "adjusting state during render" pattern
+  // (https://react.dev/reference/react/useState#storing-information-from-previous-renders)
+  // to avoid cascading renders from effects. The hasUserEdited ref tracks whether
+  // the user manually edited the instruction textarea — we preserve their edits.
+  const resultId = result?.interactionId ?? null;
+  const streamingKey =
+    result && !result.interactionId && sheetState === "streaming" ? "streaming" : null;
+  const trackingKey = resultId || streamingKey;
 
-  // When sheet first opens with a new result, sync instruction
-  if (
-    result &&
-    !result.interactionId &&
-    sheetState === "streaming" &&
-    lastResultId !== "streaming"
-  ) {
+  if (trackingKey && trackingKey !== lastResultId) {
+    // eslint-disable-next-line react-hooks/refs -- reading ref to decide whether to reset derived state during render
     if (!hasUserEdited.current) setEditedInstruction("");
-    setLastResultId("streaming");
-  }
-
-  // Reset original expanded state when result changes; expand by default for short selections
-  useEffect(() => {
-    if (result) {
-      const isShort = result.originalText.split(/\s+/).length < 50;
+    setLastResultId(trackingKey);
+    if (resultId) {
+      const isShort = result!.originalText.split(/\s+/).length < 50;
       setOriginalExpanded(isShort);
     }
-  }, [result?.interactionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   // Auto-scroll to bottom of rewrite area during streaming
   useEffect(() => {
