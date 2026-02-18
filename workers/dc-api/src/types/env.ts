@@ -17,7 +17,7 @@ export interface Env {
   GOOGLE_REDIRECT_URI: string;
 
   // AI Provider
-  OPENAI_API_KEY: string;
+  AI_API_KEY: string;
   AI_MODEL?: string; // Default: gpt-4o
   AI_DEFAULT_TIER?: string; // "edge" | "frontier", default: "frontier"
 

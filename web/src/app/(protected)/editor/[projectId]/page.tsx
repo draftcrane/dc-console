@@ -7,9 +7,8 @@ import { Sidebar, SidebarOverlay, type ChapterData } from "@/components/sidebar"
 import { DriveBanner } from "@/components/drive-banner";
 import { DriveStatusIndicator } from "@/components/drive-status-indicator";
 import { ChapterEditor, type ChapterEditorHandle } from "@/components/chapter-editor";
-import { AIRewriteSheet, type AIRewriteResult } from "@/components/ai-rewrite-sheet";
+import { AIRewriteSheet } from "@/components/ai-rewrite-sheet";
 import { DriveFilesSheet } from "@/components/drive-files-sheet";
-import { useAIRewrite } from "@/hooks/use-ai-rewrite";
 import { useDriveStatus } from "@/hooks/use-drive-status";
 import { useDriveFiles } from "@/hooks/use-drive-files";
 import { SaveIndicator } from "@/components/save-indicator";
@@ -21,6 +20,11 @@ import { DisconnectDriveDialog } from "@/components/disconnect-drive-dialog";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { OnboardingTooltips } from "@/components/onboarding-tooltips";
+import { useChapterManagement } from "@/hooks/use-chapter-management";
+import { useEditorAI } from "@/hooks/use-editor-ai";
+import { useEditorTitle } from "@/hooks/use-editor-title";
+import { useProjectActions } from "@/hooks/use-project-actions";
+import { ProjectSwitcher } from "@/components/project-switcher";
 
 interface Chapter {
   id: string;
@@ -131,16 +135,6 @@ export default function EditorPage() {
     fetchFiles(folderId);
   }, [projectData, fetchFiles]);
 
-  // AI rewrite hook
-  const aiRewrite = useAIRewrite({
-    getToken,
-    apiUrl: API_URL,
-  });
-
-  // Editor state
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleValue, setTitleValue] = useState("");
-
   // Get active chapter for version
   const activeChapter = projectData?.chapters.find((ch) => ch.id === activeChapterId);
 
@@ -164,11 +158,69 @@ export default function EditorPage() {
   // Sign-out with auto-save flush (US-003)
   const { handleSignOut, isSigningOut } = useSignOut(saveNow);
 
-  // Ref to hold saveNow for chapter switch
+  // Ref to hold saveNow for chapter switch (avoids stale closure)
   const saveNowRef = useRef(saveNow);
   useEffect(() => {
     saveNowRef.current = saveNow;
   }, [saveNow]);
+
+  // Chapter management hook
+  const {
+    chapterToDelete,
+    deleteChapterDialogOpen,
+    setDeleteChapterDialogOpen,
+    setChapterToDelete,
+    handleAddChapter,
+    handleChapterRename,
+    handleChapterReorder,
+    handleChapterSelect,
+    handleDeleteChapterRequest,
+    handleDeleteChapter,
+  } = useChapterManagement({
+    projectId,
+    apiUrl: API_URL,
+    getToken: getToken as () => Promise<string | null>,
+    projectData,
+    setProjectData,
+    activeChapterId,
+    setActiveChapterId,
+    setMobileOverlayOpen,
+    saveNowRef,
+    currentContent,
+  });
+
+  // AI rewrite hook (combines state + handlers)
+  const {
+    sheetState: aiSheetState,
+    currentResult: aiCurrentResult,
+    errorMessage: aiErrorMessage,
+    handleOpenAiRewrite,
+    handleAIAccept,
+    handleAIRetry,
+    handleAIDiscard,
+    handleGoDeeper,
+  } = useEditorAI({
+    getToken: getToken as () => Promise<string | null>,
+    apiUrl: API_URL,
+    activeChapter,
+    projectData,
+    activeChapterId,
+    editorRef,
+  });
+
+  // Editor title hook
+  const {
+    editingTitle,
+    titleValue,
+    setTitleValue,
+    handleTitleEdit,
+    handleTitleSave,
+    setEditingTitle,
+  } = useEditorTitle({
+    activeChapter,
+    activeChapterId,
+    handleChapterRename,
+  });
 
   // Word count state (US-024)
   const [selectionWordCount, setSelectionWordCount] = useState(0);
@@ -178,21 +230,50 @@ export default function EditorPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
 
-  // Delete chapter dialog state (US-014)
-  const [deleteChapterDialogOpen, setDeleteChapterDialogOpen] = useState(false);
-  const [chapterToDelete, setChapterToDelete] = useState<string | null>(null);
-
   // Disconnect Drive dialog state (US-008)
   const [disconnectDriveDialogOpen, setDisconnectDriveDialogOpen] = useState(false);
 
-  // AI rewrite state
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const rewriteContextRef = useRef<{
-    selectedText: string;
-    contextBefore: string;
-    contextAfter: string;
-    firstInteractionId?: string;
-  } | null>(null);
+  // Project actions: list (for switcher), rename, duplicate
+  const {
+    projects: allProjects,
+    renameDialogOpen,
+    openRenameDialog,
+    closeRenameDialog,
+    renameProject,
+    isRenaming,
+    duplicateDialogOpen,
+    openDuplicateDialog,
+    closeDuplicateDialog,
+    duplicateProject,
+    isDuplicating,
+  } = useProjectActions({
+    getToken: getToken as () => Promise<string | null>,
+  });
+
+  // Rename dialog local state
+  const [renameValue, setRenameValue] = useState("");
+
+  const handleOpenRenameDialog = useCallback(() => {
+    setRenameValue(projectData?.title || "");
+    openRenameDialog();
+  }, [projectData, openRenameDialog]);
+
+  const handleRenameSubmit = useCallback(async () => {
+    if (!renameValue.trim()) return;
+    const success = await renameProject(projectId, renameValue.trim());
+    if (success) {
+      setProjectData((prev) => (prev ? { ...prev, title: renameValue.trim() } : prev));
+      closeRenameDialog();
+    }
+  }, [projectId, renameValue, renameProject, closeRenameDialog, setProjectData]);
+
+  const handleDuplicateConfirm = useCallback(async () => {
+    const newProjectId = await duplicateProject(projectId);
+    closeDuplicateDialog();
+    if (newProjectId) {
+      router.push(`/editor/${newProjectId}`);
+    }
+  }, [projectId, duplicateProject, closeDuplicateDialog, router]);
 
   // Fetch project data
   useEffect(() => {
@@ -229,13 +310,6 @@ export default function EditorPage() {
     fetchData();
   }, [projectId, getToken, router, activeChapterId]);
 
-  // Cleanup abort controller on unmount
-  useEffect(() => {
-    return () => {
-      abortControllerRef.current?.abort();
-    };
-  }, []);
-
   // Load chapter content from API when active chapter changes
   useEffect(() => {
     if (!activeChapterId) return;
@@ -271,174 +345,6 @@ export default function EditorPage() {
       cancelled = true;
     };
   }, [activeChapterId, getToken, setContent]);
-
-  // Handle chapter selection - save current chapter before switching
-  const handleChapterSelect = useCallback(
-    async (chapterId: string) => {
-      if (activeChapterId && currentContent) {
-        await saveNowRef.current();
-      }
-      setActiveChapterId(chapterId);
-      setMobileOverlayOpen(false);
-    },
-    [activeChapterId, currentContent],
-  );
-
-  // Handle add chapter
-  const handleAddChapter = useCallback(async () => {
-    if (!projectData) return;
-
-    try {
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/projects/${projectId}/chapters`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: "Untitled Chapter",
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create chapter");
-      }
-
-      const newChapter: Chapter = await response.json();
-
-      setProjectData((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          chapters: [...prev.chapters, newChapter],
-        };
-      });
-
-      setActiveChapterId(newChapter.id);
-    } catch (err) {
-      console.error("Failed to add chapter:", err);
-    }
-  }, [projectData, projectId, getToken]);
-
-  /**
-   * Rename a chapter via the API.
-   * Shared by both the sidebar inline rename (US-013) and editor title field.
-   * Empty title reverts to "Untitled Chapter" per acceptance criteria.
-   */
-  const handleChapterRename = useCallback(
-    async (chapterId: string, newTitle: string) => {
-      const trimmed = newTitle.trim();
-      const finalTitle = trimmed || "Untitled Chapter";
-
-      try {
-        const token = await getToken();
-        const response = await fetch(`${API_URL}/chapters/${chapterId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ title: finalTitle }),
-        });
-
-        if (response.ok) {
-          setProjectData((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              chapters: prev.chapters.map((ch) =>
-                ch.id === chapterId ? { ...ch, title: finalTitle } : ch,
-              ),
-            };
-          });
-        }
-      } catch (err) {
-        console.error("Failed to update chapter title:", err);
-      }
-    },
-    [getToken],
-  );
-
-  /**
-   * Reorder chapters via the API (US-012A).
-   * Optimistically updates local state, then persists to the server.
-   * Drive file names are NOT renamed on reorder (per acceptance criteria).
-   */
-  const handleChapterReorder = useCallback(
-    async (chapterIds: string[]) => {
-      if (!projectData) return;
-
-      // Optimistic update: assign new sortOrder based on position
-      setProjectData((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          chapters: prev.chapters.map((ch) => {
-            const newIndex = chapterIds.indexOf(ch.id);
-            return newIndex !== -1 ? { ...ch, sortOrder: newIndex + 1 } : ch;
-          }),
-        };
-      });
-
-      try {
-        const token = await getToken();
-        const response = await fetch(`${API_URL}/projects/${projectId}/chapters/reorder`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ chapterIds }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to reorder chapters");
-        }
-
-        // Sync with server response
-        const data = (await response.json()) as { chapters: Chapter[] };
-        setProjectData((prev) => {
-          if (!prev) return prev;
-          return { ...prev, chapters: data.chapters };
-        });
-      } catch (err) {
-        console.error("Failed to reorder chapters:", err);
-        // Revert optimistic update by re-fetching
-        try {
-          const token = await getToken();
-          const response = await fetch(`${API_URL}/projects/${projectId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (response.ok) {
-            const data: ProjectData = await response.json();
-            setProjectData(data);
-          }
-        } catch {
-          // Silent fallback - user can refresh
-        }
-      }
-    },
-    [projectData, projectId, getToken],
-  );
-
-  // Handle editor title field save (wraps handleChapterRename for the active chapter)
-  const handleTitleSave = useCallback(async () => {
-    if (!activeChapterId) {
-      setEditingTitle(false);
-      return;
-    }
-
-    await handleChapterRename(activeChapterId, titleValue);
-    setEditingTitle(false);
-  }, [activeChapterId, titleValue, handleChapterRename]);
-
-  const handleTitleEdit = useCallback(() => {
-    if (activeChapter) {
-      setTitleValue(activeChapter.title);
-      setEditingTitle(true);
-    }
-  }, [activeChapter]);
 
   // Settings menu: close on outside click (US-023)
   useEffect(() => {
@@ -503,312 +409,9 @@ export default function EditorPage() {
     }
   }, [getToken, projectId, router]);
 
-  // Handle opening delete chapter dialog (US-014)
-  const handleDeleteChapterRequest = useCallback((chapterId: string) => {
-    setChapterToDelete(chapterId);
-    setDeleteChapterDialogOpen(true);
-  }, []);
-
-  // Handle chapter deletion (US-014)
-  const handleDeleteChapter = useCallback(async () => {
-    if (!chapterToDelete || !projectData) return;
-
-    try {
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/chapters/${chapterToDelete}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        const code = (body as { code?: string } | null)?.code;
-        if (code === "LAST_CHAPTER") {
-          console.error("Cannot delete the last chapter of a project");
-          setDeleteChapterDialogOpen(false);
-          setChapterToDelete(null);
-          return;
-        }
-        throw new Error("Failed to delete chapter");
-      }
-
-      // Determine the adjacent chapter to navigate to
-      const sortedChapters = [...projectData.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
-      const deletedIndex = sortedChapters.findIndex((ch) => ch.id === chapterToDelete);
-      const remainingChapters = sortedChapters.filter((ch) => ch.id !== chapterToDelete);
-
-      // Navigate to the next chapter, or the previous if we deleted the last one
-      let nextChapterId: string | null = null;
-      if (remainingChapters.length > 0) {
-        if (deletedIndex < remainingChapters.length) {
-          nextChapterId = remainingChapters[deletedIndex].id;
-        } else {
-          nextChapterId = remainingChapters[remainingChapters.length - 1].id;
-        }
-      }
-
-      // Update local state - remove deleted chapter
-      setProjectData((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          chapters: prev.chapters.filter((ch) => ch.id !== chapterToDelete),
-        };
-      });
-
-      // Navigate to adjacent chapter if the deleted one was active
-      if (chapterToDelete === activeChapterId && nextChapterId) {
-        setActiveChapterId(nextChapterId);
-      }
-
-      setDeleteChapterDialogOpen(false);
-      setChapterToDelete(null);
-    } catch (err) {
-      console.error("Failed to delete chapter:", err);
-      setDeleteChapterDialogOpen(false);
-      setChapterToDelete(null);
-    }
-  }, [chapterToDelete, projectData, getToken, activeChapterId]);
-
-  // AI rewrite: request rewrite via SSE streaming (progressive — opens sheet immediately)
-  const requestRewrite = useCallback(
-    async (
-      selectedText: string,
-      instruction: string,
-      contextBefore: string,
-      contextAfter: string,
-      tier?: "edge" | "frontier",
-      parentInteractionId?: string,
-    ) => {
-      abortControllerRef.current?.abort();
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
-
-      // Open the sheet immediately — user sees it before tokens arrive
-      aiRewrite.startStreaming(selectedText, instruction, tier ?? "frontier");
-
-      try {
-        const token = await getToken();
-        if (!token) {
-          aiRewrite.abortStreaming("Authentication required");
-          return;
-        }
-
-        const response = await fetch(`${API_URL}/ai/rewrite`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            selectedText,
-            instruction,
-            contextBefore,
-            contextAfter,
-            chapterTitle: activeChapter?.title || "",
-            projectDescription: projectData?.description || "",
-            chapterId: activeChapterId || "",
-            parentInteractionId,
-            ...(tier && { tier }),
-          }),
-          signal: abortController.signal,
-        });
-
-        if (!response.ok) {
-          if (response.status === 429) {
-            const body = await response.json().catch(() => null);
-            const msg =
-              (body as { message?: string } | null)?.message ||
-              "You've used AI rewrite frequently. Please wait a moment.";
-            aiRewrite.abortStreaming(msg);
-          } else {
-            aiRewrite.abortStreaming("Something went wrong. Please try again.");
-          }
-          return;
-        }
-
-        const reader = response.body?.getReader();
-        if (!reader) {
-          aiRewrite.abortStreaming("No response received");
-          return;
-        }
-
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let interactionId = "";
-        let attemptNumber = 1;
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6).trim();
-              if (!data) continue;
-
-              try {
-                const event = JSON.parse(data) as {
-                  type: string;
-                  text?: string;
-                  message?: string;
-                  interactionId?: string;
-                  attemptNumber?: number;
-                  tier?: "edge" | "frontier";
-                };
-
-                if (event.type === "start" && event.interactionId) {
-                  interactionId = event.interactionId;
-                  attemptNumber = event.attemptNumber ?? 1;
-
-                  // Update result with server-resolved tier
-                  if (event.tier) {
-                    aiRewrite.setTier(event.tier);
-                  }
-
-                  // Track the first interaction ID for retry chains
-                  if (attemptNumber === 1 && rewriteContextRef.current) {
-                    rewriteContextRef.current.firstInteractionId = interactionId;
-                  }
-                }
-
-                if (event.type === "token" && event.text) {
-                  aiRewrite.appendToken(event.text);
-                }
-
-                if (event.type === "done" && event.interactionId) {
-                  interactionId = event.interactionId;
-                }
-
-                if (event.type === "error" && event.message) {
-                  aiRewrite.abortStreaming(event.message);
-                  return;
-                }
-              } catch {
-                // Skip malformed JSON
-              }
-            }
-          }
-        }
-
-        // Finalize — interactionId from start event or done event
-        const resultId = interactionId || crypto.randomUUID();
-        if (!aiRewrite.hasTokens()) {
-          aiRewrite.abortStreaming("No rewrite was generated. Please try again.");
-          return;
-        }
-        aiRewrite.completeStreaming(resultId, attemptNumber);
-      } catch (err) {
-        if ((err as Error).name === "AbortError") {
-          aiRewrite.abortStreaming();
-          return;
-        }
-        console.error("AI rewrite streaming error:", err);
-        aiRewrite.abortStreaming("Connection error. Please try again.");
-      }
-    },
-    [getToken, activeChapter, projectData, activeChapterId, aiRewrite],
-  );
-
   const handleSelectionWordCountChange = useCallback((count: number) => {
     setSelectionWordCount(count);
   }, []);
-
-  const handleOpenAiRewrite = useCallback(() => {
-    const editor = editorRef.current?.getEditor();
-    if (!editor) return;
-
-    const { from, to } = editor.state.selection;
-    if (from === to) return;
-
-    const selected = editor.state.doc.textBetween(from, to, "\n");
-    if (!selected.trim()) return;
-
-    const textBeforeSelection = editor.state.doc.textBetween(0, from, "\n");
-    const before = textBeforeSelection.slice(-500);
-
-    const docLength = editor.state.doc.content.size;
-    const textAfterSelection = editor.state.doc.textBetween(to, docLength, "\n");
-    const after = textAfterSelection.slice(0, 500);
-
-    rewriteContextRef.current = {
-      selectedText: selected,
-      contextBefore: before,
-      contextAfter: after,
-    };
-
-    requestRewrite(selected, "Improve this text", before, after);
-  }, [requestRewrite]);
-
-  const handleAIAccept = useCallback(
-    async (result: AIRewriteResult) => {
-      if (editorRef.current) {
-        const replaced = editorRef.current.replaceText(result.originalText, result.rewriteText);
-        if (!replaced) {
-          // Text changed since rewrite was requested — user can copy manually
-          aiRewrite.abortStreaming(
-            "The selected text has changed. Please select it again and retry. You can copy the rewrite text above.",
-          );
-          return;
-        }
-      }
-
-      await aiRewrite.handleAccept(result);
-      rewriteContextRef.current = null;
-    },
-    [aiRewrite],
-  );
-
-  const handleAIRetry = useCallback(
-    async (result: AIRewriteResult, instruction: string) => {
-      await aiRewrite.handleRetry(result, instruction);
-
-      const ctx = rewriteContextRef.current;
-      if (ctx) {
-        requestRewrite(
-          ctx.selectedText,
-          instruction,
-          ctx.contextBefore,
-          ctx.contextAfter,
-          undefined,
-          ctx.firstInteractionId,
-        );
-      }
-    },
-    [aiRewrite, requestRewrite],
-  );
-
-  const handleAIDiscard = useCallback(
-    async (result: AIRewriteResult) => {
-      // Abort any in-flight request
-      abortControllerRef.current?.abort();
-      await aiRewrite.handleDiscard(result);
-      rewriteContextRef.current = null;
-    },
-    [aiRewrite],
-  );
-
-  const handleGoDeeper = useCallback(
-    (result: AIRewriteResult) => {
-      const ctx = rewriteContextRef.current;
-      if (!ctx) return;
-
-      // Re-submit same text/instruction with frontier tier
-      requestRewrite(
-        ctx.selectedText,
-        result.instruction,
-        ctx.contextBefore,
-        ctx.contextAfter,
-        "frontier",
-        ctx.firstInteractionId,
-      );
-    },
-    [requestRewrite],
-  );
 
   const countWords = useCallback((html: string): number => {
     const text = html
@@ -919,7 +522,20 @@ export default function EditorPage() {
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center justify-between h-12 px-4 border-b border-border bg-background shrink-0">
           <div className="flex items-center gap-2 min-w-0">
-            <h2 className="text-sm font-medium text-foreground truncate">{projectData?.title}</h2>
+            {projectData && (
+              <ProjectSwitcher
+                currentProject={{
+                  id: projectData.id,
+                  title: projectData.title,
+                  wordCount: totalWordCount,
+                }}
+                projects={allProjects.map((p) => ({
+                  id: p.id,
+                  title: p.title,
+                  wordCount: p.wordCount,
+                }))}
+              />
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -936,7 +552,7 @@ export default function EditorPage() {
             )}
 
             {/* Toolbar AI Rewrite fallback — visible when text is selected */}
-            {selectionWordCount > 0 && aiRewrite.sheetState === "idle" && (
+            {selectionWordCount > 0 && aiSheetState === "idle" && (
               <>
                 <button
                   onClick={handleOpenAiRewrite}
@@ -1064,6 +680,62 @@ export default function EditorPage() {
                       <div className="my-1 border-t border-gray-200" role="separator" />
                     </>
                   )}
+
+                  {/* Rename Book */}
+                  <button
+                    onClick={() => {
+                      setSettingsMenuOpen(false);
+                      handleOpenRenameDialog();
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+                               transition-colors min-h-[44px] flex items-center gap-2"
+                    role="menuitem"
+                  >
+                    <svg
+                      className="w-4 h-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                    Rename Book
+                  </button>
+
+                  {/* Duplicate Book */}
+                  <button
+                    onClick={() => {
+                      setSettingsMenuOpen(false);
+                      openDuplicateDialog();
+                    }}
+                    disabled={isDuplicating}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+                               transition-colors min-h-[44px] flex items-center gap-2
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                    role="menuitem"
+                  >
+                    <svg
+                      className="w-4 h-4 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                    {isDuplicating ? "Duplicating..." : "Duplicate Book"}
+                  </button>
+
+                  <div className="my-1 border-t border-gray-200" role="separator" />
 
                   <button
                     onClick={() => {
@@ -1209,6 +881,95 @@ export default function EditorPage() {
         onCancel={() => setDeleteDialogOpen(false)}
       />
 
+      {/* Rename book dialog */}
+      {renameDialogOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="rename-dialog-title"
+        >
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+            <h2 id="rename-dialog-title" className="text-lg font-semibold text-gray-900 mb-4">
+              Rename Book
+            </h2>
+            <input
+              type="text"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameSubmit();
+                if (e.key === "Escape") closeRenameDialog();
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              maxLength={500}
+              autoFocus
+            />
+            <div className="flex gap-3 justify-end mt-4">
+              <button
+                onClick={closeRenameDialog}
+                disabled={isRenaming}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg
+                           hover:bg-gray-200 transition-colors min-h-[44px]
+                           disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRenameSubmit}
+                disabled={isRenaming || !renameValue.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg
+                           hover:bg-gray-800 transition-colors min-h-[44px]
+                           disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isRenaming ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate book confirmation dialog */}
+      {duplicateDialogOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="duplicate-dialog-title"
+        >
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+            <h2 id="duplicate-dialog-title" className="text-lg font-semibold text-gray-900 mb-2">
+              Duplicate Book
+            </h2>
+            <p className="text-sm text-gray-600 mb-6">
+              Duplicate &ldquo;{projectData?.title}&rdquo;? This creates a full copy of all
+              chapters.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={closeDuplicateDialog}
+                disabled={isDuplicating}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg
+                           hover:bg-gray-200 transition-colors min-h-[44px]
+                           disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDuplicateConfirm}
+                disabled={isDuplicating}
+                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg
+                           hover:bg-gray-800 transition-colors min-h-[44px]
+                           disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDuplicating ? "Duplicating..." : "Duplicate"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete chapter confirmation dialog (US-014) */}
       <DeleteChapterDialog
         chapterTitle={
@@ -1234,9 +995,9 @@ export default function EditorPage() {
       />
 
       <AIRewriteSheet
-        sheetState={aiRewrite.sheetState}
-        result={aiRewrite.currentResult}
-        errorMessage={aiRewrite.errorMessage}
+        sheetState={aiSheetState}
+        result={aiCurrentResult}
+        errorMessage={aiErrorMessage}
         onAccept={handleAIAccept}
         onRetry={handleAIRetry}
         onDiscard={handleAIDiscard}

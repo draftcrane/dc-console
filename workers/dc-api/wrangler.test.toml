@@ -1,12 +1,11 @@
+# Test-only wrangler config — mirrors wrangler.toml but omits [ai] to avoid
+# requiring a remote proxy session (wrangler login) in CI.
+# If you add new bindings to wrangler.toml, add them here too.
+
 name = "dc-api"
 main = "src/index.ts"
 compatibility_date = "2025-01-29"
 compatibility_flags = ["nodejs_compat"]
-
-# Custom domain (requires draftcrane.app zone on same CF account)
-[[routes]]
-pattern = "api.draftcrane.app"
-custom_domain = true
 
 # D1 Database
 [[d1_databases]]
@@ -24,20 +23,6 @@ bucket_name = "dc-exports"
 [[kv_namespaces]]
 binding = "CACHE"
 id = "15db632cefe04003a94f1e6e7460c858"
-
-# Secrets (set via `wrangler secret put`, sourced from Infisical /dc)
-# CLERK_PUBLISHABLE_KEY  - Clerk JWT verification (public key)
-# CLERK_SECRET_KEY       - Clerk server-side operations
-# CLERK_WEBHOOK_SECRET   - Clerk webhook signature verification
-# GOOGLE_CLIENT_ID       - Google Drive OAuth
-# GOOGLE_CLIENT_SECRET   - Google Drive OAuth
-# AI_API_KEY            - AI rewrite API key (frontier tier)
-# CF_API_TOKEN           - Cloudflare Browser Rendering (PDF export)
-# ENCRYPTION_KEY         - AES-256-GCM token encryption
-
-# Workers AI
-[ai]
-binding = "AI"
 
 [vars]
 FRONTEND_URL = "https://draftcrane.app"

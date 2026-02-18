@@ -157,6 +157,7 @@ export function useAIRewrite({ getToken, apiUrl }: UseAIRewriteOptions): UseAIRe
   );
 
   const handleRetry = useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async (result: AIRewriteResult, _instruction: string) => {
       logInteraction(result.interactionId, "reject");
       // Transition back to streaming — caller will initiate new request

@@ -54,6 +54,7 @@ export interface ProjectSummary {
   status: string;
   wordCount: number;
   chapterCount: number;
+  updatedAt: string;
 }
 
 /** GET /users/me response */

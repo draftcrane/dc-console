@@ -1,11 +1,11 @@
 # ADR-006 Quality Gate Results
 
-| | |
-|---|---|
-| **Date** | 2026-02-17 |
-| **Edge model** | `@cf/mistralai/mistral-small-3.1-24b-instruct` |
-| **Frontier model** | `gpt-4o` |
-| **Cases** | 10 |
+|                    |                                                |
+| ------------------ | ---------------------------------------------- |
+| **Date**           | 2026-02-17                                     |
+| **Edge model**     | `@cf/mistralai/mistral-small-3.1-24b-instruct` |
+| **Frontier model** | `gpt-4o`                                       |
+| **Cases**          | 10                                             |
 
 ## How to Evaluate
 
@@ -217,36 +217,36 @@ When deploying your application to a serverless platform, cold starts can interf
 
 ## Latency
 
-| Case | Edge (ms) | Frontier (ms) |
-|------|-----------|---------------|
-| simplify-memoir | 1830 | 2111 |
-| simplify-technical | 2151 | 2272 |
-| concision-memoir | 2263 | 2486 |
-| concision-technical | 2156 | 1472 |
-| expand-memoir | 3031 | 2883 |
-| expand-technical | 2141 | 2370 |
-| tone-shift-memoir | 4691 | 2633 |
-| tone-shift-technical | 2585 | 1310 |
-| clarity-memoir | 2742 | 1777 |
-| clarity-technical | 2673 | 1460 |
-| **Mean** | **2626** | **2077** |
-| **P95** | **4691** | **2883** |
+| Case                 | Edge (ms) | Frontier (ms) |
+| -------------------- | --------- | ------------- |
+| simplify-memoir      | 1830      | 2111          |
+| simplify-technical   | 2151      | 2272          |
+| concision-memoir     | 2263      | 2486          |
+| concision-technical  | 2156      | 1472          |
+| expand-memoir        | 3031      | 2883          |
+| expand-technical     | 2141      | 2370          |
+| tone-shift-memoir    | 4691      | 2633          |
+| tone-shift-technical | 2585      | 1310          |
+| clarity-memoir       | 2742      | 1777          |
+| clarity-technical    | 2673      | 1460          |
+| **Mean**             | **2626**  | **2077**      |
+| **P95**              | **4691**  | **2883**      |
 
 <details>
 <summary>Reveal Key (click after evaluating)</summary>
 
-| Case | Version A | Version B |
-|------|-----------|-----------|
-| simplify-memoir | Frontier | Edge |
-| simplify-technical | Edge | Frontier |
-| concision-memoir | Edge | Frontier |
-| concision-technical | Edge | Frontier |
-| expand-memoir | Edge | Frontier |
-| expand-technical | Edge | Frontier |
-| tone-shift-memoir | Edge | Frontier |
-| tone-shift-technical | Frontier | Edge |
-| clarity-memoir | Frontier | Edge |
-| clarity-technical | Frontier | Edge |
+| Case                 | Version A | Version B |
+| -------------------- | --------- | --------- |
+| simplify-memoir      | Frontier  | Edge      |
+| simplify-technical   | Edge      | Frontier  |
+| concision-memoir     | Edge      | Frontier  |
+| concision-technical  | Edge      | Frontier  |
+| expand-memoir        | Edge      | Frontier  |
+| expand-technical     | Edge      | Frontier  |
+| tone-shift-memoir    | Edge      | Frontier  |
+| tone-shift-technical | Frontier  | Edge      |
+| clarity-memoir       | Frontier  | Edge      |
+| clarity-technical    | Frontier  | Edge      |
 
 </details>
 
@@ -256,18 +256,18 @@ When deploying your application to a serverless platform, cold starts can interf
 
 **Score:** Edge 5, Frontier 5. Dead even on win count across 10 blinded cases.
 
-| Case | Winner | Margin |
-|------|--------|--------|
-| 1 simplify-memoir | Edge | Slight |
-| 2 simplify-technical | Edge | Clear |
-| 3 concision-memoir | Frontier | Moderate |
-| 4 concision-technical | Frontier | Moderate |
-| 5 expand-memoir | Frontier | Clear |
-| 6 expand-technical | Edge | Clear |
-| 7 tone-shift-memoir | Frontier | Clear (Edge hallucinated) |
-| 8 tone-shift-technical | Edge | Clear |
-| 9 clarity-memoir | Frontier | Slight |
-| 10 clarity-technical | Edge | Slight |
+| Case                   | Winner   | Margin                    |
+| ---------------------- | -------- | ------------------------- |
+| 1 simplify-memoir      | Edge     | Slight                    |
+| 2 simplify-technical   | Edge     | Clear                     |
+| 3 concision-memoir     | Frontier | Moderate                  |
+| 4 concision-technical  | Frontier | Moderate                  |
+| 5 expand-memoir        | Frontier | Clear                     |
+| 6 expand-technical     | Edge     | Clear                     |
+| 7 tone-shift-memoir    | Frontier | Clear (Edge hallucinated) |
+| 8 tone-shift-technical | Edge     | Clear                     |
+| 9 clarity-memoir       | Frontier | Slight                    |
+| 10 clarity-technical   | Edge     | Slight                    |
 
 ### Edge strengths
 

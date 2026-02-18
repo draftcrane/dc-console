@@ -3,7 +3,7 @@ import type { Env } from "../types/index.js";
 import { requireAuth } from "../middleware/auth.js";
 import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
-import { ProjectService } from "../services/project.js";
+import { ChapterService } from "../services/chapter.js";
 import { ContentService } from "../services/content.js";
 import { DriveService } from "../services/drive.js";
 
@@ -42,7 +42,7 @@ chapters.post("/projects/:projectId/chapters", async (c) => {
   const projectId = c.req.param("projectId");
   const body = (await c.req.json().catch(() => ({}))) as { title?: string };
 
-  const service = new ProjectService(c.env.DB);
+  const service = new ChapterService(c.env.DB);
   const chapter = await service.createChapter(userId, projectId, {
     title: body.title,
   });
@@ -95,7 +95,7 @@ chapters.get("/projects/:projectId/chapters", async (c) => {
   const { userId } = c.get("auth");
   const projectId = c.req.param("projectId");
 
-  const service = new ProjectService(c.env.DB);
+  const service = new ChapterService(c.env.DB);
   const chapterList = await service.listChapters(userId, projectId);
 
   return c.json({ chapters: chapterList });
@@ -116,7 +116,7 @@ chapters.patch("/projects/:projectId/chapters/reorder", async (c) => {
     validationError("chapterIds array is required");
   }
 
-  const service = new ProjectService(c.env.DB);
+  const service = new ChapterService(c.env.DB);
   const reorderedChapters = await service.reorderChapters(userId, projectId, {
     chapterIds: body.chapterIds,
   });
@@ -132,7 +132,7 @@ chapters.get("/chapters/:chapterId", async (c) => {
   const { userId } = c.get("auth");
   const chapterId = c.req.param("chapterId");
 
-  const service = new ProjectService(c.env.DB);
+  const service = new ChapterService(c.env.DB);
   const chapter = await service.getChapter(userId, chapterId);
 
   return c.json(chapter);
@@ -157,7 +157,7 @@ chapters.patch("/chapters/:chapterId", async (c) => {
     validationError("At least one of title or status must be provided");
   }
 
-  const service = new ProjectService(c.env.DB);
+  const service = new ChapterService(c.env.DB);
   const chapter = await service.updateChapter(userId, chapterId, body);
 
   // If title was updated and chapter has a Drive file, rename it (fire-and-forget)
@@ -191,7 +191,7 @@ chapters.delete("/chapters/:chapterId", async (c) => {
   const { userId } = c.get("auth");
   const chapterId = c.req.param("chapterId");
 
-  const service = new ProjectService(c.env.DB);
+  const service = new ChapterService(c.env.DB);
   const { driveFileId } = await service.deleteChapter(userId, chapterId);
 
   // If the chapter had a Drive file, move it to trash (best effort)

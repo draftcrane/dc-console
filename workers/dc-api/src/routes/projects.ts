@@ -81,6 +81,21 @@ projects.post("/import", exportRateLimit, async (c) => {
 });
 
 /**
+ * POST /projects/:projectId/duplicate
+ * Duplicate a project with all chapters and content.
+ * Registered before /:projectId routes to avoid parameter matching.
+ */
+projects.post("/:projectId/duplicate", exportRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const service = new ProjectService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const result = await service.duplicateProject(userId, projectId);
+
+  return c.json(result, 201);
+});
+
+/**
  * GET /projects
  * List user's active projects with word counts
  */

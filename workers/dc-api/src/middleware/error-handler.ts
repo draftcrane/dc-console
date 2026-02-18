@@ -1,4 +1,3 @@
-import type { Context, MiddlewareHandler } from "hono";
 import type { ErrorCode } from "../types/index.js";
 
 export class AppError extends Error {
@@ -11,19 +10,6 @@ export class AppError extends Error {
     this.name = "AppError";
   }
 }
-
-export const errorHandler: MiddlewareHandler = async (c, next) => {
-  try {
-    await next();
-  } catch (err) {
-    if (err instanceof AppError) {
-      return c.json({ error: err.message, code: err.code }, err.statusCode as 400);
-    }
-
-    console.error("Unhandled error:", err);
-    return c.json({ error: "Internal server error", code: "INTERNAL_ERROR" as ErrorCode }, 500);
-  }
-};
 
 /** Helper to throw typed API errors */
 export function notFound(message = "Resource not found"): never {
