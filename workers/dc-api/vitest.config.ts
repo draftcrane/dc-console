@@ -14,6 +14,9 @@ export default defineWorkersConfig(async () => {
           wrangler: { configPath: "./wrangler.toml" },
           miniflare: {
             bindings: { TEST_MIGRATIONS: migrations },
+            // Disable AI binding's remote requirement for CI
+            // (AI functionality is not under test — it uses external APIs)
+            ai: { models: [] },
           },
         },
       },

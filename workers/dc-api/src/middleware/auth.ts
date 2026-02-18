@@ -54,7 +54,8 @@ export const requireAuth: MiddlewareHandler<{ Bindings: Env }> = async (c, next)
   const authHeader = c.req.header("Authorization");
   const cookieToken = c.req.header("Cookie")?.match(/__session=([^;]+)/)?.[1];
 
-  const token = (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined) ?? cookieToken;
+  const token =
+    (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined) ?? cookieToken;
 
   if (!token) {
     authRequired("No authentication token provided");
@@ -250,7 +251,8 @@ export const optionalAuth: MiddlewareHandler<{ Bindings: Env }> = async (c, next
   const authHeader = c.req.header("Authorization");
   const cookieToken = c.req.header("Cookie")?.match(/__session=([^;]+)/)?.[1];
 
-  const token = (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined) ?? cookieToken;
+  const token =
+    (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined) ?? cookieToken;
 
   if (token) {
     try {

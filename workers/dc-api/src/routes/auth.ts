@@ -75,12 +75,14 @@ auth.post("/webhook", async (c) => {
       // Cascade delete: remove all dependent records before deleting user
       // Drive files are untouched per PRD Section 17 (Account deletion)
       await c.env.DB.batch([
-        c.env.DB.prepare('DELETE FROM ai_interactions WHERE user_id = ?').bind(id),
-        c.env.DB.prepare('DELETE FROM export_jobs WHERE user_id = ?').bind(id),
-        c.env.DB.prepare('DELETE FROM chapters WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)').bind(id),
-        c.env.DB.prepare('DELETE FROM projects WHERE user_id = ?').bind(id),
-        c.env.DB.prepare('DELETE FROM drive_connections WHERE user_id = ?').bind(id),
-        c.env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id),
+        c.env.DB.prepare("DELETE FROM ai_interactions WHERE user_id = ?").bind(id),
+        c.env.DB.prepare("DELETE FROM export_jobs WHERE user_id = ?").bind(id),
+        c.env.DB.prepare(
+          "DELETE FROM chapters WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)",
+        ).bind(id),
+        c.env.DB.prepare("DELETE FROM projects WHERE user_id = ?").bind(id),
+        c.env.DB.prepare("DELETE FROM drive_connections WHERE user_id = ?").bind(id),
+        c.env.DB.prepare("DELETE FROM users WHERE id = ?").bind(id),
       ]);
 
       console.log(`User deleted (cascaded): ${id}`);
