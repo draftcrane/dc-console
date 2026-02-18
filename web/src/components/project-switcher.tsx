@@ -68,7 +68,7 @@ export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherPro
       {/* Trigger button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 h-11 px-3 rounded-lg hover:bg-gray-100 transition-colors max-w-[200px]"
+        className="flex items-center gap-2 h-11 px-3 rounded-lg hover:bg-gray-100 transition-colors max-w-[280px]"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
       >
