@@ -455,10 +455,16 @@ export default function EditorPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Save status indicator (US-015) */}
+            <SaveIndicator status={saveStatus} onRetry={saveNow} />
+
+            <div className="w-px h-5 bg-border" aria-hidden="true" />
+
             {/* Persistent Drive connection status (US-005) */}
             {driveStatus && (
               <DriveStatusIndicator
                 connected={driveStatus.connected}
+                isProjectConnected={!!projectData?.driveFolderId} // NEW PROP
                 email={driveStatus.email}
                 onConnect={connectDriveWithProject}
                 onViewFiles={
@@ -496,10 +502,7 @@ export default function EditorPage() {
               </>
             )}
 
-            <div className="w-px h-5 bg-border" aria-hidden="true" />
-
-            {/* Save status indicator (US-015) */}
-            <SaveIndicator status={saveStatus} onRetry={saveNow} />
+            {/* SAVE_INDICATOR_PLACEHOLDER */}
 
             <ExportMenu
               projectId={projectId}
