@@ -71,9 +71,12 @@ export async function seedChapter(
  * Remove all rows from test tables in reverse FK order.
  */
 export async function cleanAll() {
-  await env.DB.exec(`
-    DELETE FROM chapters;
-    DELETE FROM projects;
-    DELETE FROM users;
-  `);
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM ai_interactions"),
+    env.DB.prepare("DELETE FROM export_jobs"),
+    env.DB.prepare("DELETE FROM chapters"),
+    env.DB.prepare("DELETE FROM projects"),
+    env.DB.prepare("DELETE FROM drive_connections"),
+    env.DB.prepare("DELETE FROM users"),
+  ]);
 }
