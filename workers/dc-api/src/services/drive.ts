@@ -22,13 +22,14 @@ interface GoogleTokenResponse {
 }
 
 /** Google Drive file metadata */
-interface DriveFile {
+export interface DriveFile {
   id: string;
   name: string;
   mimeType: string;
   webViewLink?: string;
   createdTime?: string;
   modifiedTime?: string;
+  size?: string;
 }
 
 /** Google Drive folder create response */
@@ -81,7 +82,7 @@ export class DriveService {
       client_id: this.env.GOOGLE_CLIENT_ID,
       redirect_uri: this.env.GOOGLE_REDIRECT_URI,
       response_type: "code",
-      scope: "https://www.googleapis.com/auth/drive.file",
+      scope: "https://www.googleapis.com/auth/drive.file email",
       access_type: "offline",
       prompt: "consent", // Always get refresh token
       state,
@@ -568,6 +569,100 @@ export class DriveService {
       console.error("Drive file update failed:", error);
       throw new Error("Failed to update file in Google Drive");
     }
+  }
+
+  /**
+   * Gets metadata for a file in Google Drive.
+   *
+   * @param accessToken - Valid access token
+   * @param fileId - The Drive file ID
+   * @returns File metadata (id, name, mimeType, size, modifiedTime)
+   */
+  async getFileMetadata(accessToken: string, fileId: string): Promise<DriveFile> {
+    validateDriveId(fileId);
+    const fields = "id,name,mimeType,size,modifiedTime";
+    const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}?fields=${fields}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Get file metadata failed:", error);
+      throw new Error("Failed to get file metadata from Drive");
+    }
+
+    return response.json() as Promise<DriveFile>;
+  }
+
+  /**
+   * Exports a Google Workspace file (Docs, Sheets, etc.) to a specified MIME type.
+   * Used for importing Google Docs as HTML.
+   *
+   * @param accessToken - Valid access token
+   * @param fileId - The Drive file ID (must be a Google Workspace file)
+   * @param mimeType - Target export MIME type (e.g. "text/html")
+   * @returns The exported content as a string
+   * @throws Error if the exported file exceeds 5MB
+   */
+  async exportFile(accessToken: string, fileId: string, mimeType: string): Promise<string> {
+    validateDriveId(fileId);
+    const params = new URLSearchParams({ mimeType });
+    const response = await fetch(
+      `${GOOGLE_DRIVE_API}/files/${fileId}/export?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("File export failed:", error);
+      throw new Error("Failed to export file from Drive");
+    }
+
+    // Reject files larger than 5MB to prevent memory issues
+    const contentLength = response.headers.get("Content-Length");
+    if (contentLength && parseInt(contentLength, 10) > 5 * 1024 * 1024) {
+      throw new Error("FILE_TOO_LARGE");
+    }
+
+    const text = await response.text();
+
+    // Double-check after reading (Content-Length may not always be present)
+    if (text.length > 5 * 1024 * 1024) {
+      throw new Error("FILE_TOO_LARGE");
+    }
+
+    return text;
+  }
+
+  /**
+   * Downloads a binary file from Google Drive.
+   * Used for non-Workspace files (images, PDFs, etc.).
+   *
+   * @param accessToken - Valid access token
+   * @param fileId - The Drive file ID
+   * @returns The file content as an ArrayBuffer
+   */
+  async downloadFile(accessToken: string, fileId: string): Promise<ArrayBuffer> {
+    validateDriveId(fileId);
+    const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}?alt=media`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("File download failed:", error);
+      throw new Error("Failed to download file from Drive");
+    }
+
+    return response.arrayBuffer();
   }
 
   /**
