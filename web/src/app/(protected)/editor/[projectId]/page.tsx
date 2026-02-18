@@ -474,7 +474,7 @@ export default function EditorPage() {
             <div className="w-px h-5 bg-border" aria-hidden="true" />
 
             {/* Save status indicator (US-015) */}
-            <SaveIndicator status={saveStatus} />
+            <SaveIndicator status={saveStatus} onRetry={saveNow} />
 
             <ExportMenu
               projectId={projectId}

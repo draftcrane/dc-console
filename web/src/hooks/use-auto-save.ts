@@ -206,7 +206,7 @@ export function useAutoSave({
       if (success) {
         setSaveStatus({ state: "saved", at: new Date() });
       } else {
-        setSaveStatus({ state: "error", message: "Save failed \u2014 retrying" });
+        setSaveStatus({ state: "error", message: "Save failed" });
       }
 
       // If content was queued while saving, save it now

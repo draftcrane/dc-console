@@ -4,6 +4,8 @@ import type { SaveStatus } from "@/hooks/use-auto-save";
 
 interface SaveIndicatorProps {
   status: SaveStatus;
+  /** Called when the user taps the error message to retry */
+  onRetry?: () => void;
 }
 
 /**
@@ -12,20 +14,25 @@ interface SaveIndicatorProps {
  * Per US-015 acceptance criteria:
  * - "Saving..." while save in progress
  * - "Saved [timestamp]" after successful save
- * - "Save failed - retrying" on failure
+ * - "Save failed - retrying" on failure with active retry
+ * - "Save failed" after retries exhausted (tappable to retry)
  * - Uses aria-live="polite" for screen readers
  */
-export function SaveIndicator({ status }: SaveIndicatorProps) {
+export function SaveIndicator({ status, onRetry }: SaveIndicatorProps) {
   const { text, className } = getStatusDisplay(status);
+
+  const isTappable = status.state === "error" && onRetry;
 
   return (
     <span
-      className={`text-xs transition-colors ${className}`}
+      className={`text-xs transition-colors ${className}${isTappable ? " cursor-pointer underline decoration-dotted" : ""}`}
       role="status"
       aria-live="polite"
       aria-atomic="true"
+      onClick={isTappable ? onRetry : undefined}
+      aria-label={isTappable ? `${text}. Tap to retry.` : undefined}
     >
-      {text}
+      {text}{isTappable ? " — tap to retry" : ""}
     </span>
   );
 }
