@@ -16,7 +16,7 @@ export default defineWorkersConfig(async () => {
             bindings: { TEST_MIGRATIONS: migrations },
             // Disable AI binding's remote requirement for CI
             // (AI functionality is not under test — it uses external APIs)
-            ai: { models: [] },
+            ai: { binding: "AI", models: [] },
           },
         },
       },
