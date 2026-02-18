@@ -462,7 +462,7 @@ export default function EditorPage() {
                 email={driveStatus.email}
                 onConnect={connectDriveWithProject}
                 onViewFiles={
-                  driveStatus.connected && projectData?.driveFolderId ? openDriveFiles : undefined
+                  driveStatus.connected ? openDriveFiles : undefined
                 }
               />
             )}
