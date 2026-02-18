@@ -71,7 +71,7 @@ export function AIRewriteSheet({
   const firstFocusableRef = useRef<HTMLTextAreaElement>(null);
   const lastFocusableRef = useRef<HTMLButtonElement>(null);
   const [editedInstruction, setEditedInstruction] = useState("");
-  const hasUserEdited = useRef(false);
+  const [hasUserEdited, setHasUserEdited] = useState(false);
   const [lastResultId, setLastResultId] = useState<string | null>(null);
   const rewriteEndRef = useRef<HTMLSpanElement>(null);
 
@@ -83,16 +83,15 @@ export function AIRewriteSheet({
   // Sync instruction field when a new result arrives or streaming starts.
   // This uses the React-documented "adjusting state during render" pattern
   // (https://react.dev/reference/react/useState#storing-information-from-previous-renders)
-  // to avoid cascading renders from effects. The hasUserEdited ref tracks whether
-  // the user manually edited the instruction textarea — we preserve their edits.
+  // to avoid cascading renders from effects.
   const resultId = result?.interactionId ?? null;
   const streamingKey =
     result && !result.interactionId && sheetState === "streaming" ? "streaming" : null;
   const trackingKey = resultId || streamingKey;
 
   if (trackingKey && trackingKey !== lastResultId) {
-    // eslint-disable-next-line react-hooks/refs -- reading ref to decide whether to reset derived state during render
-    if (!hasUserEdited.current) setEditedInstruction("");
+    if (!hasUserEdited) setEditedInstruction("");
+    setHasUserEdited(false);
     setLastResultId(trackingKey);
     if (resultId) {
       const isShort = result!.originalText.split(/\s+/).length < 50;
@@ -183,7 +182,7 @@ export function AIRewriteSheet({
 
   const handleRetry = () => {
     onRetry(result, editedInstruction.trim() || result.instruction);
-    hasUserEdited.current = false;
+    setHasUserEdited(false);
   };
 
   const handleDiscard = () => {
@@ -329,7 +328,7 @@ export function AIRewriteSheet({
               id="ai-instruction"
               value={editedInstruction}
               onChange={(e) => {
-                hasUserEdited.current = true;
+                setHasUserEdited(true);
                 setEditedInstruction(e.target.value);
               }}
               onKeyDown={(e) => {

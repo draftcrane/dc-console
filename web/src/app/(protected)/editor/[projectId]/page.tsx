@@ -198,39 +198,40 @@ export default function EditorPage() {
   // Word count state (US-024)
   const [selectionWordCount, setSelectionWordCount] = useState(0);
 
-  // Project actions: list, rename, duplicate, delete, Drive files, disconnect
-  const {
-    projects: allProjects,
-    renameDialogOpen,
-    openRenameDialog,
-    closeRenameDialog,
-    renameProject,
-    duplicateDialogOpen,
-    openDuplicateDialog,
-    closeDuplicateDialog,
-    duplicateProject,
-    isDuplicating,
-    deleteDialogOpen,
-    openDeleteDialog,
-    closeDeleteDialog,
-    handleDeleteProject,
-    driveFilesOpen,
-    openDriveFiles,
-    closeDriveFiles,
-    refreshDriveFiles,
-    connectDriveWithProject,
-    disconnectDriveDialogOpen,
-    openDisconnectDriveDialog,
-    closeDisconnectDriveDialog,
-  } = useProjectActions({
-    getToken: getToken as () => Promise<string | null>,
-    projectId,
-    fetchDriveFiles: fetchFiles,
-    resetDriveFiles,
-    connectDrive,
-    driveFolderId: projectData?.driveFolderId,
-  });
-
+      // Project actions: list, rename, duplicate, delete, Drive files, disconnect, connect project to Drive
+      const {
+        projects: allProjects,
+        renameDialogOpen,
+        openRenameDialog,
+        closeRenameDialog,
+        renameProject,
+        duplicateDialogOpen,
+        openDuplicateDialog,
+        closeDuplicateDialog,
+        duplicateProject,
+        isDuplicating,
+        deleteDialogOpen,
+        openDeleteDialog,
+        closeDeleteDialog,
+        handleDeleteProject,
+        driveFilesOpen,
+        openDriveFiles,
+        closeDriveFiles,
+        refreshDriveFiles,
+        connectDriveWithProject,
+        disconnectDriveDialogOpen,
+        openDisconnectDriveDialog,
+        closeDisconnectDriveDialog,
+        isConnectingDrive, // NEW
+        onConnectProjectToDrive, // NEW
+      } = useProjectActions({
+        getToken: getToken as () => Promise<string | null>,
+        projectId,
+        fetchDriveFiles: fetchFiles,
+        resetDriveFiles,
+        connectDrive,
+        driveFolderId: projectData?.driveFolderId,
+      });
   // Source materials hook (facade over sources, content, and Picker)
   const {
     sources,
@@ -674,10 +675,11 @@ export default function EditorPage() {
       <DriveFilesSheet
         isOpen={driveFilesOpen}
         files={driveFiles}
-        isLoading={driveFilesLoading}
+        isLoading={driveFilesLoading || isConnectingDrive}
         error={driveFilesError}
         onClose={closeDriveFiles}
         onRefresh={refreshDriveFiles}
+        onConnectDrive={onConnectProjectToDrive}
       />
 
       {/* Source materials panel */}

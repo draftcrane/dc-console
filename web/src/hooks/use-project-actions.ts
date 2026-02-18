@@ -62,6 +62,9 @@ export function useProjectActions({
   // Drive files sheet (US-007)
   const [driveFilesOpen, setDriveFilesOpen] = useState(false);
 
+  // Connect Project to Drive
+  const [isConnectingDrive, setIsConnectingDrive] = useState(false); // NEW STATE
+
   // Disconnect Drive dialog (US-008)
   const [disconnectDriveDialogOpen, setDisconnectDriveDialogOpen] = useState(false);
 
@@ -238,6 +241,39 @@ export function useProjectActions({
   const openDisconnectDriveDialog = useCallback(() => setDisconnectDriveDialogOpen(true), []);
   const closeDisconnectDriveDialog = useCallback(() => setDisconnectDriveDialogOpen(false), []);
 
+  // Connect Project to Drive
+  const onConnectProjectToDrive = useCallback(async () => {
+    if (!projectId || !fetchDriveFiles) return;
+    setIsConnectingDrive(true);
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/projects/${projectId}/connect-drive`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to connect project to Google Drive");
+      }
+
+      const result = await response.json();
+      const newDriveFolderId = result.driveFolderId;
+
+      // Refresh the Drive files list using the newly created folder ID
+      if (newDriveFolderId) {
+        fetchDriveFiles(newDriveFolderId);
+      } else {
+        console.warn("connect-drive API did not return driveFolderId");
+      }
+    } catch (err) {
+      console.error("Failed to connect project to Drive:", err);
+    } finally {
+      setIsConnectingDrive(false);
+    }
+  }, [getToken, projectId, fetchDriveFiles]);
+
   return {
     projects,
     isLoadingProjects,
@@ -265,6 +301,9 @@ export function useProjectActions({
     closeDriveFiles,
     refreshDriveFiles,
     connectDriveWithProject,
+
+    isConnectingDrive, // EXPOSED
+    onConnectProjectToDrive, // EXPOSED
 
     disconnectDriveDialogOpen,
     openDisconnectDriveDialog,
