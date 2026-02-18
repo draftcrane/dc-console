@@ -67,6 +67,52 @@ export async function seedChapter(
   return { id, projectId, title, sortOrder };
 }
 
+export async function seedSource(
+  projectId: string,
+  overrides?: {
+    id?: string;
+    driveFileId?: string;
+    title?: string;
+    mimeType?: string;
+    sortOrder?: number;
+    status?: string;
+    cachedAt?: string;
+    wordCount?: number;
+    r2Key?: string;
+  },
+) {
+  const id = overrides?.id ?? ulid();
+  const driveFileId = overrides?.driveFileId ?? `drive-${ulid()}`;
+  const title = overrides?.title ?? "Source Doc";
+  const mimeType = overrides?.mimeType ?? "application/vnd.google-apps.document";
+  const sortOrder = overrides?.sortOrder ?? 1;
+  const status = overrides?.status ?? "active";
+  const cachedAt = overrides?.cachedAt ?? null;
+  const wordCount = overrides?.wordCount ?? 0;
+  const r2Key = overrides?.r2Key ?? null;
+  const ts = now();
+  await env.DB.prepare(
+    `INSERT INTO source_materials (id, project_id, drive_file_id, title, mime_type, sort_order, status, cached_at, word_count, r2_key, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      id,
+      projectId,
+      driveFileId,
+      title,
+      mimeType,
+      sortOrder,
+      status,
+      cachedAt,
+      wordCount,
+      r2Key,
+      ts,
+      ts,
+    )
+    .run();
+  return { id, projectId, driveFileId, title };
+}
+
 /**
  * Remove all rows from test tables in reverse FK order.
  */
@@ -74,6 +120,7 @@ export async function cleanAll() {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM ai_interactions"),
     env.DB.prepare("DELETE FROM export_jobs"),
+    env.DB.prepare("DELETE FROM source_materials"),
     env.DB.prepare("DELETE FROM chapters"),
     env.DB.prepare("DELETE FROM projects"),
     env.DB.prepare("DELETE FROM drive_connections"),

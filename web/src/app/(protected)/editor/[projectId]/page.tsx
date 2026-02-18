@@ -26,8 +26,11 @@ import { useChapterManagement } from "@/hooks/use-chapter-management";
 import { useEditorAI } from "@/hooks/use-editor-ai";
 import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
+import { useSourceActions } from "@/hooks/use-source-actions";
 import { ProjectSwitcher } from "@/components/project-switcher";
 import { SettingsMenu } from "@/components/settings-menu";
+import { SourcesPanel } from "@/components/sources-panel";
+import { SourceViewerSheet } from "@/components/source-viewer-sheet";
 
 interface Chapter {
   id: string;
@@ -227,6 +230,27 @@ export default function EditorPage() {
     connectDrive,
     driveFolderId: projectData?.driveFolderId,
   });
+
+  // Source materials hook (facade over sources, content, and Picker)
+  const {
+    sources,
+    isSourcesLoading,
+    isSourcesPanelOpen,
+    openSourcesPanel,
+    closeSourcesPanel,
+    isViewerOpen,
+    activeSource,
+    viewerContent,
+    viewerWordCount,
+    isContentLoading,
+    openSourceViewer,
+    closeSourceViewer,
+    addFromPicker,
+    isPickerLoading,
+    removeSource,
+    importSourceAsChapter,
+    error: sourcesError,
+  } = useSourceActions(projectId);
 
   // Fetch project data
   useEffect(() => {
@@ -489,6 +513,7 @@ export default function EditorPage() {
               driveConnected={driveStatus?.connected ?? false}
               hasDriveFolder={!!projectData?.driveFolderId}
               onViewDriveFiles={openDriveFiles}
+              onViewSources={openSourcesPanel}
               onDisconnectDrive={openDisconnectDriveDialog}
               onRenameBook={openRenameDialog}
               onDuplicateBook={openDuplicateDialog}
@@ -653,6 +678,62 @@ export default function EditorPage() {
         error={driveFilesError}
         onClose={closeDriveFiles}
         onRefresh={refreshDriveFiles}
+      />
+
+      {/* Source materials panel */}
+      <SourcesPanel
+        isOpen={isSourcesPanelOpen}
+        sources={sources}
+        isLoading={isSourcesLoading}
+        error={sourcesError}
+        isPickerLoading={isPickerLoading}
+        onClose={closeSourcesPanel}
+        onAddFromPicker={addFromPicker}
+        onViewSource={openSourceViewer}
+        onImportAsChapter={async (sourceId) => {
+          const result = await importSourceAsChapter(sourceId);
+          if (result) {
+            // Refresh project data to include the new chapter
+            const token = await getToken();
+            const response = await fetch(`${API_URL}/projects/${projectId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (response.ok) {
+              const data: ProjectData = await response.json();
+              setProjectData(data);
+              setActiveChapterId(result.chapterId);
+            }
+            closeSourcesPanel();
+          }
+        }}
+        onRemoveSource={removeSource}
+      />
+
+      {/* Source content viewer */}
+      <SourceViewerSheet
+        isOpen={isViewerOpen}
+        title={activeSource?.title ?? ""}
+        content={viewerContent}
+        wordCount={viewerWordCount}
+        isLoading={isContentLoading}
+        error={sourcesError}
+        onClose={closeSourceViewer}
+        onImportAsChapter={async () => {
+          if (!activeSource) return;
+          const result = await importSourceAsChapter(activeSource.id);
+          if (result) {
+            const token = await getToken();
+            const response = await fetch(`${API_URL}/projects/${projectId}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (response.ok) {
+              const data: ProjectData = await response.json();
+              setProjectData(data);
+              setActiveChapterId(result.chapterId);
+            }
+            closeSourcesPanel();
+          }
+        }}
       />
     </div>
   );

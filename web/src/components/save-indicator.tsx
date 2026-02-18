@@ -32,7 +32,8 @@ export function SaveIndicator({ status, onRetry }: SaveIndicatorProps) {
       onClick={isTappable ? onRetry : undefined}
       aria-label={isTappable ? `${text}. Tap to retry.` : undefined}
     >
-      {text}{isTappable ? " — tap to retry" : ""}
+      {text}
+      {isTappable ? " — tap to retry" : ""}
     </span>
   );
 }

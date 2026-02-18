@@ -6,6 +6,7 @@
  * - GET /drive/authorize - Returns Google OAuth authorization URL
  * - GET /drive/callback - OAuth callback, exchanges code for tokens
  * - GET /drive/connection - Returns Drive connection status (no tokens exposed)
+ * - GET /drive/picker-token - Returns short-lived OAuth token for Google Picker
  * - POST /drive/folders - Creates Book Folder in Drive
  * - GET /drive/folders/:folderId/children - Lists files in Book Folder
  * - DELETE /drive/connection - Disconnects Drive, revokes token
@@ -15,8 +16,15 @@ import { Hono } from "hono";
 import { ulid } from "ulidx";
 import type { Env } from "../types/index.js";
 import { requireAuth, validationError, AppError } from "../middleware/index.js";
-import { standardRateLimit } from "../middleware/rate-limit.js";
+import { standardRateLimit, rateLimit } from "../middleware/rate-limit.js";
 import { DriveService } from "../services/drive.js";
+
+/** Picker token rate limit: 10 req/min (only needed once per Picker open) */
+const pickerTokenRateLimit = rateLimit({
+  prefix: "picker-token",
+  maxRequests: 10,
+  windowSeconds: 60,
+});
 
 const drive = new Hono<{ Bindings: Env }>();
 
@@ -161,6 +169,47 @@ drive.get("/connection", requireAuth, standardRateLimit, async (c) => {
     connected: true,
     email: row.drive_email,
     connectedAt: row.created_at,
+  });
+});
+
+/**
+ * GET /drive/picker-token
+ * Returns a short-lived OAuth access token for Google Picker.
+ *
+ * The Google Picker API runs client-side and needs the user's access token
+ * to display their files. This is Google's documented pattern:
+ * https://developers.google.com/workspace/drive/picker/guides/overview
+ *
+ * Security:
+ * - Token is scoped to drive.file (narrow access)
+ * - Token is short-lived (~1 hour)
+ * - Tighter rate limit (10 req/min) since token is only needed once per Picker open
+ * - Frontend must use token immediately and never persist it
+ */
+drive.get("/picker-token", requireAuth, pickerTokenRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const driveService = new DriveService(c.env);
+
+  const tokens = await driveService.getValidTokens(userId);
+  if (!tokens) {
+    driveNotConnected();
+  }
+
+  // Calculate remaining lifetime in seconds
+  const expiresIn = Math.max(0, Math.floor((tokens.expiresAt.getTime() - Date.now()) / 1000));
+
+  console.info(
+    JSON.stringify({
+      level: "info",
+      event: "picker_token_issued",
+      user_id: userId,
+      expires_in: expiresIn,
+    }),
+  );
+
+  return c.json({
+    accessToken: tokens.accessToken,
+    expiresIn,
   });
 });
 

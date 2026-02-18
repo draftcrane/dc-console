@@ -9,6 +9,8 @@ interface SettingsMenuProps {
   hasDriveFolder: boolean;
   /** Open Drive files sheet */
   onViewDriveFiles: () => void;
+  /** Open source materials panel */
+  onViewSources: () => void;
   /** Open disconnect Drive dialog */
   onDisconnectDrive: () => void;
   /** Open rename book dialog */
@@ -36,6 +38,7 @@ export function SettingsMenu({
   driveConnected,
   hasDriveFolder,
   onViewDriveFiles,
+  onViewSources,
   onDisconnectDrive,
   onRenameBook,
   onDuplicateBook,
@@ -129,6 +132,34 @@ export function SettingsMenu({
                   <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
                 </svg>
                 View Drive Files
+              </button>
+              <div className="my-1 border-t border-gray-200" role="separator" />
+            </>
+          )}
+
+          {/* Sources - always available when Drive is connected */}
+          {driveConnected && (
+            <>
+              <button
+                onClick={() => handleMenuItem(onViewSources)}
+                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+                           transition-colors min-h-[44px] flex items-center gap-2"
+                role="menuitem"
+              >
+                <svg
+                  className="w-4 h-4 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  />
+                </svg>
+                Sources
               </button>
               <div className="my-1 border-t border-gray-200" role="separator" />
             </>
