@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { useBackup } from "@/hooks/use-backup";
 import { useProjectActions, type ProjectSummary } from "@/hooks/use-project-actions";
-import { DeleteProjectDialog } from "@/components/delete-project-dialog";
+import { DeleteProjectDialog } from "@/components/project/delete-project-dialog";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 

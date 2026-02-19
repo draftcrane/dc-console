@@ -4,11 +4,11 @@ import type { ProjectData } from "@/types/editor";
 import type { SaveStatus } from "@/hooks/use-auto-save";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
 import type { ProjectSummary } from "@/hooks/use-project-actions";
-import { ProjectSwitcher } from "@/components/project-switcher";
-import { SaveIndicator } from "@/components/save-indicator";
-import { DriveStatusIndicator } from "@/components/drive-status-indicator";
-import { ExportMenu } from "@/components/export-menu";
-import { SettingsMenu } from "@/components/settings-menu";
+import { ProjectSwitcher } from "@/components/project/project-switcher";
+import { SaveIndicator } from "./save-indicator";
+import { DriveStatusIndicator } from "@/components/drive/drive-status-indicator";
+import { ExportMenu } from "@/components/project/export-menu";
+import { SettingsMenu } from "@/components/project/settings-menu";
 
 interface EditorToolbarProps {
   projectData: ProjectData;

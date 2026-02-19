@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import type { Chapter } from "@/types/editor";
-import { ChapterEditor, type ChapterEditorHandle } from "@/components/chapter-editor";
+import { ChapterEditor, type ChapterEditorHandle } from "./chapter-editor";
 
 interface EditorWritingAreaProps {
   editorRef: RefObject<ChapterEditorHandle | null>;

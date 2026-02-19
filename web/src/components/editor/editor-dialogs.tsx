@@ -3,24 +3,24 @@
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { ProjectData } from "@/types/editor";
-import type { AIRewriteResult } from "@/components/ai-rewrite-sheet";
+import type { AIRewriteResult } from "./ai-rewrite-sheet";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
 import type { SourceMaterial } from "@/hooks/use-sources";
 import type { DriveAccount } from "@/hooks/use-drive-accounts";
 import type { DriveFileItem } from "@/hooks/use-drive-files";
 import type { DriveBrowseItem } from "@/hooks/use-drive-browser";
-import { DeleteProjectDialog } from "@/components/delete-project-dialog";
-import { RenameProjectDialog } from "@/components/rename-project-dialog";
-import { DuplicateProjectDialog } from "@/components/duplicate-project-dialog";
-import { DeleteChapterDialog } from "@/components/delete-chapter-dialog";
-import { DisconnectDriveDialog } from "@/components/disconnect-drive-dialog";
-import { AIRewriteSheet } from "@/components/ai-rewrite-sheet";
-import { DriveFilesSheet } from "@/components/drive-files-sheet";
-import { SourcesPanel } from "@/components/sources-panel";
-import { AddSourceSheet } from "@/components/add-source-sheet";
-import { DriveBrowserSheet } from "@/components/drive-browser-sheet";
-import { AccountsSheet } from "@/components/accounts-sheet";
-import { SourceViewerSheet } from "@/components/source-viewer-sheet";
+import { DeleteProjectDialog } from "@/components/project/delete-project-dialog";
+import { RenameProjectDialog } from "@/components/project/rename-project-dialog";
+import { DuplicateProjectDialog } from "@/components/project/duplicate-project-dialog";
+import { DeleteChapterDialog } from "@/components/project/delete-chapter-dialog";
+import { DisconnectDriveDialog } from "@/components/project/disconnect-drive-dialog";
+import { AIRewriteSheet } from "./ai-rewrite-sheet";
+import { DriveFilesSheet } from "@/components/drive/drive-files-sheet";
+import { SourcesPanel } from "@/components/drive/sources-panel";
+import { AddSourceSheet } from "@/components/drive/add-source-sheet";
+import { DriveBrowserSheet } from "@/components/drive/drive-browser-sheet";
+import { AccountsSheet } from "@/components/project/accounts-sheet";
+import { SourceViewerSheet } from "@/components/drive/source-viewer-sheet";
 
 interface EditorDialogsProps {
   projectData: ProjectData | null;

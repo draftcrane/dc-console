@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { useAIRewrite, type SheetState } from "@/hooks/use-ai-rewrite";
-import type { AIRewriteResult } from "@/components/ai-rewrite-sheet";
-import type { ChapterEditorHandle } from "@/components/chapter-editor";
+import type { AIRewriteResult } from "@/components/editor/ai-rewrite-sheet";
+import type { ChapterEditorHandle } from "@/components/editor/chapter-editor";
 
 interface Chapter {
   id: string;

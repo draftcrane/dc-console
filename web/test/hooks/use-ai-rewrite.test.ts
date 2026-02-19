@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useAIRewrite } from "@/hooks/use-ai-rewrite";
-import type { AIRewriteResult } from "@/components/ai-rewrite-sheet";
+import type { AIRewriteResult } from "@/components/editor/ai-rewrite-sheet";
 
 /**
  * Tests for useAIRewrite — the AI rewrite state machine hook.
