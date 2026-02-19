@@ -282,6 +282,8 @@ export default function EditorPage() {
 
         const data: ProjectData = await projectResponse.json();
         setProjectData(data);
+        console.log("Project data fetched:", data); // NEW LOG
+        console.log("projectData?.driveFolderId:", data.driveFolderId); // NEW LOG
 
         if (data.chapters.length > 0 && !activeChapterId) {
           const sortedChapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
