@@ -365,12 +365,9 @@ describe("Integration: Chapters", () => {
     const ch1 = await seedChapter(projectId, { title: "First", sortOrder: 1 });
     const ch2 = await seedChapter(projectId, { title: "Second", sortOrder: 2 });
 
-    const res = await jsonRequest(
-      "PATCH",
-      `/projects/${projectId}/chapters/reorder`,
-      userId,
-      { chapterIds: [ch2.id, ch1.id] },
-    );
+    const res = await jsonRequest("PATCH", `/projects/${projectId}/chapters/reorder`, userId, {
+      chapterIds: [ch2.id, ch1.id],
+    });
 
     expect(res.status).toBe(200);
 
@@ -501,9 +498,7 @@ describe("Integration: Export", () => {
     // Put content in R2 for the export
     const r2Key = `chapters/${ch.id}/content.html`;
     await env.EXPORTS_BUCKET.put(r2Key, "<p>Content for export testing.</p>");
-    await env.DB.prepare(`UPDATE chapters SET r2_key = ? WHERE id = ?`)
-      .bind(r2Key, ch.id)
-      .run();
+    await env.DB.prepare(`UPDATE chapters SET r2_key = ? WHERE id = ?`).bind(r2Key, ch.id).run();
 
     const res = await jsonRequest("POST", `/projects/${projectId}/export`, userId, {
       format: "epub",
@@ -530,9 +525,7 @@ describe("Integration: Export", () => {
     const ch = await seedChapter(projectId, { sortOrder: 1, wordCount: 3 });
     const r2Key = `chapters/${ch.id}/content.html`;
     await env.EXPORTS_BUCKET.put(r2Key, "<p>Status check content.</p>");
-    await env.DB.prepare(`UPDATE chapters SET r2_key = ? WHERE id = ?`)
-      .bind(r2Key, ch.id)
-      .run();
+    await env.DB.prepare(`UPDATE chapters SET r2_key = ? WHERE id = ?`).bind(r2Key, ch.id).run();
 
     // Create an export first
     const createRes = await jsonRequest("POST", `/projects/${projectId}/export`, userId, {
@@ -562,9 +555,7 @@ describe("Integration: Export", () => {
     const ch = await seedChapter(projectId, { sortOrder: 1, wordCount: 2 });
     const r2Key = `chapters/${ch.id}/content.html`;
     await env.EXPORTS_BUCKET.put(r2Key, "<p>Download test.</p>");
-    await env.DB.prepare(`UPDATE chapters SET r2_key = ? WHERE id = ?`)
-      .bind(r2Key, ch.id)
-      .run();
+    await env.DB.prepare(`UPDATE chapters SET r2_key = ? WHERE id = ?`).bind(r2Key, ch.id).run();
 
     // Create export
     const createRes = await jsonRequest("POST", `/projects/${projectId}/export`, userId, {
@@ -610,9 +601,7 @@ describe("Integration: Backup", () => {
     // Put content in R2
     const r2Key = `chapters/${ch.id}/content.html`;
     await env.EXPORTS_BUCKET.put(r2Key, "<p>Backup content here.</p>");
-    await env.DB.prepare(`UPDATE chapters SET r2_key = ? WHERE id = ?`)
-      .bind(r2Key, ch.id)
-      .run();
+    await env.DB.prepare(`UPDATE chapters SET r2_key = ? WHERE id = ?`).bind(r2Key, ch.id).run();
 
     const res = await SELF.fetch(`${BASE}/projects/${proj.id}/backup`, {
       headers: authHeaders(userId),
