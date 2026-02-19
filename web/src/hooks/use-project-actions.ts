@@ -264,6 +264,7 @@ export function useProjectActions({
 
       const result = await response.json();
       const newDriveFolderId = result.driveFolderId;
+      console.log("Connect Drive API returned newDriveFolderId:", newDriveFolderId); // NEW LOG
 
       // Refresh the Drive files list using the newly created folder ID
       if (newDriveFolderId) {
