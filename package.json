@@ -14,5 +14,8 @@
   },
   "devDependencies": {
     "prettier": "^3.5.0"
+  },
+  "overrides": {
+    "minimatch": "^10.2.1"
   }
 }
