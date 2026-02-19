@@ -20,7 +20,7 @@ const ContentSecurityPolicy = `
   img-src 'self' blob: data: https://*.clerk.com https://img.clerk.com;
   font-src 'self';
   connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://api.draftcrane.app https://*.googleapis.com;
-  frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://docs.google.com;
+  frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://docs.google.com https://accounts.google.com;
   worker-src 'self' blob:;
   object-src 'none';
   base-uri 'self';

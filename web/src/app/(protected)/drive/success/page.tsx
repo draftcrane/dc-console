@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useSyncExternalStore } from "react";
+import { useEffect, useRef, useCallback, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import { useDriveStatus } from "@/hooks/use-drive-status";
 
 const STORAGE_KEY = "dc_pending_drive_project";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 /**
  * Module-level snapshot for the pending project ID.
@@ -50,12 +52,17 @@ function getServerSnapshot(): string | null {
  */
 export default function DriveSuccessPage() {
   const router = useRouter();
+  const { getToken } = useAuth();
   const { status, isLoading: isLoadingDrive } = useDriveStatus();
   const projectId = useSyncExternalStore(
     subscribePendingProject,
     readPendingProject,
     getServerSnapshot,
   );
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [folderId, setFolderId] = useState<string | null>(null);
+  const [folderError, setFolderError] = useState<string | null>(null);
+  const createAttempted = useRef(false);
 
   // Auto-redirect after successful connection
   useEffect(() => {
@@ -74,6 +81,43 @@ export default function DriveSuccessPage() {
     const destination = projectId ? `/editor/${projectId}` : "/dashboard";
     router.push(destination);
   }, [projectId, router]);
+
+  const createFolder = useCallback(async () => {
+    if (!projectId) return;
+    setIsCreatingFolder(true);
+    setFolderError(null);
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/projects/${projectId}/connect-drive`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error || "Failed to create Drive folder");
+      }
+
+      const data = (await response.json()) as { driveFolderId: string };
+      setFolderId(data.driveFolderId);
+    } catch (err) {
+      setFolderError(err instanceof Error ? err.message : "Failed to create Drive folder");
+    } finally {
+      setIsCreatingFolder(false);
+    }
+  }, [getToken, projectId]);
+
+  // After OAuth success, auto-create the book folder if projectId is present.
+  useEffect(() => {
+    if (createAttempted.current) return;
+    if (isLoadingDrive) return;
+    if (!status?.connected) return;
+    if (!projectId) return;
+    createAttempted.current = true;
+    void createFolder();
+  }, [isLoadingDrive, status?.connected, projectId, createFolder]);
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-4">
@@ -103,6 +147,47 @@ export default function DriveSuccessPage() {
         ) : (
           <p className="text-muted-foreground">Your Google Drive is now connected.</p>
         )}
+
+        {projectId && (
+          <div className="mt-4">
+            {isCreatingFolder && (
+              <p className="text-sm text-muted-foreground">Creating your book folder...</p>
+            )}
+            {folderId && (
+              <div className="text-sm text-muted-foreground">
+                Folder created.{" "}
+                <a
+                  className="text-foreground underline"
+                  href={`https://drive.google.com/drive/folders/${folderId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View in Google Drive
+                </a>
+              </div>
+            )}
+            {folderError && (
+              <div className="mt-3">
+                <p className="text-sm text-red-600">{folderError}</p>
+                <button
+                  onClick={createFolder}
+                  className="mt-2 inline-flex items-center justify-center rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Retry folder creation
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-6">
+          <button
+            onClick={handleContinue}
+            className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+          >
+            Continue
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -202,6 +202,12 @@ export function useGooglePicker() {
                 console.info(JSON.stringify({ event: "picker_open_cancelled" }));
                 setIsLoading(false);
                 resolve([]);
+              } else if (data.action === google.picker.Action.ERROR || data.action === "error") {
+                const message = data.error || "Google Picker failed to load. Try again.";
+                console.error(JSON.stringify({ event: "picker_open_error", message }));
+                setError(message);
+                setIsLoading(false);
+                resolve([]);
               }
             })
             .setOrigin(window.location.protocol + "//" + window.location.host)

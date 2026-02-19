@@ -67,8 +67,13 @@ export default function SetupPage() {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to create project");
+        const data = (await response.json().catch(() => null)) as {
+          error?: string;
+          requestId?: string;
+        } | null;
+        const base = data?.error || "Failed to create project";
+        const withRequest = data?.requestId ? `${base} (request ${data.requestId})` : base;
+        throw new Error(withRequest);
       }
 
       const project = await response.json();
@@ -89,6 +94,9 @@ export default function SetupPage() {
    */
   const connectDriveWithProject = useCallback(async () => {
     setIsConnecting(true);
+    if (createdProjectId) {
+      sessionStorage.setItem("dc_pending_drive_project", createdProjectId);
+    }
     await connectDrive();
     // If connectDrive redirects to Google OAuth, we won't reach here.
     // If it fails, the hook sets driveError and we fall through.

@@ -21,12 +21,14 @@ declare namespace google.picker {
   enum Action {
     CANCEL = "cancel",
     PICKED = "picked",
+    ERROR = "error",
   }
 
   interface ResponseObject {
     action: string;
     docs?: DocumentObject[];
     viewToken?: string[];
+    error?: string;
   }
 
   interface DocumentObject {

@@ -92,6 +92,8 @@ export const requireAuth: MiddlewareHandler<{ Bindings: Env }> = async (c, next)
       name: payload.name,
     });
 
+    await ensureUserRecord(c.env, payload);
+
     await next();
   } catch (err) {
     console.error("Auth verification failed:", err);
@@ -217,6 +219,73 @@ async function fetchAndCacheJWKS(env: Env): Promise<JWKS> {
   });
 
   return jwks;
+}
+
+interface ClerkUserResponse {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email_addresses?: Array<{
+    id: string;
+    email_address: string;
+  }>;
+  primary_email_address_id?: string | null;
+}
+
+async function ensureUserRecord(env: Env, payload: ClerkJWTPayload): Promise<void> {
+  const userId = payload.sub;
+
+  let email = payload.email;
+  let displayName = payload.name;
+
+  if (!email) {
+    const profile = await fetchClerkUserProfile(env, userId);
+    email = profile.email;
+    displayName = profile.displayName;
+  }
+
+  if (!email) {
+    authRequired("User profile missing email");
+  }
+
+  const resolvedName = displayName || email || "User";
+
+  await env.DB.prepare(
+    `INSERT INTO users (id, email, display_name, updated_at)
+     VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+     ON CONFLICT (id) DO UPDATE SET
+       email = excluded.email,
+       display_name = excluded.display_name,
+       updated_at = excluded.updated_at`,
+  )
+    .bind(userId, email, resolvedName)
+    .run();
+}
+
+async function fetchClerkUserProfile(
+  env: Env,
+  userId: string,
+): Promise<{ email: string | null; displayName: string | null }> {
+  const response = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+    headers: {
+      Authorization: `Bearer ${env.CLERK_SECRET_KEY}`,
+    },
+  });
+
+  if (!response.ok) {
+    console.error("Failed to fetch Clerk user profile:", response.status);
+    return { email: null, displayName: null };
+  }
+
+  const data = (await response.json()) as ClerkUserResponse;
+  const primaryEmail = data.email_addresses?.find(
+    (e) => e.id === data.primary_email_address_id,
+  )?.email_address;
+  const email = primaryEmail || data.email_addresses?.[0]?.email_address || null;
+  const displayName =
+    [data.first_name, data.last_name].filter(Boolean).join(" ") || email || null;
+
+  return { email, displayName };
 }
 
 /**
