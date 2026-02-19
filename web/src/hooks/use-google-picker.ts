@@ -39,6 +39,14 @@ export function useGooglePicker() {
     }
 
     return new Promise((resolve, reject) => {
+      const withTimeout = (promiseFactory: () => void, ms: number, label: string) => {
+        const timeout = window.setTimeout(() => {
+          reject(new Error(`${label} timed out`));
+        }, ms);
+        const clear = () => window.clearTimeout(timeout);
+        return { clear, run: promiseFactory };
+      };
+
       const handleLoaded = () => {
         if (!window.gapi) {
           reject(new Error("Google API client was not available after script load"));
@@ -66,13 +74,36 @@ export function useGooglePicker() {
         `script[src="${GOOGLE_PICKER_SCRIPT_URL}"]`,
       );
       if (existing) {
-        existing.addEventListener("load", handleLoaded, { once: true });
-        existing.addEventListener(
-          "error",
-          () => reject(new Error("Failed to load Google Picker API script")),
-          { once: true },
-        );
-        return;
+        const loadedFlag = existing.getAttribute("data-dc-loaded") === "true";
+        const failedFlag = existing.getAttribute("data-dc-failed") === "true";
+        if (loadedFlag && !failedFlag) {
+          handleLoaded();
+          return;
+        }
+
+        if (failedFlag) {
+          existing.remove();
+        } else {
+          const timer = withTimeout(() => {}, 10000, "Google Picker script load");
+          existing.addEventListener(
+            "load",
+            () => {
+              timer.clear();
+              handleLoaded();
+            },
+            { once: true },
+          );
+          existing.addEventListener(
+            "error",
+            () => {
+              timer.clear();
+              reject(new Error("Failed to load Google Picker API script"));
+            },
+            { once: true },
+          );
+          timer.run();
+          return;
+        }
       }
 
       // Load the gapi script
@@ -80,9 +111,20 @@ export function useGooglePicker() {
       script.src = GOOGLE_PICKER_SCRIPT_URL;
       script.async = true;
       script.defer = true;
-      script.onload = handleLoaded;
-      script.onerror = () => reject(new Error("Failed to load Google Picker API script"));
+      const timer = withTimeout(() => {}, 10000, "Google Picker script load");
+      script.onload = () => {
+        script.setAttribute("data-dc-loaded", "true");
+        script.setAttribute("data-dc-failed", "false");
+        timer.clear();
+        handleLoaded();
+      };
+      script.onerror = () => {
+        script.setAttribute("data-dc-failed", "true");
+        timer.clear();
+        reject(new Error("Failed to load Google Picker API script"));
+      };
       document.head.appendChild(script);
+      timer.run();
     });
   }, []);
 
@@ -165,5 +207,9 @@ export function useGooglePicker() {
     }
   }, [loadPickerApi, fetchPickerToken]);
 
-  return { openPicker, isLoading, error };
+  const resetError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  return { openPicker, isLoading, error, resetError };
 }

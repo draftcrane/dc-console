@@ -252,21 +252,26 @@ export function DriveFilesSheet({
                 Files will appear here as you save chapters and export your book.
               </p>
               {!isProjectConnected && onConnectDrive && (
-                <button
-                  type="button"
-                  onClick={onConnectDrive}
-                  className="mt-4 inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                >
-                  <svg
-                    className="-ml-1 mr-2 h-5 w-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
+                <>
+                  <button
+                    type="button"
+                    onClick={onConnectDrive}
+                    className="mt-4 inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                   >
-                    <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1 14H9v-3H8v-2h1V8h2v3h1v2h-1v3zm6-5h-3v-2h3V9h-3V7h-2v10h2v-3h1v-2h-1z" />
-                  </svg>
-                  Connect Project to Google Drive
-                </button>
+                    <svg
+                      className="-ml-1 mr-2 h-5 w-5"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1 14H9v-3H8v-2h1V8h2v3h1v2h-1v3zm6-5h-3v-2h3V9h-3V7h-2v10h2v-3h1v-2h-1z" />
+                    </svg>
+                    Connect Project to Google Drive
+                  </button>
+                  <p className="text-xs text-gray-400 mt-2">
+                    This links the project to your already connected Drive account.
+                  </p>
+                </>
               )}
               {isProjectConnected && onAddSources && (
                 <>

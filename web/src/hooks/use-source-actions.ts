@@ -30,7 +30,12 @@ export function useSourceActions(projectId: string) {
     reset: resetContent,
   } = useSourceContent();
 
-  const { openPicker, isLoading: isPickerLoading, error: pickerError } = useGooglePicker();
+  const {
+    openPicker,
+    isLoading: isPickerLoading,
+    error: pickerError,
+    resetError: resetPickerError,
+  } = useGooglePicker();
 
   // Panel state
   const [isSourcesPanelOpen, setIsSourcesPanelOpen] = useState(false);
@@ -45,15 +50,17 @@ export function useSourceActions(projectId: string) {
   }, [isSourcesPanelOpen, fetchSources]);
 
   const openSourcesPanel = useCallback(() => {
+    resetPickerError();
     setIsSourcesPanelOpen(true);
-  }, []);
+  }, [resetPickerError]);
 
   const closeSourcesPanel = useCallback(() => {
     setIsSourcesPanelOpen(false);
     setIsViewerOpen(false);
     setActiveSource(null);
     resetContent();
-  }, [resetContent]);
+    resetPickerError();
+  }, [resetContent, resetPickerError]);
 
   const openSourceViewer = useCallback(
     (source: SourceMaterial) => {
