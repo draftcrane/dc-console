@@ -14,6 +14,14 @@ interface SourcesPanelProps {
   onViewSource: (source: SourceMaterial) => void;
   onImportAsChapter: (sourceId: string) => void;
   onRemoveSource: (sourceId: string) => void;
+  /** Active chapter name for link/unlink display */
+  activeChapterTitle?: string;
+  /** IDs of sources currently linked to the active chapter */
+  linkedSourceIds?: Set<string>;
+  /** Link a source to the active chapter */
+  onLinkSource?: (sourceId: string) => void;
+  /** Unlink a source from the active chapter */
+  onUnlinkSource?: (sourceId: string) => void;
 }
 
 function formatRelativeTime(dateStr?: string | null): string {
@@ -52,6 +60,10 @@ export function SourcesPanel({
   onViewSource,
   onImportAsChapter,
   onRemoveSource,
+  activeChapterTitle,
+  linkedSourceIds,
+  onLinkSource,
+  onUnlinkSource,
 }: SourcesPanelProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -215,6 +227,19 @@ export function SourcesPanel({
                   onView={() => onViewSource(source)}
                   onImport={() => onImportAsChapter(source.id)}
                   onRemove={() => onRemoveSource(source.id)}
+                  isLinked={linkedSourceIds?.has(source.id) ?? false}
+                  activeChapterTitle={activeChapterTitle}
+                  onToggleLink={
+                    onLinkSource && onUnlinkSource
+                      ? () => {
+                          if (linkedSourceIds?.has(source.id)) {
+                            onUnlinkSource(source.id);
+                          } else {
+                            onLinkSource(source.id);
+                          }
+                        }
+                      : undefined
+                  }
                 />
               ))}
             </ul>
@@ -239,25 +264,32 @@ function SourceRow({
   onView,
   onImport,
   onRemove,
+  isLinked,
+  activeChapterTitle,
+  onToggleLink,
 }: {
   source: SourceMaterial;
   onView: () => void;
   onImport: () => void;
   onRemove: () => void;
+  isLinked: boolean;
+  activeChapterTitle?: string;
+  onToggleLink?: () => void;
 }) {
   const isError = source.status === "error";
+  const isArchived = source.status === "archived";
 
   return (
-    <li className="px-4 py-3 min-h-[56px]">
+    <li className={`px-4 py-3 min-h-[56px] ${isArchived ? "opacity-60" : ""}`}>
       <div className="flex items-start gap-3">
         {/* Doc icon */}
         <div
           className={`h-9 w-9 flex items-center justify-center rounded-lg shrink-0 ${
-            isError ? "bg-red-50" : "bg-blue-50"
+            isError ? "bg-red-50" : isArchived ? "bg-gray-100" : "bg-blue-50"
           }`}
         >
           <svg
-            className={`w-4.5 h-4.5 ${isError ? "text-red-400" : "text-blue-500"}`}
+            className={`w-4.5 h-4.5 ${isError ? "text-red-400" : isArchived ? "text-gray-400" : "text-blue-500"}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -277,6 +309,8 @@ function SourceRow({
           <div className="flex items-center gap-2 mt-0.5">
             {isError ? (
               <span className="text-xs text-red-500">Could not import</span>
+            ) : isArchived ? (
+              <span className="text-xs text-amber-600">Account disconnected</span>
             ) : source.cachedAt ? (
               <>
                 <span className="text-xs text-gray-400 tabular-nums">
@@ -302,7 +336,7 @@ function SourceRow({
 
       {/* Actions row */}
       <div className="flex items-center gap-2 mt-2 ml-12">
-        {!isError && (
+        {!isError && !isArchived && (
           <>
             <button
               onClick={onView}
@@ -310,6 +344,20 @@ function SourceRow({
             >
               View
             </button>
+            {onToggleLink && (
+              <button
+                onClick={onToggleLink}
+                className={`h-8 px-2.5 text-xs font-medium rounded-md transition-colors ${
+                  isLinked
+                    ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {isLinked
+                  ? `Linked${activeChapterTitle ? "" : ""}`
+                  : `Link${activeChapterTitle ? ` to ${activeChapterTitle}` : ""}`}
+              </button>
+            )}
             <button
               onClick={onImport}
               className="h-8 px-2.5 text-xs font-medium text-gray-600 rounded-md hover:bg-gray-100 transition-colors"

@@ -8,8 +8,9 @@ import { DriveStatusIndicator } from "@/components/drive-status-indicator";
 import { ChapterEditor, type ChapterEditorHandle } from "@/components/chapter-editor";
 import { AIRewriteSheet } from "@/components/ai-rewrite-sheet";
 import { DriveFilesSheet } from "@/components/drive-files-sheet";
-import { useDriveStatus } from "@/hooks/use-drive-status";
+import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useDriveFiles } from "@/hooks/use-drive-files";
+import { useChapterSources } from "@/hooks/use-chapter-sources";
 import { SaveIndicator } from "@/components/save-indicator";
 import { CrashRecoveryDialog } from "@/components/crash-recovery-dialog";
 import { ExportMenu } from "@/components/export-menu";
@@ -30,6 +31,8 @@ import { ProjectSwitcher } from "@/components/project-switcher";
 import { SettingsMenu } from "@/components/settings-menu";
 import { SourcesPanel } from "@/components/sources-panel";
 import { SourceViewerSheet } from "@/components/source-viewer-sheet";
+import { AddSourceSheet } from "@/components/add-source-sheet";
+import { AccountsSheet } from "@/components/accounts-sheet";
 
 interface Chapter {
   id: string;
@@ -91,12 +94,18 @@ export default function EditorPage() {
   // Editor ref for AI rewrite text replacement
   const editorRef = useRef<ChapterEditorHandle>(null);
 
-  // Drive connection status (US-005, US-008)
+  // Drive connection status - multi-account (US-005, US-008)
   const {
-    status: driveStatus,
+    accounts: driveAccounts,
+    connected: driveConnected,
+    email: driveEmail,
     connect: connectDrive,
-    disconnect: disconnectDrive,
-  } = useDriveStatus();
+    disconnect: disconnectDriveAccount,
+    refetch: refetchDriveAccounts,
+  } = useDriveAccounts();
+
+  // Accounts management sheet state
+  const [isAccountsSheetOpen, setIsAccountsSheetOpen] = useState(false);
 
   // Drive files listing (US-007)
   const {
@@ -299,11 +308,18 @@ export default function EditorPage() {
     openSourceViewer,
     closeSourceViewer,
     addFromPicker,
+    uploadLocalFile,
     isPickerLoading,
     removeSource,
     importSourceAsChapter,
+    isAddSourceSheetOpen,
+    openAddSourceSheet,
+    closeAddSourceSheet,
     error: sourcesError,
   } = useSourceActions(projectId);
+
+  // Chapter-source linking
+  const { linkedSources, linkSource, unlinkSource } = useChapterSources(projectId, activeChapterId);
 
   // Load chapter content from API when active chapter changes
   useEffect(() => {
@@ -478,17 +494,13 @@ export default function EditorPage() {
             <div className="w-px h-5 bg-border" aria-hidden="true" />
 
             {/* Persistent Drive connection status (US-005) */}
-            {driveStatus && (
-              <DriveStatusIndicator
-                connected={driveStatus.connected}
-                isProjectConnected={!!projectData?.driveFolderId} // NEW PROP
-                email={driveStatus.email}
-                onConnect={connectDriveWithProject}
-                onViewFiles={
-                  driveStatus.connected ? openDriveFiles : undefined
-                }
-              />
-            )}
+            <DriveStatusIndicator
+              connected={driveConnected}
+              isProjectConnected={!!projectData?.driveFolderId}
+              email={driveEmail}
+              onConnect={connectDriveWithProject}
+              onViewFiles={driveConnected ? openDriveFiles : undefined}
+            />
 
             {/* Toolbar AI Rewrite fallback — visible when text is selected */}
             {selectionWordCount > 0 && aiSheetState === "idle" && (
@@ -526,15 +538,16 @@ export default function EditorPage() {
               activeChapterId={activeChapterId}
               getToken={getToken as () => Promise<string | null>}
               apiUrl={API_URL}
-              driveConnected={driveStatus?.connected ?? false}
+              driveConnected={driveConnected}
             />
 
             {/* Settings dropdown menu (US-023) */}
             <SettingsMenu
-              driveConnected={driveStatus?.connected ?? false}
+              driveConnected={driveConnected}
               hasDriveFolder={!!projectData?.driveFolderId}
               onViewDriveFiles={openDriveFiles}
               onViewSources={openSourcesPanel}
+              onManageAccounts={() => setIsAccountsSheetOpen(true)}
               onDisconnectDrive={openDisconnectDriveDialog}
               onRenameBook={openRenameDialog}
               onDuplicateBook={openDuplicateDialog}
@@ -548,10 +561,6 @@ export default function EditorPage() {
 
         <div className="flex-1 overflow-auto">
           <div className="max-w-[700px] mx-auto px-6 py-8">
-
-
-
-
             {/* Chapter title - editable at top of editor (US-011) */}
             {editingTitle ? (
               <input
@@ -658,10 +667,13 @@ export default function EditorPage() {
 
       {/* Disconnect Google Drive confirmation dialog (US-008) */}
       <DisconnectDriveDialog
-        email={driveStatus?.email}
+        email={driveEmail}
         isOpen={disconnectDriveDialogOpen}
         onConfirm={async () => {
-          await disconnectDrive();
+          // Disconnect all accounts (legacy behavior)
+          for (const account of driveAccounts) {
+            await disconnectDriveAccount(account.id);
+          }
           closeDisconnectDriveDialog();
         }}
         onCancel={closeDisconnectDriveDialog}
@@ -709,12 +721,11 @@ export default function EditorPage() {
         error={sourcesError}
         isPickerLoading={isPickerLoading}
         onClose={closeSourcesPanel}
-        onAddFromPicker={addFromPicker}
+        onAddFromPicker={openAddSourceSheet}
         onViewSource={openSourceViewer}
         onImportAsChapter={async (sourceId) => {
           const result = await importSourceAsChapter(sourceId);
           if (result) {
-            // Refresh project data to include the new chapter
             const token = await getToken();
             const response = await fetch(`${API_URL}/projects/${projectId}`, {
               headers: { Authorization: `Bearer ${token}` },
@@ -728,6 +739,33 @@ export default function EditorPage() {
           }
         }}
         onRemoveSource={removeSource}
+        activeChapterTitle={activeChapter?.title}
+        linkedSourceIds={new Set(linkedSources.map((s) => s.id))}
+        onLinkSource={linkSource}
+        onUnlinkSource={unlinkSource}
+      />
+
+      {/* Add source sheet (multi-account + local upload) */}
+      <AddSourceSheet
+        isOpen={isAddSourceSheetOpen}
+        accounts={driveAccounts}
+        isPickerLoading={isPickerLoading}
+        onClose={closeAddSourceSheet}
+        onSelectDriveAccount={(connectionId) => addFromPicker(connectionId)}
+        onUploadLocal={uploadLocalFile}
+        onConnectAccount={() => connectDrive()}
+      />
+
+      {/* Google Accounts management sheet */}
+      <AccountsSheet
+        isOpen={isAccountsSheetOpen}
+        accounts={driveAccounts}
+        onClose={() => setIsAccountsSheetOpen(false)}
+        onConnectAccount={() => connectDrive()}
+        onDisconnectAccount={async (connectionId) => {
+          await disconnectDriveAccount(connectionId);
+          await refetchDriveAccounts();
+        }}
       />
 
       {/* Source content viewer */}
@@ -754,6 +792,16 @@ export default function EditorPage() {
             }
             closeSourcesPanel();
           }
+        }}
+        tabs={
+          linkedSources.length > 0
+            ? linkedSources.map((s) => ({ id: s.id, title: s.title }))
+            : undefined
+        }
+        activeTabId={activeSource?.id ?? null}
+        onTabChange={(sourceId) => {
+          const source = linkedSources.find((s) => s.id === sourceId);
+          if (source) openSourceViewer(source);
         }}
       />
     </div>

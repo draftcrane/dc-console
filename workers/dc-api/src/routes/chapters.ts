@@ -48,41 +48,49 @@ chapters.post("/projects/:projectId/chapters", async (c) => {
   });
 
   // If Drive is connected and project has a folder, create an HTML file on Drive (fire-and-forget)
+  // Uses project.drive_connection_id for multi-account token lookup
   const driveService = new DriveService(c.env);
-  driveService
-    .getValidTokens(userId)
-    .then(async (tokens) => {
+  (async () => {
+    // Check if project has a Drive folder and connection
+    const project = await c.env.DB.prepare(
+      `SELECT drive_folder_id, drive_connection_id FROM projects WHERE id = ? AND user_id = ?`,
+    )
+      .bind(projectId, userId)
+      .first<{ drive_folder_id: string | null; drive_connection_id: string | null }>();
+
+    if (!project?.drive_folder_id) return;
+
+    // Get tokens via connection or fallback
+    let accessToken: string;
+    if (project.drive_connection_id) {
+      const tokens = await driveService.getValidTokensByConnection(project.drive_connection_id);
       if (!tokens) return;
+      accessToken = tokens.accessToken;
+    } else {
+      const tokens = await driveService.getValidTokens(userId);
+      if (!tokens) return;
+      accessToken = tokens.accessToken;
+    }
 
-      // Check if project has a Drive folder
-      const project = await c.env.DB.prepare(
-        `SELECT drive_folder_id FROM projects WHERE id = ? AND user_id = ?`,
-      )
-        .bind(projectId, userId)
-        .first<{ drive_folder_id: string | null }>();
+    // Create empty HTML file on Drive
+    const fileName = `${chapter.title}.html`;
+    const emptyHtml = "";
+    const encoder = new TextEncoder();
+    const driveFile = await driveService.uploadFile(
+      accessToken,
+      project.drive_folder_id,
+      fileName,
+      "text/html",
+      encoder.encode(emptyHtml).buffer as ArrayBuffer,
+    );
 
-      if (!project?.drive_folder_id) return;
-
-      // Create empty HTML file on Drive
-      const fileName = `${chapter.title}.html`;
-      const emptyHtml = "";
-      const encoder = new TextEncoder();
-      const driveFile = await driveService.uploadFile(
-        tokens.accessToken,
-        project.drive_folder_id,
-        fileName,
-        "text/html",
-        encoder.encode(emptyHtml).buffer as ArrayBuffer,
-      );
-
-      // Store drive_file_id on the chapter
-      await c.env.DB.prepare(`UPDATE chapters SET drive_file_id = ? WHERE id = ?`)
-        .bind(driveFile.id, chapter.id)
-        .run();
-    })
-    .catch((err) => {
-      console.error("Drive file creation on chapter create failed (non-blocking):", err);
-    });
+    // Store drive_file_id on the chapter
+    await c.env.DB.prepare(`UPDATE chapters SET drive_file_id = ? WHERE id = ?`)
+      .bind(driveFile.id, chapter.id)
+      .run();
+  })().catch((err) => {
+    console.error("Drive file creation on chapter create failed (non-blocking):", err);
+  });
 
   return c.json(chapter, 201);
 });
@@ -164,16 +172,29 @@ chapters.patch("/chapters/:chapterId", async (c) => {
   // Per PRD US-013: If Drive is connected, Drive file renamed to match new chapter title
   if (body.title !== undefined && chapter.driveFileId) {
     const driveService = new DriveService(c.env);
-    driveService
-      .getValidTokens(userId)
-      .then((tokens) => {
-        if (tokens) {
-          return driveService.renameFile(tokens.accessToken, chapter.driveFileId!, chapter.title);
-        }
-      })
-      .catch((err) => {
-        console.error("Drive file rename failed (non-blocking):", err);
-      });
+    (async () => {
+      // Get project's drive_connection_id for token lookup
+      const project = await c.env.DB.prepare(
+        `SELECT drive_connection_id FROM projects WHERE id = (SELECT project_id FROM chapters WHERE id = ?)`,
+      )
+        .bind(chapterId)
+        .first<{ drive_connection_id: string | null }>();
+
+      let accessToken: string;
+      if (project?.drive_connection_id) {
+        const tokens = await driveService.getValidTokensByConnection(project.drive_connection_id);
+        if (!tokens) return;
+        accessToken = tokens.accessToken;
+      } else {
+        const tokens = await driveService.getValidTokens(userId);
+        if (!tokens) return;
+        accessToken = tokens.accessToken;
+      }
+
+      await driveService.renameFile(accessToken, chapter.driveFileId!, chapter.title);
+    })().catch((err) => {
+      console.error("Drive file rename failed (non-blocking):", err);
+    });
   }
 
   return c.json(chapter);
@@ -253,6 +274,7 @@ chapters.put("/chapters/:chapterId/content", async (c) => {
 
   // Drive write-through (fire-and-forget, follows rename/trash pattern)
   // Coalesce writes to 30s intervals to avoid hitting Google API rate limits
+  // Uses project.drive_connection_id for token lookup (multi-account aware)
   const driveWriteThrough = async () => {
     // Check coalescing: skip if last Drive write was <30s ago
     const coalesceKey = `drive-sync:${chapterId}`;
@@ -260,38 +282,52 @@ chapters.put("/chapters/:chapterId/content", async (c) => {
     if (lastSync) return; // Within 30s window, skip
 
     const driveService = new DriveService(c.env);
-    const tokens = await driveService.getValidTokens(userId);
-    if (!tokens) return; // Drive not connected
 
-    // Get chapter's drive_file_id and project's drive_folder_id
+    // Get chapter's drive_file_id and project's drive info
     const chapter = await c.env.DB.prepare(
-      `SELECT ch.drive_file_id, ch.title, p.drive_folder_id
+      `SELECT ch.drive_file_id, ch.title, p.drive_folder_id, p.drive_connection_id
        FROM chapters ch
        JOIN projects p ON p.id = ch.project_id
        WHERE ch.id = ? AND p.user_id = ?`,
     )
       .bind(chapterId, userId)
-      .first<{ drive_file_id: string | null; title: string; drive_folder_id: string | null }>();
+      .first<{
+        drive_file_id: string | null;
+        title: string;
+        drive_folder_id: string | null;
+        drive_connection_id: string | null;
+      }>();
 
     if (!chapter?.drive_folder_id) return; // No Drive folder on project
+
+    // Get tokens: prefer project's drive_connection_id, fall back to user's first connection
+    let accessToken: string;
+    if (chapter.drive_connection_id) {
+      const tokens = await driveService.getValidTokensByConnection(chapter.drive_connection_id);
+      if (!tokens) return; // Connection tokens invalid
+      accessToken = tokens.accessToken;
+    } else {
+      // Fallback: project has drive_folder_id but no drive_connection_id (pre-migration data)
+      console.warn(
+        `Project missing drive_connection_id but has drive_folder_id, falling back to user connection`,
+      );
+      const tokens = await driveService.getValidTokens(userId);
+      if (!tokens) return;
+      accessToken = tokens.accessToken;
+    }
 
     // Mark coalescing window (30s TTL)
     await c.env.CACHE.put(coalesceKey, String(Date.now()), { expirationTtl: 30 });
 
     if (chapter.drive_file_id) {
       // Update existing Drive file
-      await driveService.updateFile(
-        tokens.accessToken,
-        chapter.drive_file_id,
-        "text/html",
-        content,
-      );
+      await driveService.updateFile(accessToken, chapter.drive_file_id, "text/html", content);
     } else {
       // Lazy migration: create Drive file for this chapter
       const fileName = `${chapter.title}.html`;
       const encoder = new TextEncoder();
       const driveFile = await driveService.uploadFile(
-        tokens.accessToken,
+        accessToken,
         chapter.drive_folder_id,
         fileName,
         "text/html",

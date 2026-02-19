@@ -135,6 +135,16 @@ describe("SourceMaterialService", () => {
     });
 
     it("expands selected folders recursively into docs", async () => {
+      // Seed a drive connection for FK integrity
+      const connId = "test-conn-1";
+      const ts = new Date().toISOString();
+      await env.DB.prepare(
+        `INSERT INTO drive_connections (id, user_id, access_token, refresh_token, token_expires_at, drive_email, created_at, updated_at)
+         VALUES (?, ?, 'enc-access', 'enc-refresh', ?, 'test@example.com', ?, ?)`,
+      )
+        .bind(connId, userId, ts, ts, ts)
+        .run();
+
       const files = [
         {
           driveFileId: "folder123",
@@ -144,7 +154,7 @@ describe("SourceMaterialService", () => {
       ];
 
       const mockDriveService = {
-        getValidTokens: async () => ({
+        getValidTokensByConnection: async () => ({
           accessToken: "access",
           refreshToken: "refresh",
           expiresAt: new Date(Date.now() + 3600000),
@@ -156,7 +166,7 @@ describe("SourceMaterialService", () => {
         ],
       } as any;
 
-      const created = await service.addSources(userId, projectId, files, mockDriveService);
+      const created = await service.addSources(userId, projectId, files, mockDriveService, connId);
       expect(created.sources).toHaveLength(2);
       expect(created.expandedCounts).toEqual({
         selectedFolders: 1,
@@ -165,7 +175,21 @@ describe("SourceMaterialService", () => {
       });
     });
 
-    it("requires Drive connection when folder sources are selected", async () => {
+    it("requires DriveService and connectionId when folder sources are selected", async () => {
+      const files = [
+        {
+          driveFileId: "folder123",
+          title: "Folder",
+          mimeType: "application/vnd.google-apps.folder",
+        },
+      ];
+
+      await expect(service.addSources(userId, projectId, files)).rejects.toThrow(
+        "DriveService and connectionId are required",
+      );
+    });
+
+    it("requires valid Drive connection when expanding folders", async () => {
       const files = [
         {
           driveFileId: "folder123",
@@ -175,12 +199,12 @@ describe("SourceMaterialService", () => {
       ];
 
       const mockDriveService = {
-        getValidTokens: async () => null,
+        getValidTokensByConnection: async () => null,
       } as any;
 
-      await expect(service.addSources(userId, projectId, files, mockDriveService)).rejects.toThrow(
-        "Google Drive is not connected",
-      );
+      await expect(
+        service.addSources(userId, projectId, files, mockDriveService, "conn-1"),
+      ).rejects.toThrow("Google Drive is not connected");
     });
   });
 
@@ -297,6 +321,7 @@ describe("SourceMaterialService", () => {
 
       // Create a mock DriveService that returns null tokens (Drive not connected)
       const mockDriveService = {
+        getValidTokensByConnection: async () => null,
         getValidTokens: async () => null,
         exportFile: async () => "",
         getFileMetadata: async () => ({ id: "", name: "", mimeType: "" }),

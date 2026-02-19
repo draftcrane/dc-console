@@ -6,6 +6,7 @@
  * - Token encryption/decryption (AES-256-GCM)
  * - Token refresh (5 min before expiry per PRD Section 13)
  * - Google Drive API calls (folders, files)
+ * - Multi-account support (multiple Google accounts per user)
  */
 
 import { encrypt, decrypt } from "./crypto.js";
@@ -53,11 +54,18 @@ interface StoredTokens {
 }
 
 /** Result of getting valid tokens (may have been refreshed) */
-interface ValidTokens {
+export interface ValidTokens {
   accessToken: string;
   refreshToken: string;
   expiresAt: Date;
   wasRefreshed: boolean;
+}
+
+/** Drive connection metadata (no tokens) */
+export interface DriveConnection {
+  id: string;
+  email: string;
+  connectedAt: string;
 }
 
 const GOOGLE_OAUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -82,9 +90,10 @@ export class DriveService {
    * Uses drive.file scope only per PRD Section 8.
    *
    * @param state - CSRF protection state parameter
+   * @param loginHint - Optional email to pre-select Google account (for multi-account)
    * @returns The authorization URL to redirect the user to
    */
-  getAuthorizationUrl(state: string): string {
+  getAuthorizationUrl(state: string, loginHint?: string): string {
     const params = new URLSearchParams({
       client_id: this.env.GOOGLE_CLIENT_ID,
       redirect_uri: this.env.GOOGLE_REDIRECT_URI,
@@ -94,6 +103,10 @@ export class DriveService {
       prompt: "consent", // Always get refresh token
       state,
     });
+
+    if (loginHint) {
+      params.set("login_hint", loginHint);
+    }
 
     return `${GOOGLE_OAUTH_URL}?${params.toString()}`;
   }
@@ -151,18 +164,21 @@ export class DriveService {
 
   /**
    * Stores encrypted tokens in D1.
+   * Upserts on (user_id, drive_email) to preserve existing connection ID on re-auth.
+   * This is critical: other tables (source_materials, projects) reference the connection ID as FK.
    *
    * @param userId - The user ID
-   * @param connectionId - The connection ID (ULID)
+   * @param connectionId - The connection ID (ULID) - used only for new connections
    * @param tokens - Token response from Google
    * @param email - The Google account email
+   * @returns The connection ID (existing or new)
    */
   async storeTokens(
     userId: string,
     connectionId: string,
     tokens: GoogleTokenResponse,
     email: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
     const encryptedAccess = await encrypt(tokens.access_token, this.env.ENCRYPTION_KEY);
     const encryptedRefresh = await encrypt(tokens.refresh_token || "", this.env.ENCRYPTION_KEY);
@@ -170,28 +186,36 @@ export class DriveService {
     await this.env.DB.prepare(
       `INSERT INTO drive_connections (id, user_id, access_token, refresh_token, token_expires_at, drive_email, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
-       ON CONFLICT (user_id) DO UPDATE SET
+       ON CONFLICT (user_id, drive_email) DO UPDATE SET
          access_token = excluded.access_token,
          refresh_token = CASE WHEN excluded.refresh_token != '' THEN excluded.refresh_token ELSE drive_connections.refresh_token END,
          token_expires_at = excluded.token_expires_at,
-         drive_email = excluded.drive_email,
          updated_at = excluded.updated_at`,
     )
       .bind(connectionId, userId, encryptedAccess, encryptedRefresh, expiresAt.toISOString(), email)
       .run();
+
+    // Return the actual connection ID (may differ from input if re-auth of same account)
+    const row = await this.env.DB.prepare(
+      `SELECT id FROM drive_connections WHERE user_id = ? AND drive_email = ?`,
+    )
+      .bind(userId, email)
+      .first<{ id: string }>();
+
+    return row?.id ?? connectionId;
   }
 
   /**
-   * Gets stored tokens for a user, decrypting them.
+   * Gets stored tokens for a specific connection, decrypting them.
    *
-   * @param userId - The user ID
-   * @returns Decrypted tokens or null if not connected
+   * @param connectionId - The drive connection ID
+   * @returns Decrypted tokens or null if not found
    */
-  async getStoredTokens(userId: string): Promise<StoredTokens | null> {
+  async getStoredTokens(connectionId: string): Promise<StoredTokens | null> {
     const row = await this.env.DB.prepare(
-      `SELECT access_token, refresh_token, token_expires_at FROM drive_connections WHERE user_id = ?`,
+      `SELECT access_token, refresh_token, token_expires_at FROM drive_connections WHERE id = ?`,
     )
-      .bind(userId)
+      .bind(connectionId)
       .first<{ access_token: string; refresh_token: string; token_expires_at: string }>();
 
     if (!row) {
@@ -203,6 +227,38 @@ export class DriveService {
     const expiresAt = new Date(row.token_expires_at);
 
     return { accessToken, refreshToken, expiresAt };
+  }
+
+  /**
+   * Gets stored tokens for a user's first connection (legacy fallback).
+   * Used when we only have userId, not a specific connectionId.
+   *
+   * @param userId - The user ID
+   * @returns Decrypted tokens or null if not connected
+   */
+  async getStoredTokensByUser(
+    userId: string,
+  ): Promise<(StoredTokens & { connectionId: string }) | null> {
+    const row = await this.env.DB.prepare(
+      `SELECT id, access_token, refresh_token, token_expires_at FROM drive_connections WHERE user_id = ? LIMIT 1`,
+    )
+      .bind(userId)
+      .first<{
+        id: string;
+        access_token: string;
+        refresh_token: string;
+        token_expires_at: string;
+      }>();
+
+    if (!row) {
+      return null;
+    }
+
+    const accessToken = await decrypt(row.access_token, this.env.ENCRYPTION_KEY);
+    const refreshToken = await decrypt(row.refresh_token, this.env.ENCRYPTION_KEY);
+    const expiresAt = new Date(row.token_expires_at);
+
+    return { connectionId: row.id, accessToken, refreshToken, expiresAt };
   }
 
   /**
@@ -235,18 +291,47 @@ export class DriveService {
   }
 
   /**
-   * Gets valid tokens, refreshing if needed (5 min before expiry).
+   * Gets valid tokens for a specific connection, refreshing if needed.
    * Per PRD Section 13: Automatic token refresh, 5 min before expiry.
    *
-   * @param userId - The user ID
-   * @returns Valid tokens, or null if not connected
+   * @param connectionId - The drive connection ID
+   * @returns Valid tokens, or null if connection not found
    */
-  async getValidTokens(userId: string): Promise<ValidTokens | null> {
-    const stored = await this.getStoredTokens(userId);
+  async getValidTokensByConnection(connectionId: string): Promise<ValidTokens | null> {
+    const stored = await this.getStoredTokens(connectionId);
     if (!stored) {
       return null;
     }
 
+    return this.ensureTokensFresh(connectionId, stored);
+  }
+
+  /**
+   * Gets valid tokens for a user's first connection (legacy fallback).
+   * Used by fire-and-forget write-through code that only has userId.
+   *
+   * @param userId - The user ID
+   * @returns Valid tokens with connectionId, or null if not connected
+   */
+  async getValidTokens(userId: string): Promise<(ValidTokens & { connectionId: string }) | null> {
+    const stored = await this.getStoredTokensByUser(userId);
+    if (!stored) {
+      return null;
+    }
+
+    const result = await this.ensureTokensFresh(stored.connectionId, stored);
+    if (!result) return null;
+
+    return { ...result, connectionId: stored.connectionId };
+  }
+
+  /**
+   * Internal: refresh tokens if within 5min of expiry.
+   */
+  private async ensureTokensFresh(
+    connectionId: string,
+    stored: StoredTokens,
+  ): Promise<ValidTokens | null> {
     const now = Date.now();
     const expiresAt = stored.expiresAt.getTime();
 
@@ -261,9 +346,9 @@ export class DriveService {
         await this.env.DB.prepare(
           `UPDATE drive_connections
            SET access_token = ?, token_expires_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-           WHERE user_id = ?`,
+           WHERE id = ?`,
         )
-          .bind(encryptedAccess, newExpiresAt.toISOString(), userId)
+          .bind(encryptedAccess, newExpiresAt.toISOString(), connectionId)
           .run();
 
         return {
@@ -282,6 +367,26 @@ export class DriveService {
       ...stored,
       wasRefreshed: false,
     };
+  }
+
+  /**
+   * Returns all Drive connections for a user (metadata only, no tokens).
+   *
+   * @param userId - The user ID
+   * @returns Array of connection metadata
+   */
+  async getConnectionsForUser(userId: string): Promise<DriveConnection[]> {
+    const result = await this.env.DB.prepare(
+      `SELECT id, drive_email, created_at FROM drive_connections WHERE user_id = ? ORDER BY created_at ASC`,
+    )
+      .bind(userId)
+      .all<{ id: string; drive_email: string; created_at: string }>();
+
+    return (result.results ?? []).map((row) => ({
+      id: row.id,
+      email: row.drive_email,
+      connectedAt: row.created_at,
+    }));
   }
 
   /**
@@ -362,7 +467,9 @@ export class DriveService {
       console.error(
         `List folder failed: Status ${response.status} ${response.statusText || ""}, Body: ${errorBody}`,
       );
-      throw new Error(`Failed to list folder contents: ${response.status} ${response.statusText || ""}`);
+      throw new Error(
+        `Failed to list folder contents: ${response.status} ${response.statusText || ""}`,
+      );
     }
 
     const data = (await response.json()) as { files: DriveFile[] };
@@ -774,11 +881,14 @@ export class DriveService {
   }
 
   /**
-   * Deletes the drive connection from D1.
+   * Deletes a specific drive connection from D1.
    *
-   * @param userId - The user ID
+   * @param connectionId - The connection ID
+   * @param userId - The user ID (for ownership verification)
    */
-  async deleteConnection(userId: string): Promise<void> {
-    await this.env.DB.prepare(`DELETE FROM drive_connections WHERE user_id = ?`).bind(userId).run();
+  async deleteConnectionById(connectionId: string, userId: string): Promise<void> {
+    await this.env.DB.prepare(`DELETE FROM drive_connections WHERE id = ? AND user_id = ?`)
+      .bind(connectionId, userId)
+      .run();
   }
 }

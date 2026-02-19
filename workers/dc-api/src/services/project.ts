@@ -23,6 +23,7 @@ export interface Project {
   title: string;
   description: string;
   driveFolderId: string | null;
+  driveConnectionId: string | null;
   status: "active" | "archived";
   createdAt: string;
   updatedAt: string;
@@ -59,6 +60,7 @@ interface ProjectRow {
   title: string;
   description: string;
   drive_folder_id: string | null;
+  drive_connection_id: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -132,6 +134,7 @@ export class ProjectService {
       title: input.title.trim(),
       description: input.description?.trim() || "",
       driveFolderId: null,
+      driveConnectionId: null,
       status: "active",
       createdAt: now,
       updatedAt: now,
@@ -195,7 +198,7 @@ export class ProjectService {
     // Fetch project with user_id check for authorization
     const project = await this.db
       .prepare(
-        `SELECT id, user_id, title, description, drive_folder_id, status, created_at, updated_at
+        `SELECT id, user_id, title, description, drive_folder_id, drive_connection_id, status, created_at, updated_at
          FROM projects
          WHERE id = ? AND user_id = ?`,
       )
@@ -226,6 +229,7 @@ export class ProjectService {
       title: project.title,
       description: project.description,
       driveFolderId: project.drive_folder_id,
+      driveConnectionId: project.drive_connection_id,
       status: project.status as "active" | "archived",
       createdAt: project.created_at,
       updatedAt: project.updated_at,
@@ -460,6 +464,7 @@ export class ProjectService {
       title: `${source.title} (Copy)`,
       description: source.description,
       driveFolderId: null,
+      driveConnectionId: null,
       status: "active",
       createdAt: now,
       updatedAt: now,
@@ -475,6 +480,7 @@ export class ProjectService {
       title: row.title,
       description: row.description,
       driveFolderId: row.drive_folder_id,
+      driveConnectionId: row.drive_connection_id,
       status: row.status as "active" | "archived",
       createdAt: row.created_at,
       updatedAt: row.updated_at,

@@ -3,13 +3,13 @@
  * Implements PRD Section 8 (US-005 through US-008) and Section 12 API Surface.
  *
  * Routes:
- * - GET /drive/authorize - Returns Google OAuth authorization URL
- * - GET /drive/callback - OAuth callback, exchanges code for tokens
- * - GET /drive/connection - Returns Drive connection status (no tokens exposed)
- * - GET /drive/picker-token - Returns short-lived OAuth token for Google Picker
+ * - GET /drive/authorize - Returns Google OAuth authorization URL (supports loginHint)
+ * - GET /drive/callback - OAuth callback, exchanges code for tokens (upsert on user+email)
+ * - GET /drive/connection - Returns all Drive connections for the user
+ * - GET /drive/picker-token/:connectionId - Returns short-lived OAuth token for Google Picker
  * - POST /drive/folders - Creates Book Folder in Drive
  * - GET /drive/folders/:folderId/children - Lists files in Book Folder
- * - DELETE /drive/connection - Disconnects Drive, revokes token
+ * - DELETE /drive/connection/:connectionId - Disconnects specific Drive account + cascade
  */
 
 import { Hono } from "hono";
@@ -18,6 +18,7 @@ import type { Env } from "../types/index.js";
 import { requireAuth, validationError, AppError } from "../middleware/index.js";
 import { standardRateLimit, rateLimit } from "../middleware/rate-limit.js";
 import { DriveService } from "../services/drive.js";
+import { SourceMaterialService } from "../services/source-material.js";
 
 /** Picker token rate limit: 10 req/min (only needed once per Picker open) */
 const pickerTokenRateLimit = rateLimit({
@@ -49,9 +50,11 @@ function validateFrontendUrl(redirectUrl: URL, configuredFrontendUrl: string): v
  * GET /drive/authorize
  * Returns Google OAuth authorization URL.
  * Per PRD Section 8 (US-005): OAuth with drive.file scope, redirect-based flow only.
+ * Supports ?loginHint= for multi-account OAuth (pre-selects Google account).
  */
 drive.get("/authorize", requireAuth, standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
+  const loginHint = c.req.query("loginHint");
   const driveService = new DriveService(c.env);
 
   // Generate CSRF state token
@@ -66,7 +69,7 @@ drive.get("/authorize", requireAuth, standardRateLimit, async (c) => {
   // Store state in KV with 10 minute expiry for CSRF validation
   await c.env.CACHE.put(`oauth_state:${state}`, userId, { expirationTtl: 600 });
 
-  const authUrl = driveService.getAuthorizationUrl(state);
+  const authUrl = driveService.getAuthorizationUrl(state, loginHint || undefined);
 
   return c.json({
     authorizationUrl: authUrl,
@@ -77,6 +80,7 @@ drive.get("/authorize", requireAuth, standardRateLimit, async (c) => {
  * GET /drive/callback
  * OAuth callback - exchanges code for tokens, encrypts and stores them.
  * Per PRD Section 8 (US-005): Tokens stored server-side, encrypted (AES-256-GCM).
+ * Upserts on (user_id, drive_email) to preserve existing connection IDs on re-auth.
  */
 drive.get("/callback", async (c) => {
   const code = c.req.query("code");
@@ -120,7 +124,7 @@ drive.get("/callback", async (c) => {
     // Get the user's Google email
     const email = await driveService.getUserEmail(tokens.access_token);
 
-    // Store encrypted tokens
+    // Store encrypted tokens (upserts on user_id + email, preserving existing connection ID)
     const connectionId = ulid();
     await driveService.storeTokens(storedUserId, connectionId, tokens, email);
 
@@ -142,39 +146,36 @@ drive.get("/callback", async (c) => {
 
 /**
  * GET /drive/connection
- * Returns Drive connection status for the authenticated user.
+ * Returns all Drive connections for the authenticated user.
  * Tokens are never exposed to the frontend per PRD Section 8 (US-005).
+ * Returns { connections: [...] } array for multi-account support.
+ * Also returns { connected, email, connectedAt } for backward compatibility.
  */
 drive.get("/connection", requireAuth, standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
+  const driveService = new DriveService(c.env);
 
-  const row = await c.env.DB.prepare(
-    `SELECT id, drive_email, token_expires_at, created_at FROM drive_connections WHERE user_id = ?`,
-  )
-    .bind(userId)
-    .first<{
-      id: string;
-      drive_email: string;
-      token_expires_at: string;
-      created_at: string;
-    }>();
+  const connections = await driveService.getConnectionsForUser(userId);
 
-  if (!row) {
+  if (connections.length === 0) {
     return c.json({
       connected: false,
+      connections: [],
     });
   }
 
+  // Backward compatibility: first connection's data at top level
   return c.json({
     connected: true,
-    email: row.drive_email,
-    connectedAt: row.created_at,
+    email: connections[0].email,
+    connectedAt: connections[0].connectedAt,
+    connections,
   });
 });
 
 /**
- * GET /drive/picker-token
- * Returns a short-lived OAuth access token for Google Picker.
+ * GET /drive/picker-token/:connectionId
+ * Returns a short-lived OAuth access token for Google Picker, scoped to a specific connection.
  *
  * The Google Picker API runs client-side and needs the user's access token
  * to display their files. This is Google's documented pattern:
@@ -186,13 +187,20 @@ drive.get("/connection", requireAuth, standardRateLimit, async (c) => {
  * - Tighter rate limit (10 req/min) since token is only needed once per Picker open
  * - Frontend must use token immediately and never persist it
  */
-drive.get("/picker-token", requireAuth, pickerTokenRateLimit, async (c) => {
+drive.get("/picker-token/:connectionId", requireAuth, pickerTokenRateLimit, async (c) => {
   const { userId } = c.get("auth");
+  const connectionId = c.req.param("connectionId");
   const driveService = new DriveService(c.env);
 
-  const tokens = await driveService.getValidTokens(userId);
+  const tokens = await driveService.getValidTokensByConnection(connectionId);
   if (!tokens) {
     driveNotConnected();
+  }
+
+  // Verify this connection belongs to the user
+  const connections = await driveService.getConnectionsForUser(userId);
+  if (!connections.some((conn) => conn.id === connectionId)) {
+    driveNotConnected("Connection not found for this user");
   }
 
   // Calculate remaining lifetime in seconds
@@ -203,9 +211,31 @@ drive.get("/picker-token", requireAuth, pickerTokenRateLimit, async (c) => {
       level: "info",
       event: "picker_token_issued",
       user_id: userId,
+      connection_id: connectionId,
       expires_in: expiresIn,
     }),
   );
+
+  return c.json({
+    accessToken: tokens.accessToken,
+    expiresIn,
+  });
+});
+
+/**
+ * Legacy: GET /drive/picker-token (no connectionId)
+ * Falls back to user's first connection for backward compatibility.
+ */
+drive.get("/picker-token", requireAuth, pickerTokenRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const driveService = new DriveService(c.env);
+
+  const tokens = await driveService.getValidTokens(userId);
+  if (!tokens) {
+    driveNotConnected();
+  }
+
+  const expiresIn = Math.max(0, Math.floor((tokens.expiresAt.getTime() - Date.now()) / 1000));
 
   return c.json({
     accessToken: tokens.accessToken,
@@ -325,39 +355,111 @@ drive.get("/folders/:folderId/children", requireAuth, standardRateLimit, async (
 });
 
 /**
- * DELETE /drive/connection
- * Disconnects Google Drive - revokes token and deletes from D1.
- * Per PRD Section 8 (US-008): Revokes OAuth token, deletes from D1. Drive files remain untouched.
+ * DELETE /drive/connection/:connectionId
+ * Disconnects a specific Google Drive account.
+ * Cascade: archives sources, soft-archives chapter_sources, clears project output drive.
+ * Per plan: simplified 3-step cascade (D1 batch + token revoke + skip R2 cleanup).
+ */
+drive.delete("/connection/:connectionId", requireAuth, standardRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const connectionId = c.req.param("connectionId");
+  const driveService = new DriveService(c.env);
+
+  // Verify connection belongs to user and get tokens for revocation
+  const connections = await driveService.getConnectionsForUser(userId);
+  const connection = connections.find((conn) => conn.id === connectionId);
+  if (!connection) {
+    throw new AppError(404, "NOT_FOUND", "Drive connection not found");
+  }
+
+  // Fetch tokens BEFORE deletion for revocation
+  const tokens = await driveService.getStoredTokens(connectionId).catch(() => null);
+
+  // Step 1: D1 batch -- archive sources, soft-archive links, clear project refs, delete connection
+  const sourceService = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
+  await sourceService.archiveByConnection(connectionId);
+
+  // Clear chapter drive_file_ids for projects using this connection
+  await c.env.DB.prepare(
+    `UPDATE chapters SET drive_file_id = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+     WHERE project_id IN (SELECT id FROM projects WHERE drive_connection_id = ?)`,
+  )
+    .bind(connectionId)
+    .run();
+
+  // Clear project output drive references
+  await c.env.DB.prepare(
+    `UPDATE projects SET drive_connection_id = NULL, drive_folder_id = NULL,
+     updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+     WHERE drive_connection_id = ?`,
+  )
+    .bind(connectionId)
+    .run();
+
+  // Delete the connection
+  await driveService.deleteConnectionById(connectionId, userId);
+
+  // Step 2: Best-effort token revocation (non-blocking)
+  if (tokens) {
+    driveService.revokeToken(tokens.accessToken).catch((err) => {
+      console.warn("Token revocation failed (non-blocking):", err);
+    });
+  }
+
+  // Step 3: Skip R2 cleanup at Phase 0 (orphaned objects cost fractions of a cent)
+
+  console.info(
+    JSON.stringify({
+      level: "info",
+      event: "drive_connection_disconnected",
+      user_id: userId,
+      connection_id: connectionId,
+      email: connection.email,
+    }),
+  );
+
+  return c.json({
+    success: true,
+    message: "Google Drive account disconnected. Your files in Drive remain untouched.",
+  });
+});
+
+/**
+ * Legacy: DELETE /drive/connection (no connectionId)
+ * Disconnects all Drive connections for backward compatibility.
  */
 drive.delete("/connection", requireAuth, standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 
-  // Get stored tokens to revoke
-  const tokens = await driveService.getStoredTokens(userId);
+  const connections = await driveService.getConnectionsForUser(userId);
 
-  if (tokens) {
-    // Revoke the token with Google (best effort)
-    try {
-      await driveService.revokeToken(tokens.accessToken);
-    } catch (err) {
-      console.warn("Token revocation failed:", err);
-      // Continue with deletion regardless
+  for (const conn of connections) {
+    // Fetch tokens BEFORE deletion for revocation
+    const tokens = await driveService.getStoredTokens(conn.id).catch(() => null);
+
+    // Archive sources and links per connection
+    const sourceService = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
+    await sourceService.archiveByConnection(conn.id);
+
+    // Delete the connection
+    await driveService.deleteConnectionById(conn.id, userId);
+
+    // Best-effort token revocation (non-blocking)
+    if (tokens) {
+      driveService.revokeToken(tokens.accessToken).catch(() => {});
     }
   }
 
-  // Delete from D1
-  await driveService.deleteConnection(userId);
-
-  // Clear drive_folder_id from all user's projects so they can reconnect fresh
+  // Clear all project drive references
   await c.env.DB.prepare(
-    `UPDATE projects SET drive_folder_id = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE user_id = ?`,
+    `UPDATE projects SET drive_connection_id = NULL, drive_folder_id = NULL,
+     updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE user_id = ?`,
   )
     .bind(userId)
     .run();
 
-  // Clear drive_file_id from all user's chapters to avoid stale references
-  // When Drive reconnects and folder is created, lazy migration handles re-uploading
+  // Clear all chapter drive_file_ids
   await c.env.DB.prepare(
     `UPDATE chapters SET drive_file_id = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
      WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)`,

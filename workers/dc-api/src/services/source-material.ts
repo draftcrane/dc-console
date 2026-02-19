@@ -5,17 +5,19 @@ import { sanitizeGoogleDocsHtml } from "../utils/html-sanitize.js";
 import type { DriveService } from "./drive.js";
 
 /**
- * SourceMaterialService - Manages Google Docs connected as reference material.
+ * SourceMaterialService - Manages reference material from Google Drive and local uploads.
  *
- * Users select files via Google Picker; content is exported as HTML,
- * sanitized, and cached in R2. Sources can be viewed within the app
- * or imported as new chapters.
+ * Sources are polymorphic: either Drive files (Google Docs selected via Picker)
+ * or local uploads (.txt, .md). Content is cached in R2 as sanitized HTML.
  *
- * R2 key format: sources/{sourceId}/content.html
- * No content stored in D1 — only metadata.
+ * R2 key format:
+ * - sources/{sourceId}/content.html -- processed/extracted HTML
+ * - sources/{sourceId}/original.{ext} -- original file (local uploads only)
+ *
+ * No content stored in D1 -- only metadata.
  */
 
-/** Input for adding sources from Google Picker selection */
+/** Input for adding Drive sources from Google Picker selection */
 export interface AddSourceInput {
   driveFileId: string;
   title: string;
@@ -35,9 +37,12 @@ export interface AddSourcesResult {
 export interface SourceMaterial {
   id: string;
   projectId: string;
-  driveFileId: string;
+  sourceType: "drive" | "local";
+  driveConnectionId: string | null;
+  driveFileId: string | null;
   title: string;
   mimeType: string;
+  originalFilename: string | null;
   driveModifiedTime: string | null;
   wordCount: number;
   cachedAt: string | null;
@@ -65,9 +70,13 @@ export interface ImportAsChapterResult {
 interface SourceRow {
   id: string;
   project_id: string;
-  drive_file_id: string;
+  source_type: string;
+  drive_connection_id: string | null;
+  drive_file_id: string | null;
   title: string;
   mime_type: string;
+  original_filename: string | null;
+  content_hash: string | null;
   drive_modified_time: string | null;
   word_count: number;
   r2_key: string | null;
@@ -82,14 +91,19 @@ const ALLOWED_MIME_TYPE = "application/vnd.google-apps.document";
 const GOOGLE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 const MAX_SOURCES_PER_REQUEST = 20;
 const MAX_EXPANDED_DOCS_PER_REQUEST = 200;
+const MAX_LOCAL_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_LOCAL_EXTENSIONS = [".txt", ".md"];
 
 function rowToSource(row: SourceRow): SourceMaterial {
   return {
     id: row.id,
     projectId: row.project_id,
+    sourceType: row.source_type as SourceMaterial["sourceType"],
+    driveConnectionId: row.drive_connection_id,
     driveFileId: row.drive_file_id,
     title: row.title,
     mimeType: row.mime_type,
+    originalFilename: row.original_filename,
     driveModifiedTime: row.drive_modified_time,
     wordCount: row.word_count,
     cachedAt: row.cached_at,
@@ -98,6 +112,77 @@ function rowToSource(row: SourceRow): SourceMaterial {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+/** Convert plain text to simple HTML paragraphs */
+function textToHtml(text: string): string {
+  return text
+    .split(/\n\n+/)
+    .filter((p) => p.trim().length > 0)
+    .map(
+      (p) =>
+        `<p>${p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").trim()}</p>`,
+    )
+    .join("\n");
+}
+
+/** Lightweight Markdown to HTML (headings, bold, italic, lists, paragraphs) */
+function markdownToHtml(md: string): string {
+  const lines = md.split("\n");
+  const htmlLines: string[] = [];
+  let inList = false;
+
+  for (const rawLine of lines) {
+    const line = rawLine;
+
+    // Headings
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      if (inList) {
+        htmlLines.push("</ul>");
+        inList = false;
+      }
+      const level = headingMatch[1].length;
+      htmlLines.push(`<h${level}>${headingMatch[2]}</h${level}>`);
+      continue;
+    }
+
+    // Unordered list items
+    const listMatch = line.match(/^[-*+]\s+(.+)$/);
+    if (listMatch) {
+      if (!inList) {
+        htmlLines.push("<ul>");
+        inList = true;
+      }
+      htmlLines.push(`<li>${listMatch[1]}</li>`);
+      continue;
+    }
+
+    // Close list if not a list item
+    if (inList) {
+      htmlLines.push("</ul>");
+      inList = false;
+    }
+
+    // Empty lines
+    if (line.trim() === "") {
+      continue;
+    }
+
+    // Regular paragraph - apply inline formatting
+    let formatted = line
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/__(.+?)__/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/_(.+?)_/g, "<em>$1</em>");
+    htmlLines.push(`<p>${formatted}</p>`);
+  }
+
+  if (inList) htmlLines.push("</ul>");
+  return htmlLines.join("\n");
 }
 
 export class SourceMaterialService {
@@ -109,12 +194,15 @@ export class SourceMaterialService {
   /**
    * Add source materials from Google Picker selection.
    * Validates mime types (Google Docs only) and deduplicates silently.
+   *
+   * @param connectionId - The Drive connection to associate these sources with
    */
   async addSources(
     userId: string,
     projectId: string,
     files: AddSourceInput[],
     driveService?: DriveService,
+    connectionId?: string,
   ): Promise<AddSourcesResult> {
     // Verify project ownership
     const project = await this.db
@@ -140,11 +228,13 @@ export class SourceMaterialService {
     // Expand selected folders into Google Docs (recursive).
     let discoveredFromFolders: AddSourceInput[] = [];
     if (selectedFolders.length > 0) {
-      if (!driveService) {
-        throw new Error("DriveService is required when adding folders as sources");
+      if (!driveService || !connectionId) {
+        throw new Error(
+          "DriveService and connectionId are required when adding folders as sources",
+        );
       }
 
-      const tokens = await driveService.getValidTokens(userId);
+      const tokens = await driveService.getValidTokensByConnection(connectionId);
       if (!tokens) {
         validationError("Google Drive is not connected. Connect Drive to add folder sources.");
       }
@@ -193,33 +283,50 @@ export class SourceMaterialService {
     for (const file of uniqueDocsToInsert) {
       const id = ulid();
 
-      // ON CONFLICT DO NOTHING handles re-selection of existing sources
-      const result = await this.db
-        .prepare(
-          `INSERT INTO source_materials (id, project_id, drive_file_id, title, mime_type, sort_order, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT (project_id, drive_file_id) DO NOTHING`,
-        )
-        .bind(id, projectId, file.driveFileId, file.title, file.mimeType, sortOrder, now, now)
-        .run();
+      // Check for existing source with same drive_file_id (partial unique index not usable with ON CONFLICT)
+      const existing = await this.db
+        .prepare(`SELECT id FROM source_materials WHERE project_id = ? AND drive_file_id = ?`)
+        .bind(projectId, file.driveFileId)
+        .first<{ id: string }>();
 
-      if (result.meta.changes > 0) {
-        created.push({
+      if (existing) continue;
+
+      await this.db
+        .prepare(
+          `INSERT INTO source_materials (id, project_id, source_type, drive_connection_id, drive_file_id, title, mime_type, sort_order, created_at, updated_at)
+           VALUES (?, ?, 'drive', ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(
           id,
           projectId,
-          driveFileId: file.driveFileId,
-          title: file.title,
-          mimeType: file.mimeType,
-          driveModifiedTime: null,
-          wordCount: 0,
-          cachedAt: null,
-          status: "active",
+          connectionId || null,
+          file.driveFileId,
+          file.title,
+          file.mimeType,
           sortOrder,
-          createdAt: now,
-          updatedAt: now,
-        });
-        sortOrder++;
-      }
+          now,
+          now,
+        )
+        .run();
+
+      created.push({
+        id,
+        projectId,
+        sourceType: "drive",
+        driveConnectionId: connectionId || null,
+        driveFileId: file.driveFileId,
+        title: file.title,
+        mimeType: file.mimeType,
+        originalFilename: null,
+        driveModifiedTime: null,
+        wordCount: 0,
+        cachedAt: null,
+        status: "active",
+        sortOrder,
+        createdAt: now,
+        updatedAt: now,
+      });
+      sortOrder++;
     }
 
     if (selectedFolders.length > 0) {
@@ -245,6 +352,139 @@ export class SourceMaterialService {
     }
 
     return { sources: created };
+  }
+
+  /**
+   * Add a local file as a source material.
+   * Supports .txt and .md files up to 5MB.
+   * Deduplicates on (project_id, content_hash).
+   */
+  async addLocalSource(
+    userId: string,
+    projectId: string,
+    file: { name: string; content: ArrayBuffer },
+  ): Promise<SourceMaterial> {
+    // Verify project ownership
+    const project = await this.db
+      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
+      .bind(projectId, userId)
+      .first<{ id: string }>();
+
+    if (!project) {
+      notFound("Project not found");
+    }
+
+    // Validate file size
+    if (file.content.byteLength > MAX_LOCAL_FILE_SIZE) {
+      validationError(`File must be under ${MAX_LOCAL_FILE_SIZE / 1024 / 1024}MB`);
+    }
+
+    // Validate extension
+    const ext =
+      file.name.lastIndexOf(".") >= 0
+        ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase()
+        : "";
+    if (!ALLOWED_LOCAL_EXTENSIONS.includes(ext)) {
+      validationError(`Only ${ALLOWED_LOCAL_EXTENSIONS.join(", ")} files are supported`);
+    }
+
+    // Compute content hash for dedup (SHA-256 via Web Crypto)
+    const hashBuffer = await crypto.subtle.digest("SHA-256", file.content);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const contentHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+
+    // Check for existing source with same hash in this project
+    const existing = await this.db
+      .prepare(
+        `SELECT id FROM source_materials
+         WHERE project_id = ? AND content_hash = ? AND source_type = 'local' AND status = 'active'`,
+      )
+      .bind(projectId, contentHash)
+      .first<{ id: string }>();
+
+    if (existing) {
+      // Return the existing source
+      const row = await this.db
+        .prepare(`SELECT * FROM source_materials WHERE id = ?`)
+        .bind(existing.id)
+        .first<SourceRow>();
+      return rowToSource(row!);
+    }
+
+    // Decode content
+    const textContent = new TextDecoder().decode(file.content);
+
+    // Convert to HTML based on extension
+    const html = ext === ".md" ? markdownToHtml(textContent) : textToHtml(textContent);
+    const wordCount = countWords(html);
+    const mimeType = ext === ".md" ? "text/markdown" : "text/plain";
+
+    // Get next sort_order
+    const maxSort = await this.db
+      .prepare(
+        `SELECT MAX(sort_order) as max_sort FROM source_materials
+         WHERE project_id = ? AND status = 'active'`,
+      )
+      .bind(projectId)
+      .first<{ max_sort: number | null }>();
+
+    const sortOrder = (maxSort?.max_sort || 0) + 1;
+    const id = ulid();
+    const now = new Date().toISOString();
+    const r2Key = `sources/${id}/content.html`;
+    const title = file.name.replace(/\.[^.]+$/, ""); // Strip extension for title
+
+    // Write HTML content to R2
+    await this.bucket.put(r2Key, html, {
+      httpMetadata: { contentType: "text/html; charset=utf-8" },
+      customMetadata: { sourceId: id, cachedAt: now },
+    });
+
+    // Store original file in R2
+    await this.bucket.put(`sources/${id}/original${ext}`, file.content, {
+      httpMetadata: { contentType: mimeType },
+      customMetadata: { sourceId: id, originalFilename: file.name },
+    });
+
+    // Insert into D1
+    await this.db
+      .prepare(
+        `INSERT INTO source_materials (id, project_id, source_type, title, mime_type, original_filename, content_hash, word_count, r2_key, cached_at, sort_order, created_at, updated_at)
+         VALUES (?, ?, 'local', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        id,
+        projectId,
+        title,
+        mimeType,
+        file.name,
+        contentHash,
+        wordCount,
+        r2Key,
+        now,
+        sortOrder,
+        now,
+        now,
+      )
+      .run();
+
+    return {
+      id,
+      projectId,
+      sourceType: "local",
+      driveConnectionId: null,
+      driveFileId: null,
+      title,
+      mimeType,
+      originalFilename: file.name,
+      driveModifiedTime: null,
+      wordCount,
+      cachedAt: now,
+      status: "active",
+      sortOrder,
+      createdAt: now,
+      updatedAt: now,
+    };
   }
 
   /**
@@ -295,8 +535,8 @@ export class SourceMaterialService {
   }
 
   /**
-   * Get source content. Lazy-fetches from Google Drive on first access.
-   * If content is already cached in R2, returns from cache.
+   * Get source content. Lazy-fetches from Google Drive on first access (for Drive sources).
+   * For local sources, always reads from R2.
    */
   async getContent(
     userId: string,
@@ -305,7 +545,7 @@ export class SourceMaterialService {
   ): Promise<SourceContentResult> {
     const source = await this.getSource(userId, sourceId);
 
-    // If already cached, read from R2
+    // If already cached, read from R2 (both drive and local sources)
     if (source.cachedAt && source.status === "active") {
       const r2Key = `sources/${sourceId}/content.html`;
       const object = await this.bucket.get(r2Key);
@@ -317,11 +557,22 @@ export class SourceMaterialService {
           cachedAt: source.cachedAt,
         };
       }
-      // R2 object missing — fall through to re-fetch
+      // R2 object missing -- fall through to re-fetch (Drive only)
+    }
+
+    // Local sources must have cached content (uploaded at creation time)
+    if (source.sourceType === "local") {
+      throw new Error("Local source content not found in R2");
     }
 
     // Fetch from Drive, sanitize, and cache
-    return this.fetchAndCache(userId, sourceId, source.driveFileId, driveService);
+    return this.fetchAndCache(
+      userId,
+      sourceId,
+      source.driveFileId!,
+      source.driveConnectionId,
+      driveService,
+    );
   }
 
   /**
@@ -332,16 +583,30 @@ export class SourceMaterialService {
     userId: string,
     sourceId: string,
     driveFileId: string,
+    driveConnectionId: string | null,
     driveService: DriveService,
   ): Promise<SourceContentResult> {
-    const tokens = await driveService.getValidTokens(userId);
-    if (!tokens) {
-      validationError("Google Drive is not connected. Connect Drive to access source content.");
+    // Get tokens: prefer connection-specific, fall back to user's first connection
+    let accessToken: string;
+    if (driveConnectionId) {
+      const tokens = await driveService.getValidTokensByConnection(driveConnectionId);
+      if (!tokens) {
+        validationError(
+          "Drive connection not found. The Google account may have been disconnected.",
+        );
+      }
+      accessToken = tokens.accessToken;
+    } else {
+      const tokens = await driveService.getValidTokens(userId);
+      if (!tokens) {
+        validationError("Google Drive is not connected. Connect Drive to access source content.");
+      }
+      accessToken = tokens.accessToken;
     }
 
     let rawHtml: string;
     try {
-      rawHtml = await driveService.exportFile(tokens.accessToken, driveFileId, "text/html");
+      rawHtml = await driveService.exportFile(accessToken, driveFileId, "text/html");
     } catch (err) {
       // Mark source as error state so UI can show appropriate message
       await this.db
@@ -359,10 +624,10 @@ export class SourceMaterialService {
     // Get Drive file's modifiedTime for staleness tracking
     let driveModifiedTime: string | null = null;
     try {
-      const metadata = await driveService.getFileMetadata(tokens.accessToken, driveFileId);
+      const metadata = await driveService.getFileMetadata(accessToken, driveFileId);
       driveModifiedTime = metadata.modifiedTime ?? null;
     } catch {
-      // Non-critical — staleness detection just won't work until next fetch
+      // Non-critical -- staleness detection just won't work until next fetch
     }
 
     // Write sanitized content to R2
@@ -401,9 +666,35 @@ export class SourceMaterialService {
     // Fire-and-forget R2 cleanup
     if (source.cachedAt) {
       this.bucket.delete(`sources/${sourceId}/content.html`).catch(() => {
-        // Non-critical — orphaned R2 object is harmless
+        // Non-critical -- orphaned R2 object is harmless
       });
     }
+  }
+
+  /**
+   * Archive all sources for a disconnected Drive connection.
+   * Also soft-archives related chapter_sources links (preserving them for reconnection).
+   */
+  async archiveByConnection(connectionId: string): Promise<void> {
+    const now = new Date().toISOString();
+
+    // Archive source materials
+    await this.db
+      .prepare(
+        `UPDATE source_materials SET status = 'archived', updated_at = ?
+         WHERE drive_connection_id = ?`,
+      )
+      .bind(now, connectionId)
+      .run();
+
+    // Soft-archive chapter-source links
+    await this.db
+      .prepare(
+        `UPDATE chapter_sources SET status = 'archived'
+         WHERE source_id IN (SELECT id FROM source_materials WHERE drive_connection_id = ?)`,
+      )
+      .bind(connectionId)
+      .run();
   }
 
   /**
@@ -418,7 +709,7 @@ export class SourceMaterialService {
   ): Promise<ImportAsChapterResult & { projectId: string; r2Key: string }> {
     const source = await this.getSource(userId, sourceId);
 
-    // Get content — from cache or Drive
+    // Get content -- from cache or Drive
     const { content, wordCount } = await this.getContent(userId, sourceId, driveService);
 
     // Get max sort_order for chapters in this project

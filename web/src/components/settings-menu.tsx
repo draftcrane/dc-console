@@ -11,6 +11,8 @@ interface SettingsMenuProps {
   onViewDriveFiles: () => void;
   /** Open source materials panel */
   onViewSources: () => void;
+  /** Open Google Accounts management sheet */
+  onManageAccounts?: () => void;
   /** Open disconnect Drive dialog */
   onDisconnectDrive: () => void;
   /** Open rename book dialog */
@@ -39,6 +41,7 @@ export function SettingsMenu({
   hasDriveFolder,
   onViewDriveFiles,
   onViewSources,
+  onManageAccounts,
   onDisconnectDrive,
   onRenameBook,
   onDuplicateBook,
@@ -137,32 +140,48 @@ export function SettingsMenu({
             </>
           )}
 
-          {/* Sources - shown when Drive is connected and project has a folder */}
-          {driveConnected && hasDriveFolder && (
-            <>
-              <button
-                onClick={() => handleMenuItem(onViewSources)}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
-                           transition-colors min-h-[44px] flex items-center gap-2"
-                role="menuitem"
+          {/* Sources - always shown (supports both Drive and local sources) */}
+          <button
+            onClick={() => handleMenuItem(onViewSources)}
+            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+                       transition-colors min-h-[44px] flex items-center gap-2"
+            role="menuitem"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              />
+            </svg>
+            Sources
+          </button>
+          <div className="my-1 border-t border-gray-200" role="separator" />
+
+          {/* Google Accounts management */}
+          {onManageAccounts && (
+            <button
+              onClick={() => handleMenuItem(onManageAccounts)}
+              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+                         transition-colors min-h-[44px] flex items-center gap-2"
+              role="menuitem"
+            >
+              <svg
+                className="w-4 h-4 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-4 h-4 shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  />
-                </svg>
-                Sources
-              </button>
-              <div className="my-1 border-t border-gray-200" role="separator" />
-            </>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+              Google Accounts
+            </button>
           )}
 
           {/* Disconnect Google Drive (US-008) - only shown when connected */}

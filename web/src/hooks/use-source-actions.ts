@@ -8,6 +8,9 @@ import { useGooglePicker } from "./use-google-picker";
 /**
  * Facade hook that wraps source-related hooks behind a single interface.
  * Follows the useProjectActions pattern to keep the editor page clean.
+ *
+ * Expanded for multi-account: addFromPicker accepts connectionId.
+ * Expanded for local upload: uploadLocalFile wraps useSources.
  */
 export function useSourceActions(projectId: string) {
   // Underlying hooks
@@ -17,6 +20,7 @@ export function useSourceActions(projectId: string) {
     error: sourcesError,
     fetchSources,
     addSources,
+    uploadLocalFile: uploadLocal,
     removeSource,
     importAsChapter,
   } = useSources(projectId);
@@ -41,6 +45,8 @@ export function useSourceActions(projectId: string) {
   const [isSourcesPanelOpen, setIsSourcesPanelOpen] = useState(false);
   const [activeSource, setActiveSource] = useState<SourceMaterial | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
+  // Add source sheet state
+  const [isAddSourceSheetOpen, setIsAddSourceSheetOpen] = useState(false);
 
   // Fetch sources when panel opens
   useEffect(() => {
@@ -77,13 +83,24 @@ export function useSourceActions(projectId: string) {
     resetContent();
   }, [resetContent]);
 
-  /** Open Google Picker and add selected files as sources */
-  const addFromPicker = useCallback(async () => {
-    const files = await openPicker();
-    if (files.length > 0) {
-      await addSources(files);
-    }
-  }, [openPicker, addSources]);
+  /** Open Google Picker for a specific Drive connection and add selected files */
+  const addFromPicker = useCallback(
+    async (connectionId?: string) => {
+      const files = await openPicker(connectionId);
+      if (files.length > 0) {
+        await addSources(files, connectionId);
+      }
+    },
+    [openPicker, addSources],
+  );
+
+  /** Upload a local file (.txt, .md) as a source */
+  const uploadLocalFile = useCallback(
+    async (file: File) => {
+      await uploadLocal(file);
+    },
+    [uploadLocal],
+  );
 
   /** Import source as chapter and return the new chapter ID */
   const importSourceAsChapter = useCallback(
@@ -106,6 +123,7 @@ export function useSourceActions(projectId: string) {
     // Source list
     sources,
     isSourcesLoading,
+    fetchSources,
 
     // Panel state
     isSourcesPanelOpen,
@@ -121,8 +139,14 @@ export function useSourceActions(projectId: string) {
     openSourceViewer,
     closeSourceViewer,
 
+    // Add source sheet
+    isAddSourceSheetOpen,
+    openAddSourceSheet: () => setIsAddSourceSheetOpen(true),
+    closeAddSourceSheet: () => setIsAddSourceSheetOpen(false),
+
     // Actions
     addFromPicker,
+    uploadLocalFile,
     isPickerLoading,
     removeSource,
     importSourceAsChapter,

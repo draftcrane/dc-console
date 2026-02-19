@@ -9,9 +9,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 export interface SourceMaterial {
   id: string;
   projectId: string;
-  driveFileId: string;
+  sourceType: "drive" | "local";
+  driveConnectionId: string | null;
+  driveFileId: string | null;
   title: string;
   mimeType: string;
+  originalFilename: string | null;
   driveModifiedTime: string | null;
   wordCount: number;
   cachedAt: string | null;
@@ -45,8 +48,9 @@ export function useSources(projectId: string) {
     }
   }, [getToken, projectId]);
 
+  /** Add Drive sources from Picker selection. Optional connectionId tracks which account. */
   const addSources = useCallback(
-    async (files: PickerFile[]) => {
+    async (files: PickerFile[], connectionId?: string) => {
       try {
         setError(null);
         const token = await getToken();
@@ -56,7 +60,7 @@ export function useSources(projectId: string) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ files }),
+          body: JSON.stringify({ files, connectionId }),
         });
         if (!response.ok) {
           const data = await response.json().catch(() => null);
@@ -66,6 +70,35 @@ export function useSources(projectId: string) {
         await fetchSources();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to add sources");
+      }
+    },
+    [getToken, projectId, fetchSources],
+  );
+
+  /** Upload a local file (.txt, .md) as a source. */
+  const uploadLocalFile = useCallback(
+    async (file: File) => {
+      try {
+        setError(null);
+        const token = await getToken();
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch(`${API_URL}/projects/${projectId}/sources/upload`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => null);
+          throw new Error((data as { error?: string } | null)?.error || "Failed to upload file");
+        }
+        // Refresh list after uploading
+        await fetchSources();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to upload file");
       }
     },
     [getToken, projectId, fetchSources],
@@ -114,6 +147,7 @@ export function useSources(projectId: string) {
     error,
     fetchSources,
     addSources,
+    uploadLocalFile,
     removeSource,
     importAsChapter,
   };

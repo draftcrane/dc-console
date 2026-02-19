@@ -165,10 +165,13 @@ projects.delete("/:projectId", async (c) => {
 /**
  * POST /projects/:projectId/connect-drive
  * Connect a project to Google Drive by creating a dedicated folder.
+ * Accepts optional { connectionId } to specify which Drive account to use.
+ * Falls back to user's first connection if not specified (backward compat).
  */
 projects.post("/:projectId/connect-drive", async (c) => {
   const { userId } = c.get("auth");
   const projectId = c.req.param("projectId");
+  const body = (await c.req.json().catch(() => ({}))) as { connectionId?: string };
 
   const projectService = new ProjectService(c.env.DB);
   const project = await projectService.getProject(userId, projectId); // Includes ownership check
@@ -179,17 +182,40 @@ projects.post("/:projectId/connect-drive", async (c) => {
   }
 
   const driveService = new DriveService(c.env);
-  const tokens = await driveService.getValidTokens(userId);
-  if (!tokens) {
-    validationError("Google Drive is not connected for this user.");
+
+  // Get tokens: prefer specified connectionId, fall back to first connection
+  let accessToken: string;
+  let connectionId: string;
+
+  if (body.connectionId) {
+    // Verify connection belongs to user
+    const connections = await driveService.getConnectionsForUser(userId);
+    if (!connections.some((conn) => conn.id === body.connectionId)) {
+      validationError("Drive connection not found for this user.");
+    }
+    const tokens = await driveService.getValidTokensByConnection(body.connectionId);
+    if (!tokens) {
+      validationError("Drive connection tokens are invalid.");
+    }
+    accessToken = tokens.accessToken;
+    connectionId = body.connectionId;
+  } else {
+    const tokens = await driveService.getValidTokens(userId);
+    if (!tokens) {
+      validationError("Google Drive is not connected for this user.");
+    }
+    accessToken = tokens.accessToken;
+    connectionId = tokens.connectionId;
   }
 
   // Create a folder named after the project title
-  const driveFolder = await driveService.createFolder(tokens.accessToken, project.title);
+  const driveFolder = await driveService.createFolder(accessToken, project.title);
 
-  // Store the drive_folder_id on the project
-  await c.env.DB.prepare(`UPDATE projects SET drive_folder_id = ? WHERE id = ?`)
-    .bind(driveFolder.id, project.id)
+  // Store drive_folder_id and drive_connection_id on the project
+  await c.env.DB.prepare(
+    `UPDATE projects SET drive_folder_id = ?, drive_connection_id = ? WHERE id = ?`,
+  )
+    .bind(driveFolder.id, connectionId, project.id)
     .run();
 
   console.info(
@@ -199,6 +225,7 @@ projects.post("/:projectId/connect-drive", async (c) => {
       user_id: userId,
       project_id: project.id,
       drive_folder_id: driveFolder.id,
+      connection_id: connectionId,
     }),
   );
 
@@ -207,7 +234,7 @@ projects.post("/:projectId/connect-drive", async (c) => {
 
 /**
  * POST /projects/:projectId/disconnect-drive
- * Disconnect a project from its Drive folder by clearing drive_folder_id.
+ * Disconnect a project from its Drive folder by clearing drive_folder_id and drive_connection_id.
  * This does not disconnect the user's Google account.
  */
 projects.post("/:projectId/disconnect-drive", async (c) => {
@@ -217,7 +244,9 @@ projects.post("/:projectId/disconnect-drive", async (c) => {
   const projectService = new ProjectService(c.env.DB);
   const project = await projectService.getProject(userId, projectId); // Includes ownership check
 
-  await c.env.DB.prepare(`UPDATE projects SET drive_folder_id = NULL WHERE id = ?`)
+  await c.env.DB.prepare(
+    `UPDATE projects SET drive_folder_id = NULL, drive_connection_id = NULL WHERE id = ?`,
+  )
     .bind(project.id)
     .run();
 

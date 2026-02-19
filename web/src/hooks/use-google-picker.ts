@@ -128,84 +128,98 @@ export function useGooglePicker() {
     });
   }, []);
 
-  /** Fetch a short-lived OAuth token from our API for Picker use */
-  const fetchPickerToken = useCallback(async (): Promise<string> => {
-    const token = await getToken();
-    const response = await fetch(`${API_URL}/drive/picker-token`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as { error?: string; code?: string } | null;
-      if (body?.code === "DRIVE_NOT_CONNECTED") {
-        throw new Error("Connect Google Drive first, then try adding sources.");
+  /** Fetch a short-lived OAuth token from our API for Picker use.
+   * If connectionId is provided, fetches token scoped to that specific connection. */
+  const fetchPickerToken = useCallback(
+    async (connectionId?: string): Promise<string> => {
+      const token = await getToken();
+      const url = connectionId
+        ? `${API_URL}/drive/picker-token/${connectionId}`
+        : `${API_URL}/drive/picker-token`;
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as {
+          error?: string;
+          code?: string;
+        } | null;
+        if (body?.code === "DRIVE_NOT_CONNECTED") {
+          throw new Error("Connect Google Drive first, then try adding sources.");
+        }
+        throw new Error(body?.error || "Failed to get Picker token");
       }
-      throw new Error(body?.error || "Failed to get Picker token");
-    }
-    const data = await response.json();
-    return data.accessToken;
-  }, [getToken]);
+      const data = await response.json();
+      return data.accessToken;
+    },
+    [getToken],
+  );
 
   /**
    * Open the Google Picker for file selection.
+   * Optionally accepts a connectionId to scope the Picker to a specific Drive account.
    * Returns selected files, or empty array if cancelled.
    */
-  const openPicker = useCallback(async (): Promise<PickerFile[]> => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  const openPicker = useCallback(
+    async (connectionId?: string): Promise<PickerFile[]> => {
+      try {
+        setIsLoading(true);
+        setError(null);
 
-      // Load Picker API and fetch token in parallel
-      const [, oauthToken] = await Promise.all([loadPickerApi(), fetchPickerToken()]);
-      console.info(JSON.stringify({ event: "picker_open_started" }));
+        // Load Picker API and fetch token in parallel
+        const [, oauthToken] = await Promise.all([loadPickerApi(), fetchPickerToken(connectionId)]);
+        console.info(JSON.stringify({ event: "picker_open_started" }));
 
-      return new Promise<PickerFile[]>((resolve) => {
-        const view = new google.picker.DocsView()
-          .setIncludeFolders(true)
-          .setSelectFolderEnabled(true)
-          .setMimeTypes(
-            "application/vnd.google-apps.document,application/vnd.google-apps.folder",
-          );
+        return new Promise<PickerFile[]>((resolve) => {
+          const view = new google.picker.DocsView()
+            .setIncludeFolders(true)
+            .setSelectFolderEnabled(true)
+            .setMimeTypes(
+              "application/vnd.google-apps.document,application/vnd.google-apps.folder",
+            );
 
-        const picker = new google.picker.PickerBuilder()
-          .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-          .setDeveloperKey(PICKER_API_KEY)
-          .setAppId(GOOGLE_APP_ID)
-          .setOAuthToken(oauthToken)
-          .setCallback((data: google.picker.ResponseObject) => {
-            if (data.action === google.picker.Action.PICKED && data.docs) {
-              const files: PickerFile[] = data.docs.map((doc) => ({
-                driveFileId: doc.id,
-                title: doc.name,
-                mimeType: doc.mimeType,
-              }));
-              console.info(
-                JSON.stringify({
-                  event: "picker_open_success",
-                  selectedCount: files.length,
-                }),
-              );
-              setIsLoading(false);
-              resolve(files);
-            } else if (data.action === google.picker.Action.CANCEL) {
-              console.info(JSON.stringify({ event: "picker_open_cancelled" }));
-              setIsLoading(false);
-              resolve([]);
-            }
-          })
-          .setOrigin(window.location.protocol + "//" + window.location.host)
-          .setTitle("Select source documents")
-          .addView(view)
-          .build();
+          const picker = new google.picker.PickerBuilder()
+            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+            .setDeveloperKey(PICKER_API_KEY)
+            .setAppId(GOOGLE_APP_ID)
+            .setOAuthToken(oauthToken)
+            .setCallback((data: google.picker.ResponseObject) => {
+              if (data.action === google.picker.Action.PICKED && data.docs) {
+                const files: PickerFile[] = data.docs.map((doc) => ({
+                  driveFileId: doc.id,
+                  title: doc.name,
+                  mimeType: doc.mimeType,
+                }));
+                console.info(
+                  JSON.stringify({
+                    event: "picker_open_success",
+                    selectedCount: files.length,
+                  }),
+                );
+                setIsLoading(false);
+                resolve(files);
+              } else if (data.action === google.picker.Action.CANCEL) {
+                console.info(JSON.stringify({ event: "picker_open_cancelled" }));
+                setIsLoading(false);
+                resolve([]);
+              }
+            })
+            .setOrigin(window.location.protocol + "//" + window.location.host)
+            .setTitle("Select source documents")
+            .addView(view)
+            .build();
 
-        picker.setVisible(true);
-      });
-    } catch (err) {
-      console.error("Picker open failed:", err);
-      setError(err instanceof Error ? err.message : "Failed to open file picker");
-      setIsLoading(false);
-      return [];
-    }
-  }, [loadPickerApi, fetchPickerToken]);
+          picker.setVisible(true);
+        });
+      } catch (err) {
+        console.error("Picker open failed:", err);
+        setError(err instanceof Error ? err.message : "Failed to open file picker");
+        setIsLoading(false);
+        return [];
+      }
+    },
+    [loadPickerApi, fetchPickerToken],
+  );
 
   const resetError = useCallback(() => {
     setError(null);
