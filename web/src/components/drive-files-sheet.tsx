@@ -22,6 +22,8 @@ interface DriveFilesSheetProps {
   onAddSources?: () => void;
   /** Optional: Called to open the Sources panel */
   onViewSources?: () => void;
+  /** Optional: Called to disconnect this project from its linked Drive folder */
+  onDisconnectProject?: () => void;
   /** Whether current project is already connected to a Drive folder */
   isProjectConnected?: boolean;
 }
@@ -96,6 +98,7 @@ export function DriveFilesSheet({
   onConnectDrive,
   onAddSources,
   onViewSources,
+  onDisconnectProject,
   isProjectConnected = false,
 }: DriveFilesSheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -293,6 +296,15 @@ export function DriveFilesSheet({
                       className="mt-2 text-xs text-gray-600 hover:text-gray-900 underline underline-offset-2"
                     >
                       Manage Sources
+                    </button>
+                  )}
+                  {onDisconnectProject && (
+                    <button
+                      type="button"
+                      onClick={onDisconnectProject}
+                      className="mt-1 text-xs text-red-600 hover:text-red-700 underline underline-offset-2"
+                    >
+                      Disconnect This Project
                     </button>
                   )}
                 </>

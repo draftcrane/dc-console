@@ -6,6 +6,7 @@ import { useState, useCallback, useRef } from "react";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const PICKER_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || "";
 const GOOGLE_APP_ID = process.env.NEXT_PUBLIC_GOOGLE_APP_ID || "";
+const GOOGLE_PICKER_SCRIPT_URL = "https://apis.google.com/js/api.js";
 
 export interface PickerFile {
   driveFileId: string;
@@ -30,27 +31,57 @@ export function useGooglePicker() {
   /** Load the Google Picker API script (lazy, once) */
   const loadPickerApi = useCallback((): Promise<void> => {
     if (pickerApiLoaded.current) return Promise.resolve();
+    if (!PICKER_API_KEY) {
+      return Promise.reject(new Error("Google Picker API key is not configured"));
+    }
+    if (!GOOGLE_APP_ID) {
+      return Promise.reject(new Error("Google App ID is not configured"));
+    }
 
     return new Promise((resolve, reject) => {
-      // Check if gapi is already loaded
-      if (window.gapi) {
+      const handleLoaded = () => {
+        if (!window.gapi) {
+          reject(new Error("Google API client was not available after script load"));
+          return;
+        }
+
         window.gapi.load("picker", () => {
+          if (!window.google?.picker) {
+            reject(new Error("Google Picker API failed to initialize"));
+            return;
+          }
           pickerApiLoaded.current = true;
           resolve();
         });
+      };
+
+      // Check if gapi is already loaded
+      if (window.gapi) {
+        handleLoaded();
+        return;
+      }
+
+      // Reuse existing script tag if already injected.
+      const existing = document.querySelector<HTMLScriptElement>(
+        `script[src="${GOOGLE_PICKER_SCRIPT_URL}"]`,
+      );
+      if (existing) {
+        existing.addEventListener("load", handleLoaded, { once: true });
+        existing.addEventListener(
+          "error",
+          () => reject(new Error("Failed to load Google Picker API script")),
+          { once: true },
+        );
         return;
       }
 
       // Load the gapi script
       const script = document.createElement("script");
-      script.src = "https://apis.google.com/js/api.js";
-      script.onload = () => {
-        window.gapi!.load("picker", () => {
-          pickerApiLoaded.current = true;
-          resolve();
-        });
-      };
-      script.onerror = () => reject(new Error("Failed to load Google Picker API"));
+      script.src = GOOGLE_PICKER_SCRIPT_URL;
+      script.async = true;
+      script.defer = true;
+      script.onload = handleLoaded;
+      script.onerror = () => reject(new Error("Failed to load Google Picker API script"));
       document.head.appendChild(script);
     });
   }, []);
@@ -61,7 +92,13 @@ export function useGooglePicker() {
     const response = await fetch(`${API_URL}/drive/picker-token`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!response.ok) throw new Error("Failed to get Picker token. Is Google Drive connected?");
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string; code?: string } | null;
+      if (body?.code === "DRIVE_NOT_CONNECTED") {
+        throw new Error("Connect Google Drive first, then try adding sources.");
+      }
+      throw new Error(body?.error || "Failed to get Picker token");
+    }
     const data = await response.json();
     return data.accessToken;
   }, [getToken]);
@@ -77,6 +114,7 @@ export function useGooglePicker() {
 
       // Load Picker API and fetch token in parallel
       const [, oauthToken] = await Promise.all([loadPickerApi(), fetchPickerToken()]);
+      console.info(JSON.stringify({ event: "picker_open_started" }));
 
       return new Promise<PickerFile[]>((resolve) => {
         const view = new google.picker.DocsView()
@@ -98,9 +136,16 @@ export function useGooglePicker() {
                 title: doc.name,
                 mimeType: doc.mimeType,
               }));
+              console.info(
+                JSON.stringify({
+                  event: "picker_open_success",
+                  selectedCount: files.length,
+                }),
+              );
               setIsLoading(false);
               resolve(files);
             } else if (data.action === google.picker.Action.CANCEL) {
+              console.info(JSON.stringify({ event: "picker_open_cancelled" }));
               setIsLoading(false);
               resolve([]);
             }
@@ -113,6 +158,7 @@ export function useGooglePicker() {
         picker.setVisible(true);
       });
     } catch (err) {
+      console.error("Picker open failed:", err);
       setError(err instanceof Error ? err.message : "Failed to open file picker");
       setIsLoading(false);
       return [];

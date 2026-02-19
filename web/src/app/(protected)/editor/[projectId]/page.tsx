@@ -242,6 +242,11 @@ export default function EditorPage() {
     [fetchProjectData],
   );
 
+  const handleProjectDisconnected = useCallback(async () => {
+    setProjectData((prev) => (prev ? { ...prev, driveFolderId: null } : prev));
+    await fetchProjectData();
+  }, [fetchProjectData]);
+
   // Project actions: list, rename, duplicate, delete, Drive files, disconnect, connect project to Drive
   const {
     projects: allProjects,
@@ -268,6 +273,7 @@ export default function EditorPage() {
     closeDisconnectDriveDialog,
     isConnectingDrive, // NEW
     onConnectProjectToDrive, // NEW
+    disconnectProjectFromDrive,
   } = useProjectActions({
     getToken: getToken as () => Promise<string | null>,
     projectId,
@@ -276,6 +282,7 @@ export default function EditorPage() {
     connectDrive,
     driveFolderId: projectData?.driveFolderId,
     onProjectConnected: handleProjectConnected,
+    onProjectDisconnected: handleProjectDisconnected,
   });
   // Source materials hook (facade over sources, content, and Picker)
   const {
@@ -679,8 +686,18 @@ export default function EditorPage() {
         onClose={closeDriveFiles}
         onRefresh={refreshDriveFiles}
         onConnectDrive={onConnectProjectToDrive}
-        onAddSources={addFromPicker}
+        onAddSources={async () => {
+          openSourcesPanel();
+          await addFromPicker();
+        }}
         onViewSources={openSourcesPanel}
+        onDisconnectProject={async () => {
+          const confirmed = window.confirm(
+            "Disconnect this project from its Drive folder? Your Drive account remains connected.",
+          );
+          if (!confirmed) return;
+          await disconnectProjectFromDrive();
+        }}
         isProjectConnected={!!projectData?.driveFolderId}
       />
 

@@ -192,7 +192,45 @@ projects.post("/:projectId/connect-drive", async (c) => {
     .bind(driveFolder.id, project.id)
     .run();
 
+  console.info(
+    JSON.stringify({
+      level: "info",
+      event: "project_drive_connected",
+      user_id: userId,
+      project_id: project.id,
+      drive_folder_id: driveFolder.id,
+    }),
+  );
+
   return c.json({ driveFolderId: driveFolder.id });
+});
+
+/**
+ * POST /projects/:projectId/disconnect-drive
+ * Disconnect a project from its Drive folder by clearing drive_folder_id.
+ * This does not disconnect the user's Google account.
+ */
+projects.post("/:projectId/disconnect-drive", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const projectService = new ProjectService(c.env.DB);
+  const project = await projectService.getProject(userId, projectId); // Includes ownership check
+
+  await c.env.DB.prepare(`UPDATE projects SET drive_folder_id = NULL WHERE id = ?`)
+    .bind(project.id)
+    .run();
+
+  console.info(
+    JSON.stringify({
+      level: "info",
+      event: "project_drive_disconnected",
+      user_id: userId,
+      project_id: project.id,
+    }),
+  );
+
+  return c.json({ success: true });
 });
 
 /**

@@ -28,6 +28,8 @@ interface UseProjectActionsOptions {
   driveFolderId?: string | null;
   /** Callback to refetch project data when Drive folder is connected */
   onProjectConnected?: (driveFolderId: string) => void | Promise<void>;
+  /** Callback to refetch project data when Drive folder is disconnected */
+  onProjectDisconnected?: () => void | Promise<void>;
 }
 
 /**
@@ -44,6 +46,7 @@ export function useProjectActions({
   connectDrive,
   driveFolderId,
   onProjectConnected,
+  onProjectDisconnected,
 }: UseProjectActionsOptions) {
   const router = useRouter();
 
@@ -264,6 +267,14 @@ export function useProjectActions({
 
       const data = (await response.json()) as { driveFolderId: string };
 
+      console.info(
+        JSON.stringify({
+          event: "project_connect_drive_success",
+          projectId,
+          driveFolderId: data.driveFolderId,
+        }),
+      );
+
       // Update parent project state first, then refresh from server.
       await onProjectConnected?.(data.driveFolderId);
 
@@ -277,6 +288,37 @@ export function useProjectActions({
       setIsConnectingDrive(false);
     }
   }, [getToken, projectId, onProjectConnected, fetchDriveFiles]);
+
+  const disconnectProjectFromDrive = useCallback(async (): Promise<boolean> => {
+    if (!projectId) return false;
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/projects/${projectId}/disconnect-drive`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to disconnect project from Google Drive");
+      }
+
+      console.info(
+        JSON.stringify({
+          event: "project_disconnect_drive_success",
+          projectId,
+        }),
+      );
+
+      resetDriveFiles?.();
+      await onProjectDisconnected?.();
+      return true;
+    } catch (err) {
+      console.error("Failed to disconnect project from Drive:", err);
+      return false;
+    }
+  }, [getToken, projectId, resetDriveFiles, onProjectDisconnected]);
 
   return {
     projects,
@@ -308,6 +350,7 @@ export function useProjectActions({
 
     isConnectingDrive, // EXPOSED
     onConnectProjectToDrive, // EXPOSED
+    disconnectProjectFromDrive,
 
     disconnectDriveDialogOpen,
     openDisconnectDriveDialog,

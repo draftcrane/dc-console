@@ -223,6 +223,17 @@ export class SourceMaterialService {
     }
 
     if (selectedFolders.length > 0) {
+      console.info(
+        JSON.stringify({
+          level: "info",
+          event: "sources_folder_expand_complete",
+          user_id: userId,
+          project_id: projectId,
+          selected_folders: selectedFolders.length,
+          docs_discovered: discoveredFromFolders.length,
+          docs_inserted: created.length,
+        }),
+      );
       return {
         sources: created,
         expandedCounts: {
