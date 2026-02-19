@@ -57,9 +57,7 @@ describe("useEditorTitle", () => {
   });
 
   it("handleTitleEdit is a no-op when activeChapter is undefined", () => {
-    const { result } = renderHook(() =>
-      useEditorTitle(makeOptions({ activeChapter: undefined })),
-    );
+    const { result } = renderHook(() => useEditorTitle(makeOptions({ activeChapter: undefined })));
 
     act(() => {
       result.current.handleTitleEdit();
@@ -76,9 +74,7 @@ describe("useEditorTitle", () => {
   it("handleTitleSave calls handleChapterRename and exits editing mode", async () => {
     const handleChapterRename = vi.fn().mockResolvedValue(undefined);
 
-    const { result } = renderHook(() =>
-      useEditorTitle(makeOptions({ handleChapterRename })),
-    );
+    const { result } = renderHook(() => useEditorTitle(makeOptions({ handleChapterRename })));
 
     // Enter edit mode
     act(() => {
@@ -200,9 +196,7 @@ describe("useEditorTitle", () => {
 
   it("edit -> cancel (Escape) lifecycle via setEditingTitle(false)", () => {
     const handleChapterRename = vi.fn();
-    const { result } = renderHook(() =>
-      useEditorTitle(makeOptions({ handleChapterRename })),
-    );
+    const { result } = renderHook(() => useEditorTitle(makeOptions({ handleChapterRename })));
 
     // Enter editing mode
     act(() => {

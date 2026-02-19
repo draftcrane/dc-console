@@ -264,8 +264,7 @@ describe("useEditorProject", () => {
         })
         .mockResolvedValue({
           ok: true,
-          json: () =>
-            Promise.resolve(makeProjectResponse({ driveFolderId: "confirmed-drive-id" })),
+          json: () => Promise.resolve(makeProjectResponse({ driveFolderId: "confirmed-drive-id" })),
         });
 
       const { result } = renderHook(() => useEditorProject(makeOptions()));
@@ -291,8 +290,7 @@ describe("useEditorProject", () => {
         .fn()
         .mockResolvedValueOnce({
           ok: true,
-          json: () =>
-            Promise.resolve(makeProjectResponse({ driveFolderId: "old-drive-folder" })),
+          json: () => Promise.resolve(makeProjectResponse({ driveFolderId: "old-drive-folder" })),
         })
         .mockResolvedValue({
           ok: true,
@@ -349,9 +347,7 @@ describe("useEditorProject", () => {
     });
 
     act(() => {
-      result.current.setProjectData((prev) =>
-        prev ? { ...prev, title: "Updated Title" } : prev,
-      );
+      result.current.setProjectData((prev) => (prev ? { ...prev, title: "Updated Title" } : prev));
     });
 
     expect(result.current.projectData!.title).toBe("Updated Title");

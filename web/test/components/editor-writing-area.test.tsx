@@ -137,11 +137,7 @@ describe("EditorWritingArea", () => {
   // ────────────────────────────────────────────
 
   it("renders an input when in editing mode", () => {
-    render(
-      <EditorWritingArea
-        {...makeProps({ editingTitle: true, titleValue: "Chapter 1" })}
-      />,
-    );
+    render(<EditorWritingArea {...makeProps({ editingTitle: true, titleValue: "Chapter 1" })} />);
 
     const input = screen.getByDisplayValue("Chapter 1");
     expect(input).toBeInTheDocument();
@@ -169,9 +165,7 @@ describe("EditorWritingArea", () => {
   it("calls onTitleSave on Enter key in edit mode", () => {
     const onTitleSave = vi.fn();
     render(
-      <EditorWritingArea
-        {...makeProps({ editingTitle: true, titleValue: "Test", onTitleSave })}
-      />,
+      <EditorWritingArea {...makeProps({ editingTitle: true, titleValue: "Test", onTitleSave })} />,
     );
 
     const input = screen.getByDisplayValue("Test");
@@ -197,9 +191,7 @@ describe("EditorWritingArea", () => {
   it("calls onTitleSave on blur in edit mode", () => {
     const onTitleSave = vi.fn();
     render(
-      <EditorWritingArea
-        {...makeProps({ editingTitle: true, titleValue: "Test", onTitleSave })}
-      />,
+      <EditorWritingArea {...makeProps({ editingTitle: true, titleValue: "Test", onTitleSave })} />,
     );
 
     const input = screen.getByDisplayValue("Test");
@@ -209,11 +201,7 @@ describe("EditorWritingArea", () => {
   });
 
   it("input has maxLength of 200 characters", () => {
-    render(
-      <EditorWritingArea
-        {...makeProps({ editingTitle: true, titleValue: "Test" })}
-      />,
-    );
+    render(<EditorWritingArea {...makeProps({ editingTitle: true, titleValue: "Test" })} />);
 
     const input = screen.getByDisplayValue("Test");
     expect(input).toHaveAttribute("maxLength", "200");
@@ -231,18 +219,14 @@ describe("EditorWritingArea", () => {
 
   it("displays selection word count with total when there is a selection", () => {
     render(
-      <EditorWritingArea
-        {...makeProps({ currentWordCount: 1234, selectionWordCount: 50 })}
-      />,
+      <EditorWritingArea {...makeProps({ currentWordCount: 1234, selectionWordCount: 50 })} />,
     );
 
     expect(screen.getByText("50 / 1,234 words")).toBeInTheDocument();
   });
 
   it("displays 0 words for empty content", () => {
-    render(
-      <EditorWritingArea {...makeProps({ currentWordCount: 0, selectionWordCount: 0 })} />,
-    );
+    render(<EditorWritingArea {...makeProps({ currentWordCount: 0, selectionWordCount: 0 })} />);
 
     expect(screen.getByText("0 words")).toBeInTheDocument();
   });

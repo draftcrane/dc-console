@@ -142,29 +142,19 @@ describe("EditorToolbar", () => {
   });
 
   it("shows AI Rewrite button when text is selected and sheet is idle", () => {
-    render(
-      <EditorToolbar {...makeProps({ selectionWordCount: 5, aiSheetState: "idle" })} />,
-    );
+    render(<EditorToolbar {...makeProps({ selectionWordCount: 5, aiSheetState: "idle" })} />);
 
     expect(screen.getByLabelText("AI Rewrite selected text")).toBeInTheDocument();
   });
 
   it("does not show AI Rewrite button when sheet is streaming", () => {
-    render(
-      <EditorToolbar
-        {...makeProps({ selectionWordCount: 5, aiSheetState: "streaming" })}
-      />,
-    );
+    render(<EditorToolbar {...makeProps({ selectionWordCount: 5, aiSheetState: "streaming" })} />);
 
     expect(screen.queryByLabelText("AI Rewrite selected text")).not.toBeInTheDocument();
   });
 
   it("does not show AI Rewrite button when sheet is complete", () => {
-    render(
-      <EditorToolbar
-        {...makeProps({ selectionWordCount: 5, aiSheetState: "complete" })}
-      />,
-    );
+    render(<EditorToolbar {...makeProps({ selectionWordCount: 5, aiSheetState: "complete" })} />);
 
     expect(screen.queryByLabelText("AI Rewrite selected text")).not.toBeInTheDocument();
   });
@@ -186,9 +176,7 @@ describe("EditorToolbar", () => {
   // ────────────────────────────────────────────
 
   it("passes save status state to SaveIndicator", () => {
-    render(
-      <EditorToolbar {...makeProps({ saveStatus: { state: "saving" } })} />,
-    );
+    render(<EditorToolbar {...makeProps({ saveStatus: { state: "saving" } })} />);
 
     expect(screen.getByTestId("save-indicator")).toHaveAttribute("data-state", "saving");
   });
