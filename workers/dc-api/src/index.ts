@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import type { Env } from "./types/index.js";
-import { AppError, corsMiddleware } from "./middleware/index.js";
+import { AppError, corsMiddleware, requireAuth } from "./middleware/index.js";
 import { requestLogger } from "./middleware/request-logger.js";
 import { health } from "./routes/health.js";
 import { auth } from "./routes/auth.js";
+import { drive, driveCallback } from "./routes/drive.js";
 import { users } from "./routes/users.js";
-import { drive } from "./routes/drive.js";
 import { projects } from "./routes/projects.js";
 import { chapters } from "./routes/chapters.js";
 import { ai } from "./routes/ai.js";
@@ -62,13 +62,25 @@ app.onError((err, c) => {
   );
 });
 
-// Global middleware
+// Global middleware (applied to all routes)
 app.use("*", corsMiddleware());
 app.use("*", requestLogger);
 
-// Route mounting
+// --- Public routes (mounted BEFORE global auth) ---
+// These routes use their own authentication mechanisms:
+// - /health: no auth required
+// - /auth/webhook: Svix signature verification (not JWT)
+// - /drive/callback: OAuth CSRF state token (not JWT)
 app.route("/health", health);
 app.route("/auth", auth);
+app.route("/drive", driveCallback);
+
+// --- Global authentication barrier ---
+// All routes below this line require a valid Clerk JWT.
+// New routes are authenticated by default; only add public routes above.
+app.use("*", requireAuth);
+
+// Authenticated route mounting
 app.route("/users", users);
 app.route("/drive", drive);
 app.route("/projects", projects);
