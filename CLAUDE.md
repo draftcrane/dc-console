@@ -72,7 +72,7 @@ npm run lint            # ESLint check
 npm run typecheck       # TypeScript validation
 ```
 
-**Deployment:** Vercel. The frontend is a Next.js app deployed to Vercel at `draftcrane.app`.
+**Deployment:** Vercel auto-deploys from GitHub on push to `main`. Do NOT run `npx vercel` manually - just push and Vercel handles it. Live at `draftcrane.app`.
 
 ### API Worker (workers/dc-api/)
 
