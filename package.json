@@ -15,7 +15,11 @@
     "pdf:check": "bash scripts/browser-rendering-readiness.sh"
   },
   "devDependencies": {
-    "prettier": "^3.5.0"
+    "docx": "^9.5.3",
+    "mammoth": "^1.11.0",
+    "pdf-lib": "^1.17.1",
+    "prettier": "^3.5.0",
+    "unpdf": "^1.4.0"
   },
   "overrides": {
     "minimatch": "^10.2.1"
