@@ -20,7 +20,7 @@
     "ulidx": "^2.4.1"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.12.13",
+    "@cloudflare/vitest-pool-workers": "^0.12.14",
     "@cloudflare/workers-types": "^4.20250124.0",
     "@types/sanitize-html": "^2.16.0",
     "typescript": "^5.7.0",
