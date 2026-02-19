@@ -1,9 +1,9 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { EditorWritingArea } from "@/components/editor-writing-area";
+import { EditorWritingArea } from "@/components/editor/editor-writing-area";
 import type { RefObject } from "react";
-import type { ChapterEditorHandle } from "@/components/chapter-editor";
+import type { ChapterEditorHandle } from "@/components/editor/chapter-editor";
 
 /**
  * Tests for EditorWritingArea — the main writing surface component.
@@ -20,7 +20,7 @@ import type { ChapterEditorHandle } from "@/components/chapter-editor";
 
 // Mock the ChapterEditor component — must handle forwardRef since the real
 // component uses it for the imperative handle
-vi.mock("@/components/chapter-editor", () => ({
+vi.mock("@/components/editor/chapter-editor", () => ({
   ChapterEditor: React.forwardRef(function MockChapterEditor(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     props: any,

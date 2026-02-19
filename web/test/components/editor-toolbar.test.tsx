@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { EditorToolbar } from "@/components/editor-toolbar";
+import { EditorToolbar } from "@/components/editor/editor-toolbar";
 
 /**
  * Tests for EditorToolbar — the top toolbar for the writing environment.
@@ -14,13 +14,13 @@ import { EditorToolbar } from "@/components/editor-toolbar";
  */
 
 // Mock child components to avoid their dependencies
-vi.mock("@/components/project-switcher", () => ({
+vi.mock("@/components/project/project-switcher", () => ({
   ProjectSwitcher: ({ currentProject }: { currentProject: { id: string; title: string } }) => (
     <div data-testid="project-switcher">{currentProject.title}</div>
   ),
 }));
 
-vi.mock("@/components/save-indicator", () => ({
+vi.mock("@/components/editor/save-indicator", () => ({
   SaveIndicator: ({ status }: { status: { state: string } }) => (
     <div data-testid="save-indicator" data-state={status.state}>
       {status.state}
@@ -28,7 +28,7 @@ vi.mock("@/components/save-indicator", () => ({
   ),
 }));
 
-vi.mock("@/components/drive-status-indicator", () => ({
+vi.mock("@/components/drive/drive-status-indicator", () => ({
   DriveStatusIndicator: ({ connected }: { connected: boolean }) => (
     <div data-testid="drive-status" data-connected={connected}>
       {connected ? "Connected" : "Not connected"}
@@ -36,11 +36,11 @@ vi.mock("@/components/drive-status-indicator", () => ({
   ),
 }));
 
-vi.mock("@/components/export-menu", () => ({
+vi.mock("@/components/project/export-menu", () => ({
   ExportMenu: () => <div data-testid="export-menu">Export</div>,
 }));
 
-vi.mock("@/components/settings-menu", () => ({
+vi.mock("@/components/project/settings-menu", () => ({
   SettingsMenu: () => <div data-testid="settings-menu">Settings</div>,
 }));
 

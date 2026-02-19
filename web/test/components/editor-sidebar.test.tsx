@@ -1,7 +1,7 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { EditorSidebar } from "@/components/editor-sidebar";
+import { EditorSidebar } from "@/components/editor/editor-sidebar";
 
 /**
  * Tests for EditorSidebar — the responsive sidebar wrapper.
@@ -18,7 +18,7 @@ import { EditorSidebar } from "@/components/editor-sidebar";
  */
 
 // Mock the Sidebar and SidebarOverlay components
-vi.mock("@/components/sidebar", () => ({
+vi.mock("@/components/layout/sidebar", () => ({
   Sidebar: ({
     collapsed,
     activeChapterId,
