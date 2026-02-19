@@ -151,7 +151,9 @@ export function useSourceActions(projectId: string) {
     removeSource,
     importSourceAsChapter,
 
-    // Error
+    // Error (aggregated for panels that show any source-related error)
     error,
+    // Content-specific error (isolated for the viewer so stale panel errors don't suppress content)
+    contentError,
   };
 }

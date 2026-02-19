@@ -316,6 +316,7 @@ export default function EditorPage() {
     openAddSourceSheet,
     closeAddSourceSheet,
     error: sourcesError,
+    contentError,
   } = useSourceActions(projectId);
 
   // Chapter-source linking
@@ -775,7 +776,7 @@ export default function EditorPage() {
         content={viewerContent}
         wordCount={viewerWordCount}
         isLoading={isContentLoading}
-        error={sourcesError}
+        error={contentError}
         onClose={closeSourceViewer}
         onImportAsChapter={async () => {
           if (!activeSource) return;

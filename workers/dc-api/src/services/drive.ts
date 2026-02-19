@@ -181,7 +181,12 @@ export class DriveService {
   ): Promise<string> {
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
     const encryptedAccess = await encrypt(tokens.access_token, this.env.ENCRYPTION_KEY);
-    const encryptedRefresh = await encrypt(tokens.refresh_token || "", this.env.ENCRYPTION_KEY);
+    // Only encrypt refresh_token when Google provides one. Passing literal ''
+    // allows the SQL CASE to correctly preserve the existing stored refresh token
+    // on re-auth flows where Google omits the refresh_token.
+    const encryptedRefresh = tokens.refresh_token
+      ? await encrypt(tokens.refresh_token, this.env.ENCRYPTION_KEY)
+      : "";
 
     await this.env.DB.prepare(
       `INSERT INTO drive_connections (id, user_id, access_token, refresh_token, token_expires_at, drive_email, updated_at)
