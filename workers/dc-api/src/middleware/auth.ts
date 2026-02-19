@@ -240,8 +240,8 @@ async function ensureUserRecord(env: Env, payload: ClerkJWTPayload): Promise<voi
 
   if (!email) {
     const profile = await fetchClerkUserProfile(env, userId);
-    email = profile.email;
-    displayName = profile.displayName;
+    email = profile.email ?? undefined;
+    displayName = profile.displayName ?? undefined;
   }
 
   if (!email) {
