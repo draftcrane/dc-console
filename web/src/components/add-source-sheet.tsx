@@ -86,7 +86,7 @@ export function AddSourceSheet({
               </svg>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium text-gray-900 truncate">{account.email}</div>
-              <div className="text-xs text-gray-500">Browse Google Drive</div>
+                <div className="text-xs text-gray-500">Browse Google Drive</div>
               </div>
               <svg
                 className="w-4 h-4 text-gray-400 shrink-0"

@@ -24,7 +24,7 @@
     "@cloudflare/workers-types": "^4.20250124.0",
     "@types/sanitize-html": "^2.16.0",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0",
+    "vitest": "~3.2.0",
     "wrangler": "^4.0.0"
   }
 }

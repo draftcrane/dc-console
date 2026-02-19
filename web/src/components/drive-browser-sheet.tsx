@@ -34,14 +34,8 @@ export function DriveBrowserSheet({
 }: DriveBrowserSheetProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const docs = useMemo(
-    () => items.filter((item) => isDoc(item)),
-    [items, isDoc],
-  );
-  const folders = useMemo(
-    () => items.filter((item) => isFolder(item)),
-    [items, isFolder],
-  );
+  const docs = useMemo(() => items.filter((item) => isDoc(item)), [items, isDoc]);
+  const folders = useMemo(() => items.filter((item) => isFolder(item)), [items, isFolder]);
 
   if (!isOpen) return null;
 
@@ -78,8 +72,18 @@ export function DriveBrowserSheet({
             className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-100 disabled:opacity-40"
             aria-label="Back"
           >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
           <div className="flex-1">
@@ -91,20 +95,26 @@ export function DriveBrowserSheet({
             className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-100"
             aria-label="Close"
           >
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-5 h-5 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
         <div className="flex-1 overflow-auto px-4 py-3 space-y-2">
-          {isLoading && (
-            <div className="text-sm text-gray-500">Loading...</div>
-          )}
+          {isLoading && <div className="text-sm text-gray-500">Loading...</div>}
 
-          {error && (
-            <div className="text-sm text-red-600">{error}</div>
-          )}
+          {error && <div className="text-sm text-red-600">{error}</div>}
 
           {!isLoading && !error && folders.length === 0 && docs.length === 0 && (
             <div className="text-sm text-gray-500">No Google Docs found in this folder.</div>
@@ -116,8 +126,18 @@ export function DriveBrowserSheet({
               onClick={() => onOpenFolder(folder.id)}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 text-left"
             >
-              <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+              <svg
+                className="w-5 h-5 text-amber-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+                />
               </svg>
               <span className="text-sm text-gray-900 truncate">{folder.name}</span>
             </button>
@@ -139,16 +159,16 @@ export function DriveBrowserSheet({
               </svg>
               <div className="min-w-0 flex-1">
                 <div className="text-sm text-gray-900 truncate">{doc.name}</div>
-                <div className="text-xs text-gray-500">{GOOGLE_DOC_MIME_TYPE === doc.mimeType ? "Google Doc" : doc.mimeType}</div>
+                <div className="text-xs text-gray-500">
+                  {GOOGLE_DOC_MIME_TYPE === doc.mimeType ? "Google Doc" : doc.mimeType}
+                </div>
               </div>
             </label>
           ))}
         </div>
 
         <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-          <span className="text-xs text-gray-500">
-            {selectedIds.size} selected
-          </span>
+          <span className="text-xs text-gray-500">{selectedIds.size} selected</span>
           <button
             onClick={handleAdd}
             disabled={selectedIds.size === 0}
