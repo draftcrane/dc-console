@@ -10,86 +10,108 @@ import path from "path";
  * it was initialized. The fix was to reorder the hook declarations so that
  * `fetchProjectData` and its `useEffect` are defined before `useProjectActions`.
  *
- * This test statically validates that initialization order is maintained,
- * preventing future regressions from code reordering.
+ * After the #138 refactor, fetchProjectData and the Project/Drive connection
+ * callbacks live inside the `useEditorProject` hook. The TDZ invariant is now
+ * maintained by ensuring `useEditorProject` is called before `useProjectActions`
+ * in the page orchestrator, and its return values are wired to `useProjectActions`.
+ *
+ * This test validates:
+ * 1. useEditorProject is called before useProjectActions (ordering).
+ * 2. handleProjectConnected and handleProjectDisconnected from useEditorProject
+ *    are passed to useProjectActions.
+ * 3. useEditorProject hook internally defines fetchProjectData before the
+ *    project-connected/disconnected callbacks that depend on it.
  */
 describe("EditorPage initialization order (#119 TDZ regression)", () => {
   const editorPagePath = path.resolve(
     __dirname,
     "../../src/app/(protected)/editor/[projectId]/page.tsx",
   );
-  const source = fs.readFileSync(editorPagePath, "utf-8");
+  const editorProjectHookPath = path.resolve(__dirname, "../../src/hooks/use-editor-project.ts");
+  const pageSource = fs.readFileSync(editorPagePath, "utf-8");
+  const hookSource = fs.readFileSync(editorProjectHookPath, "utf-8");
 
-  it("fetchProjectData is defined before useProjectActions is called", () => {
-    // Find the position of the fetchProjectData useCallback definition
-    const fetchProjectDataDef = source.indexOf("const fetchProjectData = useCallback");
+  it("useEditorProject is called before useProjectActions in the page", () => {
+    const useEditorProjectPos = pageSource.indexOf("useEditorProject(");
+    expect(useEditorProjectPos).toBeGreaterThan(-1);
+
+    const useProjectActionsPos = pageSource.indexOf("useProjectActions(");
+    expect(useProjectActionsPos).toBeGreaterThan(-1);
+
+    // useEditorProject must be called BEFORE useProjectActions
+    expect(useEditorProjectPos).toBeLessThan(useProjectActionsPos);
+  });
+
+  it("handleProjectConnected and handleProjectDisconnected are returned by useEditorProject and passed to useProjectActions", () => {
+    // Verify the page destructures these from useEditorProject.
+    // The destructuring block starts with the opening brace of the destructured return
+    // and contains the property names.
+    const editorProjectCallStart = pageSource.indexOf("} = useEditorProject(");
+    expect(editorProjectCallStart).toBeGreaterThan(-1);
+
+    // Look back to find the start of the destructuring (opening brace after "const {")
+    const destructureStart = pageSource.lastIndexOf("const {", editorProjectCallStart);
+    expect(destructureStart).toBeGreaterThan(-1);
+
+    const destructureBlock = pageSource.slice(destructureStart, editorProjectCallStart);
+    expect(destructureBlock).toContain("handleProjectConnected");
+    expect(destructureBlock).toContain("handleProjectDisconnected");
+
+    // Verify useProjectActions receives them
+    const callStart = pageSource.indexOf("useProjectActions({");
+    expect(callStart).toBeGreaterThan(-1);
+    const callBlock = pageSource.slice(callStart, pageSource.indexOf("});", callStart) + 3);
+    expect(callBlock).toContain("onProjectConnected: handleProjectConnected");
+    expect(callBlock).toContain("onProjectDisconnected: handleProjectDisconnected");
+  });
+
+  it("fetchProjectData is defined before handleProjectConnected inside useEditorProject hook", () => {
+    const fetchProjectDataDef = hookSource.indexOf("const fetchProjectData = useCallback");
     expect(fetchProjectDataDef).toBeGreaterThan(-1);
 
-    // Find the position of the useProjectActions call
-    const useProjectActionsCall = source.indexOf("useProjectActions(");
-    expect(useProjectActionsCall).toBeGreaterThan(-1);
-
-    // fetchProjectData must be defined BEFORE useProjectActions is called
-    expect(fetchProjectDataDef).toBeLessThan(useProjectActionsCall);
-  });
-
-  it("fetchProjectData useEffect runs before useProjectActions is called", () => {
-    // The useEffect that invokes fetchProjectData
-    const fetchEffectPattern = /useEffect\(\s*\(\)\s*=>\s*\{\s*\n?\s*fetchProjectData\(\)/;
-    const fetchEffectMatch = source.match(fetchEffectPattern);
-    expect(fetchEffectMatch).not.toBeNull();
-
-    const fetchEffectPos = source.indexOf(fetchEffectMatch![0]);
-    const useProjectActionsPos = source.indexOf("useProjectActions(");
-
-    // The useEffect calling fetchProjectData must appear before useProjectActions
-    expect(fetchEffectPos).toBeLessThan(useProjectActionsPos);
-  });
-
-  it("handleProjectConnected is defined before useProjectActions and depends on fetchProjectData", () => {
-    const handleProjectConnectedDef = source.indexOf("const handleProjectConnected = useCallback");
+    const handleProjectConnectedDef = hookSource.indexOf(
+      "const handleProjectConnected = useCallback",
+    );
     expect(handleProjectConnectedDef).toBeGreaterThan(-1);
 
-    const useProjectActionsPos = source.indexOf("useProjectActions(");
+    // fetchProjectData must be defined before handleProjectConnected
+    expect(fetchProjectDataDef).toBeLessThan(handleProjectConnectedDef);
 
-    // handleProjectConnected must be defined before useProjectActions
-    expect(handleProjectConnectedDef).toBeLessThan(useProjectActionsPos);
-
-    // handleProjectConnected's definition should reference fetchProjectData
-    // (it calls fetchProjectData to refresh server state after Drive connect)
-    const handleProjectConnectedBlock = source.slice(
+    // handleProjectConnected should reference fetchProjectData
+    const connectedBlock = hookSource.slice(
       handleProjectConnectedDef,
-      source.indexOf("const handleProjectDisconnected", handleProjectConnectedDef),
+      hookSource.indexOf("const handleProjectDisconnected", handleProjectConnectedDef),
     );
-    expect(handleProjectConnectedBlock).toContain("fetchProjectData");
+    expect(connectedBlock).toContain("fetchProjectData");
   });
 
-  it("handleProjectDisconnected is defined before useProjectActions and depends on fetchProjectData", () => {
-    const handleProjectDisconnectedDef = source.indexOf(
+  it("fetchProjectData is defined before handleProjectDisconnected inside useEditorProject hook", () => {
+    const fetchProjectDataDef = hookSource.indexOf("const fetchProjectData = useCallback");
+    expect(fetchProjectDataDef).toBeGreaterThan(-1);
+
+    const handleProjectDisconnectedDef = hookSource.indexOf(
       "const handleProjectDisconnected = useCallback",
     );
     expect(handleProjectDisconnectedDef).toBeGreaterThan(-1);
 
-    const useProjectActionsPos = source.indexOf("useProjectActions(");
+    // fetchProjectData must be defined before handleProjectDisconnected
+    expect(fetchProjectDataDef).toBeLessThan(handleProjectDisconnectedDef);
 
-    // handleProjectDisconnected must be defined before useProjectActions
-    expect(handleProjectDisconnectedDef).toBeLessThan(useProjectActionsPos);
-
-    // handleProjectDisconnected's definition should reference fetchProjectData
-    const handleProjectDisconnectedBlock = source.slice(
+    // handleProjectDisconnected should reference fetchProjectData
+    const disconnectedBlock = hookSource.slice(
       handleProjectDisconnectedDef,
-      useProjectActionsPos,
+      hookSource.indexOf("return {", handleProjectDisconnectedDef),
     );
-    expect(handleProjectDisconnectedBlock).toContain("fetchProjectData");
+    expect(disconnectedBlock).toContain("fetchProjectData");
   });
 
   it("useProjectActions receives onProjectConnected and onProjectDisconnected callbacks", () => {
     // Extract the useProjectActions call block
-    const callStart = source.indexOf("useProjectActions({");
+    const callStart = pageSource.indexOf("useProjectActions({");
     expect(callStart).toBeGreaterThan(-1);
 
     // Find the closing of the options object (matching brace)
-    const callBlock = source.slice(callStart, source.indexOf("});", callStart) + 3);
+    const callBlock = pageSource.slice(callStart, pageSource.indexOf("});", callStart) + 3);
 
     expect(callBlock).toContain("onProjectConnected: handleProjectConnected");
     expect(callBlock).toContain("onProjectDisconnected: handleProjectDisconnected");

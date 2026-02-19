@@ -1,64 +1,28 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { Sidebar, SidebarOverlay, type ChapterData } from "@/components/sidebar";
-import { DriveStatusIndicator } from "@/components/drive-status-indicator";
-import { ChapterEditor, type ChapterEditorHandle } from "@/components/chapter-editor";
-import { AIRewriteSheet } from "@/components/ai-rewrite-sheet";
-import { DriveFilesSheet } from "@/components/drive-files-sheet";
+import type { ChapterData } from "@/components/sidebar";
+import type { ChapterEditorHandle } from "@/components/chapter-editor";
+import { OnboardingTooltips } from "@/components/onboarding-tooltips";
+import { CrashRecoveryDialog } from "@/components/crash-recovery-dialog";
+import { EditorSidebar } from "@/components/editor-sidebar";
+import { EditorToolbar } from "@/components/editor-toolbar";
+import { EditorWritingArea } from "@/components/editor-writing-area";
+import { EditorDialogs } from "@/components/editor-dialogs";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useDriveFiles } from "@/hooks/use-drive-files";
 import { useChapterSources } from "@/hooks/use-chapter-sources";
-import { SaveIndicator } from "@/components/save-indicator";
-import { CrashRecoveryDialog } from "@/components/crash-recovery-dialog";
-import { ExportMenu } from "@/components/export-menu";
-import { DeleteProjectDialog } from "@/components/delete-project-dialog";
-import { DeleteChapterDialog } from "@/components/delete-chapter-dialog";
-import { DisconnectDriveDialog } from "@/components/disconnect-drive-dialog";
-import { RenameProjectDialog } from "@/components/rename-project-dialog";
-import { DuplicateProjectDialog } from "@/components/duplicate-project-dialog";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
-import { OnboardingTooltips } from "@/components/onboarding-tooltips";
 import { useChapterManagement } from "@/hooks/use-chapter-management";
 import { useEditorAI } from "@/hooks/use-editor-ai";
 import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { useSourceActions } from "@/hooks/use-source-actions";
-import { ProjectSwitcher } from "@/components/project-switcher";
-import { SettingsMenu } from "@/components/settings-menu";
-import { SourcesPanel } from "@/components/sources-panel";
-import { SourceViewerSheet } from "@/components/source-viewer-sheet";
-import { AddSourceSheet } from "@/components/add-source-sheet";
-import { AccountsSheet } from "@/components/accounts-sheet";
-import { DriveBrowserSheet } from "@/components/drive-browser-sheet";
-
-interface Chapter {
-  id: string;
-  title: string;
-  sortOrder: number;
-  wordCount: number;
-  version: number;
-  status: string;
-}
-
-/**
- * Shape returned by GET /projects/:projectId.
- * The API returns a flat object with project fields + chapters array,
- * NOT a nested { project, chapters } structure.
- */
-interface ProjectData {
-  id: string;
-  title: string;
-  description?: string;
-  driveFolderId?: string | null;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  chapters: Chapter[];
-}
+import { useEditorProject } from "@/hooks/use-editor-project";
+import { useChapterContent } from "@/hooks/use-chapter-content";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -77,7 +41,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
  * - Uses 100dvh for viewport height
  *
  * Per US-011: Editor content width constrained to ~680-720px.
- * Per US-015: Three-tier auto-save (IndexedDB → Drive/R2 → D1 metadata).
+ * Per US-015: Three-tier auto-save (IndexedDB -> Drive/R2 -> D1 metadata).
+ *
+ * This component is the orchestrator: it wires together hooks and delegates
+ * all UI rendering to focused child components.
  */
 export default function EditorPage() {
   const params = useParams();
@@ -85,42 +52,28 @@ export default function EditorPage() {
   const { getToken } = useAuth();
   const projectId = params.projectId as string;
 
-  const [projectData, setProjectData] = useState<ProjectData | null>(null);
-  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileOverlayOpen, setMobileOverlayOpen] = useState(false);
-
   // Editor ref for AI rewrite text replacement
   const editorRef = useRef<ChapterEditorHandle>(null);
 
-  // Drive connection status - multi-account (US-005, US-008)
+  // --- Core project data ---
   const {
-    accounts: driveAccounts,
-    connected: driveConnected,
-    email: driveEmail,
-    connect: connectDrive,
-    disconnect: disconnectDriveAccount,
-    refetch: refetchDriveAccounts,
-  } = useDriveAccounts();
-
-  // Accounts management sheet state
-  const [isAccountsSheetOpen, setIsAccountsSheetOpen] = useState(false);
-
-  // Drive files listing (US-007)
-  const {
-    fetchFiles,
-    files: driveFiles,
-    isLoading: driveFilesLoading,
-    error: driveFilesError,
-    reset: resetDriveFiles,
-  } = useDriveFiles();
+    projectData,
+    setProjectData,
+    activeChapterId,
+    setActiveChapterId,
+    isLoading,
+    error,
+    handleProjectConnected,
+    handleProjectDisconnected,
+  } = useEditorProject({
+    projectId,
+    getToken: getToken as () => Promise<string | null>,
+  });
 
   // Get active chapter for version
   const activeChapter = projectData?.chapters.find((ch) => ch.id === activeChapterId);
 
-  // Three-tier auto-save hook (US-015)
+  // --- Auto-save ---
   const {
     handleContentChange,
     saveNow,
@@ -146,7 +99,42 @@ export default function EditorPage() {
     saveNowRef.current = saveNow;
   }, [saveNow]);
 
-  // Chapter management hook
+  // --- Chapter content loading & word counts ---
+  const { currentWordCount, selectionWordCount, handleSelectionWordCountChange } =
+    useChapterContent({
+      activeChapterId,
+      getToken: getToken as () => Promise<string | null>,
+      setContent,
+      currentContent,
+    });
+
+  // --- Sidebar UI state ---
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileOverlayOpen, setMobileOverlayOpen] = useState(false);
+
+  // --- Accounts management sheet state ---
+  const [isAccountsSheetOpen, setIsAccountsSheetOpen] = useState(false);
+
+  // --- Drive connection (multi-account) ---
+  const {
+    accounts: driveAccounts,
+    connected: driveConnected,
+    email: driveEmail,
+    connect: connectDrive,
+    disconnect: disconnectDriveAccount,
+    refetch: refetchDriveAccounts,
+  } = useDriveAccounts();
+
+  // Drive files listing (US-007)
+  const {
+    fetchFiles,
+    files: driveFiles,
+    isLoading: driveFilesLoading,
+    error: driveFilesError,
+    reset: resetDriveFiles,
+  } = useDriveFiles();
+
+  // --- Chapter management ---
   const {
     chapterToDelete,
     deleteChapterDialogOpen,
@@ -171,7 +159,7 @@ export default function EditorPage() {
     currentContent,
   });
 
-  // AI rewrite hook (combines state + handlers)
+  // --- AI rewrite ---
   const {
     sheetState: aiSheetState,
     currentResult: aiCurrentResult,
@@ -190,7 +178,7 @@ export default function EditorPage() {
     editorRef,
   });
 
-  // Editor title hook
+  // --- Editor title ---
   const {
     editingTitle,
     titleValue,
@@ -204,60 +192,7 @@ export default function EditorPage() {
     handleChapterRename,
   });
 
-  // Word count state (US-024)
-  const [selectionWordCount, setSelectionWordCount] = useState(0);
-
-  // Fetch project data
-  const fetchProjectData = useCallback(async () => {
-    try {
-      const token = await getToken();
-
-      const projectResponse = await fetch(`${API_URL}/projects/${projectId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!projectResponse.ok) {
-        if (projectResponse.status === 404) {
-          router.push("/dashboard");
-          return;
-        }
-        throw new Error("Failed to load project");
-      }
-
-      const data: ProjectData = await projectResponse.json();
-      setProjectData(data);
-
-      if (data.chapters.length > 0 && !activeChapterId) {
-        const sortedChapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
-        setActiveChapterId(sortedChapters[0].id);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getToken, projectId, router, activeChapterId]);
-
-  useEffect(() => {
-    fetchProjectData();
-  }, [fetchProjectData]);
-
-  const handleProjectConnected = useCallback(
-    async (driveFolderId: string) => {
-      // Optimistically reflect connection in the current view.
-      setProjectData((prev) => (prev ? { ...prev, driveFolderId } : prev));
-      // Then refresh canonical server state.
-      await fetchProjectData();
-    },
-    [fetchProjectData],
-  );
-
-  const handleProjectDisconnected = useCallback(async () => {
-    setProjectData((prev) => (prev ? { ...prev, driveFolderId: null } : prev));
-    await fetchProjectData();
-  }, [fetchProjectData]);
-
-  // Project actions: list, rename, duplicate, delete, Drive files, disconnect, connect project to Drive
+  // --- Project actions ---
   const {
     projects: allProjects,
     renameDialogOpen,
@@ -281,8 +216,8 @@ export default function EditorPage() {
     disconnectDriveDialogOpen,
     openDisconnectDriveDialog,
     closeDisconnectDriveDialog,
-    isConnectingDrive, // NEW
-    onConnectProjectToDrive, // NEW
+    isConnectingDrive,
+    onConnectProjectToDrive,
     disconnectProjectFromDrive,
   } = useProjectActions({
     getToken: getToken as () => Promise<string | null>,
@@ -294,7 +229,8 @@ export default function EditorPage() {
     onProjectConnected: handleProjectConnected,
     onProjectDisconnected: handleProjectDisconnected,
   });
-  // Source materials hook (facade over sources, content, and Picker)
+
+  // --- Source materials ---
   const {
     sources,
     isSourcesLoading,
@@ -333,57 +269,7 @@ export default function EditorPage() {
   // Chapter-source linking
   const { linkedSources, linkSource, unlinkSource } = useChapterSources(projectId, activeChapterId);
 
-  // Load chapter content from API when active chapter changes
-  useEffect(() => {
-    if (!activeChapterId) return;
-
-    let cancelled = false;
-
-    async function loadContent() {
-      try {
-        const token = await getToken();
-        const response = await fetch(`${API_URL}/chapters/${activeChapterId}/content`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (cancelled) return;
-
-        if (response.ok) {
-          const data = (await response.json()) as { content: string; version: number };
-          setContent(data.content || "");
-        } else if (response.status === 404) {
-          setContent("");
-        }
-      } catch (err) {
-        console.error("Failed to load chapter content:", err);
-        if (!cancelled) {
-          setContent("");
-        }
-      }
-    }
-
-    loadContent();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeChapterId, getToken, setContent]);
-
-  const handleSelectionWordCountChange = useCallback((count: number) => {
-    setSelectionWordCount(count);
-  }, []);
-
-  const countWords = useCallback((html: string): number => {
-    const text = html
-      .replace(/<[^>]*>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    return text.length > 0 ? text.split(" ").length : 0;
-  }, []);
-
-  const currentWordCount = countWords(currentContent);
-
+  // --- Computed values ---
   const totalWordCount = projectData?.chapters.reduce((sum, ch) => sum + ch.wordCount, 0) ?? 0;
 
   const sidebarChapters: ChapterData[] =
@@ -394,6 +280,7 @@ export default function EditorPage() {
       sortOrder: ch.sortOrder,
     })) ?? [];
 
+  // --- Loading / Error states ---
   if (isLoading) {
     return (
       <div className="flex h-[calc(100dvh-3.5rem)] items-center justify-center">
@@ -432,403 +319,171 @@ export default function EditorPage() {
         />
       )}
 
-      <div className="hidden lg:block">
-        <Sidebar
-          chapters={sidebarChapters}
-          activeChapterId={activeChapterId ?? undefined}
-          onChapterSelect={handleChapterSelect}
-          onAddChapter={handleAddChapter}
-          onDeleteChapter={handleDeleteChapterRequest}
-          onChapterRename={handleChapterRename}
-          onChapterReorder={handleChapterReorder}
-          totalWordCount={totalWordCount}
-          activeChapterWordCount={currentWordCount}
-          collapsed={sidebarCollapsed}
-          onToggleCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
-      </div>
-
-      <div className="lg:hidden">
-        <Sidebar
-          chapters={sidebarChapters}
-          activeChapterId={activeChapterId ?? undefined}
-          onChapterSelect={handleChapterSelect}
-          onAddChapter={handleAddChapter}
-          onDeleteChapter={handleDeleteChapterRequest}
-          onChapterRename={handleChapterRename}
-          onChapterReorder={handleChapterReorder}
-          totalWordCount={totalWordCount}
-          activeChapterWordCount={currentWordCount}
-          collapsed={true}
-          onToggleCollapsed={() => setMobileOverlayOpen(true)}
-        />
-
-        <SidebarOverlay isOpen={mobileOverlayOpen} onClose={() => setMobileOverlayOpen(false)}>
-          <Sidebar
-            chapters={sidebarChapters}
-            activeChapterId={activeChapterId ?? undefined}
-            onChapterSelect={handleChapterSelect}
-            onAddChapter={handleAddChapter}
-            onDeleteChapter={handleDeleteChapterRequest}
-            onChapterRename={handleChapterRename}
-            onChapterReorder={handleChapterReorder}
-            totalWordCount={totalWordCount}
-            activeChapterWordCount={currentWordCount}
-            collapsed={false}
-            onToggleCollapsed={() => setMobileOverlayOpen(false)}
-          />
-        </SidebarOverlay>
-      </div>
+      <EditorSidebar
+        chapters={sidebarChapters}
+        activeChapterId={activeChapterId ?? undefined}
+        onChapterSelect={handleChapterSelect}
+        onAddChapter={handleAddChapter}
+        onDeleteChapter={handleDeleteChapterRequest}
+        onChapterRename={handleChapterRename}
+        onChapterReorder={handleChapterReorder}
+        totalWordCount={totalWordCount}
+        activeChapterWordCount={currentWordCount}
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleSidebarCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
+        mobileOverlayOpen={mobileOverlayOpen}
+        onOpenMobileOverlay={() => setMobileOverlayOpen(true)}
+        onCloseMobileOverlay={() => setMobileOverlayOpen(false)}
+      />
 
       <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center justify-between h-12 px-4 border-b border-border bg-background shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            {projectData && (
-              <ProjectSwitcher
-                currentProject={{
-                  id: projectData.id,
-                  title: projectData.title,
-                  wordCount: totalWordCount,
-                }}
-                projects={allProjects.map((p) => ({
-                  id: p.id,
-                  title: p.title,
-                  wordCount: p.wordCount,
-                }))}
-              />
-            )}
-          </div>
+        {projectData && (
+          <EditorToolbar
+            projectData={projectData}
+            allProjects={allProjects}
+            totalWordCount={totalWordCount}
+            saveStatus={saveStatus}
+            onSaveRetry={saveNow}
+            driveConnected={driveConnected}
+            driveEmail={driveEmail}
+            onConnectDriveWithProject={connectDriveWithProject}
+            onViewDriveFiles={driveConnected ? openDriveFiles : undefined}
+            selectionWordCount={selectionWordCount}
+            aiSheetState={aiSheetState}
+            onOpenAiRewrite={handleOpenAiRewrite}
+            projectId={projectId}
+            activeChapterId={activeChapterId}
+            getToken={getToken as () => Promise<string | null>}
+            apiUrl={API_URL}
+            hasDriveFolder={!!projectData.driveFolderId}
+            onViewSources={openSourcesPanel}
+            onManageAccounts={() => setIsAccountsSheetOpen(true)}
+            onDisconnectDrive={openDisconnectDriveDialog}
+            onRenameBook={openRenameDialog}
+            onDuplicateBook={openDuplicateDialog}
+            isDuplicating={isDuplicating}
+            onDeleteProject={openDeleteDialog}
+            onSignOut={handleSignOut}
+            isSigningOut={isSigningOut}
+          />
+        )}
 
-          <div className="flex items-center gap-2">
-            {/* Save status indicator (US-015) */}
-            <SaveIndicator status={saveStatus} onRetry={saveNow} />
-
-            <div className="w-px h-5 bg-border" aria-hidden="true" />
-
-            {/* Persistent Drive connection status (US-005) */}
-            <DriveStatusIndicator
-              connected={driveConnected}
-              isProjectConnected={!!projectData?.driveFolderId}
-              email={driveEmail}
-              onConnect={connectDriveWithProject}
-              onViewFiles={driveConnected ? openDriveFiles : undefined}
-            />
-
-            {/* Toolbar AI Rewrite fallback — visible when text is selected */}
-            {selectionWordCount > 0 && aiSheetState === "idle" && (
-              <>
-                <button
-                  onClick={handleOpenAiRewrite}
-                  className="h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
-                             text-blue-700 hover:bg-blue-50 transition-colors"
-                  aria-label="AI Rewrite selected text"
-                >
-                  <svg
-                    className="w-4 h-4 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
-                    />
-                  </svg>
-                  <span className="hidden sm:inline">AI Rewrite</span>
-                </button>
-                <div className="w-px h-5 bg-border" aria-hidden="true" />
-              </>
-            )}
-
-            {/* SAVE_INDICATOR_PLACEHOLDER */}
-
-            <ExportMenu
-              projectId={projectId}
-              activeChapterId={activeChapterId}
-              getToken={getToken as () => Promise<string | null>}
-              apiUrl={API_URL}
-              driveConnected={driveConnected}
-            />
-
-            {/* Settings dropdown menu (US-023) */}
-            <SettingsMenu
-              driveConnected={driveConnected}
-              hasDriveFolder={!!projectData?.driveFolderId}
-              onViewDriveFiles={openDriveFiles}
-              onViewSources={openSourcesPanel}
-              onManageAccounts={() => setIsAccountsSheetOpen(true)}
-              onDisconnectDrive={openDisconnectDriveDialog}
-              onRenameBook={openRenameDialog}
-              onDuplicateBook={openDuplicateDialog}
-              isDuplicating={isDuplicating}
-              onDeleteProject={openDeleteDialog}
-              onSignOut={handleSignOut}
-              isSigningOut={isSigningOut}
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-auto">
-          <div className="max-w-[700px] mx-auto px-6 py-8">
-            {/* Chapter title - editable at top of editor (US-011) */}
-            {editingTitle ? (
-              <input
-                type="text"
-                value={titleValue}
-                onChange={(e) => setTitleValue(e.target.value)}
-                onBlur={handleTitleSave}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleTitleSave();
-                  if (e.key === "Escape") setEditingTitle(false);
-                }}
-                className="text-3xl font-semibold text-foreground mb-6 outline-none w-full
-                           border-b-2 border-blue-500 bg-transparent"
-                autoFocus
-                maxLength={200}
-              />
-            ) : (
-              <h1
-                className="text-3xl font-semibold text-foreground mb-6 outline-none cursor-text
-                           hover:bg-gray-50 focus:bg-gray-50 focus:ring-2 focus:ring-blue-500
-                           rounded px-1 -mx-1 transition-colors"
-                onClick={handleTitleEdit}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    handleTitleEdit();
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label={`Edit chapter title: ${activeChapter?.title || "Untitled Chapter"}`}
-                title="Click to edit title"
-              >
-                {activeChapter?.title || "Untitled Chapter"}
-              </h1>
-            )}
-
-            <ChapterEditor
-              ref={editorRef}
-              content={currentContent}
-              onUpdate={handleContentChange}
-              onSelectionWordCountChange={handleSelectionWordCountChange}
-            />
-
-            <div className="mt-4 flex items-center justify-end">
-              <span className="text-sm text-muted-foreground tabular-nums">
-                {selectionWordCount > 0
-                  ? `${selectionWordCount.toLocaleString()} / ${currentWordCount.toLocaleString()} words`
-                  : `${currentWordCount.toLocaleString()} words`}
-              </span>
-            </div>
-          </div>
-        </div>
+        <EditorWritingArea
+          editorRef={editorRef}
+          currentContent={currentContent}
+          onContentChange={handleContentChange}
+          onSelectionWordCountChange={handleSelectionWordCountChange}
+          activeChapter={activeChapter}
+          editingTitle={editingTitle}
+          titleValue={titleValue}
+          onTitleValueChange={setTitleValue}
+          onTitleEdit={handleTitleEdit}
+          onTitleSave={handleTitleSave}
+          onTitleEditCancel={() => setEditingTitle(false)}
+          currentWordCount={currentWordCount}
+          selectionWordCount={selectionWordCount}
+        />
       </div>
 
-      {/* Delete project confirmation dialog (US-023) */}
-      <DeleteProjectDialog
-        projectTitle={projectData?.title || ""}
-        isOpen={deleteDialogOpen}
-        onConfirm={handleDeleteProject}
-        onCancel={closeDeleteDialog}
-      />
-
-      {/* Rename book dialog */}
-      <RenameProjectDialog
-        isOpen={renameDialogOpen}
-        projectTitle={projectData?.title || ""}
-        onConfirm={async (newTitle) => {
-          const success = await renameProject(projectId, newTitle);
-          if (success) {
-            setProjectData((prev) => (prev ? { ...prev, title: newTitle } : prev));
-            closeRenameDialog();
-          }
-        }}
-        onCancel={closeRenameDialog}
-      />
-
-      {/* Duplicate book confirmation dialog */}
-      <DuplicateProjectDialog
-        isOpen={duplicateDialogOpen}
-        projectTitle={projectData?.title || ""}
-        onConfirm={async () => {
-          const newProjectId = await duplicateProject(projectId);
-          closeDuplicateDialog();
-          if (newProjectId) {
-            router.push(`/editor/${newProjectId}`);
-          }
-        }}
-        onCancel={closeDuplicateDialog}
-      />
-
-      {/* Delete chapter confirmation dialog (US-014) */}
-      <DeleteChapterDialog
-        chapterTitle={
-          projectData?.chapters.find((ch) => ch.id === chapterToDelete)?.title || "Untitled Chapter"
-        }
-        isOpen={deleteChapterDialogOpen}
-        onConfirm={handleDeleteChapter}
-        onCancel={() => {
+      <EditorDialogs
+        projectData={projectData}
+        projectId={projectId}
+        getToken={getToken as () => Promise<string | null>}
+        apiUrl={API_URL}
+        // Delete project
+        deleteDialogOpen={deleteDialogOpen}
+        onDeleteProject={handleDeleteProject}
+        onCloseDeleteDialog={closeDeleteDialog}
+        // Rename project
+        renameDialogOpen={renameDialogOpen}
+        onRenameProject={renameProject}
+        onCloseRenameDialog={closeRenameDialog}
+        setProjectData={setProjectData}
+        // Duplicate project
+        duplicateDialogOpen={duplicateDialogOpen}
+        onDuplicateProject={duplicateProject}
+        onCloseDuplicateDialog={closeDuplicateDialog}
+        // Delete chapter
+        deleteChapterDialogOpen={deleteChapterDialogOpen}
+        chapterToDelete={chapterToDelete}
+        onDeleteChapter={handleDeleteChapter}
+        onCloseDeleteChapterDialog={() => {
           setDeleteChapterDialogOpen(false);
           setChapterToDelete(null);
         }}
-      />
-
-      {/* Disconnect Google Drive confirmation dialog (US-008) */}
-      <DisconnectDriveDialog
-        email={driveEmail}
-        isOpen={disconnectDriveDialogOpen}
-        onConfirm={async () => {
-          // Disconnect all accounts (legacy behavior)
-          for (const account of driveAccounts) {
-            await disconnectDriveAccount(account.id);
-          }
-          closeDisconnectDriveDialog();
-        }}
-        onCancel={closeDisconnectDriveDialog}
-      />
-
-      <AIRewriteSheet
-        sheetState={aiSheetState}
-        result={aiCurrentResult}
-        errorMessage={aiErrorMessage}
-        onAccept={handleAIAccept}
-        onRetry={handleAIRetry}
-        onDiscard={handleAIDiscard}
+        // Disconnect Drive
+        disconnectDriveDialogOpen={disconnectDriveDialogOpen}
+        driveEmail={driveEmail}
+        driveAccounts={driveAccounts}
+        onDisconnectDriveAccount={disconnectDriveAccount}
+        onCloseDisconnectDriveDialog={closeDisconnectDriveDialog}
+        // AI Rewrite
+        aiSheetState={aiSheetState}
+        aiCurrentResult={aiCurrentResult}
+        aiErrorMessage={aiErrorMessage}
+        onAIAccept={handleAIAccept}
+        onAIRetry={handleAIRetry}
+        onAIDiscard={handleAIDiscard}
         onGoDeeper={handleGoDeeper}
-      />
-
-      {/* Drive files listing sheet (US-007) */}
-      <DriveFilesSheet
-        isOpen={driveFilesOpen}
-        files={driveFiles}
-        isLoading={driveFilesLoading || isConnectingDrive}
-        error={driveFilesError}
-        onClose={closeDriveFiles}
-        onRefresh={refreshDriveFiles}
-        onConnectDrive={onConnectProjectToDrive}
-        onAddSources={async () => {
-          openSourcesPanel();
-          await openDriveBrowser();
-        }}
-        onViewSources={openSourcesPanel}
-        onDisconnectProject={async () => {
-          const confirmed = window.confirm(
-            "Disconnect this project from its Drive folder? Your Drive account remains connected.",
-          );
-          if (!confirmed) return;
-          await disconnectProjectFromDrive();
-        }}
+        // Drive files
+        driveFilesOpen={driveFilesOpen}
+        driveFiles={driveFiles}
+        driveFilesLoading={driveFilesLoading}
+        driveFilesError={driveFilesError}
+        isConnectingDrive={isConnectingDrive}
         isProjectConnected={!!projectData?.driveFolderId}
-      />
-
-      {/* Source materials panel */}
-      <SourcesPanel
-        isOpen={isSourcesPanelOpen}
+        onCloseDriveFiles={closeDriveFiles}
+        onRefreshDriveFiles={refreshDriveFiles}
+        onConnectProjectToDrive={onConnectProjectToDrive}
+        onDisconnectProjectFromDrive={disconnectProjectFromDrive}
+        onOpenSourcesPanel={openSourcesPanel}
+        onOpenDriveBrowser={openDriveBrowser}
+        // Sources panel
+        isSourcesPanelOpen={isSourcesPanelOpen}
         sources={sources}
-        isLoading={isSourcesLoading}
-        error={sourcesError}
+        isSourcesLoading={isSourcesLoading}
+        sourcesError={sourcesError}
         isPickerLoading={isDriveLoading}
-        onClose={closeSourcesPanel}
-        onAddFromPicker={openAddSourceSheet}
-        onViewSource={openSourceViewer}
-        onImportAsChapter={async (sourceId) => {
-          const result = await importSourceAsChapter(sourceId);
-          if (result) {
-            const token = await getToken();
-            const response = await fetch(`${API_URL}/projects/${projectId}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (response.ok) {
-              const data: ProjectData = await response.json();
-              setProjectData(data);
-              setActiveChapterId(result.chapterId);
-            }
-            closeSourcesPanel();
-          }
-        }}
+        onCloseSourcesPanel={closeSourcesPanel}
+        onOpenAddSourceSheet={openAddSourceSheet}
+        onOpenSourceViewer={openSourceViewer}
         onRemoveSource={removeSource}
+        importSourceAsChapter={importSourceAsChapter}
         activeChapterTitle={activeChapter?.title}
-        linkedSourceIds={new Set(linkedSources.map((s) => s.id))}
+        linkedSources={linkedSources}
         onLinkSource={linkSource}
         onUnlinkSource={unlinkSource}
-      />
-
-      {/* Add source sheet (multi-account + local upload) */}
-      <AddSourceSheet
-        isOpen={isAddSourceSheetOpen}
-        accounts={driveAccounts}
-        isPickerLoading={isDriveLoading}
-        onClose={closeAddSourceSheet}
+        setActiveChapterId={setActiveChapterId}
+        // Add source sheet
+        isAddSourceSheetOpen={isAddSourceSheetOpen}
+        onCloseAddSourceSheet={closeAddSourceSheet}
         onSelectDriveAccount={(connectionId) => openDriveBrowser(connectionId)}
         onUploadLocal={uploadLocalFile}
+        // Drive browser
+        isDriveBrowserOpen={isDriveBrowserOpen}
+        driveItems={driveItems}
+        isDriveLoading={isDriveLoading}
+        driveError={driveError}
+        driveCanGoBack={driveCanGoBack}
+        onCloseDriveBrowser={closeDriveBrowser}
+        onDriveGoBack={driveGoBack}
+        onOpenDriveFolder={openDriveFolder}
+        onAddFromDriveBrowser={addFromDriveBrowser}
+        isDriveDoc={isDriveDoc}
+        isDriveFolder={isDriveFolder}
+        // Accounts sheet
+        isAccountsSheetOpen={isAccountsSheetOpen}
+        onCloseAccountsSheet={() => setIsAccountsSheetOpen(false)}
         onConnectAccount={() => connectDrive()}
-      />
-
-      <DriveBrowserSheet
-        isOpen={isDriveBrowserOpen}
-        items={driveItems}
-        isLoading={isDriveLoading}
-        error={driveError}
-        canGoBack={driveCanGoBack}
-        onClose={closeDriveBrowser}
-        onBack={driveGoBack}
-        onOpenFolder={openDriveFolder}
-        onSelectDocs={addFromDriveBrowser}
-        isDoc={isDriveDoc}
-        isFolder={isDriveFolder}
-      />
-
-      {/* Google Accounts management sheet */}
-      <AccountsSheet
-        isOpen={isAccountsSheetOpen}
-        accounts={driveAccounts}
-        onClose={() => setIsAccountsSheetOpen(false)}
-        onConnectAccount={() => connectDrive()}
-        onDisconnectAccount={async (connectionId) => {
-          await disconnectDriveAccount(connectionId);
-          await refetchDriveAccounts();
-        }}
-      />
-
-      {/* Source content viewer */}
-      <SourceViewerSheet
-        isOpen={isViewerOpen}
-        title={activeSource?.title ?? ""}
-        content={viewerContent}
-        wordCount={viewerWordCount}
-        isLoading={isContentLoading}
-        error={contentError}
-        onClose={closeSourceViewer}
-        onImportAsChapter={async () => {
-          if (!activeSource) return;
-          const result = await importSourceAsChapter(activeSource.id);
-          if (result) {
-            const token = await getToken();
-            const response = await fetch(`${API_URL}/projects/${projectId}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            if (response.ok) {
-              const data: ProjectData = await response.json();
-              setProjectData(data);
-              setActiveChapterId(result.chapterId);
-            }
-            closeSourcesPanel();
-          }
-        }}
-        tabs={
-          linkedSources.length > 0
-            ? linkedSources.map((s) => ({ id: s.id, title: s.title }))
-            : undefined
-        }
-        activeTabId={activeSource?.id ?? null}
-        onTabChange={(sourceId) => {
-          const source = linkedSources.find((s) => s.id === sourceId);
-          if (source) openSourceViewer(source);
-        }}
+        onRefetchDriveAccounts={refetchDriveAccounts}
+        // Source viewer
+        isViewerOpen={isViewerOpen}
+        activeSource={activeSource}
+        viewerContent={viewerContent}
+        viewerWordCount={viewerWordCount}
+        isContentLoading={isContentLoading}
+        contentError={contentError}
+        onCloseSourceViewer={closeSourceViewer}
       />
     </div>
   );
