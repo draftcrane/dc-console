@@ -57,8 +57,6 @@ export default function DriveSuccessPage() {
     getServerSnapshot,
   );
 
-
-
   // Auto-redirect after successful connection
   useEffect(() => {
     const shouldRedirect = !isLoadingDrive && status?.connected;
@@ -71,8 +69,6 @@ export default function DriveSuccessPage() {
       router.push(destination);
     }, 3000); // 3-second delay to show success message
   }, [isLoadingDrive, status?.connected, projectId, router]);
-
-
 
   const handleContinue = useCallback(() => {
     const destination = projectId ? `/editor/${projectId}` : "/dashboard";
@@ -107,8 +103,6 @@ export default function DriveSuccessPage() {
         ) : (
           <p className="text-muted-foreground">Your Google Drive is now connected.</p>
         )}
-
-
       </div>
     </div>
   );

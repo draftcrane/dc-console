@@ -95,8 +95,6 @@ export default function SetupPage() {
     setIsConnecting(false);
   }, [createdProjectId, connectDrive]);
 
-
-
   // Step 2: Drive connection (shown after project creation)
   if (createdProjectId) {
     return (
@@ -145,7 +143,6 @@ export default function SetupPage() {
                 </>
               )}
             </button>
-
           </div>
 
           {/* Maybe later / skip to editor */}

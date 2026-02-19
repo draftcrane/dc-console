@@ -4,18 +4,23 @@ import { withSerwist } from "@serwist/turbopack";
 /**
  * Security headers applied to all routes.
  *
- * CSP allows Clerk (auth UI, API), the DC API worker, and Next.js runtime.
+ * CSP allows Clerk (auth UI, API), the DC API worker, Google Picker, and Next.js runtime.
  * Fonts are self-hosted via next/font so no external font-src is needed.
+ *
+ * Google Picker requires:
+ * - script-src: apis.google.com (gapi loader)
+ * - frame-src: docs.google.com (Picker iframe)
+ * - connect-src: *.googleapis.com (Drive API calls from Picker)
  */
 
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://apis.google.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' blob: data: https://*.clerk.com https://img.clerk.com;
   font-src 'self';
-  connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://api.draftcrane.app;
-  frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com;
+  connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://api.draftcrane.app https://*.googleapis.com;
+  frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://docs.google.com;
   worker-src 'self' blob:;
   object-src 'none';
   base-uri 'self';

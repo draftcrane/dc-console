@@ -295,7 +295,7 @@ export class ProjectService {
     // Fetch updated project
     const project = await this.db
       .prepare(
-        `SELECT id, user_id, title, description, drive_folder_id, status, created_at, updated_at
+        `SELECT id, user_id, title, description, drive_folder_id, drive_connection_id, status, created_at, updated_at
          FROM projects
          WHERE id = ? AND user_id = ?`,
       )

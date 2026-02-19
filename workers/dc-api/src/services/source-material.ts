@@ -45,6 +45,7 @@ export interface SourceMaterial {
   originalFilename: string | null;
   driveModifiedTime: string | null;
   wordCount: number;
+  r2Key: string | null;
   cachedAt: string | null;
   status: "active" | "archived" | "error";
   sortOrder: number;
@@ -106,6 +107,7 @@ function rowToSource(row: SourceRow): SourceMaterial {
     originalFilename: row.original_filename,
     driveModifiedTime: row.drive_modified_time,
     wordCount: row.word_count,
+    r2Key: row.r2_key,
     cachedAt: row.cached_at,
     status: row.status as SourceMaterial["status"],
     sortOrder: row.sort_order,
@@ -320,6 +322,7 @@ export class SourceMaterialService {
         originalFilename: null,
         driveModifiedTime: null,
         wordCount: 0,
+        r2Key: null,
         cachedAt: null,
         status: "active",
         sortOrder,
@@ -479,6 +482,7 @@ export class SourceMaterialService {
       originalFilename: file.name,
       driveModifiedTime: null,
       wordCount,
+      r2Key: r2Key,
       cachedAt: now,
       status: "active",
       sortOrder,
@@ -547,7 +551,7 @@ export class SourceMaterialService {
 
     // If already cached, read from R2 (both drive and local sources)
     if (source.cachedAt && source.status === "active") {
-      const r2Key = `sources/${sourceId}/content.html`;
+      const r2Key = source.r2Key || `sources/${sourceId}/content.html`;
       const object = await this.bucket.get(r2Key);
       if (object) {
         const content = await object.text();

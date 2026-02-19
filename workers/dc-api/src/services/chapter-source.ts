@@ -55,6 +55,7 @@ function rowToSource(row: SourceRow): SourceMaterial {
     originalFilename: row.original_filename,
     driveModifiedTime: row.drive_modified_time,
     wordCount: row.word_count,
+    r2Key: row.r2_key,
     cachedAt: row.cached_at,
     status: row.status as SourceMaterial["status"],
     sortOrder: row.sort_order,
