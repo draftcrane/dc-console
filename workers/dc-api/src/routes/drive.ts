@@ -355,6 +355,61 @@ drive.get("/folders/:folderId/children", requireAuth, standardRateLimit, async (
 });
 
 /**
+ * GET /drive/browse
+ * Browse Drive folders and Docs without the Google Picker iframe.
+ * Query params:
+ * - folderId (optional, default "root")
+ * - connectionId (optional, for multi-account)
+ * - pageToken (optional)
+ */
+drive.get("/browse", requireAuth, standardRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const driveService = new DriveService(c.env);
+
+  const folderId = c.req.query("folderId") || "root";
+  const connectionId = c.req.query("connectionId") || undefined;
+  const pageToken = c.req.query("pageToken") || undefined;
+
+  let accessToken: string;
+
+  if (connectionId) {
+    const tokens = await driveService.getValidTokensByConnection(connectionId);
+    if (!tokens) {
+      driveNotConnected();
+    }
+    const connections = await driveService.getConnectionsForUser(userId);
+    if (!connections.some((conn) => conn.id === connectionId)) {
+      driveNotConnected("Connection not found for this user");
+    }
+    accessToken = tokens.accessToken;
+  } else {
+    const tokens = await driveService.getValidTokens(userId);
+    if (!tokens) {
+      driveNotConnected();
+    }
+    accessToken = tokens.accessToken;
+  }
+
+  try {
+    const result = await driveService.listFolderChildrenPage(accessToken, folderId, {
+      pageSize: 200,
+      pageToken,
+    });
+
+    const files = (result.files || []).filter(
+      (file) =>
+        file.mimeType === "application/vnd.google-apps.document" ||
+        file.mimeType === "application/vnd.google-apps.folder",
+    );
+
+    return c.json({ files, nextPageToken: result.nextPageToken });
+  } catch (err) {
+    console.error("Drive browse failed:", err);
+    driveError("Failed to browse Drive");
+  }
+});
+
+/**
  * DELETE /drive/connection/:connectionId
  * Disconnects a specific Google Drive account.
  * Cascade: archives sources, soft-archives chapter_sources, clears project output drive.

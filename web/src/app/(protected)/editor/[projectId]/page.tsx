@@ -33,6 +33,7 @@ import { SourcesPanel } from "@/components/sources-panel";
 import { SourceViewerSheet } from "@/components/source-viewer-sheet";
 import { AddSourceSheet } from "@/components/add-source-sheet";
 import { AccountsSheet } from "@/components/accounts-sheet";
+import { DriveBrowserSheet } from "@/components/drive-browser-sheet";
 
 interface Chapter {
   id: string;
@@ -307,11 +308,21 @@ export default function EditorPage() {
     isContentLoading,
     openSourceViewer,
     closeSourceViewer,
-    addFromPicker,
     uploadLocalFile,
-    isPickerLoading,
     removeSource,
     importSourceAsChapter,
+    isDriveBrowserOpen,
+    openDriveBrowser,
+    closeDriveBrowser,
+    driveItems,
+    isDriveLoading,
+    driveCanGoBack,
+    driveGoBack,
+    openDriveFolder,
+    addFromDriveBrowser,
+    isDriveDoc,
+    isDriveFolder,
+    driveError,
     isAddSourceSheetOpen,
     openAddSourceSheet,
     closeAddSourceSheet,
@@ -701,7 +712,7 @@ export default function EditorPage() {
         onConnectDrive={onConnectProjectToDrive}
         onAddSources={async () => {
           openSourcesPanel();
-          await addFromPicker();
+          await openDriveBrowser();
         }}
         onViewSources={openSourcesPanel}
         onDisconnectProject={async () => {
@@ -720,7 +731,7 @@ export default function EditorPage() {
         sources={sources}
         isLoading={isSourcesLoading}
         error={sourcesError}
-        isPickerLoading={isPickerLoading}
+        isPickerLoading={isDriveLoading}
         onClose={closeSourcesPanel}
         onAddFromPicker={openAddSourceSheet}
         onViewSource={openSourceViewer}
@@ -750,11 +761,25 @@ export default function EditorPage() {
       <AddSourceSheet
         isOpen={isAddSourceSheetOpen}
         accounts={driveAccounts}
-        isPickerLoading={isPickerLoading}
+        isPickerLoading={isDriveLoading}
         onClose={closeAddSourceSheet}
-        onSelectDriveAccount={(connectionId) => addFromPicker(connectionId)}
+        onSelectDriveAccount={(connectionId) => openDriveBrowser(connectionId)}
         onUploadLocal={uploadLocalFile}
         onConnectAccount={() => connectDrive()}
+      />
+
+      <DriveBrowserSheet
+        isOpen={isDriveBrowserOpen}
+        items={driveItems}
+        isLoading={isDriveLoading}
+        error={driveError}
+        canGoBack={driveCanGoBack}
+        onClose={closeDriveBrowser}
+        onBack={driveGoBack}
+        onOpenFolder={openDriveFolder}
+        onSelectDocs={addFromDriveBrowser}
+        isDoc={isDriveDoc}
+        isFolder={isDriveFolder}
       />
 
       {/* Google Accounts management sheet */}

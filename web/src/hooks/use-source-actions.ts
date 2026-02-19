@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useSources, type SourceMaterial } from "./use-sources";
 import { useSourceContent } from "./use-source-content";
 import { useGooglePicker } from "./use-google-picker";
+import { useDriveBrowser } from "./use-drive-browser";
 
 /**
  * Facade hook that wraps source-related hooks behind a single interface.
@@ -41,12 +42,26 @@ export function useSourceActions(projectId: string) {
     resetError: resetPickerError,
   } = useGooglePicker();
 
+  const {
+    items: driveItems,
+    isLoading: isDriveLoading,
+    error: driveError,
+    canGoBack: driveCanGoBack,
+    openRoot: openDriveRoot,
+    openFolder: openDriveFolder,
+    goBack: driveGoBack,
+    isDoc: isDriveDoc,
+    isFolder: isDriveFolder,
+  } = useDriveBrowser();
+
   // Panel state
   const [isSourcesPanelOpen, setIsSourcesPanelOpen] = useState(false);
   const [activeSource, setActiveSource] = useState<SourceMaterial | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   // Add source sheet state
   const [isAddSourceSheetOpen, setIsAddSourceSheetOpen] = useState(false);
+  const [isDriveBrowserOpen, setIsDriveBrowserOpen] = useState(false);
+  const [driveConnectionId, setDriveConnectionId] = useState<string | undefined>(undefined);
 
   // Fetch sources when panel opens
   useEffect(() => {
@@ -66,6 +81,7 @@ export function useSourceActions(projectId: string) {
     setActiveSource(null);
     resetContent();
     resetPickerError();
+    setIsDriveBrowserOpen(false);
   }, [resetContent, resetPickerError]);
 
   const openSourceViewer = useCallback(
@@ -94,6 +110,32 @@ export function useSourceActions(projectId: string) {
     [openPicker, addSources],
   );
 
+  const openDriveBrowser = useCallback(
+    async (connectionId?: string) => {
+      setDriveConnectionId(connectionId);
+      setIsDriveBrowserOpen(true);
+      await openDriveRoot(connectionId);
+    },
+    [openDriveRoot],
+  );
+
+  const closeDriveBrowser = useCallback(() => {
+    setIsDriveBrowserOpen(false);
+  }, []);
+
+  const addFromDriveBrowser = useCallback(
+    async (files: Array<{ id: string; name: string; mimeType: string }>) => {
+      if (files.length === 0) return;
+      const pickerFiles = files.map((file) => ({
+        driveFileId: file.id,
+        title: file.name,
+        mimeType: file.mimeType,
+      }));
+      await addSources(pickerFiles, driveConnectionId);
+    },
+    [addSources, driveConnectionId],
+  );
+
   /** Upload a local file (.txt, .md) as a source */
   const uploadLocalFile = useCallback(
     async (file: File) => {
@@ -117,7 +159,7 @@ export function useSourceActions(projectId: string) {
   );
 
   // Aggregate error
-  const error = sourcesError || contentError || pickerError;
+  const error = sourcesError || contentError || pickerError || driveError;
 
   return {
     // Source list
@@ -150,6 +192,19 @@ export function useSourceActions(projectId: string) {
     isPickerLoading,
     removeSource,
     importSourceAsChapter,
+    // Drive browser
+    isDriveBrowserOpen,
+    openDriveBrowser,
+    closeDriveBrowser,
+    driveItems,
+    isDriveLoading,
+    driveCanGoBack,
+    driveGoBack,
+    openDriveFolder,
+    addFromDriveBrowser,
+    isDriveDoc,
+    isDriveFolder,
+    driveError,
 
     // Error (aggregated for panels that show any source-related error)
     error,

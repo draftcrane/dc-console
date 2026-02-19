@@ -98,7 +98,8 @@ export class DriveService {
       client_id: this.env.GOOGLE_CLIENT_ID,
       redirect_uri: this.env.GOOGLE_REDIRECT_URI,
       response_type: "code",
-      scope: "https://www.googleapis.com/auth/drive.file email",
+      scope:
+        "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly email",
       access_type: "offline",
       prompt: "consent", // Always get refresh token
       state,
@@ -455,11 +456,29 @@ export class DriveService {
    * @returns Array of file metadata
    */
   async listFolderChildren(accessToken: string, folderId: string): Promise<DriveFile[]> {
+    const result = await this.listFolderChildrenPage(accessToken, folderId);
+    return result.files;
+  }
+
+  /**
+   * Lists files in a folder with pagination support.
+   */
+  async listFolderChildrenPage(
+    accessToken: string,
+    folderId: string,
+    options: { pageSize?: number; pageToken?: string } = {},
+  ): Promise<{ files: DriveFile[]; nextPageToken?: string }> {
     const params = new URLSearchParams({
       q: `'${validateDriveId(folderId)}' in parents and trashed = false`,
       fields: "files(id,name,mimeType,webViewLink,createdTime,modifiedTime)",
       orderBy: "modifiedTime desc",
     });
+    if (options.pageSize) {
+      params.set("pageSize", String(options.pageSize));
+    }
+    if (options.pageToken) {
+      params.set("pageToken", options.pageToken);
+    }
 
     const response = await fetch(`${GOOGLE_DRIVE_API}/files?${params.toString()}`, {
       headers: {
@@ -472,13 +491,16 @@ export class DriveService {
       console.error(
         `List folder failed: Status ${response.status} ${response.statusText || ""}, Body: ${errorBody}`,
       );
+      if (response.status === 403 && errorBody.includes("insufficientPermissions")) {
+        throw new Error("Google Drive permission update required. Reconnect Drive.");
+      }
       throw new Error(
         `Failed to list folder contents: ${response.status} ${response.statusText || ""}`,
       );
     }
 
-    const data = (await response.json()) as { files: DriveFile[] };
-    return data.files || [];
+    const data = (await response.json()) as { files: DriveFile[]; nextPageToken?: string };
+    return { files: data.files || [], nextPageToken: data.nextPageToken };
   }
 
   /**
