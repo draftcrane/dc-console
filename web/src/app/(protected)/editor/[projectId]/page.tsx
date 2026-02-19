@@ -282,8 +282,6 @@ export default function EditorPage() {
 
         const data: ProjectData = await projectResponse.json();
         setProjectData(data);
-        console.log("Project data fetched:", data); // NEW LOG
-        console.log("projectData?.driveFolderId:", data.driveFolderId); // NEW LOG
 
         if (data.chapters.length > 0 && !activeChapterId) {
           const sortedChapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
@@ -385,18 +383,7 @@ export default function EditorPage() {
   }
 
   return (
-    <>
-      {/* DEBUGGING DIV */}
-      <div style={{ position: 'fixed', top: 0, left: 0, background: 'rgba(0,0,0,0.7)', color: 'white', padding: '10px', zIndex: 9999 }}>
-        <p>driveStatus.connected: {String(driveStatus?.connected)}</p>
-        <p>projectData?.driveFolderId: {projectData?.driveFolderId || 'null'}</p>
-        <p>driveFiles.length: {driveFiles.length}</p>
-        <p>driveFilesLoading: {String(driveFilesLoading)}</p>
-        <p>driveFilesError: {driveFilesError}</p>
-        <p>isConnectingDrive: {String(isConnectingDrive)}</p>
-      </div>
-
-      <div className="flex h-[calc(100dvh-3.5rem)]">
+    <div className="flex h-[calc(100dvh-3.5rem)]">
       {/* First-time onboarding tooltips (#38) */}
       <OnboardingTooltips />
 
