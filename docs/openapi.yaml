@@ -1,0 +1,2539 @@
+openapi: 3.0.3
+info:
+  title: DraftCrane API
+  description: |
+    Backend API for DraftCrane (dc) -- a browser-based nonfiction book writing
+    environment with AI assistance. Powered by Cloudflare Workers and Hono.
+
+    ## Authentication
+
+    Most endpoints require a valid **Clerk JWT** passed as a Bearer token in the
+    `Authorization` header. Public endpoints (health check, Clerk webhook, OAuth
+    callback) use their own verification mechanisms and are documented accordingly.
+
+    ## Rate Limiting
+
+    Standard endpoints enforce **120 requests per minute** per user (sliding window
+    via Cloudflare KV). AI and export endpoints have tighter limits noted in their
+    descriptions.
+
+    ## Error Responses
+
+    All errors follow a consistent shape with `error` (human-readable message),
+    `code` (machine-readable enum), and `requestId` (ULID for tracing).
+  version: 1.0.0
+  contact:
+    name: DraftCrane Engineering
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://dc-api.automation-ab6.workers.dev
+    description: Production
+
+tags:
+  - name: Health
+    description: Service health checks
+  - name: Auth
+    description: Clerk webhook for user lifecycle events
+  - name: Users
+    description: Current user profile and account data
+  - name: Drive
+    description: Google Drive OAuth, connections, and file management
+  - name: Projects
+    description: Project CRUD, Drive connection, backup, and import
+  - name: Chapters
+    description: Chapter CRUD, content storage, and reordering
+  - name: Sources
+    description: Source material management and chapter-source linking
+  - name: AI
+    description: AI rewrite (SSE streaming) and interaction tracking
+  - name: Exports
+    description: PDF and EPUB export generation, download, and Drive upload
+
+components:
+  securitySchemes:
+    clerkBearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Clerk-issued JWT token
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - error
+        - code
+        - requestId
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          enum:
+            - AUTH_REQUIRED
+            - FORBIDDEN
+            - NOT_FOUND
+            - CONFLICT
+            - RATE_LIMITED
+            - DRIVE_ERROR
+            - DRIVE_NOT_CONNECTED
+            - VALIDATION_ERROR
+            - LAST_CHAPTER
+            - AI_ERROR
+            - EXPORT_ERROR
+            - INTERNAL_ERROR
+          description: Machine-readable error code
+        requestId:
+          type: string
+          description: ULID request ID for tracing
+
+    Project:
+      type: object
+      required:
+        - id
+        - userId
+        - title
+        - description
+        - driveFolderId
+        - driveConnectionId
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: ULID identifier
+        userId:
+          type: string
+        title:
+          type: string
+          maxLength: 500
+        description:
+          type: string
+          maxLength: 1000
+        driveFolderId:
+          type: string
+          nullable: true
+        driveConnectionId:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, archived]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProjectWithChapters:
+      allOf:
+        - $ref: "#/components/schemas/Project"
+        - type: object
+          required:
+            - chapters
+            - totalWordCount
+          properties:
+            chapters:
+              type: array
+              items:
+                $ref: "#/components/schemas/Chapter"
+            totalWordCount:
+              type: integer
+
+    ProjectSummary:
+      type: object
+      required:
+        - id
+        - title
+        - status
+        - wordCount
+        - chapterCount
+        - updatedAt
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        wordCount:
+          type: integer
+        chapterCount:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+
+    Chapter:
+      type: object
+      required:
+        - id
+        - projectId
+        - title
+        - sortOrder
+        - driveFileId
+        - r2Key
+        - wordCount
+        - version
+        - status
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: ULID identifier
+        projectId:
+          type: string
+        title:
+          type: string
+          maxLength: 200
+        sortOrder:
+          type: integer
+        driveFileId:
+          type: string
+          nullable: true
+        r2Key:
+          type: string
+          nullable: true
+        wordCount:
+          type: integer
+        version:
+          type: integer
+          description: Optimistic locking version number
+        status:
+          type: string
+          enum: [draft, review, final]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ChapterContent:
+      type: object
+      required:
+        - content
+        - version
+      properties:
+        content:
+          type: string
+          description: HTML content of the chapter
+        version:
+          type: integer
+
+    SaveContentResult:
+      type: object
+      required:
+        - version
+        - wordCount
+        - updatedAt
+      properties:
+        version:
+          type: integer
+        wordCount:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+
+    UserProfile:
+      type: object
+      required:
+        - id
+        - email
+        - displayName
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DriveStatus:
+      type: object
+      required:
+        - connected
+      properties:
+        connected:
+          type: boolean
+        email:
+          type: string
+          format: email
+        expiresAt:
+          type: string
+          format: date-time
+
+    DriveConnection:
+      type: object
+      required:
+        - id
+        - email
+        - connectedAt
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        connectedAt:
+          type: string
+          format: date-time
+
+    DriveFile:
+      type: object
+      required:
+        - id
+        - name
+        - mimeType
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        mimeType:
+          type: string
+        webViewLink:
+          type: string
+          format: uri
+        createdTime:
+          type: string
+          format: date-time
+        modifiedTime:
+          type: string
+          format: date-time
+
+    SourceMaterial:
+      type: object
+      required:
+        - id
+        - projectId
+        - sourceType
+        - driveConnectionId
+        - driveFileId
+        - title
+        - mimeType
+        - originalFilename
+        - driveModifiedTime
+        - wordCount
+        - r2Key
+        - cachedAt
+        - status
+        - sortOrder
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        sourceType:
+          type: string
+          enum: [drive, local]
+        driveConnectionId:
+          type: string
+          nullable: true
+        driveFileId:
+          type: string
+          nullable: true
+        title:
+          type: string
+        mimeType:
+          type: string
+        originalFilename:
+          type: string
+          nullable: true
+        driveModifiedTime:
+          type: string
+          nullable: true
+          format: date-time
+        wordCount:
+          type: integer
+        r2Key:
+          type: string
+          nullable: true
+        cachedAt:
+          type: string
+          nullable: true
+          format: date-time
+        status:
+          type: string
+          enum: [active, archived, error]
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SourceContentResult:
+      type: object
+      required:
+        - content
+        - wordCount
+        - cachedAt
+      properties:
+        content:
+          type: string
+        wordCount:
+          type: integer
+        cachedAt:
+          type: string
+          format: date-time
+
+    AIInteraction:
+      type: object
+      required:
+        - id
+        - userId
+        - chapterId
+        - action
+        - instruction
+        - inputChars
+        - outputChars
+        - model
+        - latencyMs
+        - accepted
+        - attemptNumber
+        - parentInteractionId
+        - tier
+        - createdAt
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        chapterId:
+          type: string
+        action:
+          type: string
+        instruction:
+          type: string
+        inputChars:
+          type: integer
+        outputChars:
+          type: integer
+        model:
+          type: string
+        latencyMs:
+          type: integer
+        accepted:
+          type: boolean
+          nullable: true
+        attemptNumber:
+          type: integer
+        parentInteractionId:
+          type: string
+          nullable: true
+        tier:
+          type: string
+          enum: [edge, frontier]
+        createdAt:
+          type: string
+          format: date-time
+
+    ExportJobResult:
+      type: object
+      required:
+        - jobId
+        - status
+        - fileName
+        - downloadUrl
+        - error
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [completed, failed]
+        fileName:
+          type: string
+          nullable: true
+        downloadUrl:
+          type: string
+          nullable: true
+          format: uri
+        error:
+          type: string
+          nullable: true
+
+    ExportJobStatus:
+      type: object
+      required:
+        - jobId
+        - status
+        - format
+        - fileName
+        - downloadUrl
+        - chapterCount
+        - totalWordCount
+        - error
+        - createdAt
+        - completedAt
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+        format:
+          type: string
+          enum: [pdf, epub]
+        fileName:
+          type: string
+          nullable: true
+        downloadUrl:
+          type: string
+          nullable: true
+          format: uri
+        chapterCount:
+          type: integer
+        totalWordCount:
+          type: integer
+        error:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          nullable: true
+          format: date-time
+
+    ExportToDriveResult:
+      type: object
+      required:
+        - driveFileId
+        - fileName
+        - webViewLink
+      properties:
+        driveFileId:
+          type: string
+        fileName:
+          type: string
+        webViewLink:
+          type: string
+          format: uri
+
+    ImportBackupResult:
+      type: object
+      required:
+        - projectId
+        - title
+        - chapterCount
+      properties:
+        projectId:
+          type: string
+        title:
+          type: string
+        chapterCount:
+          type: integer
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: Authentication required
+            code: AUTH_REQUIRED
+            requestId: 01HXYZ...
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: Not found
+            code: NOT_FOUND
+            requestId: 01HXYZ...
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: Title is required
+            code: VALIDATION_ERROR
+            requestId: 01HXYZ...
+
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: Rate limit exceeded
+            code: RATE_LIMITED
+            requestId: 01HXYZ...
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: Internal server error
+            code: INTERNAL_ERROR
+            requestId: 01HXYZ...
+
+security:
+  - clerkBearerAuth: []
+
+paths:
+  # ─── Health ───────────────────────────────────────────────────────────
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns service status. No authentication required.
+      operationId: getHealth
+      security: []
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - service
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: dc-api
+
+  # ─── Auth ─────────────────────────────────────────────────────────────
+  /auth/webhook:
+    post:
+      tags: [Auth]
+      summary: Clerk webhook handler
+      description: |
+        Receives Clerk user lifecycle events (created, updated, deleted).
+        Verified via Svix signature headers -- not Clerk JWT. This endpoint
+        upserts or cascade-deletes user records in D1.
+      operationId: handleClerkWebhook
+      security: []
+      parameters:
+        - name: svix-id
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: svix-timestamp
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: svix-signature
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - data
+              properties:
+                type:
+                  type: string
+                  enum: [user.created, user.updated, user.deleted]
+                data:
+                  type: object
+                  required:
+                    - id
+                  properties:
+                    id:
+                      type: string
+                    email_addresses:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          email_address:
+                            type: string
+                            format: email
+                    primary_email_address_id:
+                      type: string
+                    first_name:
+                      type: string
+                    last_name:
+                      type: string
+      responses:
+        "200":
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  received:
+                    type: boolean
+                    example: true
+                  warning:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  # ─── Users ────────────────────────────────────────────────────────────
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      description: |
+        Returns the authenticated user's profile, Drive connection status,
+        active projects with word counts, and total word count across all projects.
+      operationId: getCurrentUser
+      responses:
+        "200":
+          description: User profile with Drive status and projects
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - user
+                  - drive
+                  - projects
+                  - totalWordCount
+                properties:
+                  user:
+                    $ref: "#/components/schemas/UserProfile"
+                  drive:
+                    $ref: "#/components/schemas/DriveStatus"
+                  projects:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProjectSummary"
+                  totalWordCount:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ─── Drive ────────────────────────────────────────────────────────────
+  /drive/authorize:
+    get:
+      tags: [Drive]
+      summary: Get Google OAuth authorization URL
+      description: |
+        Returns a Google OAuth authorization URL for connecting a Google Drive
+        account. Supports `loginHint` query parameter to pre-select a specific
+        Google account (multi-account support).
+      operationId: getDriveAuthorizeUrl
+      parameters:
+        - name: loginHint
+          in: query
+          required: false
+          schema:
+            type: string
+            format: email
+          description: Google email to pre-select in OAuth flow
+      responses:
+        "200":
+          description: OAuth authorization URL
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - authorizationUrl
+                properties:
+                  authorizationUrl:
+                    type: string
+                    format: uri
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /drive/callback:
+    get:
+      tags: [Drive]
+      summary: OAuth callback
+      description: |
+        Google redirects here after user authorizes. Exchanges the authorization
+        code for tokens, encrypts and stores them in D1, then redirects the
+        browser to the frontend success or error page. Public route -- uses
+        CSRF state token for verification, not Clerk JWT.
+      operationId: handleDriveCallback
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+          description: OAuth authorization code from Google
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+          description: CSRF state token for verification
+        - name: error
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Error code if user denied access
+      responses:
+        "302":
+          description: Redirects to frontend success or error page
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /drive/connection:
+    get:
+      tags: [Drive]
+      summary: Get Drive connections
+      description: |
+        Returns all Google Drive connections for the authenticated user.
+        Includes backward-compatible top-level `connected` and `email` fields
+        from the first connection, plus a `connections` array for multi-account
+        support. Tokens are never exposed.
+      operationId: getDriveConnections
+      responses:
+        "200":
+          description: Drive connection status
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connected
+                  - connections
+                properties:
+                  connected:
+                    type: boolean
+                  email:
+                    type: string
+                    format: email
+                    description: Email of the first connection (backward compat)
+                  connectedAt:
+                    type: string
+                    format: date-time
+                    description: Timestamp of the first connection (backward compat)
+                  connections:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DriveConnection"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    delete:
+      tags: [Drive]
+      summary: Disconnect all Drive accounts (legacy)
+      description: |
+        Disconnects all Google Drive connections for the user. Archives sources,
+        soft-archives chapter-source links, clears project Drive references, and
+        best-effort revokes OAuth tokens. Drive files remain untouched.
+        Legacy endpoint -- prefer DELETE /drive/connection/:connectionId.
+      operationId: disconnectAllDrive
+      responses:
+        "200":
+          description: All Drive accounts disconnected
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /drive/connection/{connectionId}:
+    delete:
+      tags: [Drive]
+      summary: Disconnect a specific Drive account
+      description: |
+        Disconnects a specific Google Drive connection by ID. Cascades:
+        archives sources, soft-archives chapter-source links, clears project
+        Drive references for this connection, and best-effort revokes the
+        OAuth token. Drive files remain untouched.
+      operationId: disconnectDriveConnection
+      parameters:
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Drive connection disconnected
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /drive/picker-token/{connectionId}:
+    get:
+      tags: [Drive]
+      summary: Get picker token for a connection
+      description: |
+        Returns a short-lived OAuth access token for the Google Picker API,
+        scoped to a specific Drive connection. Token is scoped to `drive.file`
+        and lives approximately 1 hour. Rate limited to 10 requests per minute.
+      operationId: getPickerTokenByConnection
+      parameters:
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Picker access token
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accessToken
+                  - expiresIn
+                properties:
+                  accessToken:
+                    type: string
+                    description: Short-lived OAuth access token
+                  expiresIn:
+                    type: integer
+                    description: Remaining token lifetime in seconds
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          description: Drive not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /drive/picker-token:
+    get:
+      tags: [Drive]
+      summary: Get picker token (legacy)
+      description: |
+        Returns a short-lived OAuth access token for the Google Picker API,
+        using the user's first Drive connection. Legacy endpoint -- prefer
+        /drive/picker-token/:connectionId for multi-account support.
+        Rate limited to 10 requests per minute.
+      operationId: getPickerToken
+      responses:
+        "200":
+          description: Picker access token
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - accessToken
+                  - expiresIn
+                properties:
+                  accessToken:
+                    type: string
+                  expiresIn:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          description: Drive not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /drive/folders:
+    post:
+      tags: [Drive]
+      summary: Create a Book Folder in Google Drive
+      description: |
+        Creates a folder named after the project title in Google Drive.
+        Idempotent: if the project already has a `drive_folder_id`, returns
+        the existing folder info without creating a new one.
+      operationId: createDriveFolder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - projectId
+              properties:
+                projectId:
+                  type: string
+      responses:
+        "200":
+          description: Folder created or already exists
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - webViewLink
+                  - alreadyExisted
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  webViewLink:
+                    type: string
+                    format: uri
+                  alreadyExisted:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          description: Drive not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "502":
+          description: Google Drive API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /drive/folders/{folderId}/children:
+    get:
+      tags: [Drive]
+      summary: List files in a Book Folder
+      description: |
+        Lists DraftCrane-created files in a Google Drive folder. Returns file
+        metadata including name, MIME type, and links.
+      operationId: listFolderChildren
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Files in the folder
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - files
+                properties:
+                  files:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DriveFile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          description: Drive not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "502":
+          description: Google Drive API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /drive/browse:
+    get:
+      tags: [Drive]
+      summary: Browse Drive folders and Docs
+      description: |
+        Browse Google Drive folders and Google Docs without the Google Picker
+        iframe. Filters results to only folders and Google Docs. Supports
+        pagination and multi-account via connectionId.
+      operationId: browseDrive
+      parameters:
+        - name: folderId
+          in: query
+          required: false
+          schema:
+            type: string
+            default: root
+          description: Folder to browse (default "root")
+        - name: connectionId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Drive connection ID for multi-account
+        - name: pageToken
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Pagination token from previous response
+      responses:
+        "200":
+          description: Folders and Docs in the specified location
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - files
+                properties:
+                  files:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DriveFile"
+                  nextPageToken:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          description: Drive not connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "502":
+          description: Google Drive API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ─── Projects ─────────────────────────────────────────────────────────
+  /projects:
+    post:
+      tags: [Projects]
+      summary: Create a new project
+      description: |
+        Creates a new project with a default "Chapter 1". Title is required
+        (max 500 characters), description is optional (max 1000 characters).
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                  maxLength: 500
+                description:
+                  type: string
+                  maxLength: 1000
+      responses:
+        "201":
+          description: Project created with default chapter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    get:
+      tags: [Projects]
+      summary: List active projects
+      description: |
+        Returns all active projects for the authenticated user with aggregated
+        word counts and chapter counts.
+      operationId: listProjects
+      responses:
+        "200":
+          description: List of active projects
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - projects
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProjectSummary"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/import:
+    post:
+      tags: [Projects]
+      summary: Import project from ZIP backup
+      description: |
+        Imports a project from a ZIP backup file previously generated by
+        the backup endpoint. Max file size: 50MB. Must be a .zip file
+        containing a valid DraftCrane backup manifest.
+      operationId: importProject
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: ZIP backup file (max 50MB)
+      responses:
+        "201":
+          description: Project imported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportBackupResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}:
+    get:
+      tags: [Projects]
+      summary: Get project details
+      description: |
+        Returns project details including the full chapter list with metadata.
+      operationId: getProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project with chapters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectWithChapters"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    patch:
+      tags: [Projects]
+      summary: Update project
+      description: |
+        Updates a project's title and/or description. At least one field
+        must be provided.
+      operationId: updateProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  maxLength: 500
+                description:
+                  type: string
+                  maxLength: 1000
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    delete:
+      tags: [Projects]
+      summary: Archive project
+      description: |
+        Soft-deletes a project by setting status to "archived". Drive files
+        are preserved per PRD requirements.
+      operationId: deleteProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project archived
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/duplicate:
+    post:
+      tags: [Projects]
+      summary: Duplicate a project
+      description: |
+        Creates a complete copy of a project including all chapters and their
+        content. The duplicated project gets a new ID and title suffix.
+      operationId: duplicateProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Project duplicated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/connect-drive:
+    post:
+      tags: [Projects]
+      summary: Connect project to Google Drive
+      description: |
+        Connects a project to Google Drive by creating a dedicated folder.
+        Accepts optional `connectionId` to specify which Drive account to use.
+        Falls back to the user's first connection if not specified. Idempotent:
+        if already connected, returns the existing folder ID.
+      operationId: connectProjectToDrive
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+                  description: Drive connection ID (for multi-account)
+      responses:
+        "200":
+          description: Project connected to Drive
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - driveFolderId
+                properties:
+                  driveFolderId:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/disconnect-drive:
+    post:
+      tags: [Projects]
+      summary: Disconnect project from Google Drive
+      description: |
+        Clears the project's `drive_folder_id` and `drive_connection_id`.
+        Does not disconnect the user's Google account or delete Drive files.
+      operationId: disconnectProjectFromDrive
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Project disconnected from Drive
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/backup:
+    get:
+      tags: [Projects]
+      summary: Download project backup
+      description: |
+        Generates and streams a ZIP backup of the project containing a
+        manifest.json and HTML files for each chapter. Rate limited to
+        5 requests per minute.
+      operationId: downloadProjectBackup
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ZIP backup file
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="My Book - 2026-02-19.zip"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ─── Chapters ─────────────────────────────────────────────────────────
+  /projects/{projectId}/chapters:
+    post:
+      tags: [Chapters]
+      summary: Create a chapter
+      description: |
+        Creates a new chapter at the end of the chapter list. If Drive is
+        connected and the project has a folder, an empty HTML file is created
+        on Drive (fire-and-forget).
+      operationId: createChapter
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  maxLength: 200
+      responses:
+        "201":
+          description: Chapter created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chapter"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    get:
+      tags: [Chapters]
+      summary: List chapters
+      description: |
+        Returns all chapters for a project ordered by sort_order.
+        Metadata only -- does not include chapter content.
+      operationId: listChapters
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of chapters
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - chapters
+                properties:
+                  chapters:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Chapter"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/chapters/reorder:
+    patch:
+      tags: [Chapters]
+      summary: Reorder chapters
+      description: |
+        Batch updates chapter sort_order based on the provided array of
+        chapter IDs in the desired order.
+      operationId: reorderChapters
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - chapterIds
+              properties:
+                chapterIds:
+                  type: array
+                  items:
+                    type: string
+                  description: Chapter IDs in the desired sort order
+      responses:
+        "200":
+          description: Chapters reordered
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - chapters
+                properties:
+                  chapters:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Chapter"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /chapters/{chapterId}:
+    get:
+      tags: [Chapters]
+      summary: Get a chapter
+      description: Returns a single chapter by ID (metadata only).
+      operationId: getChapter
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chapter details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chapter"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    patch:
+      tags: [Chapters]
+      summary: Update a chapter
+      description: |
+        Updates a chapter's title and/or status. At least one field must be
+        provided. If the title changes and the chapter has a Drive file, the
+        Drive file is renamed (fire-and-forget).
+      operationId: updateChapter
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  maxLength: 200
+                status:
+                  type: string
+                  enum: [draft, review, final]
+      responses:
+        "200":
+          description: Updated chapter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chapter"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    delete:
+      tags: [Chapters]
+      summary: Delete a chapter
+      description: |
+        Hard-deletes a chapter from D1. Rejects if it is the last chapter
+        in the project (LAST_CHAPTER error). If the chapter has a Drive file,
+        it is moved to trash (best-effort).
+      operationId: deleteChapter
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chapter deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Cannot delete the last chapter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Cannot delete the last chapter
+                code: LAST_CHAPTER
+                requestId: 01HXYZ...
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /chapters/{chapterId}/content:
+    put:
+      tags: [Chapters]
+      summary: Save chapter content
+      description: |
+        Saves chapter content to R2 (Tier 2 auto-save) and updates D1 metadata
+        (word count, version, timestamp). Uses optimistic locking: returns 409
+        CONFLICT if the provided version does not match the stored version.
+        After saving, syncs content to Google Drive (fire-and-forget, 30s
+        coalescing window).
+      operationId: saveChapterContent
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+                - version
+              properties:
+                content:
+                  type: string
+                  description: HTML content
+                version:
+                  type: integer
+                  description: Expected version for optimistic locking
+      responses:
+        "200":
+          description: Content saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaveContentResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Version conflict (optimistic locking)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error: Version conflict
+                code: CONFLICT
+                requestId: 01HXYZ...
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    get:
+      tags: [Chapters]
+      summary: Load chapter content
+      description: |
+        Loads chapter content from R2. Used by the editor on chapter open
+        and for crash-recovery comparison.
+      operationId: getChapterContent
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Chapter content and version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChapterContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ─── Sources ──────────────────────────────────────────────────────────
+  /projects/{projectId}/sources:
+    post:
+      tags: [Sources]
+      summary: Add Drive sources
+      description: |
+        Adds source materials from Google Picker selection. Accepts Google
+        Docs directly and/or folders (expanded recursively to Docs). Supports
+        optional `connectionId` to track which Drive account the source is from.
+      operationId: addSources
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - files
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - driveFileId
+                      - title
+                      - mimeType
+                    properties:
+                      driveFileId:
+                        type: string
+                      title:
+                        type: string
+                      mimeType:
+                        type: string
+                connectionId:
+                  type: string
+                  description: Drive connection ID for multi-account tracking
+      responses:
+        "201":
+          description: Sources added
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - sources
+                properties:
+                  sources:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SourceMaterial"
+                  expandedCounts:
+                    type: object
+                    properties:
+                      selectedFolders:
+                        type: integer
+                      docsDiscovered:
+                        type: integer
+                      docsInserted:
+                        type: integer
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    get:
+      tags: [Sources]
+      summary: List sources for a project
+      description: Returns all active source materials for a project.
+      operationId: listSources
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sources list
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - sources
+                properties:
+                  sources:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SourceMaterial"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/sources/upload:
+    post:
+      tags: [Sources]
+      summary: Upload a local source file
+      description: |
+        Uploads a local file (.txt or .md) as source material.
+        Max file size: 5MB. Deduplicates on content hash.
+      operationId: uploadLocalSource
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Text or Markdown file (max 5MB)
+      responses:
+        "201":
+          description: Source uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - source
+                properties:
+                  source:
+                    $ref: "#/components/schemas/SourceMaterial"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /sources/{sourceId}/content:
+    get:
+      tags: [Sources]
+      summary: Get source content
+      description: |
+        Returns cached source content. Lazy-fetches from Google Drive on
+        first access if the content is not yet cached in R2.
+      operationId: getSourceContent
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Source content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceContentResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /sources/{sourceId}:
+    delete:
+      tags: [Sources]
+      summary: Remove a source
+      description: Soft-deletes a source material (sets status to "archived").
+      operationId: removeSource
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Source removed
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /sources/{sourceId}/import-as-chapter:
+    post:
+      tags: [Sources]
+      summary: Import source as a new chapter
+      description: |
+        Creates a new chapter from the source content. Stores content in D1/R2,
+        then creates a Drive file (fire-and-forget) if Drive is connected.
+      operationId: importSourceAsChapter
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Chapter created from source
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - chapterId
+                  - title
+                  - wordCount
+                properties:
+                  chapterId:
+                    type: string
+                  title:
+                    type: string
+                  wordCount:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /chapters/{chapterId}/sources:
+    get:
+      tags: [Sources]
+      summary: List linked sources for a chapter
+      description: Returns all active source materials linked to a chapter.
+      operationId: getChapterSources
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Linked sources
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - sources
+                properties:
+                  sources:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SourceMaterial"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /chapters/{chapterId}/sources/{sourceId}/link:
+    post:
+      tags: [Sources]
+      summary: Link source to chapter
+      description: |
+        Links a source material to a chapter. Reactivates previously
+        archived links if one exists.
+      operationId: linkSourceToChapter
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sourceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Source linked
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    delete:
+      tags: [Sources]
+      summary: Unlink source from chapter
+      description: Soft-archives the link between a source and a chapter.
+      operationId: unlinkSourceFromChapter
+      parameters:
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sourceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Source unlinked
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ─── AI ───────────────────────────────────────────────────────────────
+  /ai/rewrite:
+    post:
+      tags: [AI]
+      summary: AI rewrite (SSE streaming)
+      description: |
+        Sends selected text with an instruction to the AI provider and streams
+        the rewritten result via Server-Sent Events (SSE). Rate limited to
+        10 requests per minute per user.
+
+        SSE event types:
+        - `start` -- Stream started, includes `interactionId` and `attemptNumber`
+        - `token` -- Each generated token as `text`
+        - `done` -- Stream complete, includes `interactionId`
+        - `error` -- Error occurred, includes `message`
+      operationId: aiRewrite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - selectedText
+                - instruction
+                - chapterId
+              properties:
+                selectedText:
+                  type: string
+                  maxLength: 10000
+                  description: The text to rewrite
+                instruction:
+                  type: string
+                  description: How to rewrite it
+                contextBefore:
+                  type: string
+                  maxLength: 500
+                  description: Up to 500 characters before the selection
+                contextAfter:
+                  type: string
+                  maxLength: 500
+                  description: Up to 500 characters after the selection
+                chapterTitle:
+                  type: string
+                  description: Chapter title for context
+                projectDescription:
+                  type: string
+                  description: Project description for context
+                chapterId:
+                  type: string
+                  description: Chapter ID for interaction logging
+                parentInteractionId:
+                  type: string
+                  description: Parent interaction ID for retry chains
+                tier:
+                  type: string
+                  enum: [edge, frontier]
+                  description: AI tier (default from environment config)
+      responses:
+        "200":
+          description: SSE stream of rewrite tokens
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Server-Sent Events stream. Each event is a JSON object:
+                  - { "type": "start", "interactionId": "...", "attemptNumber": 1 }
+                  - { "type": "token", "text": "..." }
+                  - { "type": "done", "interactionId": "..." }
+                  - { "type": "error", "message": "..." }
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /ai/interactions/{interactionId}/accept:
+    post:
+      tags: [AI]
+      summary: Accept AI rewrite result
+      description: |
+        Records that the user accepted the AI rewrite result. Updates the
+        interaction metadata (accepted = true).
+      operationId: acceptAiInteraction
+      parameters:
+        - name: interactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Interaction accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIInteraction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /ai/interactions/{interactionId}/reject:
+    post:
+      tags: [AI]
+      summary: Reject AI rewrite result
+      description: |
+        Records that the user rejected/discarded the AI rewrite result.
+        Updates the interaction metadata (accepted = false).
+      operationId: rejectAiInteraction
+      parameters:
+        - name: interactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Interaction rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIInteraction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ─── Exports ──────────────────────────────────────────────────────────
+  /projects/{projectId}/export:
+    post:
+      tags: [Exports]
+      summary: Export full book
+      description: |
+        Generates a full-book export in the specified format. Rate limited
+        to 5 requests per minute. Creates an export job, generates the
+        artifact (PDF via Browser Rendering or EPUB via JSZip), and stores
+        the result in R2.
+      operationId: exportBook
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - format
+              properties:
+                format:
+                  type: string
+                  enum: [pdf, epub]
+      responses:
+        "201":
+          description: Export completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportJobResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          description: Export generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportJobResult"
+
+  /projects/{projectId}/chapters/{chapterId}/export:
+    post:
+      tags: [Exports]
+      summary: Export single chapter
+      description: |
+        Generates a single-chapter export in the specified format. Rate limited
+        to 5 requests per minute.
+      operationId: exportChapter
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: chapterId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - format
+              properties:
+                format:
+                  type: string
+                  enum: [pdf, epub]
+      responses:
+        "201":
+          description: Export completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportJobResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          description: Export generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportJobResult"
+
+  /exports/{jobId}:
+    get:
+      tags: [Exports]
+      summary: Get export job status
+      description: |
+        Returns the status of an export job. For completed jobs, includes a
+        download URL pointing to the authenticated download endpoint (1-hour
+        cache).
+      operationId: getExportStatus
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export job status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportJobStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /exports/{jobId}/download:
+    get:
+      tags: [Exports]
+      summary: Download export file
+      description: |
+        Streams the completed export file directly from R2 storage.
+        Response includes appropriate Content-Type and Content-Disposition
+        headers. Cached for 1 hour (private).
+      operationId: downloadExport
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export file binary
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            application/epub+zip:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: private, max-age=3600
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /exports/{jobId}/to-drive:
+    post:
+      tags: [Exports]
+      summary: Save export to Google Drive
+      description: |
+        Uploads a completed export artifact to the `_exports/` subfolder in
+        the project's Book Folder on Google Drive. Date-stamped file names
+        prevent overwrites. Idempotent: if already saved, returns the existing
+        Drive file info.
+      operationId: saveExportToDrive
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export saved to Drive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportToDriveResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
