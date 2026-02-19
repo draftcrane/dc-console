@@ -38,8 +38,8 @@ export function DriveStatusIndicator({
           className="flex items-center gap-1.5 text-xs text-green-700 hover:text-green-900 transition-colors min-h-[44px]"
           title={
             email
-              ? `Project connected to Google Drive as ${email}. Click to view files.`
-              : "Project connected to Google Drive. Click to view files."
+              ? `Project linked to Google Drive as ${email}. Click to view files.`
+              : "Project linked to Google Drive. Click to view files."
           }
         >
           <svg
@@ -55,7 +55,7 @@ export function DriveStatusIndicator({
               d="M5 13l4 4L19 7"
             />
           </svg>
-          <span className="hidden sm:inline truncate max-w-[120px]">Drive connected</span>
+          <span className="hidden sm:inline truncate max-w-[120px]">Project Linked</span>
         </button>
       );
     } else {
@@ -78,7 +78,7 @@ export function DriveStatusIndicator({
               d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
             />
           </svg>
-          <span className="hidden sm:inline">Connect Drive</span>
+          <span className="hidden sm:inline">Connect Project</span>
         </button>
       );
     }
