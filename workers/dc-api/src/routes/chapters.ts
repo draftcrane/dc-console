@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import type { Env } from "../types/index.js";
-import { requireAuth } from "../middleware/auth.js";
 import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ChapterService } from "../services/chapter.js";
@@ -21,13 +20,12 @@ import { DriveService } from "../services/drive.js";
  * - PUT /chapters/:chapterId/content - Save content to R2, update D1 metadata
  * - GET /chapters/:chapterId/content - Load content from R2
  *
- * All routes require authentication.
+ * All routes require authentication (enforced globally in index.ts).
  * Authorization: All queries include WHERE user_id = ? via project ownership
  */
 const chapters = new Hono<{ Bindings: Env }>();
 
-// All chapter routes require authentication
-chapters.use("*", requireAuth);
+// Auth is enforced globally in index.ts
 chapters.use("*", standardRateLimit);
 
 /**

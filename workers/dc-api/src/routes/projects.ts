@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import type { Env } from "../types/index.js";
-import { requireAuth } from "../middleware/auth.js";
 import { standardRateLimit, exportRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ProjectService } from "../services/project.js";
@@ -18,13 +17,12 @@ import { safeContentDisposition } from "../utils/file-names.js";
  * - PATCH /projects/:projectId - Updates title, description, settings
  * - DELETE /projects/:projectId - Soft-delete (status='archived')
  *
- * All routes require authentication.
+ * All routes require authentication (enforced globally in index.ts).
  * Authorization: All queries include WHERE user_id = ?
  */
 const projects = new Hono<{ Bindings: Env }>();
 
-// All project routes require authentication
-projects.use("*", requireAuth);
+// Auth is enforced globally in index.ts
 projects.use("*", standardRateLimit);
 
 /**

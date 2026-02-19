@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import type { Env } from "../types/index.js";
-import { requireAuth } from "../middleware/auth.js";
 import { validationError } from "../middleware/error-handler.js";
 import { aiRateLimit } from "../middleware/rate-limit.js";
 import { AIRewriteService, type RewriteInput } from "../services/ai-rewrite.js";
@@ -9,9 +8,7 @@ import { OpenAIProvider, WorkersAIProvider } from "../services/ai-provider.js";
 
 const ai = new Hono<{ Bindings: Env }>();
 
-// All AI routes require authentication
-ai.use("*", requireAuth);
-
+// Auth is enforced globally in index.ts
 // Rate limit: 10 req/min for AI rewrite (applied after auth)
 ai.use("/rewrite", aiRateLimit);
 

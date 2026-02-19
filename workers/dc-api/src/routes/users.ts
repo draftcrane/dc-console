@@ -1,12 +1,11 @@
 import { Hono } from "hono";
 import type { Env } from "../types/index.js";
-import { requireAuth } from "../middleware/auth.js";
 import { standardRateLimit } from "../middleware/rate-limit.js";
 import { notFound } from "../middleware/index.js";
 
 const users = new Hono<{ Bindings: Env }>();
 
-users.use("*", requireAuth);
+// Auth is enforced globally in index.ts
 users.use("*", standardRateLimit);
 
 /**

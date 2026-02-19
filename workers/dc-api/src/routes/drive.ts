@@ -2,20 +2,28 @@
  * Google Drive OAuth and file management routes.
  * Implements PRD Section 8 (US-005 through US-008) and Section 12 API Surface.
  *
- * Routes:
- * - GET /drive/authorize - Returns Google OAuth authorization URL (supports loginHint)
+ * Exports two Hono sub-apps:
+ * - driveCallback: Public OAuth callback (mounted before global auth in index.ts)
+ * - drive: Authenticated Drive management routes (mounted after global auth)
+ *
+ * Public routes (driveCallback):
  * - GET /drive/callback - OAuth callback, exchanges code for tokens (upsert on user+email)
+ *
+ * Authenticated routes (drive):
+ * - GET /drive/authorize - Returns Google OAuth authorization URL (supports loginHint)
  * - GET /drive/connection - Returns all Drive connections for the user
  * - GET /drive/picker-token/:connectionId - Returns short-lived OAuth token for Google Picker
  * - POST /drive/folders - Creates Book Folder in Drive
  * - GET /drive/folders/:folderId/children - Lists files in Book Folder
+ * - GET /drive/browse - Browse Drive folders and Docs
  * - DELETE /drive/connection/:connectionId - Disconnects specific Drive account + cascade
+ * - DELETE /drive/connection - Disconnects all Drive connections (legacy)
  */
 
 import { Hono } from "hono";
 import { ulid } from "ulidx";
 import type { Env } from "../types/index.js";
-import { requireAuth, validationError, AppError } from "../middleware/index.js";
+import { validationError, AppError } from "../middleware/index.js";
 import { standardRateLimit, rateLimit } from "../middleware/rate-limit.js";
 import { DriveService } from "../services/drive.js";
 import { SourceMaterialService } from "../services/source-material.js";
@@ -28,6 +36,13 @@ const pickerTokenRateLimit = rateLimit({
 });
 
 const drive = new Hono<{ Bindings: Env }>();
+
+/**
+ * Public callback sub-app for OAuth redirect.
+ * Mounted in index.ts BEFORE the global auth barrier because Google redirects
+ * the browser here without a Clerk JWT - it uses a CSRF state token instead.
+ */
+const driveCallback = new Hono<{ Bindings: Env }>();
 
 /** Helper to throw Drive-specific errors */
 function driveError(message: string): never {
@@ -52,7 +67,7 @@ function validateFrontendUrl(redirectUrl: URL, configuredFrontendUrl: string): v
  * Per PRD Section 8 (US-005): OAuth with drive.file scope, redirect-based flow only.
  * Supports ?loginHint= for multi-account OAuth (pre-selects Google account).
  */
-drive.get("/authorize", requireAuth, standardRateLimit, async (c) => {
+drive.get("/authorize", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const loginHint = c.req.query("loginHint");
   const driveService = new DriveService(c.env);
@@ -81,8 +96,11 @@ drive.get("/authorize", requireAuth, standardRateLimit, async (c) => {
  * OAuth callback - exchanges code for tokens, encrypts and stores them.
  * Per PRD Section 8 (US-005): Tokens stored server-side, encrypted (AES-256-GCM).
  * Upserts on (user_id, drive_email) to preserve existing connection IDs on re-auth.
+ *
+ * Public route: mounted on driveCallback sub-app (before global auth barrier)
+ * because Google redirects the browser here without a Clerk JWT.
  */
-drive.get("/callback", async (c) => {
+driveCallback.get("/callback", async (c) => {
   const code = c.req.query("code");
   const state = c.req.query("state");
   const error = c.req.query("error");
@@ -151,7 +169,7 @@ drive.get("/callback", async (c) => {
  * Returns { connections: [...] } array for multi-account support.
  * Also returns { connected, email, connectedAt } for backward compatibility.
  */
-drive.get("/connection", requireAuth, standardRateLimit, async (c) => {
+drive.get("/connection", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 
@@ -187,7 +205,7 @@ drive.get("/connection", requireAuth, standardRateLimit, async (c) => {
  * - Tighter rate limit (10 req/min) since token is only needed once per Picker open
  * - Frontend must use token immediately and never persist it
  */
-drive.get("/picker-token/:connectionId", requireAuth, pickerTokenRateLimit, async (c) => {
+drive.get("/picker-token/:connectionId", pickerTokenRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const connectionId = c.req.param("connectionId");
   const driveService = new DriveService(c.env);
@@ -226,7 +244,7 @@ drive.get("/picker-token/:connectionId", requireAuth, pickerTokenRateLimit, asyn
  * Legacy: GET /drive/picker-token (no connectionId)
  * Falls back to user's first connection for backward compatibility.
  */
-drive.get("/picker-token", requireAuth, pickerTokenRateLimit, async (c) => {
+drive.get("/picker-token", pickerTokenRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 
@@ -251,7 +269,7 @@ drive.get("/picker-token", requireAuth, pickerTokenRateLimit, async (c) => {
  * Idempotent: If the project already has a drive_folder_id, returns the existing folder info.
  * Stores the folder ID back on the project record.
  */
-drive.post("/folders", requireAuth, standardRateLimit, async (c) => {
+drive.post("/folders", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 
@@ -320,7 +338,7 @@ drive.post("/folders", requireAuth, standardRateLimit, async (c) => {
  * Lists DraftCrane-created files in a Book Folder.
  * Per PRD Section 8 (US-007): Read-only listing of DraftCrane-created files.
  */
-drive.get("/folders/:folderId/children", requireAuth, standardRateLimit, async (c) => {
+drive.get("/folders/:folderId/children", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const folderId = c.req.param("folderId");
   const driveService = new DriveService(c.env);
@@ -362,7 +380,7 @@ drive.get("/folders/:folderId/children", requireAuth, standardRateLimit, async (
  * - connectionId (optional, for multi-account)
  * - pageToken (optional)
  */
-drive.get("/browse", requireAuth, standardRateLimit, async (c) => {
+drive.get("/browse", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 
@@ -415,7 +433,7 @@ drive.get("/browse", requireAuth, standardRateLimit, async (c) => {
  * Cascade: archives sources, soft-archives chapter_sources, clears project output drive.
  * Per plan: simplified 3-step cascade (D1 batch + token revoke + skip R2 cleanup).
  */
-drive.delete("/connection/:connectionId", requireAuth, standardRateLimit, async (c) => {
+drive.delete("/connection/:connectionId", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const connectionId = c.req.param("connectionId");
   const driveService = new DriveService(c.env);
@@ -483,7 +501,7 @@ drive.delete("/connection/:connectionId", requireAuth, standardRateLimit, async 
  * Legacy: DELETE /drive/connection (no connectionId)
  * Disconnects all Drive connections for backward compatibility.
  */
-drive.delete("/connection", requireAuth, standardRateLimit, async (c) => {
+drive.delete("/connection", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 
@@ -528,4 +546,4 @@ drive.delete("/connection", requireAuth, standardRateLimit, async (c) => {
   });
 });
 
-export { drive };
+export { drive, driveCallback };

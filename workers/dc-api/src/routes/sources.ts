@@ -17,7 +17,6 @@
 
 import { Hono } from "hono";
 import type { Env } from "../types/index.js";
-import { requireAuth } from "../middleware/auth.js";
 import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { SourceMaterialService, type AddSourceInput } from "../services/source-material.js";
@@ -27,8 +26,7 @@ import { validateDriveId } from "../utils/drive-query.js";
 
 const sources = new Hono<{ Bindings: Env }>();
 
-// All source routes require authentication
-sources.use("*", requireAuth);
+// Auth is enforced globally in index.ts
 sources.use("*", standardRateLimit);
 
 /**

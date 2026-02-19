@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import type { Env } from "../types/index.js";
-import { requireAuth } from "../middleware/auth.js";
 import { exportRateLimit, standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ExportService } from "../services/export.js";
@@ -16,13 +15,11 @@ import { DriveService } from "../services/drive.js";
  * - GET /exports/:jobId/download - Download a completed export
  *
  * Rate limit: 5 req/min per user (exportRateLimit middleware).
- * All routes require authentication.
+ * All routes require authentication (enforced globally in index.ts).
  */
 const exportRoutes = new Hono<{ Bindings: Env }>();
 
-// All export routes require authentication
-exportRoutes.use("*", requireAuth);
-
+// Auth is enforced globally in index.ts
 // Rate limit export generation endpoints (not downloads)
 exportRoutes.use("/projects/*", exportRateLimit);
 
