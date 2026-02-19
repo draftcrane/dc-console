@@ -1,921 +1,147 @@
 /**
- * Google Drive service for OAuth and file management.
+ * Google Drive service facade -- composes DriveTokenService and DriveFileService.
  * Implements US-005 through US-008 from PRD Section 8.
  *
- * Key responsibilities:
- * - Token encryption/decryption (AES-256-GCM)
- * - Token refresh (5 min before expiry per PRD Section 13)
- * - Google Drive API calls (folders, files)
- * - Multi-account support (multiple Google accounts per user)
+ * This module preserves the original DriveService public API so that route files
+ * and other consumers do not need import changes. Internally, responsibilities
+ * are delegated to focused sub-services:
+ *
+ *   - drive-token.ts -- OAuth flow, token storage/retrieval/refresh, connections
+ *   - drive-files.ts -- Google Drive API calls for files and folders
+ *
+ * Re-exports all public types from sub-modules for backward compatibility.
  */
 
-import { encrypt, decrypt } from "./crypto.js";
 import type { Env } from "../types/index.js";
-import { validateDriveId, escapeDriveQuery } from "../utils/drive-query.js";
+import { DriveTokenService } from "./drive-token.js";
+import type { GoogleTokenResponse } from "./drive-token.js";
+import { DriveFileService } from "./drive-files.js";
 
-/** Google OAuth token response */
-interface GoogleTokenResponse {
-  access_token: string;
-  refresh_token?: string;
-  expires_in: number;
-  token_type: string;
-  scope: string;
-}
-
-/** Google Drive file metadata */
-export interface DriveFile {
-  id: string;
-  name: string;
-  mimeType: string;
-  webViewLink?: string;
-  createdTime?: string;
-  modifiedTime?: string;
-  size?: string;
-}
-
-/** Google Drive folder create response */
-interface DriveFolderResponse {
-  id: string;
-  name: string;
-  mimeType: string;
-  webViewLink: string;
-}
-
-interface DriveListResponse {
-  files?: DriveFile[];
-  nextPageToken?: string;
-}
-
-/** Stored token data from D1 */
-interface StoredTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
-}
-
-/** Result of getting valid tokens (may have been refreshed) */
-export interface ValidTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
-  wasRefreshed: boolean;
-}
-
-/** Drive connection metadata (no tokens) */
-export interface DriveConnection {
-  id: string;
-  email: string;
-  connectedAt: string;
-}
-
-const GOOGLE_OAUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
-const GOOGLE_DRIVE_API = "https://www.googleapis.com/drive/v3";
-const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
-
-// Refresh tokens 5 minutes before expiry per PRD Section 13
-const REFRESH_BUFFER_MS = 5 * 60 * 1000;
-const GOOGLE_DOC_MIME_TYPE = "application/vnd.google-apps.document";
-const GOOGLE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
+// Re-export public types so existing imports from "./drive.js" still work
+export type { DriveFile } from "./drive-files.js";
+export type { ValidTokens, DriveConnection, GoogleTokenResponse } from "./drive-token.js";
 
 /**
- * DriveService handles all Google Drive interactions.
+ * DriveService composes token management and file operations into a single
+ * unified API. All route files instantiate `new DriveService(env)` and call
+ * methods directly -- this facade delegates to the appropriate sub-service.
  */
 export class DriveService {
-  constructor(private readonly env: Env) {}
+  private readonly tokens: DriveTokenService;
+  private readonly files: DriveFileService;
 
-  /**
-   * Generates the Google OAuth authorization URL.
-   * Uses drive.file scope only per PRD Section 8.
-   *
-   * @param state - CSRF protection state parameter
-   * @param loginHint - Optional email to pre-select Google account (for multi-account)
-   * @returns The authorization URL to redirect the user to
-   */
-  getAuthorizationUrl(state: string, loginHint?: string): string {
-    const params = new URLSearchParams({
-      client_id: this.env.GOOGLE_CLIENT_ID,
-      redirect_uri: this.env.GOOGLE_REDIRECT_URI,
-      response_type: "code",
-      scope:
-        "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly email",
-      access_type: "offline",
-      prompt: "consent", // Always get refresh token
-      state,
-    });
-
-    if (loginHint) {
-      params.set("login_hint", loginHint);
-    }
-
-    return `${GOOGLE_OAUTH_URL}?${params.toString()}`;
+  constructor(private readonly env: Env) {
+    this.tokens = new DriveTokenService(env);
+    this.files = new DriveFileService();
   }
 
-  /**
-   * Exchanges an authorization code for tokens.
-   *
-   * @param code - The authorization code from Google OAuth callback
-   * @returns Token response from Google
-   */
-  async exchangeCodeForTokens(code: string): Promise<GoogleTokenResponse> {
-    const response = await fetch(GOOGLE_TOKEN_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        client_id: this.env.GOOGLE_CLIENT_ID,
-        client_secret: this.env.GOOGLE_CLIENT_SECRET,
-        code,
-        grant_type: "authorization_code",
-        redirect_uri: this.env.GOOGLE_REDIRECT_URI,
-      }),
-    });
+  // ── OAuth & Token management (delegated to DriveTokenService) ──
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Token exchange failed:", error);
-      throw new Error("Failed to exchange code for tokens");
-    }
-
-    return response.json() as Promise<GoogleTokenResponse>;
+  getAuthorizationUrl(state: string, loginHint?: string) {
+    return this.tokens.getAuthorizationUrl(state, loginHint);
   }
 
-  /**
-   * Gets the Google user's email address.
-   *
-   * @param accessToken - Valid access token
-   * @returns The user's email address
-   */
-  async getUserEmail(accessToken: string): Promise<string> {
-    const response = await fetch(GOOGLE_USERINFO_URL, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to get user info");
-    }
-
-    const data = (await response.json()) as { email: string };
-    return data.email;
+  exchangeCodeForTokens(code: string) {
+    return this.tokens.exchangeCodeForTokens(code);
   }
 
-  /**
-   * Stores encrypted tokens in D1.
-   * Upserts on (user_id, drive_email) to preserve existing connection ID on re-auth.
-   * This is critical: other tables (source_materials, projects) reference the connection ID as FK.
-   *
-   * @param userId - The user ID
-   * @param connectionId - The connection ID (ULID) - used only for new connections
-   * @param tokens - Token response from Google
-   * @param email - The Google account email
-   * @returns The connection ID (existing or new)
-   */
-  async storeTokens(
-    userId: string,
-    connectionId: string,
-    tokens: GoogleTokenResponse,
-    email: string,
-  ): Promise<string> {
-    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
-    const encryptedAccess = await encrypt(tokens.access_token, this.env.ENCRYPTION_KEY);
-    // Only encrypt refresh_token when Google provides one. Passing literal ''
-    // allows the SQL CASE to correctly preserve the existing stored refresh token
-    // on re-auth flows where Google omits the refresh_token.
-    const encryptedRefresh = tokens.refresh_token
-      ? await encrypt(tokens.refresh_token, this.env.ENCRYPTION_KEY)
-      : "";
-
-    await this.env.DB.prepare(
-      `INSERT INTO drive_connections (id, user_id, access_token, refresh_token, token_expires_at, drive_email, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
-       ON CONFLICT (user_id, drive_email) DO UPDATE SET
-         access_token = excluded.access_token,
-         refresh_token = CASE WHEN excluded.refresh_token != '' THEN excluded.refresh_token ELSE drive_connections.refresh_token END,
-         token_expires_at = excluded.token_expires_at,
-         updated_at = excluded.updated_at`,
-    )
-      .bind(connectionId, userId, encryptedAccess, encryptedRefresh, expiresAt.toISOString(), email)
-      .run();
-
-    // Return the actual connection ID (may differ from input if re-auth of same account)
-    const row = await this.env.DB.prepare(
-      `SELECT id FROM drive_connections WHERE user_id = ? AND drive_email = ?`,
-    )
-      .bind(userId, email)
-      .first<{ id: string }>();
-
-    return row?.id ?? connectionId;
+  getUserEmail(accessToken: string) {
+    return this.tokens.getUserEmail(accessToken);
   }
 
-  /**
-   * Gets stored tokens for a specific connection, decrypting them.
-   *
-   * @param connectionId - The drive connection ID
-   * @returns Decrypted tokens or null if not found
-   */
-  async getStoredTokens(connectionId: string): Promise<StoredTokens | null> {
-    const row = await this.env.DB.prepare(
-      `SELECT access_token, refresh_token, token_expires_at FROM drive_connections WHERE id = ?`,
-    )
-      .bind(connectionId)
-      .first<{ access_token: string; refresh_token: string; token_expires_at: string }>();
-
-    if (!row) {
-      return null;
-    }
-
-    const accessToken = await decrypt(row.access_token, this.env.ENCRYPTION_KEY);
-    const refreshToken = await decrypt(row.refresh_token, this.env.ENCRYPTION_KEY);
-    const expiresAt = new Date(row.token_expires_at);
-
-    return { accessToken, refreshToken, expiresAt };
+  storeTokens(userId: string, connectionId: string, tokens: GoogleTokenResponse, email: string) {
+    return this.tokens.storeTokens(userId, connectionId, tokens, email);
   }
 
-  /**
-   * Gets stored tokens for a user's first connection (legacy fallback).
-   * Used when we only have userId, not a specific connectionId.
-   *
-   * @param userId - The user ID
-   * @returns Decrypted tokens or null if not connected
-   */
-  async getStoredTokensByUser(
-    userId: string,
-  ): Promise<(StoredTokens & { connectionId: string }) | null> {
-    const row = await this.env.DB.prepare(
-      `SELECT id, access_token, refresh_token, token_expires_at FROM drive_connections WHERE user_id = ? LIMIT 1`,
-    )
-      .bind(userId)
-      .first<{
-        id: string;
-        access_token: string;
-        refresh_token: string;
-        token_expires_at: string;
-      }>();
-
-    if (!row) {
-      return null;
-    }
-
-    const accessToken = await decrypt(row.access_token, this.env.ENCRYPTION_KEY);
-    const refreshToken = await decrypt(row.refresh_token, this.env.ENCRYPTION_KEY);
-    const expiresAt = new Date(row.token_expires_at);
-
-    return { connectionId: row.id, accessToken, refreshToken, expiresAt };
+  getStoredTokens(connectionId: string) {
+    return this.tokens.getStoredTokens(connectionId);
   }
 
-  /**
-   * Refreshes the access token using the refresh token.
-   *
-   * @param refreshToken - The refresh token
-   * @returns New token response
-   */
-  async refreshAccessToken(refreshToken: string): Promise<GoogleTokenResponse> {
-    const response = await fetch(GOOGLE_TOKEN_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        client_id: this.env.GOOGLE_CLIENT_ID,
-        client_secret: this.env.GOOGLE_CLIENT_SECRET,
-        refresh_token: refreshToken,
-        grant_type: "refresh_token",
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Token refresh failed:", error);
-      throw new Error("Failed to refresh access token");
-    }
-
-    return response.json() as Promise<GoogleTokenResponse>;
+  getStoredTokensByUser(userId: string) {
+    return this.tokens.getStoredTokensByUser(userId);
   }
 
-  /**
-   * Gets valid tokens for a specific connection, refreshing if needed.
-   * Per PRD Section 13: Automatic token refresh, 5 min before expiry.
-   *
-   * @param connectionId - The drive connection ID
-   * @returns Valid tokens, or null if connection not found
-   */
-  async getValidTokensByConnection(connectionId: string): Promise<ValidTokens | null> {
-    const stored = await this.getStoredTokens(connectionId);
-    if (!stored) {
-      return null;
-    }
-
-    return this.ensureTokensFresh(connectionId, stored);
+  refreshAccessToken(refreshToken: string) {
+    return this.tokens.refreshAccessToken(refreshToken);
   }
 
-  /**
-   * Gets valid tokens for a user's first connection (legacy fallback).
-   * Used by fire-and-forget write-through code that only has userId.
-   *
-   * @param userId - The user ID
-   * @returns Valid tokens with connectionId, or null if not connected
-   */
-  async getValidTokens(userId: string): Promise<(ValidTokens & { connectionId: string }) | null> {
-    const stored = await this.getStoredTokensByUser(userId);
-    if (!stored) {
-      return null;
-    }
-
-    const result = await this.ensureTokensFresh(stored.connectionId, stored);
-    if (!result) return null;
-
-    return { ...result, connectionId: stored.connectionId };
+  getValidTokensByConnection(connectionId: string) {
+    return this.tokens.getValidTokensByConnection(connectionId);
   }
 
-  /**
-   * Internal: refresh tokens if within 5min of expiry.
-   */
-  private async ensureTokensFresh(
-    connectionId: string,
-    stored: StoredTokens,
-  ): Promise<ValidTokens | null> {
-    const now = Date.now();
-    const expiresAt = stored.expiresAt.getTime();
-
-    // Check if token needs refresh (expires within 5 minutes)
-    if (expiresAt - now < REFRESH_BUFFER_MS) {
-      try {
-        const newTokens = await this.refreshAccessToken(stored.refreshToken);
-        const newExpiresAt = new Date(now + newTokens.expires_in * 1000);
-
-        // Update stored tokens
-        const encryptedAccess = await encrypt(newTokens.access_token, this.env.ENCRYPTION_KEY);
-        await this.env.DB.prepare(
-          `UPDATE drive_connections
-           SET access_token = ?, token_expires_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-           WHERE id = ?`,
-        )
-          .bind(encryptedAccess, newExpiresAt.toISOString(), connectionId)
-          .run();
-
-        return {
-          accessToken: newTokens.access_token,
-          refreshToken: newTokens.refresh_token || stored.refreshToken,
-          expiresAt: newExpiresAt,
-          wasRefreshed: true,
-        };
-      } catch (err) {
-        console.error("Token refresh failed, using existing token:", err);
-        // Fall through to use existing token
-      }
-    }
-
-    return {
-      ...stored,
-      wasRefreshed: false,
-    };
+  getValidTokens(userId: string) {
+    return this.tokens.getValidTokens(userId);
   }
 
-  /**
-   * Returns all Drive connections for a user (metadata only, no tokens).
-   *
-   * @param userId - The user ID
-   * @returns Array of connection metadata
-   */
-  async getConnectionsForUser(userId: string): Promise<DriveConnection[]> {
-    const result = await this.env.DB.prepare(
-      `SELECT id, drive_email, created_at FROM drive_connections WHERE user_id = ? ORDER BY created_at ASC`,
-    )
-      .bind(userId)
-      .all<{ id: string; drive_email: string; created_at: string }>();
-
-    return (result.results ?? []).map((row) => ({
-      id: row.id,
-      email: row.drive_email,
-      connectedAt: row.created_at,
-    }));
+  getConnectionsForUser(userId: string) {
+    return this.tokens.getConnectionsForUser(userId);
   }
 
-  /**
-   * Creates a folder in Google Drive.
-   * Per PRD Section 8 (US-006): Auto-creates folder named after project title.
-   *
-   * @param accessToken - Valid access token
-   * @param folderName - Name for the folder
-   * @returns The created folder metadata
-   */
-  async createFolder(accessToken: string, folderName: string): Promise<DriveFolderResponse> {
-    const response = await fetch(`${GOOGLE_DRIVE_API}/files`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: folderName,
-        mimeType: "application/vnd.google-apps.folder",
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Folder creation failed:", error);
-      throw new Error("Failed to create Drive folder");
-    }
-
-    const folder = (await response.json()) as DriveFile;
-
-    // Get the webViewLink by fetching with fields
-    const detailResponse = await fetch(
-      `${GOOGLE_DRIVE_API}/files/${folder.id}?fields=id,name,mimeType,webViewLink`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
-    );
-
-    if (!detailResponse.ok) {
-      // Return basic info if detail fetch fails
-      return {
-        id: folder.id,
-        name: folder.name,
-        mimeType: folder.mimeType,
-        webViewLink: `https://drive.google.com/drive/folders/${folder.id}`,
-      };
-    }
-
-    return detailResponse.json() as Promise<DriveFolderResponse>;
+  revokeToken(accessToken: string) {
+    return this.tokens.revokeToken(accessToken);
   }
 
-  /**
-   * Lists files in a folder.
-   * Per PRD Section 8 (US-007): Read-only listing of DraftCrane-created files.
-   *
-   * @param accessToken - Valid access token
-   * @param folderId - The folder ID to list
-   * @returns Array of file metadata
-   */
-  async listFolderChildren(accessToken: string, folderId: string): Promise<DriveFile[]> {
-    const result = await this.listFolderChildrenPage(accessToken, folderId);
-    return result.files;
+  deleteConnectionById(connectionId: string, userId: string) {
+    return this.tokens.deleteConnectionById(connectionId, userId);
   }
 
-  /**
-   * Lists files in a folder with pagination support.
-   */
-  async listFolderChildrenPage(
+  // ── File & folder operations (delegated to DriveFileService) ──
+
+  createFolder(accessToken: string, folderName: string) {
+    return this.files.createFolder(accessToken, folderName);
+  }
+
+  listFolderChildren(accessToken: string, folderId: string) {
+    return this.files.listFolderChildren(accessToken, folderId);
+  }
+
+  listFolderChildrenPage(
     accessToken: string,
     folderId: string,
-    options: { pageSize?: number; pageToken?: string } = {},
-  ): Promise<{ files: DriveFile[]; nextPageToken?: string }> {
-    const params = new URLSearchParams({
-      q: `'${validateDriveId(folderId)}' in parents and trashed = false`,
-      fields: "files(id,name,mimeType,webViewLink,createdTime,modifiedTime)",
-      orderBy: "modifiedTime desc",
-    });
-    if (options.pageSize) {
-      params.set("pageSize", String(options.pageSize));
-    }
-    if (options.pageToken) {
-      params.set("pageToken", options.pageToken);
-    }
-
-    const response = await fetch(`${GOOGLE_DRIVE_API}/files?${params.toString()}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(
-        `List folder failed: Status ${response.status} ${response.statusText || ""}, Body: ${errorBody}`,
-      );
-      if (response.status === 403 && errorBody.includes("insufficientPermissions")) {
-        throw new Error("Google Drive permission update required. Reconnect Drive.");
-      }
-      throw new Error(
-        `Failed to list folder contents: ${response.status} ${response.statusText || ""}`,
-      );
-    }
-
-    const data = (await response.json()) as { files: DriveFile[]; nextPageToken?: string };
-    return { files: data.files || [], nextPageToken: data.nextPageToken };
+    options?: { pageSize?: number; pageToken?: string },
+  ) {
+    return this.files.listFolderChildrenPage(accessToken, folderId, options);
   }
 
-  /**
-   * Recursively lists Google Docs contained in one or more Drive folders.
-   * Includes docs in nested subfolders. Stops at maxDocs to avoid expensive traversals.
-   */
-  async listDocsInFoldersRecursive(
-    accessToken: string,
-    folderIds: string[],
-    maxDocs: number,
-  ): Promise<DriveFile[]> {
-    const pending = [...new Set(folderIds.map((id) => validateDriveId(id)))];
-    const visitedFolders = new Set<string>();
-    const seenDocs = new Set<string>();
-    const docs: DriveFile[] = [];
-
-    while (pending.length > 0) {
-      const folderId = pending.shift();
-      if (!folderId || visitedFolders.has(folderId)) {
-        continue;
-      }
-      visitedFolders.add(folderId);
-
-      let pageToken: string | undefined;
-      do {
-        const params = new URLSearchParams({
-          q: `'${folderId}' in parents and trashed = false and (mimeType = '${GOOGLE_DOC_MIME_TYPE}' or mimeType = '${GOOGLE_FOLDER_MIME_TYPE}')`,
-          fields: "nextPageToken,files(id,name,mimeType)",
-          pageSize: "1000",
-        });
-        if (pageToken) {
-          params.set("pageToken", pageToken);
-        }
-
-        const response = await fetch(`${GOOGLE_DRIVE_API}/files?${params.toString()}`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorBody = await response.text();
-          console.error(
-            `Recursive folder list failed: Status ${response.status} ${response.statusText || ""}, Body: ${errorBody}`,
-          );
-          throw new Error("Failed to list selected folder contents from Drive");
-        }
-
-        const data = (await response.json()) as DriveListResponse;
-        const files = data.files || [];
-        for (const file of files) {
-          if (!file.id || !file.mimeType) continue;
-
-          if (file.mimeType === GOOGLE_FOLDER_MIME_TYPE) {
-            if (!visitedFolders.has(file.id)) {
-              pending.push(file.id);
-            }
-            continue;
-          }
-
-          if (file.mimeType !== GOOGLE_DOC_MIME_TYPE || seenDocs.has(file.id)) {
-            continue;
-          }
-
-          docs.push(file);
-          seenDocs.add(file.id);
-
-          if (docs.length > maxDocs) {
-            throw new Error("MAX_DOCS_EXCEEDED");
-          }
-        }
-
-        pageToken = data.nextPageToken;
-      } while (pageToken);
-    }
-
-    return docs;
+  listDocsInFoldersRecursive(accessToken: string, folderIds: string[], maxDocs: number) {
+    return this.files.listDocsInFoldersRecursive(accessToken, folderIds, maxDocs);
   }
 
-  /**
-   * Finds an existing subfolder by name within a parent folder, or creates it.
-   * Per PRD Section 11: _exports/ subfolder in the Book Folder.
-   *
-   * @param accessToken - Valid access token
-   * @param parentFolderId - The parent folder ID
-   * @param folderName - Name for the subfolder (e.g. "_exports")
-   * @returns The subfolder ID
-   */
-  async findOrCreateSubfolder(
-    accessToken: string,
-    parentFolderId: string,
-    folderName: string,
-  ): Promise<string> {
-    // Search for existing subfolder
-    const searchParams = new URLSearchParams({
-      q: `'${validateDriveId(parentFolderId)}' in parents and name = '${escapeDriveQuery(folderName)}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-      fields: "files(id,name)",
-    });
-
-    const searchResponse = await fetch(`${GOOGLE_DRIVE_API}/files?${searchParams.toString()}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (searchResponse.ok) {
-      const data = (await searchResponse.json()) as { files: DriveFile[] };
-      if (data.files && data.files.length > 0) {
-        return data.files[0].id;
-      }
-    }
-
-    // Create the subfolder
-    const createResponse = await fetch(`${GOOGLE_DRIVE_API}/files`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: folderName,
-        mimeType: "application/vnd.google-apps.folder",
-        parents: [parentFolderId],
-      }),
-    });
-
-    if (!createResponse.ok) {
-      const error = await createResponse.text();
-      console.error("Subfolder creation failed:", error);
-      throw new Error(`Failed to create ${folderName} subfolder in Drive`);
-    }
-
-    const folder = (await createResponse.json()) as DriveFile;
-    return folder.id;
+  findOrCreateSubfolder(accessToken: string, parentFolderId: string, folderName: string) {
+    return this.files.findOrCreateSubfolder(accessToken, parentFolderId, folderName);
   }
 
-  /**
-   * Uploads a file to Google Drive using multipart upload.
-   * Per PRD Section 8 (US-021): Upload export artifacts to _exports/ subfolder.
-   *
-   * @param accessToken - Valid access token
-   * @param parentFolderId - The folder to upload into
-   * @param fileName - Name for the file in Drive
-   * @param mimeType - MIME type of the file content
-   * @param data - The file content as ArrayBuffer
-   * @returns The uploaded file metadata including webViewLink
-   */
-  async uploadFile(
+  uploadFile(
     accessToken: string,
     parentFolderId: string,
     fileName: string,
     mimeType: string,
     data: ArrayBuffer,
-  ): Promise<DriveFile> {
-    // Use multipart upload for files with metadata
-    const boundary = "---DraftCraneUploadBoundary";
-    const metadata = JSON.stringify({
-      name: fileName,
-      parents: [parentFolderId],
-    });
-
-    // Build multipart body
-    const encoder = new TextEncoder();
-    const metadataPart = encoder.encode(
-      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
-    );
-    const filePart = encoder.encode(`--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`);
-    const fileData = new Uint8Array(data);
-    const closingBoundary = encoder.encode(`\r\n--${boundary}--`);
-
-    // Concatenate all parts
-    const bodyLength =
-      metadataPart.length + filePart.length + fileData.length + closingBoundary.length;
-    const body = new Uint8Array(bodyLength);
-    let offset = 0;
-    body.set(metadataPart, offset);
-    offset += metadataPart.length;
-    body.set(filePart, offset);
-    offset += filePart.length;
-    body.set(fileData, offset);
-    offset += fileData.length;
-    body.set(closingBoundary, offset);
-
-    const uploadResponse = await fetch(
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": `multipart/related; boundary=${boundary}`,
-        },
-        body: body,
-      },
-    );
-
-    if (!uploadResponse.ok) {
-      const error = await uploadResponse.text();
-      console.error("Drive file upload failed:", error);
-      throw new Error("Failed to upload file to Google Drive");
-    }
-
-    return uploadResponse.json() as Promise<DriveFile>;
+  ) {
+    return this.files.uploadFile(accessToken, parentFolderId, fileName, mimeType, data);
   }
 
-  /**
-   * Moves a file to Google Drive trash.
-   * Per PRD US-014: When deleting a chapter, trash the Drive file (30-day retention by Google).
-   *
-   * @param accessToken - Valid access token
-   * @param fileId - The Drive file ID to trash
-   */
-  async trashFile(accessToken: string, fileId: string): Promise<void> {
-    validateDriveId(fileId);
-    const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ trashed: true }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Drive file trash failed:", error);
-      throw new Error("Failed to trash Drive file");
-    }
+  trashFile(accessToken: string, fileId: string) {
+    return this.files.trashFile(accessToken, fileId);
   }
 
-  /**
-   * Renames a file in Google Drive.
-   * Per PRD US-013: When a chapter is renamed, the Drive file name should match.
-   *
-   * @param accessToken - Valid access token
-   * @param fileId - The Drive file ID to rename
-   * @param newName - The new file name
-   */
-  async renameFile(accessToken: string, fileId: string, newName: string): Promise<void> {
-    validateDriveId(fileId);
-    const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name: newName }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Drive file rename failed:", error);
-      throw new Error("Failed to rename Drive file");
-    }
+  renameFile(accessToken: string, fileId: string, newName: string) {
+    return this.files.renameFile(accessToken, fileId, newName);
   }
 
-  /**
-   * Updates an existing file's content in Google Drive.
-   * Used for Drive write-through: syncing chapter content from R2 to Drive.
-   *
-   * @param accessToken - Valid access token
-   * @param fileId - The Drive file ID to update
-   * @param mimeType - MIME type of the content
-   * @param data - The file content as string or ArrayBuffer
-   */
-  async updateFile(
-    accessToken: string,
-    fileId: string,
-    mimeType: string,
-    data: string | ArrayBuffer,
-  ): Promise<void> {
-    validateDriveId(fileId);
-    const body = typeof data === "string" ? new TextEncoder().encode(data) : data;
-
-    const response = await fetch(
-      `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
-      {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": mimeType,
-        },
-        body,
-      },
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Drive file update failed:", error);
-      throw new Error("Failed to update file in Google Drive");
-    }
+  updateFile(accessToken: string, fileId: string, mimeType: string, data: string | ArrayBuffer) {
+    return this.files.updateFile(accessToken, fileId, mimeType, data);
   }
 
-  /**
-   * Gets metadata for a file in Google Drive.
-   *
-   * @param accessToken - Valid access token
-   * @param fileId - The Drive file ID
-   * @returns File metadata (id, name, mimeType, size, modifiedTime)
-   */
-  async getFileMetadata(accessToken: string, fileId: string): Promise<DriveFile> {
-    validateDriveId(fileId);
-    const fields = "id,name,mimeType,size,modifiedTime";
-    const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}?fields=${fields}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("Get file metadata failed:", error);
-      throw new Error("Failed to get file metadata from Drive");
-    }
-
-    return response.json() as Promise<DriveFile>;
+  getFileMetadata(accessToken: string, fileId: string) {
+    return this.files.getFileMetadata(accessToken, fileId);
   }
 
-  /**
-   * Exports a Google Workspace file (Docs, Sheets, etc.) to a specified MIME type.
-   * Used for importing Google Docs as HTML.
-   *
-   * @param accessToken - Valid access token
-   * @param fileId - The Drive file ID (must be a Google Workspace file)
-   * @param mimeType - Target export MIME type (e.g. "text/html")
-   * @returns The exported content as a string
-   * @throws Error if the exported file exceeds 5MB
-   */
-  async exportFile(accessToken: string, fileId: string, mimeType: string): Promise<string> {
-    validateDriveId(fileId);
-    const params = new URLSearchParams({ mimeType });
-    const response = await fetch(
-      `${GOOGLE_DRIVE_API}/files/${fileId}/export?${params.toString()}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("File export failed:", error);
-      throw new Error("Failed to export file from Drive");
-    }
-
-    // Reject files larger than 5MB to prevent memory issues
-    const contentLength = response.headers.get("Content-Length");
-    if (contentLength && parseInt(contentLength, 10) > 5 * 1024 * 1024) {
-      throw new Error("FILE_TOO_LARGE");
-    }
-
-    const text = await response.text();
-
-    // Double-check after reading (Content-Length may not always be present)
-    if (text.length > 5 * 1024 * 1024) {
-      throw new Error("FILE_TOO_LARGE");
-    }
-
-    return text;
+  exportFile(accessToken: string, fileId: string, mimeType: string) {
+    return this.files.exportFile(accessToken, fileId, mimeType);
   }
 
-  /**
-   * Downloads a binary file from Google Drive.
-   * Used for non-Workspace files (images, PDFs, etc.).
-   *
-   * @param accessToken - Valid access token
-   * @param fileId - The Drive file ID
-   * @returns The file content as an ArrayBuffer
-   */
-  async downloadFile(accessToken: string, fileId: string): Promise<ArrayBuffer> {
-    validateDriveId(fileId);
-    const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}?alt=media`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error("File download failed:", error);
-      throw new Error("Failed to download file from Drive");
-    }
-
-    return response.arrayBuffer();
-  }
-
-  /**
-   * Revokes the OAuth token with Google.
-   * Per PRD Section 8 (US-008): Disconnects Drive, revokes token.
-   *
-   * @param accessToken - The access token to revoke
-   */
-  async revokeToken(accessToken: string): Promise<void> {
-    const response = await fetch(`${GOOGLE_REVOKE_URL}?token=${accessToken}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    });
-
-    if (!response.ok) {
-      // Log but don't throw - token might already be invalid
-      console.warn("Token revocation returned non-200:", response.status);
-    }
-  }
-
-  /**
-   * Deletes a specific drive connection from D1.
-   *
-   * @param connectionId - The connection ID
-   * @param userId - The user ID (for ownership verification)
-   */
-  async deleteConnectionById(connectionId: string, userId: string): Promise<void> {
-    await this.env.DB.prepare(`DELETE FROM drive_connections WHERE id = ? AND user_id = ?`)
-      .bind(connectionId, userId)
-      .run();
+  downloadFile(accessToken: string, fileId: string) {
+    return this.files.downloadFile(accessToken, fileId);
   }
 }
