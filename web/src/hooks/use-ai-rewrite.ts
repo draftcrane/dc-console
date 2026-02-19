@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import type { AIRewriteResult } from "@/components/ai-rewrite-sheet";
+import type { AIRewriteResult } from "@/components/editor/ai-rewrite-sheet";
 
 export type SheetState = "idle" | "streaming" | "complete";
 

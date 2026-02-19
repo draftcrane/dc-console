@@ -1,6 +1,6 @@
 "use client";
 
-import { Sidebar, SidebarOverlay, type ChapterData } from "@/components/sidebar";
+import { Sidebar, SidebarOverlay, type ChapterData } from "@/components/layout/sidebar";
 
 interface EditorSidebarProps {
   chapters: ChapterData[];
