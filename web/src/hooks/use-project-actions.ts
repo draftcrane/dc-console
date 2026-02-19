@@ -211,9 +211,10 @@ export function useProjectActions({
 
   // --- Drive files sheet (US-007) ---
   const openDriveFiles = useCallback(() => {
-    if (!driveFolderId || !fetchDriveFiles) return;
-    setDriveFilesOpen(true);
-    fetchDriveFiles(driveFolderId);
+    setDriveFilesOpen(true); // Always open the sheet
+    if (driveFolderId && fetchDriveFiles) {
+      fetchDriveFiles(driveFolderId); // Only fetch files if connected
+    }
   }, [driveFolderId, fetchDriveFiles]);
 
   const closeDriveFiles = useCallback(() => {
