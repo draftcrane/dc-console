@@ -26,6 +26,8 @@ interface UseProjectActionsOptions {
   connectDrive?: () => void;
   /** Current project's driveFolderId (for opening Drive files sheet) */
   driveFolderId?: string | null;
+  /** Callback to update parent's projectData when Drive folder is connected */
+  onProjectDataUpdate?: (newDriveFolderId: string) => void;
 }
 
 /**
@@ -41,6 +43,7 @@ export function useProjectActions({
   resetDriveFiles,
   connectDrive,
   driveFolderId,
+  onProjectDataUpdate, // NEW
 }: UseProjectActionsOptions) {
   const router = useRouter();
 
@@ -265,6 +268,7 @@ export function useProjectActions({
       // Refresh the Drive files list using the newly created folder ID
       if (newDriveFolderId) {
         fetchDriveFiles(newDriveFolderId);
+        onProjectDataUpdate?.(newDriveFolderId); // NEW: Notify parent of update
       } else {
         console.warn("connect-drive API did not return driveFolderId");
       }
@@ -273,7 +277,7 @@ export function useProjectActions({
     } finally {
       setIsConnectingDrive(false);
     }
-  }, [getToken, projectId, fetchDriveFiles]);
+  }, [getToken, projectId, fetchDriveFiles, onProjectDataUpdate]); // NEW: Added onProjectDataUpdate to dependencies
 
   return {
     projects,

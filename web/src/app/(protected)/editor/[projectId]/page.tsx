@@ -198,6 +198,14 @@ export default function EditorPage() {
   // Word count state (US-024)
   const [selectionWordCount, setSelectionWordCount] = useState(0);
 
+  // Callback to update projectData after Drive folder connection
+  const handleProjectDataUpdate = useCallback((newDriveFolderId: string) => {
+    setProjectData((prev) => {
+      if (!prev) return null;
+      return { ...prev, driveFolderId: newDriveFolderId };
+    });
+  }, []);
+
       // Project actions: list, rename, duplicate, delete, Drive files, disconnect, connect project to Drive
       const {
         projects: allProjects,
@@ -231,6 +239,7 @@ export default function EditorPage() {
         resetDriveFiles,
         connectDrive,
         driveFolderId: projectData?.driveFolderId,
+        onProjectDataUpdate: handleProjectDataUpdate, // NEW PROP
       });
   // Source materials hook (facade over sources, content, and Picker)
   const {
