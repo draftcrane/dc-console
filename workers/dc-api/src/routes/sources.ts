@@ -29,7 +29,7 @@ sources.use("*", standardRateLimit);
 /**
  * POST /projects/:projectId/sources
  * Add source materials from Google Picker selection.
- * Only Google Docs are accepted (application/vnd.google-apps.document).
+ * Accepts Google Docs directly and/or folders (expanded recursively to Docs).
  */
 sources.post("/projects/:projectId/sources", async (c) => {
   const { userId } = c.get("auth");
@@ -51,9 +51,10 @@ sources.post("/projects/:projectId/sources", async (c) => {
   }
 
   const service = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
-  const created = await service.addSources(userId, projectId, files);
+  const driveService = new DriveService(c.env);
+  const created = await service.addSources(userId, projectId, files, driveService);
 
-  return c.json({ sources: created }, 201);
+  return c.json(created, 201);
 });
 
 /**

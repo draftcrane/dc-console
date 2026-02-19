@@ -137,8 +137,8 @@ export function SettingsMenu({
             </>
           )}
 
-          {/* Sources - always available when Drive is connected */}
-          {driveConnected && (
+          {/* Sources - shown when Drive is connected and project has a folder */}
+          {driveConnected && hasDriveFolder && (
             <>
               <button
                 onClick={() => handleMenuItem(onViewSources)}

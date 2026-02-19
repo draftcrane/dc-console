@@ -51,6 +51,28 @@ interface JWKS {
  * Also supports Bearer token in Authorization header for API clients.
  */
 export const requireAuth: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
+  const testAuthEnabled = c.env.ALLOW_TEST_AUTH === "true";
+  const isLocalTestRequest = isLocalRequest(c.req.url);
+  const hasTestAuthHeader = Boolean(c.req.header("X-Test-User-Id"));
+
+  // Fail closed if test auth headers appear on non-local requests.
+  if (testAuthEnabled && hasTestAuthHeader && !isLocalTestRequest) {
+    authRequired("Test auth header is only allowed for local test requests");
+  }
+
+  // Integration test bypass (local-only even when ALLOW_TEST_AUTH is enabled).
+  if (testAuthEnabled && isLocalTestRequest) {
+    const testUserId = c.req.header("X-Test-User-Id");
+    if (testUserId) {
+      c.set("auth", {
+        userId: testUserId,
+        email: c.req.header("X-Test-Email") || `${testUserId}@test.local`,
+        name: c.req.header("X-Test-Name") || "Test User",
+      });
+      return next();
+    }
+  }
+
   const authHeader = c.req.header("Authorization");
   const cookieToken = c.req.header("Cookie")?.match(/__session=([^;]+)/)?.[1];
 
@@ -242,6 +264,11 @@ function base64UrlDecode(str: string): ArrayBuffer {
     bytes[i] = binary.charCodeAt(i);
   }
   return bytes.buffer;
+}
+
+function isLocalRequest(url: string): boolean {
+  const hostname = new URL(url).hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1";
 }
 
 /**

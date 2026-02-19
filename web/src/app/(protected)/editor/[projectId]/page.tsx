@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Sidebar, SidebarOverlay, type ChapterData } from "@/components/sidebar";
-import { DriveBanner } from "@/components/drive-banner";
 import { DriveStatusIndicator } from "@/components/drive-status-indicator";
 import { ChapterEditor, type ChapterEditorHandle } from "@/components/chapter-editor";
 import { AIRewriteSheet } from "@/components/ai-rewrite-sheet";
@@ -198,64 +197,6 @@ export default function EditorPage() {
   // Word count state (US-024)
   const [selectionWordCount, setSelectionWordCount] = useState(0);
 
-
-
-      // Project actions: list, rename, duplicate, delete, Drive files, disconnect, connect project to Drive
-      const {
-        projects: allProjects,
-        renameDialogOpen,
-        openRenameDialog,
-        closeRenameDialog,
-        renameProject,
-        duplicateDialogOpen,
-        openDuplicateDialog,
-        closeDuplicateDialog,
-        duplicateProject,
-        isDuplicating,
-        deleteDialogOpen,
-        openDeleteDialog,
-        closeDeleteDialog,
-        handleDeleteProject,
-        driveFilesOpen,
-        openDriveFiles,
-        closeDriveFiles,
-        refreshDriveFiles,
-        connectDriveWithProject,
-        disconnectDriveDialogOpen,
-        openDisconnectDriveDialog,
-        closeDisconnectDriveDialog,
-        isConnectingDrive, // NEW
-        onConnectProjectToDrive, // NEW
-      } = useProjectActions({
-        getToken: getToken as () => Promise<string | null>,
-        projectId,
-        fetchDriveFiles: fetchFiles,
-        resetDriveFiles,
-        connectDrive,
-        driveFolderId: projectData?.driveFolderId,
-        onProjectConnected: fetchProjectData,
-      });
-  // Source materials hook (facade over sources, content, and Picker)
-  const {
-    sources,
-    isSourcesLoading,
-    isSourcesPanelOpen,
-    openSourcesPanel,
-    closeSourcesPanel,
-    isViewerOpen,
-    activeSource,
-    viewerContent,
-    viewerWordCount,
-    isContentLoading,
-    openSourceViewer,
-    closeSourceViewer,
-    addFromPicker,
-    isPickerLoading,
-    removeSource,
-    importSourceAsChapter,
-    error: sourcesError,
-  } = useSourceActions(projectId);
-
   // Fetch project data
   const fetchProjectData = useCallback(async () => {
     try {
@@ -290,6 +231,72 @@ export default function EditorPage() {
   useEffect(() => {
     fetchProjectData();
   }, [fetchProjectData]);
+
+  const handleProjectConnected = useCallback(
+    async (driveFolderId: string) => {
+      // Optimistically reflect connection in the current view.
+      setProjectData((prev) => (prev ? { ...prev, driveFolderId } : prev));
+      // Then refresh canonical server state.
+      await fetchProjectData();
+    },
+    [fetchProjectData],
+  );
+
+  // Project actions: list, rename, duplicate, delete, Drive files, disconnect, connect project to Drive
+  const {
+    projects: allProjects,
+    renameDialogOpen,
+    openRenameDialog,
+    closeRenameDialog,
+    renameProject,
+    duplicateDialogOpen,
+    openDuplicateDialog,
+    closeDuplicateDialog,
+    duplicateProject,
+    isDuplicating,
+    deleteDialogOpen,
+    openDeleteDialog,
+    closeDeleteDialog,
+    handleDeleteProject,
+    driveFilesOpen,
+    openDriveFiles,
+    closeDriveFiles,
+    refreshDriveFiles,
+    connectDriveWithProject,
+    disconnectDriveDialogOpen,
+    openDisconnectDriveDialog,
+    closeDisconnectDriveDialog,
+    isConnectingDrive, // NEW
+    onConnectProjectToDrive, // NEW
+  } = useProjectActions({
+    getToken: getToken as () => Promise<string | null>,
+    projectId,
+    fetchDriveFiles: fetchFiles,
+    resetDriveFiles,
+    connectDrive,
+    driveFolderId: projectData?.driveFolderId,
+    onProjectConnected: handleProjectConnected,
+  });
+  // Source materials hook (facade over sources, content, and Picker)
+  const {
+    sources,
+    isSourcesLoading,
+    isSourcesPanelOpen,
+    openSourcesPanel,
+    closeSourcesPanel,
+    isViewerOpen,
+    activeSource,
+    viewerContent,
+    viewerWordCount,
+    isContentLoading,
+    openSourceViewer,
+    closeSourceViewer,
+    addFromPicker,
+    isPickerLoading,
+    removeSource,
+    importSourceAsChapter,
+    error: sourcesError,
+  } = useSourceActions(projectId);
 
   // Load chapter content from API when active chapter changes
   useEffect(() => {
@@ -672,6 +679,9 @@ export default function EditorPage() {
         onClose={closeDriveFiles}
         onRefresh={refreshDriveFiles}
         onConnectDrive={onConnectProjectToDrive}
+        onAddSources={addFromPicker}
+        onViewSources={openSourcesPanel}
+        isProjectConnected={!!projectData?.driveFolderId}
       />
 
       {/* Source materials panel */}

@@ -7,7 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const PICKER_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_API_KEY || "";
 const GOOGLE_APP_ID = process.env.NEXT_PUBLIC_GOOGLE_APP_ID || "";
 
-interface PickerFile {
+export interface PickerFile {
   driveFileId: string;
   title: string;
   mimeType: string;
@@ -80,8 +80,11 @@ export function useGooglePicker() {
 
       return new Promise<PickerFile[]>((resolve) => {
         const view = new google.picker.DocsView()
-          .setIncludeFolders(false)
-          .setMimeTypes("application/vnd.google-apps.document");
+          .setIncludeFolders(true)
+          .setSelectFolderEnabled(true)
+          .setMimeTypes(
+            "application/vnd.google-apps.document,application/vnd.google-apps.folder",
+          );
 
         const picker = new google.picker.PickerBuilder()
           .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)

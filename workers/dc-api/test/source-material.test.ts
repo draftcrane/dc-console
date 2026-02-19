@@ -34,16 +34,16 @@ describe("SourceMaterialService", () => {
 
       const created = await service.addSources(userId, projectId, files);
 
-      expect(created).toHaveLength(2);
-      expect(created[0].title).toBe("Interview Notes");
-      expect(created[0].driveFileId).toBe("abc123");
-      expect(created[0].status).toBe("active");
-      expect(created[0].wordCount).toBe(0);
-      expect(created[0].cachedAt).toBeNull();
-      expect(created[1].sortOrder).toBe(2);
+      expect(created.sources).toHaveLength(2);
+      expect(created.sources[0].title).toBe("Interview Notes");
+      expect(created.sources[0].driveFileId).toBe("abc123");
+      expect(created.sources[0].status).toBe("active");
+      expect(created.sources[0].wordCount).toBe(0);
+      expect(created.sources[0].cachedAt).toBeNull();
+      expect(created.sources[1].sortOrder).toBe(2);
     });
 
-    it("rejects non-Google-Docs files", async () => {
+    it("ignores unsupported non-doc, non-folder files", async () => {
       const files = [
         {
           driveFileId: "sheet123",
@@ -52,9 +52,8 @@ describe("SourceMaterialService", () => {
         },
       ];
 
-      await expect(service.addSources(userId, projectId, files)).rejects.toThrow(
-        "Only Google Docs can be added as sources",
-      );
+      const created = await service.addSources(userId, projectId, files);
+      expect(created.sources).toHaveLength(0);
     });
 
     it("silently deduplicates re-selected files", async () => {
@@ -67,10 +66,10 @@ describe("SourceMaterialService", () => {
       ];
 
       const first = await service.addSources(userId, projectId, files);
-      expect(first).toHaveLength(1);
+      expect(first.sources).toHaveLength(1);
 
       const second = await service.addSources(userId, projectId, files);
-      expect(second).toHaveLength(0); // Already exists, no new rows
+      expect(second.sources).toHaveLength(0); // Already exists, no new rows
     });
 
     it("throws NOT_FOUND for non-existent project", async () => {
@@ -132,7 +131,56 @@ describe("SourceMaterialService", () => {
       ];
 
       const created = await service.addSources(userId, projectId, files);
-      expect(created[0].sortOrder).toBe(6);
+      expect(created.sources[0].sortOrder).toBe(6);
+    });
+
+    it("expands selected folders recursively into docs", async () => {
+      const files = [
+        {
+          driveFileId: "folder123",
+          title: "Folder",
+          mimeType: "application/vnd.google-apps.folder",
+        },
+      ];
+
+      const mockDriveService = {
+        getValidTokens: async () => ({
+          accessToken: "access",
+          refreshToken: "refresh",
+          expiresAt: new Date(Date.now() + 3600000),
+          wasRefreshed: false,
+        }),
+        listDocsInFoldersRecursive: async () => [
+          { id: "doc-1", name: "Doc One", mimeType: "application/vnd.google-apps.document" },
+          { id: "doc-2", name: "Doc Two", mimeType: "application/vnd.google-apps.document" },
+        ],
+      } as any;
+
+      const created = await service.addSources(userId, projectId, files, mockDriveService);
+      expect(created.sources).toHaveLength(2);
+      expect(created.expandedCounts).toEqual({
+        selectedFolders: 1,
+        docsDiscovered: 2,
+        docsInserted: 2,
+      });
+    });
+
+    it("requires Drive connection when folder sources are selected", async () => {
+      const files = [
+        {
+          driveFileId: "folder123",
+          title: "Folder",
+          mimeType: "application/vnd.google-apps.folder",
+        },
+      ];
+
+      const mockDriveService = {
+        getValidTokens: async () => null,
+      } as any;
+
+      await expect(service.addSources(userId, projectId, files, mockDriveService)).rejects.toThrow(
+        "Google Drive is not connected",
+      );
     });
   });
 

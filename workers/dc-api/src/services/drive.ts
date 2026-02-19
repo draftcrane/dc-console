@@ -40,6 +40,11 @@ interface DriveFolderResponse {
   webViewLink: string;
 }
 
+interface DriveListResponse {
+  files?: DriveFile[];
+  nextPageToken?: string;
+}
+
 /** Stored token data from D1 */
 interface StoredTokens {
   accessToken: string;
@@ -63,6 +68,8 @@ const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 
 // Refresh tokens 5 minutes before expiry per PRD Section 13
 const REFRESH_BUFFER_MS = 5 * 60 * 1000;
+const GOOGLE_DOC_MIME_TYPE = "application/vnd.google-apps.document";
+const GOOGLE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 
 /**
  * DriveService handles all Google Drive interactions.
@@ -351,13 +358,92 @@ export class DriveService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("List folder failed:", error);
-      throw new Error("Failed to list folder contents");
+      const errorBody = await response.text();
+      console.error(
+        `List folder failed: Status ${response.status} ${response.statusText || ""}, Body: ${errorBody}`,
+      );
+      throw new Error(`Failed to list folder contents: ${response.status} ${response.statusText || ""}`);
     }
 
     const data = (await response.json()) as { files: DriveFile[] };
     return data.files || [];
+  }
+
+  /**
+   * Recursively lists Google Docs contained in one or more Drive folders.
+   * Includes docs in nested subfolders. Stops at maxDocs to avoid expensive traversals.
+   */
+  async listDocsInFoldersRecursive(
+    accessToken: string,
+    folderIds: string[],
+    maxDocs: number,
+  ): Promise<DriveFile[]> {
+    const pending = [...new Set(folderIds.map((id) => validateDriveId(id)))];
+    const visitedFolders = new Set<string>();
+    const seenDocs = new Set<string>();
+    const docs: DriveFile[] = [];
+
+    while (pending.length > 0) {
+      const folderId = pending.shift();
+      if (!folderId || visitedFolders.has(folderId)) {
+        continue;
+      }
+      visitedFolders.add(folderId);
+
+      let pageToken: string | undefined;
+      do {
+        const params = new URLSearchParams({
+          q: `'${folderId}' in parents and trashed = false and (mimeType = '${GOOGLE_DOC_MIME_TYPE}' or mimeType = '${GOOGLE_FOLDER_MIME_TYPE}')`,
+          fields: "nextPageToken,files(id,name,mimeType)",
+          pageSize: "1000",
+        });
+        if (pageToken) {
+          params.set("pageToken", pageToken);
+        }
+
+        const response = await fetch(`${GOOGLE_DRIVE_API}/files?${params.toString()}`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.text();
+          console.error(
+            `Recursive folder list failed: Status ${response.status} ${response.statusText || ""}, Body: ${errorBody}`,
+          );
+          throw new Error("Failed to list selected folder contents from Drive");
+        }
+
+        const data = (await response.json()) as DriveListResponse;
+        const files = data.files || [];
+        for (const file of files) {
+          if (!file.id || !file.mimeType) continue;
+
+          if (file.mimeType === GOOGLE_FOLDER_MIME_TYPE) {
+            if (!visitedFolders.has(file.id)) {
+              pending.push(file.id);
+            }
+            continue;
+          }
+
+          if (file.mimeType !== GOOGLE_DOC_MIME_TYPE || seenDocs.has(file.id)) {
+            continue;
+          }
+
+          docs.push(file);
+          seenDocs.add(file.id);
+
+          if (docs.length > maxDocs) {
+            throw new Error("MAX_DOCS_EXCEEDED");
+          }
+        }
+
+        pageToken = data.nextPageToken;
+      } while (pageToken);
+    }
+
+    return docs;
   }
 
   /**
@@ -472,7 +558,7 @@ export class DriveService {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": `multipart/related; boundary=${boundary}`,
         },
-        body: body.buffer,
+        body: body,
       },
     );
 
@@ -552,6 +638,8 @@ export class DriveService {
     data: string | ArrayBuffer,
   ): Promise<void> {
     validateDriveId(fileId);
+    const body = typeof data === "string" ? new TextEncoder().encode(data) : data;
+
     const response = await fetch(
       `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
       {
@@ -560,7 +648,7 @@ export class DriveService {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": mimeType,
         },
-        body: data,
+        body,
       },
     );
 

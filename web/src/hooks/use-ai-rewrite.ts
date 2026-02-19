@@ -30,7 +30,7 @@ interface UseAIRewriteReturn {
   /** Handle "Use This" action — logs acceptance, returns the result */
   handleAccept: (result: AIRewriteResult) => Promise<AIRewriteResult>;
   /** Handle "Try Again" action — logs rejection, triggers new request */
-  handleRetry: (result: AIRewriteResult, instruction: string) => Promise<void>;
+  handleRetry: (result: AIRewriteResult) => Promise<void>;
   /** Handle "Discard" / "Cancel" action — logs rejection if complete, closes sheet */
   handleDiscard: (result: AIRewriteResult) => Promise<void>;
   /** Close the sheet and reset all state */
@@ -157,8 +157,7 @@ export function useAIRewrite({ getToken, apiUrl }: UseAIRewriteOptions): UseAIRe
   );
 
   const handleRetry = useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    async (result: AIRewriteResult, _instruction: string) => {
+    async (result: AIRewriteResult) => {
       logInteraction(result.interactionId, "reject");
       // Transition back to streaming — caller will initiate new request
       // startStreaming will be called by the page's requestRewrite

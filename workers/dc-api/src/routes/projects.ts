@@ -5,6 +5,7 @@ import { standardRateLimit, exportRateLimit } from "../middleware/rate-limit.js"
 import { validationError } from "../middleware/error-handler.js";
 import { ProjectService } from "../services/project.js";
 import { BackupService } from "../services/backup.js";
+import { DriveService } from "../services/drive.js"; // NEW IMPORT
 import { safeContentDisposition } from "../utils/file-names.js";
 
 /**
@@ -159,6 +160,39 @@ projects.delete("/:projectId", async (c) => {
   await service.deleteProject(userId, projectId);
 
   return c.json({ success: true });
+});
+
+/**
+ * POST /projects/:projectId/connect-drive
+ * Connect a project to Google Drive by creating a dedicated folder.
+ */
+projects.post("/:projectId/connect-drive", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const projectService = new ProjectService(c.env.DB);
+  const project = await projectService.getProject(userId, projectId); // Includes ownership check
+
+  if (project.driveFolderId) {
+    // Already connected, return existing ID
+    return c.json({ driveFolderId: project.driveFolderId });
+  }
+
+  const driveService = new DriveService(c.env);
+  const tokens = await driveService.getValidTokens(userId);
+  if (!tokens) {
+    validationError("Google Drive is not connected for this user.");
+  }
+
+  // Create a folder named after the project title
+  const driveFolder = await driveService.createFolder(tokens.accessToken, project.title);
+
+  // Store the drive_folder_id on the project
+  await c.env.DB.prepare(`UPDATE projects SET drive_folder_id = ? WHERE id = ?`)
+    .bind(driveFolder.id, project.id)
+    .run();
+
+  return c.json({ driveFolderId: driveFolder.id });
 });
 
 /**

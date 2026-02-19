@@ -264,7 +264,7 @@ export function useEditorAI({
 
   const handleAIRetry = useCallback(
     async (result: AIRewriteResult, instruction: string) => {
-      await aiRewrite.handleRetry(result, instruction);
+      await aiRewrite.handleRetry(result);
 
       const ctx = rewriteContextRef.current;
       if (ctx) {

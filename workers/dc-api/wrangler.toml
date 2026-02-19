@@ -34,7 +34,6 @@ id = "15db632cefe04003a94f1e6e7460c858"
 # AI_API_KEY            - AI rewrite API key (frontier tier)
 # CF_API_TOKEN           - Cloudflare Browser Rendering (PDF export)
 # ENCRYPTION_KEY         - AES-256-GCM token encryption
-# GOOGLE_API_KEY is in [vars] — restricted by referrer + Picker API scope only
 
 # Workers AI
 [ai]
@@ -48,4 +47,3 @@ API_BASE_URL = "https://api.draftcrane.app"
 CLERK_ISSUER_URL = "https://viable-wombat-59.clerk.accounts.dev"
 GOOGLE_REDIRECT_URI = "https://api.draftcrane.app/drive/callback"
 CF_ACCOUNT_ID = "ab6cc9362f7e51ba9a610aec1fc3a833"
-GOOGLE_API_KEY = "AIzaSyClw34rxQ7piqdTjVJsgoLKoWXA9nbAOkw"

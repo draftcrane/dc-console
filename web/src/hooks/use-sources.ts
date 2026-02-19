@@ -2,6 +2,7 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useState, useCallback } from "react";
+import type { PickerFile } from "./use-google-picker";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -18,12 +19,6 @@ export interface SourceMaterial {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
-}
-
-interface PickerFile {
-  driveFileId: string;
-  title: string;
-  mimeType: string;
 }
 
 export function useSources(projectId: string) {

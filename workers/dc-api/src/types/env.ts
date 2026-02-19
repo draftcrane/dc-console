@@ -16,9 +16,6 @@ export interface Env {
   GOOGLE_CLIENT_SECRET: string;
   GOOGLE_REDIRECT_URI: string;
 
-  // Google Picker API (restricted to Picker API + draftcrane.app referrer)
-  GOOGLE_API_KEY: string;
-
   // AI Provider
   AI_API_KEY: string;
   AI_MODEL?: string; // Default: gpt-4o
@@ -32,4 +29,5 @@ export interface Env {
   FRONTEND_URL: string;
   API_BASE_URL?: string; // Base URL for API (used in export download URLs)
   ENCRYPTION_KEY: string;
+  ALLOW_TEST_AUTH?: string;
 }

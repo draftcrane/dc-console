@@ -22,6 +22,15 @@ export interface AddSourceInput {
   mimeType: string;
 }
 
+export interface AddSourcesResult {
+  sources: SourceMaterial[];
+  expandedCounts?: {
+    selectedFolders: number;
+    docsDiscovered: number;
+    docsInserted: number;
+  };
+}
+
 /** Source material as returned to the API */
 export interface SourceMaterial {
   id: string;
@@ -70,7 +79,9 @@ interface SourceRow {
 }
 
 const ALLOWED_MIME_TYPE = "application/vnd.google-apps.document";
+const GOOGLE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
 const MAX_SOURCES_PER_REQUEST = 20;
+const MAX_EXPANDED_DOCS_PER_REQUEST = 200;
 
 function rowToSource(row: SourceRow): SourceMaterial {
   return {
@@ -103,7 +114,8 @@ export class SourceMaterialService {
     userId: string,
     projectId: string,
     files: AddSourceInput[],
-  ): Promise<SourceMaterial[]> {
+    driveService?: DriveService,
+  ): Promise<AddSourcesResult> {
     // Verify project ownership
     const project = await this.db
       .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
@@ -122,14 +134,48 @@ export class SourceMaterialService {
       validationError(`Maximum ${MAX_SOURCES_PER_REQUEST} files per request`);
     }
 
-    // Validate mime types — only Google Docs allowed
-    const invalidFiles = files.filter((f) => f.mimeType !== ALLOWED_MIME_TYPE);
-    if (invalidFiles.length > 0) {
-      const names = invalidFiles.map((f) => f.title).join(", ");
-      validationError(
-        `Only Google Docs can be added as sources. These files are not supported: ${names}`,
-      );
+    const selectedDocs = files.filter((f) => f.mimeType === ALLOWED_MIME_TYPE);
+    const selectedFolders = files.filter((f) => f.mimeType === GOOGLE_FOLDER_MIME_TYPE);
+
+    // Expand selected folders into Google Docs (recursive).
+    let discoveredFromFolders: AddSourceInput[] = [];
+    if (selectedFolders.length > 0) {
+      if (!driveService) {
+        throw new Error("DriveService is required when adding folders as sources");
+      }
+
+      const tokens = await driveService.getValidTokens(userId);
+      if (!tokens) {
+        validationError("Google Drive is not connected. Connect Drive to add folder sources.");
+      }
+
+      try {
+        const docs = await driveService.listDocsInFoldersRecursive(
+          tokens.accessToken,
+          selectedFolders.map((f) => f.driveFileId),
+          MAX_EXPANDED_DOCS_PER_REQUEST,
+        );
+        discoveredFromFolders = docs.map((doc) => ({
+          driveFileId: doc.id,
+          title: doc.name || "Untitled Google Doc",
+          mimeType: ALLOWED_MIME_TYPE,
+        }));
+      } catch (err) {
+        if (err instanceof Error && err.message === "MAX_DOCS_EXCEEDED") {
+          validationError(`Maximum ${MAX_EXPANDED_DOCS_PER_REQUEST} docs may be imported at once`);
+        }
+        throw err;
+      }
     }
+
+    const docsToInsert = [...selectedDocs, ...discoveredFromFolders];
+    const docsById = new Map<string, AddSourceInput>();
+    for (const file of docsToInsert) {
+      if (!docsById.has(file.driveFileId)) {
+        docsById.set(file.driveFileId, file);
+      }
+    }
+    const uniqueDocsToInsert = Array.from(docsById.values());
 
     // Get current max sort_order
     const maxSort = await this.db
@@ -144,7 +190,7 @@ export class SourceMaterialService {
     const now = new Date().toISOString();
     const created: SourceMaterial[] = [];
 
-    for (const file of files) {
+    for (const file of uniqueDocsToInsert) {
       const id = ulid();
 
       // ON CONFLICT DO NOTHING handles re-selection of existing sources
@@ -176,7 +222,18 @@ export class SourceMaterialService {
       }
     }
 
-    return created;
+    if (selectedFolders.length > 0) {
+      return {
+        sources: created,
+        expandedCounts: {
+          selectedFolders: selectedFolders.length,
+          docsDiscovered: discoveredFromFolders.length,
+          docsInserted: created.length,
+        },
+      };
+    }
+
+    return { sources: created };
   }
 
   /**

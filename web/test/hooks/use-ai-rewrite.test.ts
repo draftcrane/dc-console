@@ -309,7 +309,7 @@ describe("useAIRewrite", () => {
     const rewriteResult = makeResult();
 
     await act(async () => {
-      await result.current.handleRetry(rewriteResult, "Try a different approach");
+      await result.current.handleRetry(rewriteResult);
     });
 
     // Should have called the reject API endpoint

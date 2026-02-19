@@ -27,7 +27,7 @@ interface UseProjectActionsOptions {
   /** Current project's driveFolderId (for opening Drive files sheet) */
   driveFolderId?: string | null;
   /** Callback to refetch project data when Drive folder is connected */
-  onProjectConnected?: () => void;
+  onProjectConnected?: (driveFolderId: string) => void | Promise<void>;
 }
 
 /**
@@ -262,14 +262,21 @@ export function useProjectActions({
         throw new Error("Failed to connect project to Google Drive");
       }
 
-      // Trigger a full refetch of project data in the parent component
-      onProjectConnected?.();
+      const data = (await response.json()) as { driveFolderId: string };
+
+      // Update parent project state first, then refresh from server.
+      await onProjectConnected?.(data.driveFolderId);
+
+      // Load files immediately after project connection so the sheet content updates in place.
+      if (data.driveFolderId && fetchDriveFiles) {
+        await fetchDriveFiles(data.driveFolderId);
+      }
     } catch (err) {
       console.error("Failed to connect project to Drive:", err);
     } finally {
       setIsConnectingDrive(false);
     }
-  }, [getToken, projectId, onProjectConnected]);
+  }, [getToken, projectId, onProjectConnected, fetchDriveFiles]);
 
   return {
     projects,

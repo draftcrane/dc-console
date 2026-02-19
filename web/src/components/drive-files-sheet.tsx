@@ -18,6 +18,12 @@ interface DriveFilesSheetProps {
   onRefresh: () => void;
   /** Optional: Called when the user clicks the "Connect Project to Google Drive" button */
   onConnectDrive?: () => void;
+  /** Optional: Called when the user adds source docs/folders from Drive */
+  onAddSources?: () => void;
+  /** Optional: Called to open the Sources panel */
+  onViewSources?: () => void;
+  /** Whether current project is already connected to a Drive folder */
+  isProjectConnected?: boolean;
 }
 
 /**
@@ -88,6 +94,9 @@ export function DriveFilesSheet({
   onClose,
   onRefresh,
   onConnectDrive,
+  onAddSources,
+  onViewSources,
+  isProjectConnected = false,
 }: DriveFilesSheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -239,7 +248,7 @@ export function DriveFilesSheet({
               <p className="text-xs text-gray-400 mt-1">
                 Files will appear here as you save chapters and export your book.
               </p>
-              {onConnectDrive && (
+              {!isProjectConnected && onConnectDrive && (
                 <button
                   type="button"
                   onClick={onConnectDrive}
@@ -255,6 +264,38 @@ export function DriveFilesSheet({
                   </svg>
                   Connect Project to Google Drive
                 </button>
+              )}
+              {isProjectConnected && onAddSources && (
+                <>
+                  <button
+                    type="button"
+                    onClick={onAddSources}
+                    className="mt-4 inline-flex items-center rounded-md border border-transparent bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  >
+                    <svg
+                      className="-ml-1 mr-2 h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Source Documents
+                  </button>
+                  <p className="text-xs text-gray-400 mt-2">
+                    Select Google Docs or folders to link as sources for this project.
+                  </p>
+                  {onViewSources && (
+                    <button
+                      type="button"
+                      onClick={onViewSources}
+                      className="mt-2 text-xs text-gray-600 hover:text-gray-900 underline underline-offset-2"
+                    >
+                      Manage Sources
+                    </button>
+                  )}
+                </>
               )}
             </div>
           )}
