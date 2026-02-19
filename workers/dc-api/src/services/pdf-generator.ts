@@ -61,9 +61,8 @@ export async function generatePdf(
       printBackground: false,
       preferCSSPageSize: true,
     },
-    // 60-second timeout (max for Browser Rendering REST API)
     rejectRequestPattern: [],
-    waitUntil: "load" as const,
+    gotoOptions: { waitUntil: "load" },
   };
 
   const response = await fetch(url, {
