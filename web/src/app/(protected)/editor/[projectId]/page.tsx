@@ -198,13 +198,7 @@ export default function EditorPage() {
   // Word count state (US-024)
   const [selectionWordCount, setSelectionWordCount] = useState(0);
 
-  // Callback to update projectData after Drive folder connection
-  const handleProjectDataUpdate = useCallback((newDriveFolderId: string) => {
-    setProjectData((prev) => {
-      if (!prev) return null;
-      return { ...prev, driveFolderId: newDriveFolderId };
-    });
-  }, []);
+
 
       // Project actions: list, rename, duplicate, delete, Drive files, disconnect, connect project to Drive
       const {
@@ -239,7 +233,7 @@ export default function EditorPage() {
         resetDriveFiles,
         connectDrive,
         driveFolderId: projectData?.driveFolderId,
-        onProjectDataUpdate: handleProjectDataUpdate, // NEW PROP
+        onProjectConnected: fetchProjectData,
       });
   // Source materials hook (facade over sources, content, and Picker)
   const {
@@ -263,39 +257,39 @@ export default function EditorPage() {
   } = useSourceActions(projectId);
 
   // Fetch project data
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const token = await getToken();
+  const fetchProjectData = useCallback(async () => {
+    try {
+      const token = await getToken();
 
-        const projectResponse = await fetch(`${API_URL}/projects/${projectId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      const projectResponse = await fetch(`${API_URL}/projects/${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-        if (!projectResponse.ok) {
-          if (projectResponse.status === 404) {
-            router.push("/dashboard");
-            return;
-          }
-          throw new Error("Failed to load project");
+      if (!projectResponse.ok) {
+        if (projectResponse.status === 404) {
+          router.push("/dashboard");
+          return;
         }
-
-        const data: ProjectData = await projectResponse.json();
-        setProjectData(data);
-
-        if (data.chapters.length > 0 && !activeChapterId) {
-          const sortedChapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
-          setActiveChapterId(sortedChapters[0].id);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setIsLoading(false);
+        throw new Error("Failed to load project");
       }
-    }
 
-    fetchData();
-  }, [projectId, getToken, router, activeChapterId]);
+      const data: ProjectData = await projectResponse.json();
+      setProjectData(data);
+
+      if (data.chapters.length > 0 && !activeChapterId) {
+        const sortedChapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
+        setActiveChapterId(sortedChapters[0].id);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getToken, projectId, router, activeChapterId]);
+
+  useEffect(() => {
+    fetchProjectData();
+  }, [fetchProjectData]);
 
   // Load chapter content from API when active chapter changes
   useEffect(() => {

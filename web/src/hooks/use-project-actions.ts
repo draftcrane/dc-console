@@ -26,8 +26,8 @@ interface UseProjectActionsOptions {
   connectDrive?: () => void;
   /** Current project's driveFolderId (for opening Drive files sheet) */
   driveFolderId?: string | null;
-  /** Callback to update parent's projectData when Drive folder is connected */
-  onProjectDataUpdate?: (newDriveFolderId: string) => void;
+  /** Callback to refetch project data when Drive folder is connected */
+  onProjectConnected?: () => void;
 }
 
 /**
@@ -43,7 +43,7 @@ export function useProjectActions({
   resetDriveFiles,
   connectDrive,
   driveFolderId,
-  onProjectDataUpdate, // NEW
+  onProjectConnected,
 }: UseProjectActionsOptions) {
   const router = useRouter();
 
@@ -247,7 +247,7 @@ export function useProjectActions({
 
   // Connect Project to Drive
   const onConnectProjectToDrive = useCallback(async () => {
-    if (!projectId || !fetchDriveFiles) return;
+    if (!projectId) return;
     setIsConnectingDrive(true);
     try {
       const token = await getToken();
@@ -262,22 +262,14 @@ export function useProjectActions({
         throw new Error("Failed to connect project to Google Drive");
       }
 
-      const result = await response.json();
-      const newDriveFolderId = result.driveFolderId;
-
-      // Refresh the Drive files list using the newly created folder ID
-      if (newDriveFolderId) {
-        fetchDriveFiles(newDriveFolderId);
-        onProjectDataUpdate?.(newDriveFolderId); // NEW: Notify parent of update
-      } else {
-        console.warn("connect-drive API did not return driveFolderId");
-      }
+      // Trigger a full refetch of project data in the parent component
+      onProjectConnected?.();
     } catch (err) {
       console.error("Failed to connect project to Drive:", err);
     } finally {
       setIsConnectingDrive(false);
     }
-  }, [getToken, projectId, fetchDriveFiles, onProjectDataUpdate]); // NEW: Added onProjectDataUpdate to dependencies
+  }, [getToken, projectId, onProjectConnected]);
 
   return {
     projects,
