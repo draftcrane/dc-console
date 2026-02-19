@@ -282,8 +282,7 @@ async function fetchClerkUserProfile(
     (e) => e.id === data.primary_email_address_id,
   )?.email_address;
   const email = primaryEmail || data.email_addresses?.[0]?.email_address || null;
-  const displayName =
-    [data.first_name, data.last_name].filter(Boolean).join(" ") || email || null;
+  const displayName = [data.first_name, data.last_name].filter(Boolean).join(" ") || email || null;
 
   return { email, displayName };
 }
