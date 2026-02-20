@@ -384,6 +384,48 @@ body {
   animation: research-nudge-pulse 2s ease-in-out infinite;
 }
 
+/* ------------------------------------------------------------------
+ * Toast Notification (#197)
+ *
+ * Fade-in animation for toast messages.
+ * ------------------------------------------------------------------ */
+
+@keyframes toast-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-fade-in {
+  animation: toast-fade-in 200ms ease-out;
+}
+
+/* ------------------------------------------------------------------
+ * Floating Selection Toolbar (#197)
+ *
+ * Scale-in animation for the text selection toolbar.
+ * ------------------------------------------------------------------ */
+
+@keyframes toolbar-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.toolbar-scale-in {
+  animation: toolbar-scale-in 150ms ease-out;
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-up {
@@ -407,6 +449,14 @@ body {
   }
 
   .research-nudge-dot {
+    animation: none;
+  }
+
+  .toast-fade-in {
+    animation: none;
+  }
+
+  .toolbar-scale-in {
     animation: none;
   }
 }
