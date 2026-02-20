@@ -1,14 +1,11 @@
 "use client";
 
-import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { ProjectData } from "@/types/editor";
 import type { AIRewriteResult } from "./ai-rewrite-sheet";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
-import type { SourceMaterial } from "@/hooks/use-sources";
 import type { DriveAccount } from "@/hooks/use-drive-accounts";
 import type { DriveFileItem } from "@/hooks/use-drive-files";
-import type { DriveBrowseItem } from "@/hooks/use-drive-browser";
 import { DeleteProjectDialog } from "@/components/project/delete-project-dialog";
 import { RenameProjectDialog } from "@/components/project/rename-project-dialog";
 import { DuplicateProjectDialog } from "@/components/project/duplicate-project-dialog";
@@ -16,17 +13,11 @@ import { DeleteChapterDialog } from "@/components/project/delete-chapter-dialog"
 import { DisconnectDriveDialog } from "@/components/project/disconnect-drive-dialog";
 import { AIRewriteSheet } from "./ai-rewrite-sheet";
 import { DriveFilesSheet } from "@/components/drive/drive-files-sheet";
-import { SourcesPanel } from "@/components/drive/sources-panel";
-import { AddSourceSheet } from "@/components/drive/add-source-sheet";
-import { DriveBrowserSheet } from "@/components/drive/drive-browser-sheet";
 import { AccountsSheet } from "@/components/project/accounts-sheet";
-import { SourceViewerSheet } from "@/components/drive/source-viewer-sheet";
 
 interface EditorDialogsProps {
   projectData: ProjectData | null;
   projectId: string;
-  getToken: () => Promise<string | null>;
-  apiUrl: string;
 
   // Delete project
   deleteDialogOpen: boolean;
@@ -80,52 +71,15 @@ interface EditorDialogsProps {
   onOpenSourcesPanel: () => void;
   onOpenDriveBrowser: (connectionId?: string) => Promise<void>;
 
-  // Sources panel
-  isSourcesPanelOpen: boolean;
-  sources: SourceMaterial[];
-  isSourcesLoading: boolean;
-  sourcesError: string | null;
-  isPickerLoading: boolean;
-  onCloseSourcesPanel: () => void;
-  onOpenAddSourceSheet: () => void;
-  onOpenSourceViewer: (source: SourceMaterial) => void;
-  onRemoveSource: (sourceId: string) => Promise<void>;
-  importSourceAsChapter: (sourceId: string) => Promise<{ chapterId: string } | null>;
-  setActiveChapterId: (id: string | null) => void;
-
-  // Add source sheet
-  isAddSourceSheetOpen: boolean;
-  onCloseAddSourceSheet: () => void;
-  onSelectDriveAccount: (connectionId: string) => void;
-  onUploadLocal: (file: File) => Promise<void>;
-
-  // Drive browser
-  isDriveBrowserOpen: boolean;
-  driveItems: DriveBrowseItem[];
-  isDriveLoading: boolean;
-  driveError: string | null;
-  driveCanGoBack: boolean;
-  onCloseDriveBrowser: () => void;
-  onDriveGoBack: () => void;
-  onOpenDriveFolder: (folderId: string) => void;
-  onAddFromDriveBrowser: (files: DriveBrowseItem[]) => Promise<void>;
-  isDriveDoc: (item: DriveBrowseItem) => boolean;
-  isDriveFolder: (item: DriveBrowseItem) => boolean;
-
   // Accounts sheet
   isAccountsSheetOpen: boolean;
   onCloseAccountsSheet: () => void;
   onConnectAccount: () => void;
   onRefetchDriveAccounts: () => Promise<void>;
 
-  // Source viewer
-  isViewerOpen: boolean;
-  activeSource: SourceMaterial | null;
-  viewerContent: string;
-  viewerWordCount: number;
-  isContentLoading: boolean;
-  contentError: string | null;
-  onCloseSourceViewer: () => void;
+  // Research panel (minimal props -- state managed by ResearchPanelProvider)
+  isResearchPanelOpen: boolean;
+  onCloseResearchPanel: () => void;
 }
 
 /**
@@ -133,12 +87,14 @@ interface EditorDialogsProps {
  *
  * Extracted to keep the page orchestrator focused on layout and state wiring.
  * Each dialog/sheet is a controlled component receiving open/close state from the parent.
+ *
+ * Source-related components (SourcesPanel, AddSourceSheet, DriveBrowserSheet,
+ * SourceViewerSheet) have been removed. Source management is now handled by the
+ * ResearchPanel via the ResearchPanelProvider context (#180).
  */
 export function EditorDialogs({
   projectData,
   projectId,
-  getToken,
-  apiUrl,
   deleteDialogOpen,
   onDeleteProject,
   onCloseDeleteDialog,
@@ -177,72 +133,12 @@ export function EditorDialogs({
   onDisconnectProjectFromDrive,
   onOpenSourcesPanel,
   onOpenDriveBrowser,
-  isSourcesPanelOpen,
-  sources,
-  isSourcesLoading,
-  sourcesError,
-  isPickerLoading,
-  onCloseSourcesPanel,
-  onOpenAddSourceSheet,
-  onOpenSourceViewer,
-  onRemoveSource,
-  importSourceAsChapter,
-  setActiveChapterId,
-  isAddSourceSheetOpen,
-  onCloseAddSourceSheet,
-  onSelectDriveAccount,
-  onUploadLocal,
-  isDriveBrowserOpen,
-  driveItems,
-  isDriveLoading,
-  driveError,
-  driveCanGoBack,
-  onCloseDriveBrowser,
-  onDriveGoBack,
-  onOpenDriveFolder,
-  onAddFromDriveBrowser,
-  isDriveDoc,
-  isDriveFolder,
   isAccountsSheetOpen,
   onCloseAccountsSheet,
   onConnectAccount,
   onRefetchDriveAccounts,
-  isViewerOpen,
-  activeSource,
-  viewerContent,
-  viewerWordCount,
-  isContentLoading,
-  contentError,
-  onCloseSourceViewer,
 }: EditorDialogsProps) {
   const router = useRouter();
-
-  const handleImportSourceAsChapter = useCallback(
-    async (sourceId: string) => {
-      const result = await importSourceAsChapter(sourceId);
-      if (result) {
-        const token = await getToken();
-        const response = await fetch(`${apiUrl}/projects/${projectId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setProjectData(data);
-          setActiveChapterId(result.chapterId);
-        }
-        onCloseSourcesPanel();
-      }
-    },
-    [
-      importSourceAsChapter,
-      getToken,
-      apiUrl,
-      projectId,
-      setProjectData,
-      setActiveChapterId,
-      onCloseSourcesPanel,
-    ],
-  );
 
   return (
     <>
@@ -340,45 +236,6 @@ export function EditorDialogs({
         isProjectConnected={isProjectConnected}
       />
 
-      {/* Source materials panel */}
-      <SourcesPanel
-        isOpen={isSourcesPanelOpen}
-        sources={sources}
-        isLoading={isSourcesLoading}
-        error={sourcesError}
-        isPickerLoading={isPickerLoading}
-        onClose={onCloseSourcesPanel}
-        onAddFromPicker={onOpenAddSourceSheet}
-        onViewSource={onOpenSourceViewer}
-        onImportAsChapter={handleImportSourceAsChapter}
-        onRemoveSource={onRemoveSource}
-      />
-
-      {/* Add source sheet (multi-account + local upload) */}
-      <AddSourceSheet
-        isOpen={isAddSourceSheetOpen}
-        accounts={driveAccounts}
-        isPickerLoading={isDriveLoading}
-        onClose={onCloseAddSourceSheet}
-        onSelectDriveAccount={(connectionId) => onSelectDriveAccount(connectionId)}
-        onUploadLocal={onUploadLocal}
-        onConnectAccount={onConnectAccount}
-      />
-
-      <DriveBrowserSheet
-        isOpen={isDriveBrowserOpen}
-        items={driveItems}
-        isLoading={isDriveLoading}
-        error={driveError}
-        canGoBack={driveCanGoBack}
-        onClose={onCloseDriveBrowser}
-        onBack={onDriveGoBack}
-        onOpenFolder={onOpenDriveFolder}
-        onSelectDocs={onAddFromDriveBrowser}
-        isDoc={isDriveDoc}
-        isFolder={isDriveFolder}
-      />
-
       {/* Google Accounts management sheet */}
       <AccountsSheet
         isOpen={isAccountsSheetOpen}
@@ -388,21 +245,6 @@ export function EditorDialogs({
         onDisconnectAccount={async (connectionId) => {
           await onDisconnectDriveAccount(connectionId);
           await onRefetchDriveAccounts();
-        }}
-      />
-
-      {/* Source content viewer */}
-      <SourceViewerSheet
-        isOpen={isViewerOpen}
-        title={activeSource?.title ?? ""}
-        content={viewerContent}
-        wordCount={viewerWordCount}
-        isLoading={isContentLoading}
-        error={contentError}
-        onClose={onCloseSourceViewer}
-        onImportAsChapter={async () => {
-          if (!activeSource) return;
-          await handleImportSourceAsChapter(activeSource.id);
         }}
       />
     </>

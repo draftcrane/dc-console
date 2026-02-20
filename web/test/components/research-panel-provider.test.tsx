@@ -1,0 +1,609 @@
+import { describe, it, expect, vi } from "vitest";
+import { renderHook, act } from "@testing-library/react";
+import React from "react";
+import {
+  researchPanelReducer,
+  ResearchPanelProvider,
+  useResearchPanel,
+  type ResearchPanelState,
+  type ResearchPanelAction,
+} from "@/components/research/research-panel-provider";
+
+// ============================================================
+// Unit tests for researchPanelReducer (state machine logic)
+// ============================================================
+
+describe("researchPanelReducer", () => {
+  const closedState: ResearchPanelState = {
+    isOpen: false,
+    activeTab: "sources",
+    sourcesView: "list",
+    activeSourceId: null,
+    driveConnectionId: null,
+    returnTab: null,
+  };
+
+  const sourcesListState: ResearchPanelState = {
+    isOpen: true,
+    activeTab: "sources",
+    sourcesView: "list",
+    activeSourceId: null,
+    driveConnectionId: null,
+    returnTab: null,
+  };
+
+  const sourcesDetailState: ResearchPanelState = {
+    isOpen: true,
+    activeTab: "sources",
+    sourcesView: "detail",
+    activeSourceId: "src-1",
+    driveConnectionId: null,
+    returnTab: null,
+  };
+
+  const sourcesAddState: ResearchPanelState = {
+    isOpen: true,
+    activeTab: "sources",
+    sourcesView: "add",
+    activeSourceId: null,
+    driveConnectionId: null,
+    returnTab: null,
+  };
+
+  const askState: ResearchPanelState = {
+    isOpen: true,
+    activeTab: "ask",
+    sourcesView: "list",
+    activeSourceId: null,
+    driveConnectionId: null,
+    returnTab: null,
+  };
+
+  const clipsState: ResearchPanelState = {
+    isOpen: true,
+    activeTab: "clips",
+    sourcesView: "list",
+    activeSourceId: null,
+    driveConnectionId: null,
+    returnTab: null,
+  };
+
+  // --- OPEN_PANEL ---
+
+  describe("OPEN_PANEL", () => {
+    it("opens to sources tab by default", () => {
+      const result = researchPanelReducer(closedState, { type: "OPEN_PANEL" });
+      expect(result.isOpen).toBe(true);
+      expect(result.activeTab).toBe("sources");
+      expect(result.sourcesView).toBe("list");
+    });
+
+    it("opens to a specified tab", () => {
+      const result = researchPanelReducer(closedState, {
+        type: "OPEN_PANEL",
+        tab: "ask",
+      });
+      expect(result.isOpen).toBe(true);
+      expect(result.activeTab).toBe("ask");
+    });
+
+    it("opens to clips tab", () => {
+      const result = researchPanelReducer(closedState, {
+        type: "OPEN_PANEL",
+        tab: "clips",
+      });
+      expect(result.isOpen).toBe(true);
+      expect(result.activeTab).toBe("clips");
+    });
+
+    it("clears returnTab when opening", () => {
+      const stateWithReturn: ResearchPanelState = {
+        ...closedState,
+        returnTab: "ask",
+      };
+      const result = researchPanelReducer(stateWithReturn, { type: "OPEN_PANEL" });
+      expect(result.returnTab).toBeNull();
+    });
+
+    it("resets sources sub-view when opening to sources tab", () => {
+      const stateWithDetail: ResearchPanelState = {
+        ...closedState,
+        sourcesView: "detail",
+        activeSourceId: "old-src",
+      };
+      const result = researchPanelReducer(stateWithDetail, {
+        type: "OPEN_PANEL",
+        tab: "sources",
+      });
+      expect(result.sourcesView).toBe("list");
+      expect(result.activeSourceId).toBeNull();
+    });
+  });
+
+  // --- CLOSE_PANEL ---
+
+  describe("CLOSE_PANEL", () => {
+    it("resets all state to initial", () => {
+      const result = researchPanelReducer(sourcesDetailState, { type: "CLOSE_PANEL" });
+      expect(result).toEqual(closedState);
+    });
+
+    it("resets from ask state", () => {
+      const result = researchPanelReducer(askState, { type: "CLOSE_PANEL" });
+      expect(result.isOpen).toBe(false);
+      expect(result.activeTab).toBe("sources");
+      expect(result.returnTab).toBeNull();
+    });
+  });
+
+  // --- SET_TAB ---
+
+  describe("SET_TAB", () => {
+    it("switches to ask tab", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "SET_TAB",
+        tab: "ask",
+      });
+      expect(result.activeTab).toBe("ask");
+      expect(result.returnTab).toBeNull();
+    });
+
+    it("switches to clips tab", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "SET_TAB",
+        tab: "clips",
+      });
+      expect(result.activeTab).toBe("clips");
+    });
+
+    it("switches back to sources tab and resets sub-view", () => {
+      const result = researchPanelReducer(askState, {
+        type: "SET_TAB",
+        tab: "sources",
+      });
+      expect(result.activeTab).toBe("sources");
+      expect(result.sourcesView).toBe("list");
+      expect(result.activeSourceId).toBeNull();
+    });
+
+    it("is a no-op when panel is closed", () => {
+      const result = researchPanelReducer(closedState, {
+        type: "SET_TAB",
+        tab: "ask",
+      });
+      expect(result).toEqual(closedState);
+    });
+
+    it("clears returnTab when switching tabs", () => {
+      const stateWithReturn: ResearchPanelState = {
+        ...sourcesDetailState,
+        returnTab: "ask",
+      };
+      const result = researchPanelReducer(stateWithReturn, {
+        type: "SET_TAB",
+        tab: "clips",
+      });
+      expect(result.returnTab).toBeNull();
+    });
+  });
+
+  // --- VIEW_SOURCE ---
+
+  describe("VIEW_SOURCE", () => {
+    it("navigates to source detail from sources list", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "VIEW_SOURCE",
+        sourceId: "src-42",
+      });
+      expect(result.activeTab).toBe("sources");
+      expect(result.sourcesView).toBe("detail");
+      expect(result.activeSourceId).toBe("src-42");
+      expect(result.returnTab).toBeNull();
+    });
+
+    it("navigates to source detail from ask tab with return", () => {
+      const result = researchPanelReducer(askState, {
+        type: "VIEW_SOURCE",
+        sourceId: "src-42",
+        returnTo: "ask",
+      });
+      expect(result.activeTab).toBe("sources");
+      expect(result.sourcesView).toBe("detail");
+      expect(result.activeSourceId).toBe("src-42");
+      expect(result.returnTab).toBe("ask");
+    });
+
+    it("navigates to source detail from clips tab with return", () => {
+      const result = researchPanelReducer(clipsState, {
+        type: "VIEW_SOURCE",
+        sourceId: "src-42",
+        returnTo: "clips",
+      });
+      expect(result.activeTab).toBe("sources");
+      expect(result.sourcesView).toBe("detail");
+      expect(result.returnTab).toBe("clips");
+    });
+
+    it("is a no-op when panel is closed", () => {
+      const result = researchPanelReducer(closedState, {
+        type: "VIEW_SOURCE",
+        sourceId: "src-42",
+      });
+      expect(result).toEqual(closedState);
+    });
+  });
+
+  // --- BACK_TO_LIST ---
+
+  describe("BACK_TO_LIST", () => {
+    it("returns to list from detail view", () => {
+      const result = researchPanelReducer(sourcesDetailState, {
+        type: "BACK_TO_LIST",
+      });
+      expect(result.sourcesView).toBe("list");
+      expect(result.activeSourceId).toBeNull();
+      expect(result.returnTab).toBeNull();
+    });
+
+    it("returns to list from add view", () => {
+      const addWithConnection: ResearchPanelState = {
+        ...sourcesAddState,
+        driveConnectionId: "conn-1",
+      };
+      const result = researchPanelReducer(addWithConnection, {
+        type: "BACK_TO_LIST",
+      });
+      expect(result.sourcesView).toBe("list");
+      expect(result.driveConnectionId).toBeNull();
+    });
+
+    it("is a no-op when already on list view", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "BACK_TO_LIST",
+      });
+      expect(result).toEqual(sourcesListState);
+    });
+
+    it("is a no-op when panel is closed", () => {
+      const result = researchPanelReducer(closedState, {
+        type: "BACK_TO_LIST",
+      });
+      expect(result).toEqual(closedState);
+    });
+
+    it("is a no-op when on a different tab", () => {
+      const result = researchPanelReducer(askState, {
+        type: "BACK_TO_LIST",
+      });
+      expect(result).toEqual(askState);
+    });
+  });
+
+  // --- RETURN_TO_TAB ---
+
+  describe("RETURN_TO_TAB", () => {
+    it("returns to ask tab from source detail", () => {
+      const stateWithReturn: ResearchPanelState = {
+        ...sourcesDetailState,
+        returnTab: "ask",
+      };
+      const result = researchPanelReducer(stateWithReturn, {
+        type: "RETURN_TO_TAB",
+      });
+      expect(result.activeTab).toBe("ask");
+      expect(result.sourcesView).toBe("list");
+      expect(result.activeSourceId).toBeNull();
+      expect(result.returnTab).toBeNull();
+    });
+
+    it("returns to clips tab from source detail", () => {
+      const stateWithReturn: ResearchPanelState = {
+        ...sourcesDetailState,
+        returnTab: "clips",
+      };
+      const result = researchPanelReducer(stateWithReturn, {
+        type: "RETURN_TO_TAB",
+      });
+      expect(result.activeTab).toBe("clips");
+      expect(result.returnTab).toBeNull();
+    });
+
+    it("is a no-op when no returnTab is set", () => {
+      const result = researchPanelReducer(sourcesDetailState, {
+        type: "RETURN_TO_TAB",
+      });
+      expect(result).toEqual(sourcesDetailState);
+    });
+
+    it("is a no-op when panel is closed", () => {
+      const result = researchPanelReducer(closedState, {
+        type: "RETURN_TO_TAB",
+      });
+      expect(result).toEqual(closedState);
+    });
+  });
+
+  // --- START_ADD_FLOW ---
+
+  describe("START_ADD_FLOW", () => {
+    it("enters add flow from sources list", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "START_ADD_FLOW",
+      });
+      expect(result.activeTab).toBe("sources");
+      expect(result.sourcesView).toBe("add");
+      expect(result.activeSourceId).toBeNull();
+    });
+
+    it("enters add flow from ask tab (switches to sources)", () => {
+      const result = researchPanelReducer(askState, {
+        type: "START_ADD_FLOW",
+      });
+      expect(result.activeTab).toBe("sources");
+      expect(result.sourcesView).toBe("add");
+    });
+
+    it("is a no-op when panel is closed", () => {
+      const result = researchPanelReducer(closedState, {
+        type: "START_ADD_FLOW",
+      });
+      expect(result).toEqual(closedState);
+    });
+  });
+
+  // --- SET_DRIVE_CONNECTION ---
+
+  describe("SET_DRIVE_CONNECTION", () => {
+    it("sets drive connection during add flow", () => {
+      const result = researchPanelReducer(sourcesAddState, {
+        type: "SET_DRIVE_CONNECTION",
+        connectionId: "conn-123",
+      });
+      expect(result.driveConnectionId).toBe("conn-123");
+    });
+
+    it("is a no-op when not in add flow", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "SET_DRIVE_CONNECTION",
+        connectionId: "conn-123",
+      });
+      expect(result).toEqual(sourcesListState);
+    });
+
+    it("is a no-op when panel is closed", () => {
+      const result = researchPanelReducer(closedState, {
+        type: "SET_DRIVE_CONNECTION",
+        connectionId: "conn-123",
+      });
+      expect(result).toEqual(closedState);
+    });
+  });
+
+  // --- FINISH_ADD ---
+
+  describe("FINISH_ADD", () => {
+    it("returns to list from add flow", () => {
+      const addWithConnection: ResearchPanelState = {
+        ...sourcesAddState,
+        driveConnectionId: "conn-123",
+      };
+      const result = researchPanelReducer(addWithConnection, {
+        type: "FINISH_ADD",
+      });
+      expect(result.sourcesView).toBe("list");
+      expect(result.driveConnectionId).toBeNull();
+    });
+
+    it("is a no-op when not in add flow", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "FINISH_ADD",
+      });
+      expect(result).toEqual(sourcesListState);
+    });
+
+    it("is a no-op when panel is closed", () => {
+      const result = researchPanelReducer(closedState, {
+        type: "FINISH_ADD",
+      });
+      expect(result).toEqual(closedState);
+    });
+  });
+
+  // --- State machine invariants ---
+
+  describe("state machine invariants", () => {
+    it("always has exactly one of the 6 valid states", () => {
+      // Define all valid state combinations
+      const isValidState = (s: ResearchPanelState): boolean => {
+        if (!s.isOpen) return true; // State 1: Closed
+        if (s.activeTab === "sources" && s.sourcesView === "list") return true; // State 2: Sources-List
+        if (s.activeTab === "sources" && s.sourcesView === "detail" && s.activeSourceId !== null)
+          return true; // State 3: Sources-Detail
+        if (s.activeTab === "sources" && s.sourcesView === "add") return true; // State 4: Sources-Add
+        if (s.activeTab === "ask") return true; // State 5: Ask
+        if (s.activeTab === "clips") return true; // State 6: Clips
+        return false;
+      };
+
+      // Run through all actions from all valid starting states
+      const states = [
+        closedState,
+        sourcesListState,
+        sourcesDetailState,
+        sourcesAddState,
+        askState,
+        clipsState,
+      ];
+
+      const actions: ResearchPanelAction[] = [
+        { type: "OPEN_PANEL" },
+        { type: "OPEN_PANEL", tab: "sources" },
+        { type: "OPEN_PANEL", tab: "ask" },
+        { type: "OPEN_PANEL", tab: "clips" },
+        { type: "CLOSE_PANEL" },
+        { type: "SET_TAB", tab: "sources" },
+        { type: "SET_TAB", tab: "ask" },
+        { type: "SET_TAB", tab: "clips" },
+        { type: "VIEW_SOURCE", sourceId: "src-1" },
+        { type: "VIEW_SOURCE", sourceId: "src-1", returnTo: "ask" },
+        { type: "VIEW_SOURCE", sourceId: "src-1", returnTo: "clips" },
+        { type: "BACK_TO_LIST" },
+        { type: "RETURN_TO_TAB" },
+        { type: "START_ADD_FLOW" },
+        { type: "SET_DRIVE_CONNECTION", connectionId: "conn-1" },
+        { type: "FINISH_ADD" },
+      ];
+
+      for (const state of states) {
+        for (const action of actions) {
+          const result = researchPanelReducer(state, action);
+          expect(isValidState(result)).toBe(true);
+        }
+      }
+    });
+
+    it("unknown actions return current state", () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const unknownAction = { type: "UNKNOWN_ACTION" } as any;
+      const result = researchPanelReducer(sourcesListState, unknownAction);
+      expect(result).toEqual(sourcesListState);
+    });
+  });
+});
+
+// ============================================================
+// Integration tests for ResearchPanelProvider + useResearchPanel
+// ============================================================
+
+describe("ResearchPanelProvider + useResearchPanel", () => {
+  function wrapper({ children }: { children: React.ReactNode }) {
+    return <ResearchPanelProvider>{children}</ResearchPanelProvider>;
+  }
+
+  it("provides initial closed state", () => {
+    const { result } = renderHook(() => useResearchPanel(), { wrapper });
+
+    expect(result.current.isOpen).toBe(false);
+    expect(result.current.activeTab).toBe("sources");
+    expect(result.current.sourcesView).toBe("list");
+    expect(result.current.activeSourceId).toBeNull();
+    expect(result.current.returnTab).toBeNull();
+  });
+
+  it("opens and closes the panel", () => {
+    const { result } = renderHook(() => useResearchPanel(), { wrapper });
+
+    act(() => {
+      result.current.openPanel();
+    });
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.activeTab).toBe("sources");
+
+    act(() => {
+      result.current.closePanel();
+    });
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("opens to a specific tab", () => {
+    const { result } = renderHook(() => useResearchPanel(), { wrapper });
+
+    act(() => {
+      result.current.openPanel("ask");
+    });
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.activeTab).toBe("ask");
+  });
+
+  it("switches tabs", () => {
+    const { result } = renderHook(() => useResearchPanel(), { wrapper });
+
+    act(() => {
+      result.current.openPanel();
+    });
+
+    act(() => {
+      result.current.setActiveTab("clips");
+    });
+    expect(result.current.activeTab).toBe("clips");
+  });
+
+  it("navigates to source detail and back", () => {
+    const { result } = renderHook(() => useResearchPanel(), { wrapper });
+
+    act(() => {
+      result.current.openPanel();
+    });
+
+    act(() => {
+      result.current.viewSource("src-99");
+    });
+    expect(result.current.sourcesView).toBe("detail");
+    expect(result.current.activeSourceId).toBe("src-99");
+
+    act(() => {
+      result.current.backToSourceList();
+    });
+    expect(result.current.sourcesView).toBe("list");
+    expect(result.current.activeSourceId).toBeNull();
+  });
+
+  it("supports cross-tab navigation with returnToPreviousTab", () => {
+    const { result } = renderHook(() => useResearchPanel(), { wrapper });
+
+    // Open to Ask tab
+    act(() => {
+      result.current.openPanel("ask");
+    });
+
+    // Navigate to source from Ask with return
+    act(() => {
+      result.current.viewSource("src-42", "ask");
+    });
+    expect(result.current.activeTab).toBe("sources");
+    expect(result.current.sourcesView).toBe("detail");
+    expect(result.current.returnTab).toBe("ask");
+
+    // Return to Ask tab
+    act(() => {
+      result.current.returnToPreviousTab();
+    });
+    expect(result.current.activeTab).toBe("ask");
+    expect(result.current.returnTab).toBeNull();
+  });
+
+  it("manages add flow lifecycle", () => {
+    const { result } = renderHook(() => useResearchPanel(), { wrapper });
+
+    act(() => {
+      result.current.openPanel();
+    });
+
+    act(() => {
+      result.current.startAddFlow();
+    });
+    expect(result.current.sourcesView).toBe("add");
+
+    act(() => {
+      result.current.setDriveConnection("conn-123");
+    });
+    expect(result.current.driveConnectionId).toBe("conn-123");
+
+    act(() => {
+      result.current.finishAdd();
+    });
+    expect(result.current.sourcesView).toBe("list");
+    expect(result.current.driveConnectionId).toBeNull();
+  });
+
+  it("throws when used outside provider", () => {
+    // Suppress console.error from React error boundary
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    expect(() => {
+      renderHook(() => useResearchPanel());
+    }).toThrow("useResearchPanel must be used within a ResearchPanelProvider");
+
+    consoleSpy.mockRestore();
+  });
+});
