@@ -321,6 +321,51 @@ body {
   animation: scroll-target-flash 1.5s ease-out;
 }
 
+/* ------------------------------------------------------------------
+ * Research Panel Animations (#182)
+ *
+ * Panel slides in from the right. Backdrop fades in behind overlay.
+ * Per design-spec.md Section 6: Animation Specifications.
+ * ------------------------------------------------------------------ */
+
+@keyframes research-panel-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes research-backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.research-panel-slide-in {
+  animation: research-panel-slide-in 200ms ease-out;
+}
+
+.research-backdrop-fade-in {
+  animation: research-backdrop-fade-in 200ms ease-out;
+}
+
+/* Research Panel safe area handling */
+.research-panel {
+  padding-right: env(safe-area-inset-right, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.research-panel-overlay {
+  height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-up {
@@ -332,6 +377,14 @@ body {
   }
 
   .scroll-target-flash {
+    animation: none;
+  }
+
+  .research-panel-slide-in {
+    animation: none;
+  }
+
+  .research-backdrop-fade-in {
     animation: none;
   }
 }

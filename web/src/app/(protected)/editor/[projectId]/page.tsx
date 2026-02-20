@@ -15,6 +15,7 @@ import {
   ResearchPanelProvider,
   useResearchPanel,
 } from "@/components/research/research-panel-provider";
+import { ResearchPanel } from "@/components/research/research-panel";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useDriveFiles } from "@/hooks/use-drive-files";
 import { useAutoSave } from "@/hooks/use-auto-save";
@@ -339,6 +340,14 @@ function EditorPageInner() {
             activeChapterId={activeChapterId}
             getToken={getToken as () => Promise<string | null>}
             apiUrl={API_URL}
+            isResearchPanelOpen={isResearchPanelOpen}
+            onToggleResearchPanel={() => {
+              if (isResearchPanelOpen) {
+                closeResearchPanel();
+              } else {
+                openResearchPanel();
+              }
+            }}
             hasDriveFolder={!!projectData.driveFolderId}
             onViewSources={() => openResearchPanel("sources")}
             onManageAccounts={() => setIsAccountsSheetOpen(true)}
@@ -368,6 +377,9 @@ function EditorPageInner() {
           selectionWordCount={selectionWordCount}
         />
       </div>
+
+      {/* Research Panel (#182) - side-by-side in landscape, overlay in portrait */}
+      <ResearchPanel />
 
       <EditorDialogs
         projectData={projectData}

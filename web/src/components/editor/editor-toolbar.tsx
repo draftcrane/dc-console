@@ -36,6 +36,10 @@ interface EditorToolbarProps {
   getToken: () => Promise<string | null>;
   apiUrl: string;
 
+  // Research panel (#182)
+  isResearchPanelOpen: boolean;
+  onToggleResearchPanel: () => void;
+
   // Settings
   hasDriveFolder: boolean;
   onViewSources: () => void;
@@ -74,6 +78,8 @@ export function EditorToolbar({
   activeChapterId,
   getToken,
   apiUrl,
+  isResearchPanelOpen,
+  onToggleResearchPanel,
   hasDriveFolder,
   onViewSources,
   onManageAccounts,
@@ -146,7 +152,38 @@ export function EditorToolbar({
           </>
         )}
 
-        {/* SAVE_INDICATOR_PLACEHOLDER */}
+        {/* Research panel toggle (#182) */}
+        <button
+          onClick={onToggleResearchPanel}
+          className={`h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
+                     transition-colors ${
+                       isResearchPanelOpen
+                         ? "text-blue-700 bg-blue-50"
+                         : "text-muted-foreground hover:text-foreground hover:bg-gray-100"
+                     }`}
+          aria-label={isResearchPanelOpen ? "Close research panel" : "Open research panel"}
+          aria-expanded={isResearchPanelOpen}
+          aria-controls="research-panel"
+          title="Research (Cmd+Shift+R)"
+        >
+          <svg
+            className="w-4 h-4 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+            />
+          </svg>
+          <span className="hidden sm:inline">Research</span>
+        </button>
+
+        <div className="w-px h-5 bg-border" aria-hidden="true" />
 
         <ExportMenu
           projectId={projectId}

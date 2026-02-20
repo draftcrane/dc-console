@@ -78,6 +78,8 @@ function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorToolbar
     activeChapterId: "ch-1",
     getToken: vi.fn().mockResolvedValue("token"),
     apiUrl: "https://api.test",
+    isResearchPanelOpen: false,
+    onToggleResearchPanel: vi.fn(),
     hasDriveFolder: false,
     onViewSources: vi.fn(),
     onManageAccounts: vi.fn(),
