@@ -91,10 +91,6 @@ interface EditorDialogsProps {
   onOpenSourceViewer: (source: SourceMaterial) => void;
   onRemoveSource: (sourceId: string) => Promise<void>;
   importSourceAsChapter: (sourceId: string) => Promise<{ chapterId: string } | null>;
-  activeChapterTitle: string | undefined;
-  linkedSources: SourceMaterial[];
-  onLinkSource: (sourceId: string) => Promise<void>;
-  onUnlinkSource: (sourceId: string) => Promise<void>;
   setActiveChapterId: (id: string | null) => void;
 
   // Add source sheet
@@ -191,10 +187,6 @@ export function EditorDialogs({
   onOpenSourceViewer,
   onRemoveSource,
   importSourceAsChapter,
-  activeChapterTitle,
-  linkedSources,
-  onLinkSource,
-  onUnlinkSource,
   setActiveChapterId,
   isAddSourceSheetOpen,
   onCloseAddSourceSheet,
@@ -360,10 +352,6 @@ export function EditorDialogs({
         onViewSource={onOpenSourceViewer}
         onImportAsChapter={handleImportSourceAsChapter}
         onRemoveSource={onRemoveSource}
-        activeChapterTitle={activeChapterTitle}
-        linkedSourceIds={new Set(linkedSources.map((s) => s.id))}
-        onLinkSource={onLinkSource}
-        onUnlinkSource={onUnlinkSource}
       />
 
       {/* Add source sheet (multi-account + local upload) */}
@@ -415,16 +403,6 @@ export function EditorDialogs({
         onImportAsChapter={async () => {
           if (!activeSource) return;
           await handleImportSourceAsChapter(activeSource.id);
-        }}
-        tabs={
-          linkedSources.length > 0
-            ? linkedSources.map((s) => ({ id: s.id, title: s.title }))
-            : undefined
-        }
-        activeTabId={activeSource?.id ?? null}
-        onTabChange={(sourceId) => {
-          const source = linkedSources.find((s) => s.id === sourceId);
-          if (source) onOpenSourceViewer(source);
         }}
       />
     </>

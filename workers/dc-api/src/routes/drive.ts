@@ -430,7 +430,7 @@ drive.get("/browse", standardRateLimit, async (c) => {
 /**
  * DELETE /drive/connection/:connectionId
  * Disconnects a specific Google Drive account.
- * Cascade: archives sources, soft-archives chapter_sources, clears project output drive.
+ * Cascade: archives sources, clears project output drive.
  * Per plan: simplified 3-step cascade (D1 batch + token revoke + skip R2 cleanup).
  */
 drive.delete("/connection/:connectionId", standardRateLimit, async (c) => {
@@ -448,7 +448,7 @@ drive.delete("/connection/:connectionId", standardRateLimit, async (c) => {
   // Fetch tokens BEFORE deletion for revocation
   const tokens = await driveService.getStoredTokens(connectionId).catch(() => null);
 
-  // Step 1: D1 batch -- archive sources, soft-archive links, clear project refs, delete connection
+  // Step 1: D1 batch -- archive sources, clear project refs, delete connection
   const sourceService = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
   await sourceService.archiveByConnection(connectionId);
 

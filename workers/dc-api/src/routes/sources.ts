@@ -8,11 +8,12 @@
  * - GET /sources/:sourceId/content - Get cached source content (lazy-fetches from Drive)
  * - DELETE /sources/:sourceId - Remove a source
  * - POST /sources/:sourceId/import-as-chapter - Import source as a new chapter
- * - GET /chapters/:chapterId/sources - List linked sources for a chapter
- * - POST /chapters/:chapterId/sources/:sourceId/link - Link source to chapter
- * - DELETE /chapters/:chapterId/sources/:sourceId/link - Unlink source from chapter
  *
  * All routes require authentication and enforce ownership via project JOIN.
+ *
+ * Note: Chapter-source linking endpoints (GET /chapters/:chapterId/sources,
+ * POST/DELETE /chapters/:chapterId/sources/:sourceId/link) were removed in #181.
+ * The chapter_sources table is preserved but deprecated (no writes). See migration 0014.
  */
 
 import { Hono } from "hono";
@@ -20,7 +21,6 @@ import type { Env } from "../types/index.js";
 import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { SourceMaterialService, type AddSourceInput } from "../services/source-material.js";
-import { ChapterSourceService } from "../services/chapter-source.js";
 import { DriveService } from "../services/drive.js";
 import { validateDriveId } from "../utils/drive-query.js";
 
@@ -194,50 +194,6 @@ sources.post("/sources/:sourceId/import-as-chapter", async (c) => {
     },
     201,
   );
-});
-
-/**
- * GET /chapters/:chapterId/sources
- * List linked sources for a chapter (active links only).
- */
-sources.get("/chapters/:chapterId/sources", async (c) => {
-  const { userId } = c.get("auth");
-  const chapterId = c.req.param("chapterId");
-
-  const service = new ChapterSourceService(c.env.DB);
-  const linkedSources = await service.getLinkedSources(userId, chapterId);
-
-  return c.json({ sources: linkedSources });
-});
-
-/**
- * POST /chapters/:chapterId/sources/:sourceId/link
- * Link a source to a chapter. Reactivates archived links.
- */
-sources.post("/chapters/:chapterId/sources/:sourceId/link", async (c) => {
-  const { userId } = c.get("auth");
-  const chapterId = c.req.param("chapterId");
-  const sourceId = c.req.param("sourceId");
-
-  const service = new ChapterSourceService(c.env.DB);
-  await service.linkSource(userId, chapterId, sourceId);
-
-  return c.json({ success: true }, 201);
-});
-
-/**
- * DELETE /chapters/:chapterId/sources/:sourceId/link
- * Unlink a source from a chapter (soft-archive).
- */
-sources.delete("/chapters/:chapterId/sources/:sourceId/link", async (c) => {
-  const { userId } = c.get("auth");
-  const chapterId = c.req.param("chapterId");
-  const sourceId = c.req.param("sourceId");
-
-  const service = new ChapterSourceService(c.env.DB);
-  await service.unlinkSource(userId, chapterId, sourceId);
-
-  return c.json({ success: true });
 });
 
 export { sources };
