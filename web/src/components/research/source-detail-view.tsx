@@ -10,6 +10,8 @@ interface SourceDetailViewProps {
   onBack: () => void;
   /** Custom back label for cross-tab navigation (e.g. "Back to Ask", "Back to Clips") */
   backLabel?: string;
+  /** Optional: text to scroll to and highlight on load */
+  scrollToText?: string;
 }
 
 /**
@@ -21,7 +23,13 @@ interface SourceDetailViewProps {
  * - "Back to Ask" when arriving from the Ask tab
  * - "Back to Clips" when arriving from the Clips tab
  */
-export function SourceDetailView({ sourceId, title, onBack, backLabel }: SourceDetailViewProps) {
+export function SourceDetailView({
+  sourceId,
+  title,
+  onBack,
+  backLabel,
+  scrollToText,
+}: SourceDetailViewProps) {
   const { content, wordCount, isLoading, error, fetchContent, reset } = useSourceContent();
 
   useEffect(() => {
@@ -33,33 +41,41 @@ export function SourceDetailView({ sourceId, title, onBack, backLabel }: SourceD
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with back button and title */}
-      <div className="flex items-center gap-2 h-11 px-4 shrink-0 border-b border-border">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700
-                     transition-colors shrink-0 min-h-[44px]"
-          aria-label={backLabel ? backLabel : "Back to sources list"}
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
+      {/* Header with back breadcrumb and title */}
+      <div className="shrink-0 border-b border-border">
+        <div className="flex items-center gap-2 h-12 px-4">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700
+                       min-h-[44px] px-1 transition-colors shrink-0"
+            aria-label={backLabel ? backLabel : "Back to sources list"}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          <span>{displayBackLabel}</span>
-        </button>
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            {displayBackLabel}
+          </button>
+        </div>
 
-        <div className="flex-1 min-w-0 ml-1">
-          <p className="text-sm font-medium text-foreground truncate">{title}</p>
+        {/* Title and metadata */}
+        <div className="px-4 pb-2">
+          <h3 className="text-sm font-semibold text-foreground truncate">{title}</h3>
+          {wordCount > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {wordCount.toLocaleString()} words
+            </span>
+          )}
         </div>
       </div>
 
@@ -102,9 +118,13 @@ export function SourceDetailView({ sourceId, title, onBack, backLabel }: SourceD
           </div>
         )}
 
-        {/* Loaded content */}
+        {/* Loaded content with search and scroll-to */}
         {!isLoading && !error && content && (
-          <SourceContentRenderer content={content} searchEnabled={true} />
+          <SourceContentRenderer
+            content={content}
+            searchEnabled={true}
+            scrollToText={scrollToText ?? undefined}
+          />
         )}
 
         {/* Empty content (loaded but no content) */}

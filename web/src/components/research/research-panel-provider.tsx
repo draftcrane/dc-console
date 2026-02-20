@@ -14,6 +14,8 @@ export interface ResearchPanelState {
   activeSourceId: string | null;
   driveConnectionId: string | null;
   returnTab: "ask" | "clips" | null;
+  /** Text to scroll to when viewing a source detail (from citation navigation) */
+  scrollToText: string | null;
 }
 
 // === Actions ===
@@ -22,7 +24,7 @@ export type ResearchPanelAction =
   | { type: "OPEN_PANEL"; tab?: ResearchTab }
   | { type: "CLOSE_PANEL" }
   | { type: "SET_TAB"; tab: ResearchTab }
-  | { type: "VIEW_SOURCE"; sourceId: string; returnTo?: "ask" | "clips" }
+  | { type: "VIEW_SOURCE"; sourceId: string; returnTo?: "ask" | "clips"; scrollToText?: string }
   | { type: "BACK_TO_LIST" }
   | { type: "RETURN_TO_TAB" }
   | { type: "START_ADD_FLOW" }
@@ -38,6 +40,7 @@ const initialState: ResearchPanelState = {
   activeSourceId: null,
   driveConnectionId: null,
   returnTab: null,
+  scrollToText: null,
 };
 
 // === Reducer ===
@@ -70,6 +73,7 @@ export function researchPanelReducer(
         sourcesView: tab === "sources" ? "list" : state.sourcesView,
         activeSourceId: tab === "sources" ? null : state.activeSourceId,
         returnTab: null,
+        scrollToText: null,
       };
     }
 
@@ -103,6 +107,7 @@ export function researchPanelReducer(
         sourcesView: "detail",
         activeSourceId: action.sourceId,
         returnTab: action.returnTo ?? null,
+        scrollToText: action.scrollToText ?? null,
       };
     }
 
@@ -117,6 +122,7 @@ export function researchPanelReducer(
         activeSourceId: null,
         driveConnectionId: null,
         returnTab: null,
+        scrollToText: null,
       };
     }
 
@@ -131,6 +137,7 @@ export function researchPanelReducer(
         sourcesView: "list",
         activeSourceId: null,
         returnTab: null,
+        scrollToText: null,
       };
     }
 
@@ -183,12 +190,13 @@ export interface ResearchPanelContextValue {
   activeSourceId: string | null;
   driveConnectionId: string | null;
   returnTab: "ask" | "clips" | null;
+  scrollToText: string | null;
 
   // Actions
   openPanel: (tab?: ResearchTab) => void;
   closePanel: () => void;
   setActiveTab: (tab: ResearchTab) => void;
-  viewSource: (sourceId: string, returnTo?: "ask" | "clips") => void;
+  viewSource: (sourceId: string, returnTo?: "ask" | "clips", scrollToText?: string) => void;
   backToSourceList: () => void;
   returnToPreviousTab: () => void;
   startAddFlow: () => void;
@@ -229,8 +237,8 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
   );
 
   const viewSource = useCallback(
-    (sourceId: string, returnTo?: "ask" | "clips") => {
-      dispatch({ type: "VIEW_SOURCE", sourceId, returnTo });
+    (sourceId: string, returnTo?: "ask" | "clips", scrollToText?: string) => {
+      dispatch({ type: "VIEW_SOURCE", sourceId, returnTo, scrollToText });
     },
     [dispatch],
   );
@@ -267,6 +275,7 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       activeSourceId: state.activeSourceId,
       driveConnectionId: state.driveConnectionId,
       returnTab: state.returnTab,
+      scrollToText: state.scrollToText,
 
       // Actions
       openPanel,

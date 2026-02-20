@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { SourceCitationLink } from "./source-citation-link";
 
 export interface ResultCardProps {
   content: string;
@@ -9,7 +10,7 @@ export interface ResultCardProps {
   sourceLocation: string | null;
   onSaveToClips: () => Promise<void>;
   onInsert: () => void;
-  onViewSource: () => void;
+  onViewSource: (sourceId: string, returnTo: "ask" | "clips") => void;
   isSaved: boolean;
   canInsert: boolean;
 }
@@ -18,7 +19,7 @@ export interface ResultCardProps {
  * ResultCard - Displays a search result passage with source attribution and actions.
  *
  * Per design spec Section 7 (ResultCard):
- * - Passage text, source title (tappable link), source location
+ * - Passage text, source title (tappable SourceCitationLink), source location
  * - "Save to Clips" action (updates to checkmark "Saved")
  * - "Insert" action (inserts at editor cursor with footnote)
  * - 44pt minimum touch targets for action buttons
@@ -72,27 +73,15 @@ export function ResultCard({
         &ldquo;{content}&rdquo;
       </blockquote>
 
-      {/* Source attribution */}
-      <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-        {sourceId ? (
-          <button
-            onClick={onViewSource}
-            className="font-medium text-blue-600 hover:text-blue-700 hover:underline
-                       min-h-[28px] flex items-center transition-colors"
-          >
-            {sourceTitle}
-          </button>
-        ) : (
-          <span className="font-medium">{sourceTitle}</span>
-        )}
-        {sourceLocation && (
-          <>
-            <span aria-hidden="true" className="text-gray-300">
-              |
-            </span>
-            <span>{sourceLocation}</span>
-          </>
-        )}
+      {/* Source attribution - tappable citation link */}
+      <div className="mb-3">
+        <SourceCitationLink
+          sourceTitle={sourceTitle}
+          sourceId={sourceId}
+          sourceLocation={sourceLocation}
+          returnTo="ask"
+          onNavigateToSource={onViewSource}
+        />
       </div>
 
       {/* Action buttons */}
