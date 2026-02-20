@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, type RefObject } from "react";
 import { useDocumentSearch } from "@/hooks/use-document-search";
 
 interface SourceContentRendererProps {
@@ -14,6 +14,8 @@ interface SourceContentRendererProps {
   scrollToText?: string;
   /** Called when text is selected (for future "Save to Clips") */
   onTextSelect?: (selectedText: string) => void;
+  /** Ref to the search input element (for external focus, e.g. Cmd+F) */
+  searchInputRef?: RefObject<HTMLInputElement | null>;
 }
 
 /**
@@ -114,7 +116,10 @@ export function SourceContentRenderer({
   scrollToOffset,
   scrollToText,
   onTextSelect,
+  searchInputRef: externalSearchInputRef,
 }: SourceContentRendererProps) {
+  const internalSearchInputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = externalSearchInputRef ?? internalSearchInputRef;
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -240,8 +245,10 @@ export function SourceContentRenderer({
               />
             </svg>
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Search in document..."
+              aria-label="Search within document"
               value={search.query}
               onChange={(e) => search.setQuery(e.target.value)}
               onKeyDown={handleSearchKeyDown}

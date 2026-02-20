@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
+import { SourceContentRenderer } from "@/components/research/source-content-renderer";
 
 interface SourceViewerSheetProps {
   isOpen: boolean;
@@ -23,10 +24,17 @@ export function SourceViewerSheet({
   onClose,
   onImportAsChapter,
 }: SourceViewerSheetProps) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         onClose();
+      }
+      // Cmd+F (Mac) or Ctrl+F (Windows/Linux) focuses the search field
+      if ((event.metaKey || event.ctrlKey) && event.key === "f") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
       }
     }
     if (isOpen) {
@@ -103,8 +111,27 @@ export function SourceViewerSheet({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto">
+        {/* Source tabs (shown when multiple linked sources) */}
+        {tabs && tabs.length > 1 && onTabChange && (
+          <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-200 overflow-x-auto shrink-0">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+                  activeTabId === tab.id
+                    ? "bg-gray-900 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {tab.title}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Content with integrated search */}
+        <div className="flex-1 overflow-hidden flex flex-col">
           {isLoading && (
             <div className="flex items-center justify-center py-12">
               <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -135,14 +162,10 @@ export function SourceViewerSheet({
           )}
 
           {!isLoading && !error && content && (
-            <article
-              className="px-6 py-4 prose prose-sm prose-gray max-w-none
-                         prose-headings:font-serif prose-headings:text-gray-900
-                         prose-p:text-gray-700 prose-p:leading-relaxed
-                         prose-li:text-gray-700
-                         prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-                         prose-blockquote:border-gray-300 prose-blockquote:text-gray-600"
-              dangerouslySetInnerHTML={{ __html: content }}
+            <SourceContentRenderer
+              content={content}
+              searchEnabled={true}
+              searchInputRef={searchInputRef}
             />
           )}
         </div>
