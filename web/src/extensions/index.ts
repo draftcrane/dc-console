@@ -12,4 +12,4 @@ export { FootnoteRef } from "./footnote-ref";
 export { FootnoteContent } from "./footnote-content";
 export { FootnoteSection } from "./footnote-section";
 export { FootnotePlugin } from "./footnote-plugin";
-export { insertFootnote } from "./footnote-commands";
+export { insertFootnote, insertClipWithFootnote } from "./footnote-commands";

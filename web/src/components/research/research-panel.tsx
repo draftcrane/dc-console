@@ -5,7 +5,10 @@ import { useParams } from "next/navigation";
 import { useResearchPanel, type ResearchTab } from "./research-panel-provider";
 import { SourcesTab } from "./sources-tab";
 import { AskTab } from "./ask-tab";
+import { ClipsTab } from "./clips-tab";
 import { useResearchClips } from "@/hooks/use-research-clips";
+import { useToast } from "@/components/toast";
+import type { InsertResult } from "@/hooks/use-clip-insert";
 
 // === Tab Definitions ===
 
@@ -14,33 +17,6 @@ const TABS: Array<{ id: ResearchTab; label: string }> = [
   { id: "ask", label: "Ask" },
   { id: "clips", label: "Clips" },
 ];
-
-// === Placeholder Components ===
-
-function ComingSoonPlaceholder({ tabName }: { tabName: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-      <svg
-        className="w-12 h-12 text-muted-foreground mb-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      </svg>
-      <p className="text-base font-medium text-foreground mb-2">Coming soon</p>
-      <p className="text-base text-muted-foreground">
-        The {tabName} tab is under development and will be available in a future update.
-      </p>
-    </div>
-  );
-}
 
 // === Panel Layout Mode ===
 
@@ -230,7 +206,33 @@ function TabBar({
 
 // === Tab Content Component ===
 
-function TabContent({ activeTab }: { activeTab: ResearchTab }) {
+function TabContent({
+  activeTab,
+  onInsertClip,
+  canInsert,
+  onClipsChanged,
+}: {
+  activeTab: ResearchTab;
+  onInsertClip: (text: string, sourceTitle: string) => InsertResult;
+  canInsert: boolean;
+  /** Called after a clip is deleted so badge count can refresh */
+  onClipsChanged: () => void;
+}) {
+  const { showToast } = useToast();
+
+  // Wrap insert with toast feedback for AskTab results
+  const handleAskInsert = useCallback(
+    (text: string, sourceTitle: string) => {
+      const result = onInsertClip(text, sourceTitle);
+      if (result === "inserted") {
+        showToast("Inserted with footnote");
+      } else if (result === "appended") {
+        showToast("Inserted at end of chapter");
+      }
+    },
+    [onInsertClip, showToast],
+  );
+
   // Render all tabs but only show the active one.
   // This preserves state when switching tabs (acceptance criteria).
   return (
@@ -239,10 +241,14 @@ function TabContent({ activeTab }: { activeTab: ResearchTab }) {
         <SourcesTab />
       </TabPanel>
       <TabPanel id="ask" activeTab={activeTab}>
-        <AskTab />
+        <AskTab onInsertSnippet={handleAskInsert} canInsert={canInsert} />
       </TabPanel>
       <TabPanel id="clips" activeTab={activeTab}>
-        <ComingSoonPlaceholder tabName="Clips" />
+        <ClipsTab
+          onInsertClip={onInsertClip}
+          canInsert={canInsert}
+          onClipsChanged={onClipsChanged}
+        />
       </TabPanel>
     </div>
   );
@@ -273,12 +279,19 @@ function TabPanel({
 
 // === Main Research Panel Component ===
 
-export function ResearchPanel() {
+export interface ResearchPanelProps {
+  /** Insert a clip into the editor. Returns result indicating what happened. */
+  onInsertClip?: (text: string, sourceTitle: string) => InsertResult;
+  /** Whether the editor has a cursor / active chapter for insertion */
+  canInsert?: boolean;
+}
+
+export function ResearchPanel({ onInsertClip, canInsert = false }: ResearchPanelProps) {
   const { isOpen, activeTab, setActiveTab, closePanel, openPanel } = useResearchPanel();
   const params = useParams();
   const projectId = params.projectId as string;
 
-  // Fetch clip count for badge display
+  // Fetch clips for badge display and Clips tab
   const { clipCount, fetchClips } = useResearchClips(projectId);
 
   // Fetch clips when panel opens to update badge count
@@ -287,6 +300,15 @@ export function ResearchPanel() {
       fetchClips();
     }
   }, [isOpen, projectId, fetchClips]);
+
+  // No-op fallback for insert
+  const handleInsertClip = useCallback(
+    (text: string, sourceTitle: string): InsertResult => {
+      if (onInsertClip) return onInsertClip(text, sourceTitle);
+      return "no-editor";
+    },
+    [onInsertClip],
+  );
 
   const layoutMode = useLayoutMode();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -333,7 +355,12 @@ export function ResearchPanel() {
       >
         <PanelHeader onClose={closePanel} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} clipCount={clipCount} />
-        <TabContent activeTab={activeTab} />
+        <TabContent
+          activeTab={activeTab}
+          onInsertClip={handleInsertClip}
+          canInsert={canInsert}
+          onClipsChanged={fetchClips}
+        />
       </div>
     );
   }
@@ -359,7 +386,12 @@ export function ResearchPanel() {
       >
         <PanelHeader onClose={closePanel} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} clipCount={clipCount} />
-        <TabContent activeTab={activeTab} />
+        <TabContent
+          activeTab={activeTab}
+          onInsertClip={handleInsertClip}
+          canInsert={canInsert}
+          onClipsChanged={fetchClips}
+        />
       </div>
     </>
   );
