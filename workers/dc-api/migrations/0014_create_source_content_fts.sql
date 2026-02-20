@@ -4,7 +4,7 @@
 -- Rebuilt on content refresh.
 
 CREATE VIRTUAL TABLE source_content_fts USING fts5(
-  source_id,
+  source_id UNINDEXED,
   title,
   content,
   tokenize='porter unicode61'
