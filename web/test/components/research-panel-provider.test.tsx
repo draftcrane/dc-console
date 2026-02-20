@@ -21,6 +21,7 @@ describe("researchPanelReducer", () => {
     activeSourceId: null,
     driveConnectionId: null,
     returnTab: null,
+    scrollToText: null,
   };
 
   const sourcesListState: ResearchPanelState = {
@@ -30,6 +31,7 @@ describe("researchPanelReducer", () => {
     activeSourceId: null,
     driveConnectionId: null,
     returnTab: null,
+    scrollToText: null,
   };
 
   const sourcesDetailState: ResearchPanelState = {
@@ -39,6 +41,7 @@ describe("researchPanelReducer", () => {
     activeSourceId: "src-1",
     driveConnectionId: null,
     returnTab: null,
+    scrollToText: null,
   };
 
   const sourcesAddState: ResearchPanelState = {
@@ -48,6 +51,7 @@ describe("researchPanelReducer", () => {
     activeSourceId: null,
     driveConnectionId: null,
     returnTab: null,
+    scrollToText: null,
   };
 
   const askState: ResearchPanelState = {
@@ -57,6 +61,7 @@ describe("researchPanelReducer", () => {
     activeSourceId: null,
     driveConnectionId: null,
     returnTab: null,
+    scrollToText: null,
   };
 
   const clipsState: ResearchPanelState = {
@@ -66,6 +71,7 @@ describe("researchPanelReducer", () => {
     activeSourceId: null,
     driveConnectionId: null,
     returnTab: null,
+    scrollToText: null,
   };
 
   // --- OPEN_PANEL ---
@@ -224,6 +230,24 @@ describe("researchPanelReducer", () => {
       expect(result.returnTab).toBe("clips");
     });
 
+    it("stores scrollToText when provided", () => {
+      const result = researchPanelReducer(askState, {
+        type: "VIEW_SOURCE",
+        sourceId: "src-42",
+        returnTo: "ask",
+        scrollToText: "psychological safety",
+      });
+      expect(result.scrollToText).toBe("psychological safety");
+    });
+
+    it("sets scrollToText to null when not provided", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "VIEW_SOURCE",
+        sourceId: "src-42",
+      });
+      expect(result.scrollToText).toBeNull();
+    });
+
     it("is a no-op when panel is closed", () => {
       const result = researchPanelReducer(closedState, {
         type: "VIEW_SOURCE",
@@ -243,6 +267,18 @@ describe("researchPanelReducer", () => {
       expect(result.sourcesView).toBe("list");
       expect(result.activeSourceId).toBeNull();
       expect(result.returnTab).toBeNull();
+      expect(result.scrollToText).toBeNull();
+    });
+
+    it("clears scrollToText when going back to list", () => {
+      const stateWithScroll: ResearchPanelState = {
+        ...sourcesDetailState,
+        scrollToText: "some text",
+      };
+      const result = researchPanelReducer(stateWithScroll, {
+        type: "BACK_TO_LIST",
+      });
+      expect(result.scrollToText).toBeNull();
     });
 
     it("returns to list from add view", () => {
@@ -294,6 +330,7 @@ describe("researchPanelReducer", () => {
       expect(result.sourcesView).toBe("list");
       expect(result.activeSourceId).toBeNull();
       expect(result.returnTab).toBeNull();
+      expect(result.scrollToText).toBeNull();
     });
 
     it("returns to clips tab from source detail", () => {
@@ -447,6 +484,7 @@ describe("researchPanelReducer", () => {
         { type: "VIEW_SOURCE", sourceId: "src-1" },
         { type: "VIEW_SOURCE", sourceId: "src-1", returnTo: "ask" },
         { type: "VIEW_SOURCE", sourceId: "src-1", returnTo: "clips" },
+        { type: "VIEW_SOURCE", sourceId: "src-1", returnTo: "ask", scrollToText: "test text" },
         { type: "BACK_TO_LIST" },
         { type: "RETURN_TO_TAB" },
         { type: "START_ADD_FLOW" },
@@ -488,6 +526,7 @@ describe("ResearchPanelProvider + useResearchPanel", () => {
     expect(result.current.sourcesView).toBe("list");
     expect(result.current.activeSourceId).toBeNull();
     expect(result.current.returnTab).toBeNull();
+    expect(result.current.scrollToText).toBeNull();
   });
 
   it("opens and closes the panel", () => {
@@ -570,6 +609,28 @@ describe("ResearchPanelProvider + useResearchPanel", () => {
     });
     expect(result.current.activeTab).toBe("ask");
     expect(result.current.returnTab).toBeNull();
+  });
+
+  it("stores scrollToText when navigating to source from citation", () => {
+    const { result } = renderHook(() => useResearchPanel(), { wrapper });
+
+    act(() => {
+      result.current.openPanel("ask");
+    });
+
+    act(() => {
+      result.current.viewSource("src-42", "ask", "psychological safety");
+    });
+    expect(result.current.scrollToText).toBe("psychological safety");
+    expect(result.current.activeTab).toBe("sources");
+    expect(result.current.sourcesView).toBe("detail");
+    expect(result.current.returnTab).toBe("ask");
+
+    // Returning to tab clears scrollToText
+    act(() => {
+      result.current.returnToPreviousTab();
+    });
+    expect(result.current.scrollToText).toBeNull();
   });
 
   it("manages add flow lifecycle", () => {

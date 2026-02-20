@@ -187,6 +187,7 @@ export function SourcesTab() {
     sourcesView,
     activeSourceId,
     returnTab,
+    scrollToText,
     startAddFlow,
     viewSource,
     backToSourceList,
@@ -281,6 +282,7 @@ export function SourcesTab() {
         title={activeSource?.title ?? "Source"}
         onBack={handleDetailBack}
         backLabel={detailBackLabel}
+        scrollToText={scrollToText ?? undefined}
       />
     );
   }

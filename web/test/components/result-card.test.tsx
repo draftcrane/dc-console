@@ -6,7 +6,7 @@ import { ResultCard } from "@/components/research/result-card";
  * Tests for ResultCard — displays a search result passage with source attribution and actions.
  *
  * Key requirements per design spec:
- * - Passage text, source title (tappable link), source location
+ * - Passage text, source title (tappable SourceCitationLink), source location
  * - "Save to Clips" action (updates to checkmark "Saved")
  * - "Insert" action (inserts at editor cursor with footnote)
  * - 44pt minimum touch targets for action buttons
@@ -37,36 +37,26 @@ describe("ResultCard", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders source title as tappable link when sourceId exists", () => {
+  it("renders source title as tappable citation link when sourceId exists", () => {
+    render(<ResultCard {...makeProps()} />);
+
+    const sourceButton = screen.getByRole("button", { name: /View source: Workshop Notes/ });
+    expect(sourceButton).toBeInTheDocument();
+  });
+
+  it("calls onViewSource with sourceId and returnTo when source title is tapped", () => {
     const onViewSource = vi.fn();
     render(<ResultCard {...makeProps({ onViewSource })} />);
 
-    const sourceButton = screen.getByText("Workshop Notes March 2024");
-    expect(sourceButton.tagName).toBe("BUTTON");
-
-    fireEvent.click(sourceButton);
-    expect(onViewSource).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: /View source:/ }));
+    expect(onViewSource).toHaveBeenCalledWith("src-1", "ask", "Page 5");
   });
 
-  it("renders source title as plain text when sourceId is null", () => {
+  it("shows '[Source removed]' when sourceId is null", () => {
     render(<ResultCard {...makeProps({ sourceId: null })} />);
 
-    const sourceSpan = screen.getByText("Workshop Notes March 2024");
-    expect(sourceSpan.tagName).toBe("SPAN");
-  });
-
-  it("renders source location", () => {
-    render(<ResultCard {...makeProps()} />);
-
-    expect(screen.getByText("Page 5")).toBeInTheDocument();
-  });
-
-  it("does not render source location separator when null", () => {
-    render(<ResultCard {...makeProps({ sourceLocation: null })} />);
-
-    // The pipe separator should not be present
-    const separators = screen.queryAllByText("|");
-    expect(separators).toHaveLength(0);
+    expect(screen.getByText("[Source removed]")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /View source:/ })).not.toBeInTheDocument();
   });
 
   it("shows 'Save to Clips' button", () => {
