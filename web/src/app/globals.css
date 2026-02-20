@@ -90,6 +90,56 @@ body {
   font-style: italic;
 }
 
+/* ------------------------------------------------------------------
+ * Footnote Styles (#196)
+ *
+ * Footnote references appear as superscript [N] inline with text.
+ * Footnote content entries render at the bottom of the chapter,
+ * separated by a horizontal rule.
+ *
+ * Per design-spec.md Decision 9: "[N] Source Title" format.
+ * ------------------------------------------------------------------ */
+
+.chapter-editor-content .footnote-ref {
+  font-size: 0.75em;
+  vertical-align: super;
+  line-height: 0;
+  color: #2563eb;
+  cursor: default;
+  font-weight: 500;
+  user-select: all;
+}
+
+.chapter-editor-content .footnotes {
+  margin-top: 1.5em;
+  padding-top: 1em;
+  font-size: 0.875em;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.chapter-editor-content .footnote-content {
+  margin-bottom: 0.5em;
+  padding-left: 0;
+}
+
+.chapter-editor-content .footnote-content::before {
+  content: "[" attr(data-footnote-label) "] ";
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Separator between body text and footnotes — the <hr> before .footnotes */
+.chapter-editor-content hr + .footnotes {
+  border-top: none;
+}
+
+.chapter-editor-content hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.5em 0 0;
+}
+
 /* Placeholder styling for empty editor */
 .chapter-editor-content.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
