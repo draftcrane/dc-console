@@ -1,4 +1,4 @@
--- Migration 0014: Deprecate chapter_sources table (#181)
+-- Migration 0015: Deprecate chapter_sources table (#181)
 --
 -- The chapter_sources table (created in 0012) is deprecated as of this migration.
 -- Chapter-source linking has been removed from the application:
