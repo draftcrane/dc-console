@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { ResultCard } from "@/components/research/result-card";
 
 /**
@@ -130,10 +130,10 @@ describe("ResultCard", () => {
     expect(screen.getByText("Inserted")).toBeInTheDocument();
 
     // Revert after 1.5s
-    vi.advanceTimersByTime(1500);
-    await waitFor(() => {
-      expect(screen.getByText("Insert")).toBeInTheDocument();
+    await act(() => {
+      vi.advanceTimersByTime(1500);
     });
+    expect(screen.getByText("Insert")).toBeInTheDocument();
 
     vi.useRealTimers();
   });

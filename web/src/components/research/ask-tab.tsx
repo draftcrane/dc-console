@@ -269,6 +269,10 @@ function ConversationBlock({
               canInsert={canInsert}
             />
           ))}
+          {/* Summary from done event */}
+          {!result.isStreaming && result.summary && (
+            <p className="text-sm text-muted-foreground italic px-1 pt-1">{result.summary}</p>
+          )}
         </div>
       )}
 
@@ -348,6 +352,7 @@ export function AskTab({ onSaveClip, onInsertSnippet, canInsert = false }: AskTa
     (query: string) => {
       research.setQueryInput(query);
       research.submitQuery(query);
+      research.setQueryInput("");
     },
     [research],
   );
