@@ -144,6 +144,133 @@ body {
   animation: highlight-flash 1.5s ease-out;
 }
 
+/* ------------------------------------------------------------------
+ * Source Content Renderer (Spike #188)
+ *
+ * Typography for read-only source documents in the Research Panel.
+ * Tuned for 340pt-wide panel. Minimum 16px text per AC.
+ * ------------------------------------------------------------------ */
+
+.source-content {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #374151;
+}
+
+.source-content h1 {
+  font-size: 1.5em;
+  font-weight: 700;
+  margin: 1.5em 0 0.5em;
+  font-family: var(--font-serif);
+  color: #111827;
+}
+
+.source-content h2 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin: 1.25em 0 0.5em;
+  font-family: var(--font-serif);
+  color: #111827;
+}
+
+.source-content h3 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 1em 0 0.4em;
+  font-family: var(--font-serif);
+  color: #111827;
+}
+
+.source-content p {
+  margin-bottom: 1em;
+}
+
+.source-content ul,
+.source-content ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.source-content ul {
+  list-style-type: disc;
+}
+
+.source-content ol {
+  list-style-type: decimal;
+}
+
+.source-content li {
+  margin-bottom: 0.25em;
+}
+
+.source-content blockquote {
+  border-left: 3px solid #e5e7eb;
+  padding-left: 1em;
+  font-style: italic;
+  color: #6b7280;
+}
+
+.source-content a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.source-content a:hover {
+  text-decoration: underline;
+}
+
+.source-content strong {
+  font-weight: 600;
+}
+
+.source-content em {
+  font-style: italic;
+}
+
+.source-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1em;
+  font-size: 0.9em;
+}
+
+.source-content th,
+.source-content td {
+  border: 1px solid #e5e7eb;
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+
+.source-content th {
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+/* Search highlight styles */
+.search-highlight {
+  background-color: rgba(250, 204, 21, 0.4);
+  border-radius: 2px;
+}
+
+.search-highlight-active {
+  background-color: rgba(250, 204, 21, 0.8);
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.6);
+}
+
+/* Scroll-to-position flash — distinct from highlight-flash (AI rewrite, line 134) */
+@keyframes scroll-target-flash {
+  0% {
+    background-color: rgba(250, 204, 21, 0.5);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.scroll-target-flash {
+  animation: scroll-target-flash 1.5s ease-out;
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-up {
@@ -151,6 +278,10 @@ body {
   }
 
   .ai-rewrite-highlight {
+    animation: none;
+  }
+
+  .scroll-target-flash {
     animation: none;
   }
 }
