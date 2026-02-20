@@ -113,6 +113,34 @@ export async function seedSource(
   return { id, projectId, driveFileId, title };
 }
 
+export async function seedClip(
+  projectId: string,
+  overrides?: {
+    id?: string;
+    sourceId?: string | null;
+    sourceTitle?: string;
+    content?: string;
+    sourceLocation?: string | null;
+    chapterId?: string | null;
+    createdAt?: string;
+  },
+) {
+  const id = overrides?.id ?? crypto.randomUUID();
+  const sourceTitle = overrides?.sourceTitle ?? "Test Source";
+  const content = overrides?.content ?? "Test clip content";
+  const sourceId = overrides?.sourceId !== undefined ? overrides.sourceId : null;
+  const sourceLocation = overrides?.sourceLocation ?? null;
+  const chapterId = overrides?.chapterId ?? null;
+  const createdAt = overrides?.createdAt ?? now();
+  await env.DB.prepare(
+    `INSERT INTO research_clips (id, project_id, source_id, source_title, content, source_location, chapter_id, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(id, projectId, sourceId, sourceTitle, content, sourceLocation, chapterId, createdAt)
+    .run();
+  return { id, projectId, sourceId, sourceTitle, content };
+}
+
 /**
  * Remove all rows from test tables in reverse FK order.
  */
@@ -120,6 +148,7 @@ export async function cleanAll() {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM ai_interactions"),
     env.DB.prepare("DELETE FROM export_jobs"),
+    env.DB.prepare("DELETE FROM research_clips"),
     env.DB.prepare("DELETE FROM source_content_fts"),
     env.DB.prepare("DELETE FROM source_materials"),
     env.DB.prepare("DELETE FROM chapters"),

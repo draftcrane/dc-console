@@ -11,6 +11,7 @@ import { chapters } from "./routes/chapters.js";
 import { ai } from "./routes/ai.js";
 import { exportRoutes } from "./routes/export.js";
 import { sources } from "./routes/sources.js";
+import { research } from "./routes/research.js";
 import type { ErrorCode } from "./types/index.js";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -88,6 +89,7 @@ app.route("/ai", ai);
 app.route("/", exportRoutes);
 app.route("/", chapters);
 app.route("/", sources);
+app.route("/", research);
 
 // 404 fallback
 app.notFound((c) => {
