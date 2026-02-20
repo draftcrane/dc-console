@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState, type ReactNode } from "react";
+import { useParams } from "next/navigation";
 import { useResearchPanel, type ResearchTab } from "./research-panel-provider";
 import { SourcesTab } from "./sources-tab";
 import { AskTab } from "./ask-tab";
+import { useResearchClips } from "@/hooks/use-research-clips";
 
 // === Tab Definitions ===
 
@@ -187,9 +189,11 @@ function useKeyboardShortcuts(
 function TabBar({
   activeTab,
   onTabChange,
+  clipCount,
 }: {
   activeTab: ResearchTab;
   onTabChange: (tab: ResearchTab) => void;
+  clipCount: number;
 }) {
   return (
     <div role="tablist" aria-label="Research tabs" className="flex border-b border-border">
@@ -201,7 +205,7 @@ function TabBar({
           aria-selected={activeTab === tab.id}
           aria-controls={`research-tabpanel-${tab.id}`}
           onClick={() => onTabChange(tab.id)}
-          className={`flex-1 h-11 text-base font-medium transition-colors
+          className={`flex-1 h-11 text-base font-medium transition-colors relative
             ${
               activeTab === tab.id
                 ? "text-foreground border-b-2 border-blue-600"
@@ -209,6 +213,15 @@ function TabBar({
             }`}
         >
           {tab.label}
+          {tab.id === "clips" && clipCount > 0 && (
+            <span
+              className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1
+                         text-[10px] font-semibold leading-none rounded-full bg-blue-600 text-white"
+              aria-label={`${clipCount} clips`}
+            >
+              {clipCount > 99 ? "99+" : clipCount}
+            </span>
+          )}
         </button>
       ))}
     </div>
@@ -262,6 +275,18 @@ function TabPanel({
 
 export function ResearchPanel() {
   const { isOpen, activeTab, setActiveTab, closePanel, openPanel } = useResearchPanel();
+  const params = useParams();
+  const projectId = params.projectId as string;
+
+  // Fetch clip count for badge display
+  const { clipCount, fetchClips } = useResearchClips(projectId);
+
+  // Fetch clips when panel opens to update badge count
+  useEffect(() => {
+    if (isOpen && projectId) {
+      fetchClips();
+    }
+  }, [isOpen, projectId, fetchClips]);
 
   const layoutMode = useLayoutMode();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -307,7 +332,7 @@ export function ResearchPanel() {
                    research-panel-slide-in"
       >
         <PanelHeader onClose={closePanel} />
-        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabBar activeTab={activeTab} onTabChange={setActiveTab} clipCount={clipCount} />
         <TabContent activeTab={activeTab} />
       </div>
     );
@@ -333,7 +358,7 @@ export function ResearchPanel() {
                    bg-background flex flex-col shadow-xl research-panel-slide-in"
       >
         <PanelHeader onClose={closePanel} />
-        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabBar activeTab={activeTab} onTabChange={setActiveTab} clipCount={clipCount} />
         <TabContent activeTab={activeTab} />
       </div>
     </>

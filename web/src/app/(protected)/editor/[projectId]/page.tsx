@@ -16,6 +16,7 @@ import {
   useResearchPanel,
 } from "@/components/research/research-panel-provider";
 import { ResearchPanel } from "@/components/research/research-panel";
+import { ToastProvider } from "@/components/toast";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useDriveFiles } from "@/hooks/use-drive-files";
 import { useAutoSave } from "@/hooks/use-auto-save";
@@ -56,9 +57,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
  */
 export default function EditorPage() {
   return (
-    <ResearchPanelProvider>
-      <EditorPageInner />
-    </ResearchPanelProvider>
+    <ToastProvider>
+      <ResearchPanelProvider>
+        <EditorPageInner />
+      </ResearchPanelProvider>
+    </ToastProvider>
   );
 }
 

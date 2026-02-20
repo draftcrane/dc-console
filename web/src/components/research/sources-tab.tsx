@@ -200,6 +200,12 @@ export function SourcesTab() {
 
   const { accounts: driveAccounts, connect: connectDrive } = useDriveAccounts();
 
+  // Derive active source from sources list and activeSourceId (no state needed)
+  const activeSource = useMemo<SourceMaterial | null>(() => {
+    if (!activeSourceId || sources.length === 0) return null;
+    return sources.find((s) => s.id === activeSourceId) ?? null;
+  }, [activeSourceId, sources]);
+
   // Fetch sources on mount
   useEffect(() => {
     fetchSources();
@@ -257,9 +263,6 @@ export function SourcesTab() {
   const detailBackLabel =
     returnTab === "ask" ? "Back to Ask" : returnTab === "clips" ? "Back to Clips" : "Sources";
 
-  // Find the active source for detail view
-  const activeSource = activeSourceId ? sources.find((s) => s.id === activeSourceId) : null;
-
   // Render add flow view
   if (sourcesView === "add") {
     return (
@@ -280,6 +283,7 @@ export function SourcesTab() {
       <SourceDetailView
         sourceId={activeSourceId}
         title={activeSource?.title ?? "Source"}
+        projectId={projectId}
         onBack={handleDetailBack}
         backLabel={detailBackLabel}
         scrollToText={scrollToText ?? undefined}
