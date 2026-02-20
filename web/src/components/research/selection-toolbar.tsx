@@ -129,25 +129,34 @@ export function SelectionToolbar({
 
   const handleSaveToClips = useCallback(() => {
     if (isSaved) return;
-    // Save with "All chapters" default (null chapterId)
-    onSaveToClips(null);
-    // Show chapter dropdown briefly
+
+    // If no chapters exist, save immediately with no chapter
+    if (chapters.length === 0) {
+      onSaveToClips(null);
+      return;
+    }
+
+    // Show chapter dropdown — save is deferred until selection or auto-dismiss
     setShowChapterDropdown(true);
     if (dropdownTimerRef.current) {
       clearTimeout(dropdownTimerRef.current);
     }
     dropdownTimerRef.current = setTimeout(() => {
       setShowChapterDropdown(false);
+      // Auto-dismiss: save with no chapter
+      onSaveToClips(null);
     }, 2000);
-  }, [onSaveToClips, isSaved]);
+  }, [onSaveToClips, isSaved, chapters.length]);
 
   const handleChapterSelect = useCallback(
     (chapterId: string | null) => {
-      onSaveToClips(chapterId);
-      setShowChapterDropdown(false);
+      // Cancel the auto-dismiss timer since user made an explicit selection
       if (dropdownTimerRef.current) {
         clearTimeout(dropdownTimerRef.current);
+        dropdownTimerRef.current = null;
       }
+      setShowChapterDropdown(false);
+      onSaveToClips(chapterId);
     },
     [onSaveToClips],
   );
