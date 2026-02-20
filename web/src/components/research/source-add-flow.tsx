@@ -252,8 +252,8 @@ export function SourceAddFlow({
             />
           </svg>
           <p className="text-xs text-muted-foreground/70 leading-relaxed">
-            DraftCrane reads your files to help you search and reference them. Your originals
-            are never changed.
+            DraftCrane reads your files to help you search and reference them. Your originals are
+            never changed.
           </p>
         </div>
 
