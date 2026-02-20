@@ -128,14 +128,14 @@ export function AddSourceSheet({
             </svg>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium text-gray-900">Upload from device</div>
-              <div className="text-xs text-gray-500">.txt and .md files, up to 5MB</div>
+              <div className="text-xs text-gray-500">.txt, .md, .docx, and .pdf files</div>
             </div>
           </button>
 
           <input
             ref={fileInputRef}
             type="file"
-            accept=".txt,.md"
+            accept=".txt,.md,.docx,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             onChange={handleFileChange}
             className="hidden"
           />

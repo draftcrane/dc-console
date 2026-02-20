@@ -6,6 +6,28 @@ import type { PickerFile } from "./use-google-picker";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+/** Allowed local file extensions */
+const ALLOWED_EXTENSIONS = [".txt", ".md", ".docx", ".pdf"];
+/** Max file size: 5MB for text, 20MB for binary */
+const MAX_TEXT_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_BINARY_FILE_SIZE = 20 * 1024 * 1024;
+
+/** Validate a file before upload. Returns error message or null if valid. */
+export function validateUploadFile(file: File): string | null {
+  const ext =
+    file.name.lastIndexOf(".") >= 0
+      ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase()
+      : "";
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    return `Unsupported file format. Only ${ALLOWED_EXTENSIONS.join(", ")} files are supported.`;
+  }
+  const maxSize = ext === ".txt" || ext === ".md" ? MAX_TEXT_FILE_SIZE : MAX_BINARY_FILE_SIZE;
+  if (file.size > maxSize) {
+    return `File too large (max ${maxSize / 1024 / 1024}MB)`;
+  }
+  return null;
+}
+
 export interface SourceMaterial {
   id: string;
   projectId: string;
@@ -75,11 +97,19 @@ export function useSources(projectId: string) {
     [getToken, projectId, fetchSources],
   );
 
-  /** Upload a local file (.txt, .md) as a source. */
+  /** Upload a local file (.txt, .md, .docx, .pdf) as a source. */
   const uploadLocalFile = useCallback(
     async (file: File) => {
       try {
         setError(null);
+
+        // Client-side validation
+        const validationError = validateUploadFile(file);
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
+
         const token = await getToken();
         const formData = new FormData();
         formData.append("file", file);
