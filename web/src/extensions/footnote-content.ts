@@ -9,11 +9,13 @@ import { Node, mergeAttributes } from "@tiptap/core";
  *
  * Format: "[N] Source Title" per design-spec.md Principle 4.
  *
- * Renders as: `<div class="footnote-content" data-footnote-id="...">
- *               <span class="footnote-label">[N]</span> Source Title
+ * Renders as: `<div class="footnote-content" data-footnote-id="..." data-footnote-label="N">
+ *               Source Title
  *             </div>`
  *
- * Serializes to HTML with data attributes for round-trip deserialization.
+ * The label prefix "[N]" is displayed via CSS `::before` using the data-footnote-label
+ * attribute. ProseMirror requires the content hole to be the sole child of its parent,
+ * so the label cannot be rendered as a sibling DOM element in renderHTML.
  */
 export const FootnoteContent = Node.create({
   name: "footnoteContent",
@@ -52,13 +54,10 @@ export const FootnoteContent = Node.create({
     ];
   },
 
-  renderHTML({ node, HTMLAttributes }) {
-    const label = (node.attrs.label as string) || "0";
-    return [
-      "div",
-      mergeAttributes(HTMLAttributes, { class: "footnote-content" }),
-      ["span", { class: "footnote-label" }, `[${label}]`],
-      0,
-    ];
+  renderHTML({ HTMLAttributes }) {
+    // The label is stored as data-footnote-label and rendered via CSS ::before.
+    // ProseMirror requires the content hole (0) to be the sole child of its parent,
+    // so we cannot place a sibling <span> alongside it here.
+    return ["div", mergeAttributes(HTMLAttributes, { class: "footnote-content" }), 0];
   },
 });
