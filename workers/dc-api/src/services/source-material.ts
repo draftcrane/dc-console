@@ -22,6 +22,7 @@ import { countWords } from "../utils/word-count.js";
 import type { DriveService } from "./drive.js";
 import { SourceDriveService } from "./source-drive.js";
 import { SourceLocalService } from "./source-local.js";
+import { removeFtsEntry } from "./text-extraction.js";
 import {
   type AddSourceInput,
   type AddSourcesResult,
@@ -159,19 +160,20 @@ export class SourceMaterialService {
       throw new Error("Local source content not found in R2");
     }
 
-    // Fetch from Drive, sanitize, and cache
+    // Fetch from Drive, sanitize, cache, and index in FTS
     return this.driveService.fetchAndCache(
       userId,
       sourceId,
       source.driveFileId!,
       source.driveConnectionId,
       driveApi,
+      source.title,
     );
   }
 
   /**
    * Remove a source material (soft delete).
-   * Fire-and-forget R2 cleanup.
+   * Fire-and-forget R2 cleanup. Removes FTS index entry.
    */
   async removeSource(userId: string, sourceId: string): Promise<void> {
     // Verify ownership
@@ -182,10 +184,16 @@ export class SourceMaterialService {
       .bind(new Date().toISOString(), sourceId)
       .run();
 
+    // Remove FTS index entry
+    await removeFtsEntry(sourceId, this.db);
+
     // Fire-and-forget R2 cleanup
     if (source.cachedAt) {
-      this.bucket.delete(`sources/${sourceId}/content.html`).catch(() => {
-        // Non-critical -- orphaned R2 object is harmless
+      Promise.all([
+        this.bucket.delete(`sources/${sourceId}/content.html`),
+        this.bucket.delete(`sources/${sourceId}/content.txt`),
+      ]).catch(() => {
+        // Non-critical -- orphaned R2 objects are harmless
       });
     }
   }
