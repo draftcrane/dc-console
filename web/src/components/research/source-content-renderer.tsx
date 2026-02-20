@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { useDocumentSearch } from "@/hooks/use-document-search";
 
 interface SourceContentRendererProps {
@@ -44,7 +44,7 @@ function findTextNodeAtOffset(
  * centered in the container. Returns a cleanup function to remove the wrapper.
  */
 function highlightAndScroll(
-  container: HTMLElement,
+  scrollContainer: HTMLElement,
   startNode: Text,
   startOffset: number,
   length: number,
@@ -58,7 +58,12 @@ function highlightAndScroll(
   let endNode: Text = startNode;
   let endOffset = startOffset;
 
-  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+  const parent = startNode.parentElement?.closest(".source-content") || startNode.parentElement;
+  if (!parent) {
+    return () => {};
+  }
+
+  const walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null);
   // Advance walker to startNode
   let current: Node | null;
   while ((current = walker.nextNode())) {
@@ -87,28 +92,20 @@ function highlightAndScroll(
   span.className = className;
   range.surroundContents(span);
 
-  // Scroll to the span centered in container
-  const top = span.offsetTop - container.clientHeight / 2;
-  container.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+  // Scroll using getBoundingClientRect for iPad Safari reliability
+  const spanRect = span.getBoundingClientRect();
+  const containerRect = scrollContainer.getBoundingClientRect();
+  const top =
+    spanRect.top - containerRect.top + scrollContainer.scrollTop - scrollContainer.clientHeight / 2;
+  scrollContainer.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
 
   // Return cleanup
   return () => {
     if (span.parentNode) {
       span.replaceWith(...Array.from(span.childNodes));
-      container.normalize();
+      span.parentElement?.normalize();
     }
   };
-}
-
-/**
- * Generate a simple numeric key from content string for React remounting.
- */
-function contentKey(content: string): number {
-  let hash = 0;
-  for (let i = 0; i < Math.min(content.length, 200); i++) {
-    hash = (hash * 31 + content.charCodeAt(i)) | 0;
-  }
-  return hash;
 }
 
 export function SourceContentRenderer({
@@ -120,18 +117,26 @@ export function SourceContentRenderer({
 }: SourceContentRendererProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [renderKey] = useState(() => contentKey(content));
 
   const search = useDocumentSearch({
     containerRef: scrollContainerRef,
     enabled: searchEnabled,
   });
 
+  // Set innerHTML via ref — outside React reconciliation so search marks survive re-renders.
+  // clearSearch ref is stable (depends only on containerRef).
+  const { clearSearch } = search;
+  useEffect(() => {
+    if (contentRef.current) {
+      clearSearch();
+      contentRef.current.innerHTML = content;
+    }
+  }, [content, clearSearch]);
+
   // Scroll-to-text: find the text in concatenated textContent, then map to DOM position
   useEffect(() => {
     if (!scrollToText || !contentRef.current || !scrollContainerRef.current) return;
 
-    // Small delay to ensure dangerouslySetInnerHTML has rendered
     const timer = setTimeout(() => {
       const container = scrollContainerRef.current;
       const contentEl = contentRef.current;
@@ -152,13 +157,12 @@ export function SourceContentRenderer({
         "scroll-target-flash",
       );
 
-      // Remove highlight wrapper after animation completes
       const cleanupTimer = setTimeout(cleanup, 2000);
       return () => clearTimeout(cleanupTimer);
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [scrollToText, renderKey]);
+  }, [scrollToText, content]);
 
   // Scroll-to-offset: directly walk text nodes to the offset
   useEffect(() => {
@@ -172,7 +176,6 @@ export function SourceContentRenderer({
       const result = findTextNodeAtOffset(contentEl, scrollToOffset);
       if (!result) return;
 
-      // Highlight a short range around the offset (40 chars or rest of node)
       const remainingInNode = (result.node.textContent?.length || 0) - result.localOffset;
       const highlightLen = Math.min(40, remainingInNode);
 
@@ -189,7 +192,7 @@ export function SourceContentRenderer({
     }, 50);
 
     return () => clearTimeout(timer);
-  }, [scrollToOffset, renderKey]);
+  }, [scrollToOffset, content]);
 
   // Text selection handler
   const handleTextSelect = useCallback(() => {
@@ -306,10 +309,8 @@ export function SourceContentRenderer({
       {/* Scrollable content area */}
       <div ref={scrollContainerRef} className="flex-1 overflow-auto">
         <div
-          key={renderKey}
           ref={contentRef}
           className="source-content px-5 py-4"
-          dangerouslySetInnerHTML={{ __html: content }}
           onMouseUp={handleTextSelect}
           onTouchEnd={handleTextSelect}
         />

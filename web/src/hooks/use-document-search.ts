@@ -55,8 +55,10 @@ export function useDocumentSearch({
       const container = containerRef.current;
       if (!container || !el) return;
 
-      const top = el.offsetTop - container.clientHeight / 2;
-      container.scrollTo({ top, behavior: "smooth" });
+      const elRect = el.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const top = elRect.top - containerRect.top + container.scrollTop - container.clientHeight / 2;
+      container.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
     },
     [containerRef],
   );
