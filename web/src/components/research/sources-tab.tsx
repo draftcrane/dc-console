@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useResearchPanel } from "./research-panel-provider";
 import { SourceAddFlow } from "./source-add-flow";
@@ -184,7 +184,7 @@ export function SourcesTab() {
   const projectId = params.projectId as string;
   const { sourcesView, startAddFlow, backToSourceList, finishAdd } = useResearchPanel();
 
-  const { sources, isLoading, error, fetchSources, uploadLocalFile, removeSource } =
+  const { sources, isLoading, error, fetchSources, addSources, uploadLocalFile, removeSource } =
     useSources(projectId);
 
   const { accounts: driveAccounts, connect: connectDrive } = useDriveAccounts();
@@ -194,6 +194,17 @@ export function SourcesTab() {
     fetchSources();
   }, [fetchSources]);
 
+  // Build a set of Drive file IDs already in the project for "Already added" detection
+  const existingDriveFileIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const source of sources) {
+      if (source.driveFileId) {
+        ids.add(source.driveFileId);
+      }
+    }
+    return ids;
+  }, [sources]);
+
   const handleUploadLocal = useCallback(
     async (file: File) => {
       await uploadLocalFile(file);
@@ -202,14 +213,21 @@ export function SourcesTab() {
     [uploadLocalFile, finishAdd],
   );
 
-  const handleSelectDriveAccount = useCallback(
-    (connectionId: string) => {
-      // Drive browser integration will use connectionId in a future issue.
-      // For now, just complete the add flow.
-      void connectionId;
+  const handleAddDriveFiles = useCallback(
+    (
+      files: Array<{ driveFileId: string; title: string; mimeType: string }>,
+      connectionId: string,
+    ) => {
+      // Map to PickerFile format expected by addSources
+      const pickerFiles = files.map((f) => ({
+        driveFileId: f.driveFileId,
+        title: f.title,
+        mimeType: f.mimeType,
+      }));
+      addSources(pickerFiles, connectionId);
       finishAdd();
     },
-    [finishAdd],
+    [addSources, finishAdd],
   );
 
   const handleConnectAccount = useCallback(() => {
@@ -222,8 +240,9 @@ export function SourcesTab() {
       <SourceAddFlow
         projectId={projectId}
         driveAccounts={driveAccounts}
+        existingDriveFileIds={existingDriveFileIds}
         onBack={backToSourceList}
-        onSelectDriveAccount={handleSelectDriveAccount}
+        onAddDriveFiles={handleAddDriveFiles}
         onUploadLocal={handleUploadLocal}
         onConnectAccount={handleConnectAccount}
       />
