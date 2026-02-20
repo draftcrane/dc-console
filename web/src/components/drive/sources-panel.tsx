@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import type { SourceMaterial } from "@/hooks/use-sources";
+import type { SourceSearchResult } from "@/hooks/use-source-search";
 
 interface SourcesPanelProps {
   isOpen: boolean;
@@ -14,6 +15,20 @@ interface SourcesPanelProps {
   onViewSource: (source: SourceMaterial) => void;
   onImportAsChapter: (sourceId: string) => void;
   onRemoveSource: (sourceId: string) => void;
+  /** Search query string */
+  searchQuery?: string;
+  /** Search results from the API */
+  searchResults?: SourceSearchResult[];
+  /** Whether a search is in progress */
+  isSearching?: boolean;
+  /** Search error message */
+  searchError?: string | null;
+  /** Whether search is active (query >= 2 chars) */
+  isSearchActive?: boolean;
+  /** Handler for search query changes */
+  onSearchChange?: (query: string) => void;
+  /** Handler to clear search */
+  onSearchClear?: () => void;
 }
 
 function formatRelativeTime(dateStr?: string | null): string {
@@ -52,6 +67,13 @@ export function SourcesPanel({
   onViewSource,
   onImportAsChapter,
   onRemoveSource,
+  searchQuery = "",
+  searchResults = [],
+  isSearching = false,
+  searchError = null,
+  isSearchActive = false,
+  onSearchChange,
+  onSearchClear,
 }: SourcesPanelProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -153,9 +175,132 @@ export function SourcesPanel({
           </div>
         </div>
 
+        {/* Search field */}
+        {onSearchChange && (
+          <div className="px-4 py-2 border-b border-gray-100 shrink-0">
+            <div className="relative">
+              <svg
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search sources..."
+                className="w-full h-9 pl-8 pr-8 text-sm rounded-lg border border-gray-200 bg-gray-50
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           placeholder:text-gray-400"
+                aria-label="Search sources"
+              />
+              {searchQuery && onSearchClear && (
+                <button
+                  onClick={onSearchClear}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center
+                             rounded-full hover:bg-gray-200 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <svg
+                    className="w-3 h-3 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         <div className="flex-1 overflow-auto">
-          {isLoading && sources.length === 0 && (
+          {/* Search results view */}
+          {isSearchActive && (
+            <>
+              {isSearching && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                    Searching...
+                  </div>
+                </div>
+              )}
+
+              {searchError && (
+                <div className="px-4 py-3 m-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-700">{searchError}</p>
+                </div>
+              )}
+
+              {!isSearching && !searchError && searchResults.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                  <p className="text-sm text-gray-500">No matching sources</p>
+                  <p className="text-xs text-gray-400 mt-1">Try a different search term.</p>
+                </div>
+              )}
+
+              {!isSearching && searchResults.length > 0 && (
+                <ul className="divide-y divide-gray-100" role="list">
+                  {searchResults.map((result) => {
+                    const matchedSource = sources.find((s) => s.id === result.sourceId);
+                    return (
+                      <li key={result.sourceId} className="px-4 py-3">
+                        <button
+                          onClick={() => {
+                            if (matchedSource) onViewSource(matchedSource);
+                          }}
+                          className="w-full text-left"
+                          disabled={!matchedSource}
+                        >
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {result.title}
+                          </p>
+                          {result.snippet && (
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                              {result.snippet}
+                            </p>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </>
+          )}
+
+          {/* Normal source list (hidden when search is active) */}
+          {!isSearchActive && isLoading && sources.length === 0 && (
             <div className="flex items-center justify-center py-12">
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -178,13 +323,13 @@ export function SourcesPanel({
             </div>
           )}
 
-          {error && (
+          {!isSearchActive && error && (
             <div className="px-4 py-3 m-4 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
 
-          {!isLoading && !error && sources.length === 0 && (
+          {!isSearchActive && !isLoading && !error && sources.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
               <svg
                 className="w-12 h-12 text-gray-300 mb-3"
@@ -206,7 +351,7 @@ export function SourcesPanel({
             </div>
           )}
 
-          {sources.length > 0 && (
+          {!isSearchActive && sources.length > 0 && (
             <ul className="divide-y divide-gray-100" role="list">
               {sources.map((source) => (
                 <SourceRow

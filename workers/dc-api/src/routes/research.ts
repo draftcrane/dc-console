@@ -1,7 +1,8 @@
 /**
- * Research clip routes -- CRUD for user-saved research snippets.
+ * Research routes -- endpoints for the Research Companion panel.
  *
  * Routes:
+ * - GET /projects/:projectId/research/sources/search?q=keyword - Full-text search
  * - POST /projects/:projectId/research/clips - Save a clip
  * - GET /projects/:projectId/research/clips - List clips (optional ?chapterId=xxx)
  * - DELETE /research/clips/:clipId - Delete a clip
@@ -14,11 +15,32 @@ import type { Env } from "../types/index.js";
 import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ResearchClipService, type CreateClipInput } from "../services/research-clip.js";
+import { SourceSearchService } from "../services/source-search.js";
 
 const research = new Hono<{ Bindings: Env }>();
 
 // Auth is enforced globally in index.ts
 research.use("*", standardRateLimit);
+
+/**
+ * GET /projects/:projectId/research/sources/search?q=keyword
+ * Full-text search across source titles and content.
+ * Uses FTS5 with LIKE fallback.
+ */
+research.get("/projects/:projectId/research/sources/search", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+  const q = c.req.query("q") ?? "";
+
+  if (!q || q.trim().length < 2) {
+    validationError("Search query must be at least 2 characters");
+  }
+
+  const service = new SourceSearchService(c.env.DB);
+  const response = await service.search(userId, projectId, q);
+
+  return c.json(response);
+});
 
 /**
  * POST /projects/:projectId/research/clips

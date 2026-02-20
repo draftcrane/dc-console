@@ -142,14 +142,27 @@ export async function seedClip(
 }
 
 /**
+ * Seed FTS content for a source.
+ * Inserts a row into source_content_fts so search tests can find it.
+ */
+export async function seedSourceFts(sourceId: string, title: string, content: string) {
+  await env.DB.prepare(
+    `INSERT INTO source_content_fts (source_id, title, content)
+     VALUES (?, ?, ?)`,
+  )
+    .bind(sourceId, title, content)
+    .run();
+}
+
+/**
  * Remove all rows from test tables in reverse FK order.
  */
 export async function cleanAll() {
   await env.DB.batch([
+    env.DB.prepare("DELETE FROM source_content_fts"),
     env.DB.prepare("DELETE FROM ai_interactions"),
     env.DB.prepare("DELETE FROM export_jobs"),
     env.DB.prepare("DELETE FROM research_clips"),
-    env.DB.prepare("DELETE FROM source_content_fts"),
     env.DB.prepare("DELETE FROM source_materials"),
     env.DB.prepare("DELETE FROM chapters"),
     env.DB.prepare("DELETE FROM projects"),
