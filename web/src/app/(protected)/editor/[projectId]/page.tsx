@@ -25,6 +25,7 @@ import { useEditorAI } from "@/hooks/use-editor-ai";
 import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { useSourceActions } from "@/hooks/use-source-actions";
+import { useSources } from "@/hooks/use-sources";
 import { useEditorProject } from "@/hooks/use-editor-project";
 import { useChapterContent } from "@/hooks/use-chapter-content";
 
@@ -254,6 +255,14 @@ function EditorPageInner() {
   // --- Source materials (retained for Drive files sheet callbacks) ---
   const { openDriveBrowser } = useSourceActions(projectId);
 
+  // --- Source count for first-use nudge (#185) ---
+  const { sources: projectSources, fetchSources: fetchProjectSources } = useSources(projectId);
+
+  // Fetch sources on mount to check count for first-use nudge
+  useEffect(() => {
+    fetchProjectSources();
+  }, [fetchProjectSources]);
+
   // --- Computed values ---
   const totalWordCount = projectData?.chapters.reduce((sum, ch) => sum + ch.wordCount, 0) ?? 0;
 
@@ -341,6 +350,7 @@ function EditorPageInner() {
             getToken={getToken as () => Promise<string | null>}
             apiUrl={API_URL}
             isResearchPanelOpen={isResearchPanelOpen}
+            hasAnySources={projectSources.length > 0}
             onToggleResearchPanel={() => {
               if (isResearchPanelOpen) {
                 closeResearchPanel();

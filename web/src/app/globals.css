@@ -367,6 +367,23 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
+/* Research Panel first-use nudge pulsing dot (#185) */
+@keyframes research-nudge-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.3);
+  }
+}
+
+.research-nudge-dot {
+  animation: research-nudge-pulse 2s ease-in-out infinite;
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-up {
@@ -386,6 +403,10 @@ body {
   }
 
   .research-backdrop-fade-in {
+    animation: none;
+  }
+
+  .research-nudge-dot {
     animation: none;
   }
 }
