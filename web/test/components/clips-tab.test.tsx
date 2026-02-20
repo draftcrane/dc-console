@@ -3,10 +3,10 @@ import { act } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
 
 /**
- * Tests for ClipsTab component and deleteClip hook addition (#198).
+ * Tests for ClipsTab component (#198, #199).
  *
  * 1. useResearchClips.deleteClip — removes clip from local state
- * 2. ClipCard chapter tag formatting — "Ch. N" compact label
+ * 2. ClipsTab search — filters by content and source title
  */
 
 // ============================================================

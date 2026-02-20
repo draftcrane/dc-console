@@ -162,4 +162,73 @@ describe("ClipCard", () => {
     expect(insertBtn.className).toContain("min-h-[44px]");
     expect(deleteBtn.className).toContain("min-h-[44px]");
   });
+
+  describe("swipe-to-delete gesture", () => {
+    it("reveals delete action behind card after swipe exceeding threshold", () => {
+      render(<ClipCard {...defaultProps} />);
+
+      const card = screen.getByTestId("clip-card");
+      const swipeTarget = card.querySelector("[class*='transition-transform']")!;
+
+      // Simulate swipe left > 60px threshold
+      fireEvent.touchStart(swipeTarget, { touches: [{ clientX: 300 }] });
+      fireEvent.touchMove(swipeTarget, { touches: [{ clientX: 230 }] });
+      fireEvent.touchEnd(swipeTarget);
+
+      // Card should be translated to reveal delete
+      expect(swipeTarget).toHaveStyle("transform: translateX(-80px)");
+    });
+
+    it("does not reveal delete for small swipes below threshold", () => {
+      render(<ClipCard {...defaultProps} />);
+
+      const card = screen.getByTestId("clip-card");
+      const swipeTarget = card.querySelector("[class*='transition-transform']")!;
+
+      // Simulate small swipe < 60px threshold
+      fireEvent.touchStart(swipeTarget, { touches: [{ clientX: 300 }] });
+      fireEvent.touchMove(swipeTarget, { touches: [{ clientX: 260 }] });
+      fireEvent.touchEnd(swipeTarget);
+
+      // Card should snap back
+      expect(swipeTarget).toHaveStyle("transform: translateX(-0px)");
+    });
+
+    it("calls onDelete when swipe-revealed delete button is tapped", () => {
+      const onDelete = vi.fn();
+      render(<ClipCard {...defaultProps} onDelete={onDelete} />);
+
+      const card = screen.getByTestId("clip-card");
+      const swipeTarget = card.querySelector("[class*='transition-transform']")!;
+
+      // Swipe to reveal
+      fireEvent.touchStart(swipeTarget, { touches: [{ clientX: 300 }] });
+      fireEvent.touchMove(swipeTarget, { touches: [{ clientX: 230 }] });
+      fireEvent.touchEnd(swipeTarget);
+
+      // Tap the revealed delete button
+      const swipeDeleteBtn = screen.getByRole("button", { name: "Swipe delete clip" });
+      fireEvent.click(swipeDeleteBtn);
+      expect(onDelete).toHaveBeenCalledOnce();
+    });
+
+    it("resets swipe on right swipe (dismissal)", () => {
+      render(<ClipCard {...defaultProps} />);
+
+      const card = screen.getByTestId("clip-card");
+      const swipeTarget = card.querySelector("[class*='transition-transform']")!;
+
+      // Swipe left first
+      fireEvent.touchStart(swipeTarget, { touches: [{ clientX: 300 }] });
+      fireEvent.touchMove(swipeTarget, { touches: [{ clientX: 230 }] });
+      fireEvent.touchEnd(swipeTarget);
+      expect(swipeTarget).toHaveStyle("transform: translateX(-80px)");
+
+      // Now swipe right to dismiss
+      fireEvent.touchStart(swipeTarget, { touches: [{ clientX: 220 }] });
+      fireEvent.touchMove(swipeTarget, { touches: [{ clientX: 280 }] });
+      fireEvent.touchEnd(swipeTarget);
+      expect(swipeTarget).toHaveStyle("transform: translateX(-0px)");
+    });
+  });
 });
