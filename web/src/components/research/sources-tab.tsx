@@ -560,10 +560,7 @@ export function SourcesTab() {
     );
   }
 
-  // --- Two-Section List View ---
-
-  const hasNoSourcesAndNoDocs =
-    !isLoading && !connectionsLoading && projectConnections.length === 0 && sources.length === 0;
+  // --- Two-Section List View (always visible) ---
 
   return (
     <div className="flex flex-col h-full">
@@ -603,47 +600,8 @@ export function SourcesTab() {
           </div>
         )}
 
-        {/* Full empty state: no sources AND no documents */}
-        {hasNoSourcesAndNoDocs && !error && (
-          <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-            <svg
-              className="w-12 h-12 text-muted-foreground mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-              />
-            </svg>
-            <p className="text-sm text-muted-foreground mb-4">
-              Link a Google Drive account or upload files to add research material.
-            </p>
-            <div className="flex flex-col gap-2 w-full max-w-[200px]">
-              <button
-                onClick={startLinkSource}
-                className="h-10 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg
-                           hover:bg-blue-700 transition-colors"
-              >
-                + Link Google Drive
-              </button>
-              <button
-                onClick={() => startAddDocument()}
-                className="h-10 px-4 text-sm font-medium text-foreground rounded-lg border border-border
-                           hover:bg-gray-50 transition-colors"
-              >
-                Upload File
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Two-section layout when there's content */}
-        {!hasNoSourcesAndNoDocs && !error && !(isLoading && sources.length === 0) && (
+        {/* Two-section layout — always shown */}
+        {!error && !(isLoading && sources.length === 0) && (
           <>
             {/* SOURCES section */}
             <div className="px-4 pt-3 pb-1">
@@ -661,15 +619,9 @@ export function SourcesTab() {
               </div>
             </div>
 
-            {projectConnections.length === 0 && (
+            {projectConnections.length === 0 && !connectionsLoading && (
               <div className="px-4 py-2">
                 <p className="text-sm text-muted-foreground">No sources linked yet.</p>
-                <button
-                  onClick={startLinkSource}
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700 mt-1"
-                >
-                  + Link Source
-                </button>
               </div>
             )}
 
