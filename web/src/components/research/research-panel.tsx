@@ -7,6 +7,7 @@ import { SourcesTab } from "./sources-tab";
 import { AskTab } from "./ask-tab";
 import { ClipsTab } from "./clips-tab";
 import { useResearchClips } from "@/hooks/use-research-clips";
+import type { InsertResult } from "@/hooks/use-clip-insert";
 
 // === Tab Definitions ===
 
@@ -204,7 +205,15 @@ function TabBar({
 
 // === Tab Content Component ===
 
-function TabContent({ activeTab }: { activeTab: ResearchTab }) {
+function TabContent({
+  activeTab,
+  onInsertClip,
+  canInsert,
+}: {
+  activeTab: ResearchTab;
+  onInsertClip: (text: string, sourceTitle: string) => InsertResult;
+  canInsert: boolean;
+}) {
   // Render all tabs but only show the active one.
   // This preserves state when switching tabs (acceptance criteria).
   return (
@@ -216,7 +225,7 @@ function TabContent({ activeTab }: { activeTab: ResearchTab }) {
         <AskTab />
       </TabPanel>
       <TabPanel id="clips" activeTab={activeTab}>
-        <ClipsTab />
+        <ClipsTab onInsertClip={onInsertClip} canInsert={canInsert} />
       </TabPanel>
     </div>
   );
@@ -247,7 +256,12 @@ function TabPanel({
 
 // === Main Research Panel Component ===
 
-export function ResearchPanel() {
+export interface ResearchPanelProps {
+  onInsertClip?: (text: string, sourceTitle: string) => InsertResult;
+  canInsert?: boolean;
+}
+
+export function ResearchPanel({ onInsertClip, canInsert = false }: ResearchPanelProps) {
   const { isOpen, activeTab, setActiveTab, closePanel, openPanel } = useResearchPanel();
   const params = useParams();
   const projectId = params.projectId as string;
@@ -261,6 +275,14 @@ export function ResearchPanel() {
       fetchClips();
     }
   }, [isOpen, projectId, fetchClips]);
+
+  const handleInsertClip = useCallback(
+    (text: string, sourceTitle: string): InsertResult => {
+      if (onInsertClip) return onInsertClip(text, sourceTitle);
+      return "no-editor";
+    },
+    [onInsertClip],
+  );
 
   const layoutMode = useLayoutMode();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -307,7 +329,7 @@ export function ResearchPanel() {
       >
         <PanelHeader onClose={closePanel} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} clipCount={clipCount} />
-        <TabContent activeTab={activeTab} />
+        <TabContent activeTab={activeTab} onInsertClip={handleInsertClip} canInsert={canInsert} />
       </div>
     );
   }
@@ -333,7 +355,7 @@ export function ResearchPanel() {
       >
         <PanelHeader onClose={closePanel} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} clipCount={clipCount} />
-        <TabContent activeTab={activeTab} />
+        <TabContent activeTab={activeTab} onInsertClip={handleInsertClip} canInsert={canInsert} />
       </div>
     </>
   );

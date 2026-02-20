@@ -22,6 +22,9 @@ interface EditorWritingAreaProps {
   // Word count display
   currentWordCount: number;
   selectionWordCount: number;
+
+  /** Callback when cursor/selection changes in the editor */
+  onSelectionUpdate?: () => void;
 }
 
 /**
@@ -47,6 +50,7 @@ export function EditorWritingArea({
   onTitleEditCancel,
   currentWordCount,
   selectionWordCount,
+  onSelectionUpdate,
 }: EditorWritingAreaProps) {
   return (
     <div className="flex-1 overflow-auto">
@@ -93,6 +97,7 @@ export function EditorWritingArea({
           content={currentContent}
           onUpdate={onContentChange}
           onSelectionWordCountChange={onSelectionWordCountChange}
+          onSelectionUpdate={onSelectionUpdate}
         />
 
         <div className="mt-4 flex items-center justify-end">
