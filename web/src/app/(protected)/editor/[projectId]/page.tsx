@@ -11,6 +11,10 @@ import { EditorSidebar } from "@/components/editor/editor-sidebar";
 import { EditorToolbar } from "@/components/editor/editor-toolbar";
 import { EditorWritingArea } from "@/components/editor/editor-writing-area";
 import { EditorDialogs } from "@/components/editor/editor-dialogs";
+import {
+  ResearchPanelProvider,
+  useResearchPanel,
+} from "@/components/research/research-panel-provider";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useDriveFiles } from "@/hooks/use-drive-files";
 import { useAutoSave } from "@/hooks/use-auto-save";
@@ -44,12 +48,29 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
  *
  * This component is the orchestrator: it wires together hooks and delegates
  * all UI rendering to focused child components.
+ *
+ * Source/research panel state is managed by ResearchPanelProvider context (#180).
  */
 export default function EditorPage() {
+  return (
+    <ResearchPanelProvider>
+      <EditorPageInner />
+    </ResearchPanelProvider>
+  );
+}
+
+function EditorPageInner() {
   const params = useParams();
   const router = useRouter();
   const { getToken } = useAuth();
   const projectId = params.projectId as string;
+
+  // Research panel state from context
+  const {
+    isOpen: isResearchPanelOpen,
+    closePanel: closeResearchPanel,
+    openPanel: openResearchPanel,
+  } = useResearchPanel();
 
   // Editor ref for AI rewrite text replacement
   const editorRef = useRef<ChapterEditorHandle>(null);
@@ -229,41 +250,8 @@ export default function EditorPage() {
     onProjectDisconnected: handleProjectDisconnected,
   });
 
-  // --- Source materials ---
-  const {
-    sources,
-    isSourcesLoading,
-    isSourcesPanelOpen,
-    openSourcesPanel,
-    closeSourcesPanel,
-    isViewerOpen,
-    activeSource,
-    viewerContent,
-    viewerWordCount,
-    isContentLoading,
-    openSourceViewer,
-    closeSourceViewer,
-    uploadLocalFile,
-    removeSource,
-    importSourceAsChapter,
-    isDriveBrowserOpen,
-    openDriveBrowser,
-    closeDriveBrowser,
-    driveItems,
-    isDriveLoading,
-    driveCanGoBack,
-    driveGoBack,
-    openDriveFolder,
-    addFromDriveBrowser,
-    isDriveDoc,
-    isDriveFolder,
-    driveError,
-    isAddSourceSheetOpen,
-    openAddSourceSheet,
-    closeAddSourceSheet,
-    error: sourcesError,
-    contentError,
-  } = useSourceActions(projectId);
+  // --- Source materials (retained for Drive files sheet callbacks) ---
+  const { openDriveBrowser } = useSourceActions(projectId);
 
   // --- Computed values ---
   const totalWordCount = projectData?.chapters.reduce((sum, ch) => sum + ch.wordCount, 0) ?? 0;
@@ -352,7 +340,7 @@ export default function EditorPage() {
             getToken={getToken as () => Promise<string | null>}
             apiUrl={API_URL}
             hasDriveFolder={!!projectData.driveFolderId}
-            onViewSources={openSourcesPanel}
+            onViewSources={() => openResearchPanel("sources")}
             onManageAccounts={() => setIsAccountsSheetOpen(true)}
             onDisconnectDrive={openDisconnectDriveDialog}
             onRenameBook={openRenameDialog}
@@ -384,8 +372,6 @@ export default function EditorPage() {
       <EditorDialogs
         projectData={projectData}
         projectId={projectId}
-        getToken={getToken as () => Promise<string | null>}
-        apiUrl={API_URL}
         // Delete project
         deleteDialogOpen={deleteDialogOpen}
         onDeleteProject={handleDeleteProject}
@@ -432,50 +418,16 @@ export default function EditorPage() {
         onRefreshDriveFiles={refreshDriveFiles}
         onConnectProjectToDrive={onConnectProjectToDrive}
         onDisconnectProjectFromDrive={disconnectProjectFromDrive}
-        onOpenSourcesPanel={openSourcesPanel}
+        onOpenSourcesPanel={() => openResearchPanel("sources")}
         onOpenDriveBrowser={openDriveBrowser}
-        // Sources panel
-        isSourcesPanelOpen={isSourcesPanelOpen}
-        sources={sources}
-        isSourcesLoading={isSourcesLoading}
-        sourcesError={sourcesError}
-        isPickerLoading={isDriveLoading}
-        onCloseSourcesPanel={closeSourcesPanel}
-        onOpenAddSourceSheet={openAddSourceSheet}
-        onOpenSourceViewer={openSourceViewer}
-        onRemoveSource={removeSource}
-        importSourceAsChapter={importSourceAsChapter}
-        setActiveChapterId={setActiveChapterId}
-        // Add source sheet
-        isAddSourceSheetOpen={isAddSourceSheetOpen}
-        onCloseAddSourceSheet={closeAddSourceSheet}
-        onSelectDriveAccount={(connectionId) => openDriveBrowser(connectionId)}
-        onUploadLocal={uploadLocalFile}
-        // Drive browser
-        isDriveBrowserOpen={isDriveBrowserOpen}
-        driveItems={driveItems}
-        isDriveLoading={isDriveLoading}
-        driveError={driveError}
-        driveCanGoBack={driveCanGoBack}
-        onCloseDriveBrowser={closeDriveBrowser}
-        onDriveGoBack={driveGoBack}
-        onOpenDriveFolder={openDriveFolder}
-        onAddFromDriveBrowser={addFromDriveBrowser}
-        isDriveDoc={isDriveDoc}
-        isDriveFolder={isDriveFolder}
         // Accounts sheet
         isAccountsSheetOpen={isAccountsSheetOpen}
         onCloseAccountsSheet={() => setIsAccountsSheetOpen(false)}
         onConnectAccount={() => connectDrive()}
         onRefetchDriveAccounts={refetchDriveAccounts}
-        // Source viewer
-        isViewerOpen={isViewerOpen}
-        activeSource={activeSource}
-        viewerContent={viewerContent}
-        viewerWordCount={viewerWordCount}
-        isContentLoading={isContentLoading}
-        contentError={contentError}
-        onCloseSourceViewer={closeSourceViewer}
+        // Research panel (minimal props)
+        isResearchPanelOpen={isResearchPanelOpen}
+        onCloseResearchPanel={closeResearchPanel}
       />
     </div>
   );
