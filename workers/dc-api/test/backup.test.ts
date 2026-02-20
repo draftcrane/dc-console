@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { env } from "cloudflare:test";
 import JSZip from "jszip";
-import { BackupService } from "../src/services/backup.js";
+import { BackupService, IMPORT_LIMITS } from "../src/services/backup.js";
 import { seedUser, seedProject, seedChapter, cleanAll } from "./helpers/seed.js";
 
 describe("BackupService", () => {
@@ -125,6 +125,130 @@ describe("BackupService", () => {
       const zipBuffer = await zip.generateAsync({ type: "arraybuffer" });
 
       await expect(service.importBackup(userId, zipBuffer)).rejects.toThrow("no chapters found");
+    });
+
+    describe("zip-bomb guards", () => {
+      // Save original limits and restore after each test
+      const originalLimits = { ...IMPORT_LIMITS };
+      afterEach(() => {
+        Object.assign(IMPORT_LIMITS, originalLimits);
+      });
+
+      it("rejects ZIP exceeding max entry count", async () => {
+        // Lower the limit so we don't need to create hundreds of files
+        (IMPORT_LIMITS as Record<string, number>).MAX_ENTRY_COUNT = 3;
+
+        const zip = new JSZip();
+        const chapters = zip.folder("chapters")!;
+        // 4 chapter files + manifest = 5 file entries, but limit is 3
+        chapters.file("01-a.html", "<p>a</p>");
+        chapters.file("02-b.html", "<p>b</p>");
+        chapters.file("03-c.html", "<p>c</p>");
+        chapters.file("04-d.html", "<p>d</p>");
+        zip.file(
+          "manifest.json",
+          JSON.stringify({
+            version: 1,
+            app: "DraftCrane",
+            project: { title: "Too Many" },
+            chapters: [
+              { title: "A", sortOrder: 1, fileName: "01-a.html", wordCount: 1 },
+              { title: "B", sortOrder: 2, fileName: "02-b.html", wordCount: 1 },
+              { title: "C", sortOrder: 3, fileName: "03-c.html", wordCount: 1 },
+              { title: "D", sortOrder: 4, fileName: "04-d.html", wordCount: 1 },
+            ],
+          }),
+        );
+
+        const zipBuffer = await zip.generateAsync({ type: "arraybuffer" });
+
+        await expect(service.importBackup(userId, zipBuffer)).rejects.toThrow(
+          /exceeds maximum entry count/,
+        );
+      });
+
+      it("rejects ZIP with a single entry exceeding max uncompressed size", async () => {
+        // Lower the per-entry limit to 10 bytes for testing
+        (IMPORT_LIMITS as Record<string, number>).MAX_ENTRY_UNCOMPRESSED_BYTES = 10;
+
+        const zip = new JSZip();
+        const chapters = zip.folder("chapters")!;
+        // This entry is > 10 bytes uncompressed
+        chapters.file("01-big.html", "<p>This content is way too large for the limit</p>");
+        zip.file(
+          "manifest.json",
+          JSON.stringify({
+            version: 1,
+            app: "DraftCrane",
+            project: { title: "Big Entry" },
+            chapters: [{ title: "Big", sortOrder: 1, fileName: "01-big.html", wordCount: 1 }],
+          }),
+        );
+
+        const zipBuffer = await zip.generateAsync({ type: "arraybuffer" });
+
+        await expect(service.importBackup(userId, zipBuffer)).rejects.toThrow(
+          /exceeds maximum uncompressed size/,
+        );
+      });
+
+      it("rejects ZIP exceeding max total uncompressed size", async () => {
+        // Lower the total limit to 50 bytes for testing
+        (IMPORT_LIMITS as Record<string, number>).MAX_TOTAL_UNCOMPRESSED_BYTES = 50;
+        // Keep per-entry limit high so individual entries pass
+        (IMPORT_LIMITS as Record<string, number>).MAX_ENTRY_UNCOMPRESSED_BYTES = 100;
+
+        const zip = new JSZip();
+        const chapters = zip.folder("chapters")!;
+        // Each entry is ~30 bytes; two of them + manifest exceeds 50 byte total
+        chapters.file("01-a.html", "<p>Content chunk A here!</p>");
+        chapters.file("02-b.html", "<p>Content chunk B here!</p>");
+        zip.file(
+          "manifest.json",
+          JSON.stringify({
+            version: 1,
+            app: "DraftCrane",
+            project: { title: "Big Total" },
+            chapters: [
+              { title: "A", sortOrder: 1, fileName: "01-a.html", wordCount: 1 },
+              { title: "B", sortOrder: 2, fileName: "02-b.html", wordCount: 1 },
+            ],
+          }),
+        );
+
+        const zipBuffer = await zip.generateAsync({ type: "arraybuffer" });
+
+        await expect(service.importBackup(userId, zipBuffer)).rejects.toThrow(
+          /exceeds maximum total uncompressed size/,
+        );
+      });
+
+      it("accepts a valid ZIP within all limits", async () => {
+        // Use small limits that our test ZIP stays under
+        (IMPORT_LIMITS as Record<string, number>).MAX_ENTRY_COUNT = 10;
+        (IMPORT_LIMITS as Record<string, number>).MAX_ENTRY_UNCOMPRESSED_BYTES = 10000;
+        (IMPORT_LIMITS as Record<string, number>).MAX_TOTAL_UNCOMPRESSED_BYTES = 50000;
+
+        const zip = new JSZip();
+        const chapters = zip.folder("chapters")!;
+        chapters.file("01-intro.html", "<p>Valid content</p>");
+        zip.file(
+          "manifest.json",
+          JSON.stringify({
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            app: "DraftCrane",
+            project: { title: "Valid Import", description: "passes guards" },
+            chapters: [{ title: "Intro", sortOrder: 1, fileName: "01-intro.html", wordCount: 2 }],
+          }),
+        );
+
+        const zipBuffer = await zip.generateAsync({ type: "arraybuffer" });
+        const result = await service.importBackup(userId, zipBuffer);
+
+        expect(result.title).toBe("Valid Import");
+        expect(result.chapterCount).toBe(1);
+      });
     });
   });
 
