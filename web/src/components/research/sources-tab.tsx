@@ -5,45 +5,42 @@ import { useParams } from "next/navigation";
 import { useResearchPanel } from "./research-panel-provider";
 import { SourceAddFlow } from "./source-add-flow";
 import { SourceDetailView } from "./source-detail-view";
-import { SourceProviderDetail } from "./source-provider-detail";
+import { ConnectionsView } from "./connections-view";
 import { useSources, type SourceMaterial } from "@/hooks/use-sources";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 
-// === Relative Time Formatter ===
+// === Source Badge Helpers ===
 
-function formatRelativeTime(dateStr?: string | null): string {
-  if (!dateStr) return "";
-  try {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+function getSourceBadge(source: SourceMaterial, emailByConnectionId: Map<string, string>): string {
+  if (source.sourceType === "local") return "From device";
+  if (!source.driveConnectionId) return "Account disconnected";
+  const email = emailByConnectionId.get(source.driveConnectionId);
+  if (!email) return "Account disconnected";
+  const singleAccount = emailByConnectionId.size <= 1;
+  return abbreviateEmail(email, singleAccount);
+}
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    return date.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-    });
-  } catch {
-    return "";
-  }
+function abbreviateEmail(email: string, singleAccount: boolean): string {
+  // Single account: just show "Drive" (no disambiguation needed)
+  if (singleAccount) return "Drive";
+  // Multiple accounts: show local part only, truncated.
+  // Domain adds no value for disambiguation — users know their accounts by username.
+  const [local] = email.split("@");
+  if (!local) return email;
+  return local.length > 14 ? local.slice(0, 12) + "..." : local;
+  // CSS `truncate` with max-w on the badge span provides a safety net.
 }
 
 // === Source Card ===
 
 function SourceCard({
   source,
+  sourceBadge,
   onTap,
   onRemove,
 }: {
   source: SourceMaterial;
+  sourceBadge: string;
   onTap: () => void;
   onRemove: () => void;
 }) {
@@ -94,10 +91,10 @@ function SourceCard({
                   {source.wordCount.toLocaleString()} words
                 </span>
                 <span className="text-xs text-gray-300" aria-hidden="true">
-                  |
+                  &middot;
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  Updated {formatRelativeTime(source.cachedAt)}
+                <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                  {sourceBadge}
                 </span>
               </>
             ) : (
@@ -123,6 +120,10 @@ function SourceCard({
                   />
                 </svg>
                 Processing...
+                <span className="text-gray-300 ml-0.5" aria-hidden="true">
+                  &middot;
+                </span>
+                <span className="truncate max-w-[120px]">{sourceBadge}</span>
               </span>
             )}
           </div>
@@ -194,144 +195,6 @@ function SourcesEmptyState({
   );
 }
 
-// === Provider Section Header ===
-
-function ProviderSectionHeader({
-  icon,
-  label,
-  subtitle,
-  docCount,
-  onTap,
-}: {
-  icon: "drive" | "device";
-  label: string;
-  subtitle?: string;
-  docCount: number;
-  onTap: () => void;
-}) {
-  return (
-    <button
-      onClick={onTap}
-      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50
-                 transition-colors min-h-[56px] text-left"
-    >
-      {icon === "drive" ? (
-        <div className="h-9 w-9 flex items-center justify-center rounded-full bg-blue-50 shrink-0">
-          <svg
-            className="w-4 h-4 text-gray-500"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            aria-hidden="true"
-          >
-            <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
-          </svg>
-        </div>
-      ) : (
-        <div className="h-9 w-9 flex items-center justify-center rounded-full bg-gray-100 shrink-0">
-          <svg
-            className="w-4 h-4 text-gray-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-            />
-          </svg>
-        </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-foreground truncate">{label}</p>
-        <p className="text-xs text-muted-foreground">
-          {docCount} document{docCount !== 1 ? "s" : ""}
-          {subtitle && <span className="ml-1.5 text-amber-600 font-medium">{subtitle}</span>}
-        </p>
-      </div>
-      <svg
-        className="w-4 h-4 text-gray-400 shrink-0"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-      </svg>
-    </button>
-  );
-}
-
-// === Grouping utility ===
-
-interface SourceGroup {
-  connectionId: string | null;
-  email: string | null;
-  sources: SourceMaterial[];
-}
-
-function groupSourcesByProvider(
-  sources: SourceMaterial[],
-  driveAccounts: Array<{ id: string; email: string }>,
-): SourceGroup[] {
-  const groups = new Map<string | null, SourceMaterial[]>();
-
-  for (const source of sources) {
-    const key = source.driveConnectionId ?? null;
-    const existing = groups.get(key);
-    if (existing) {
-      existing.push(source);
-    } else {
-      groups.set(key, [source]);
-    }
-  }
-
-  // Also ensure connected accounts with 0 documents appear
-  for (const account of driveAccounts) {
-    if (!groups.has(account.id)) {
-      groups.set(account.id, []);
-    }
-  }
-
-  const result: SourceGroup[] = [];
-
-  // Drive accounts first (ordered by driveAccounts order)
-  for (const account of driveAccounts) {
-    const accountSources = groups.get(account.id) ?? [];
-    result.push({
-      connectionId: account.id,
-      email: account.email,
-      sources: accountSources,
-    });
-    groups.delete(account.id);
-  }
-
-  // Unknown connection IDs (orphaned sources from disconnected accounts)
-  for (const [key, keySources] of groups) {
-    if (key !== null) {
-      result.push({
-        connectionId: key,
-        email: null,
-        sources: keySources,
-      });
-    }
-  }
-
-  // Device uploads last
-  const deviceSources = groups.get(null);
-  if (deviceSources && deviceSources.length > 0) {
-    result.push({
-      connectionId: null,
-      email: null,
-      sources: deviceSources,
-    });
-  }
-
-  return result;
-}
-
 // === Sources Tab ===
 
 export function SourcesTab({
@@ -350,7 +213,7 @@ export function SourcesTab({
     scrollToText,
     startAddFlow,
     viewSource,
-    viewProviderDetail,
+    viewConnections,
     backToSourceList,
     returnToPreviousTab,
     finishAdd,
@@ -387,10 +250,23 @@ export function SourcesTab({
     return ids;
   }, [sources]);
 
-  // Group sources by provider
-  const sourceGroups = useMemo(
-    () => groupSourcesByProvider(sources, driveAccounts),
-    [sources, driveAccounts],
+  // Email lookup for source badges
+  const emailByConnectionId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const account of driveAccounts) {
+      map.set(account.id, account.email);
+    }
+    return map;
+  }, [driveAccounts]);
+
+  // Intentional client-side recency sort — overrides API's sort_order ASC
+  // so the library shows most-recently-added first (content management UX).
+  const sortedSources = useMemo(
+    () =>
+      [...sources].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    [sources],
   );
 
   const handleUploadLocal = useCallback(
@@ -463,26 +339,21 @@ export function SourcesTab({
     );
   }
 
-  if (sourcesView === "provider-detail" && activeConnectionId !== undefined) {
-    const group = sourceGroups.find((g) => g.connectionId === activeConnectionId);
+  if (sourcesView === "connections") {
     return (
-      <SourceProviderDetail
-        connectionId={activeConnectionId}
-        email={group?.email ?? null}
-        sources={group?.sources ?? []}
-        isProtected={
-          activeConnectionId !== null && protectedConnectionIds.includes(activeConnectionId)
-        }
-        onViewSource={(sourceId) => viewSource(sourceId)}
-        onRemoveSource={removeSource}
-        onAddMore={() => startAddFlow(activeConnectionId ?? undefined)}
-        onDisconnect={disconnectDrive}
+      <ConnectionsView
+        driveAccounts={driveAccounts}
+        sources={sources}
+        protectedConnectionIds={protectedConnectionIds}
         onBack={backToSourceList}
+        onBrowseFiles={(connectionId) => startAddFlow(connectionId)}
+        onConnectAccount={handleConnectAccount}
+        onDisconnect={disconnectDrive}
       />
     );
   }
 
-  // --- Grouped Source List ---
+  // --- Flat Document Library ---
   return (
     <div className="flex flex-col h-full">
       {/* Header with Add button */}
@@ -539,7 +410,7 @@ export function SourcesTab({
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty: no accounts AND no sources */}
         {!isLoading && !error && sources.length === 0 && driveAccounts.length === 0 && (
           <SourcesEmptyState
             onConnectDrive={handleConnectAccount}
@@ -547,63 +418,57 @@ export function SourcesTab({
           />
         )}
 
-        {/* Grouped source list */}
-        {(sources.length > 0 || driveAccounts.length > 0) && (
-          <div role="list" aria-label="Source materials">
-            {sourceGroups.map((group) => {
-              const isDevice = group.connectionId === null;
-              const sectionLabel = isDevice ? "FROM DEVICE" : "GOOGLE DRIVE";
-              const isBackup =
-                group.connectionId !== null && protectedConnectionIds.includes(group.connectionId);
-
-              return (
-                <div key={group.connectionId ?? "device"}>
-                  {/* Section label */}
-                  <div className="px-4 pt-4 pb-1">
-                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                      {sectionLabel}
-                    </p>
-                  </div>
-
-                  {/* Provider header */}
-                  <ProviderSectionHeader
-                    icon={isDevice ? "device" : "drive"}
-                    label={isDevice ? "Device Uploads" : (group.email ?? "Google Drive")}
-                    subtitle={isBackup ? "Backup account" : undefined}
-                    docCount={group.sources.length}
-                    onTap={() => viewProviderDetail(group.connectionId)}
-                  />
-
-                  {/* Document rows (max 3 shown inline, rest accessible via provider detail) */}
-                  {group.sources.length > 0 && (
-                    <ul className="divide-y divide-border border-t border-border">
-                      {group.sources.slice(0, 3).map((source) => (
-                        <SourceCard
-                          key={source.id}
-                          source={source}
-                          onTap={() => viewSource(source.id)}
-                          onRemove={() => removeSource(source.id)}
-                        />
-                      ))}
-                      {group.sources.length > 3 && (
-                        <li>
-                          <button
-                            onClick={() => viewProviderDetail(group.connectionId)}
-                            className="w-full px-4 py-2.5 text-xs font-medium text-blue-600
-                                       hover:bg-gray-50 transition-colors text-center"
-                          >
-                            View all {group.sources.length} documents
-                          </button>
-                        </li>
-                      )}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
+        {/* Empty: accounts connected but no docs */}
+        {!isLoading && !error && sources.length === 0 && driveAccounts.length > 0 && (
+          <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+            <p className="text-base font-medium text-foreground mb-2">No research documents yet</p>
+            <p className="text-sm text-muted-foreground mb-4">
+              Browse your connected accounts or upload files to get started.
+            </p>
+            <button
+              onClick={() => startAddFlow()}
+              className="h-10 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg
+                         hover:bg-blue-700 transition-colors"
+            >
+              + Add Documents
+            </button>
           </div>
         )}
+
+        {/* Flat document list */}
+        {sortedSources.length > 0 && (
+          <ul className="divide-y divide-border" role="list" aria-label="Source materials">
+            {sortedSources.map((source) => (
+              <SourceCard
+                key={source.id}
+                source={source}
+                sourceBadge={getSourceBadge(source, emailByConnectionId)}
+                onTap={() => viewSource(source.id)}
+                onRemove={() => removeSource(source.id)}
+              />
+            ))}
+          </ul>
+        )}
       </div>
+
+      {/* Footer info bar — connection status + Manage link */}
+      {(driveAccounts.length > 0 || sources.some((s) => s.sourceType !== "local")) && (
+        <div
+          className="shrink-0 border-t border-border px-4 py-2.5
+                      flex items-center justify-between"
+        >
+          <span className="text-xs text-muted-foreground">
+            {driveAccounts.length} account{driveAccounts.length !== 1 ? "s" : ""} connected
+          </span>
+          <button
+            onClick={viewConnections}
+            className="text-xs font-medium text-blue-600 hover:text-blue-700
+                       min-h-[44px] flex items-center"
+          >
+            Manage
+          </button>
+        </div>
+      )}
     </div>
   );
 }

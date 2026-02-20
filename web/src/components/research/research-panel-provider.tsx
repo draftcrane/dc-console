@@ -5,14 +5,14 @@ import { createContext, useContext, useReducer, useCallback, useMemo, type React
 // === State Types ===
 
 export type ResearchTab = "sources" | "ask" | "clips";
-export type SourcesView = "list" | "detail" | "add" | "provider-detail";
+export type SourcesView = "list" | "detail" | "add" | "connections";
 
 export interface ResearchPanelState {
   isOpen: boolean;
   activeTab: ResearchTab;
   sourcesView: SourcesView;
   activeSourceId: string | null;
-  /** Active Drive connection ID — used by provider-detail and add flow */
+  /** Active Drive connection ID — used by add flow for pre-selection */
   activeConnectionId: string | null;
   returnTab: "ask" | "clips" | null;
   /** Text to scroll to when viewing a source detail (from citation navigation) */
@@ -29,7 +29,7 @@ export type ResearchPanelAction =
   | { type: "BACK_TO_LIST" }
   | { type: "RETURN_TO_TAB" }
   | { type: "START_ADD_FLOW"; connectionId?: string }
-  | { type: "VIEW_PROVIDER_DETAIL"; connectionId: string | null }
+  | { type: "VIEW_CONNECTIONS" }
   | { type: "SET_DRIVE_CONNECTION"; connectionId: string }
   | { type: "FINISH_ADD" };
 
@@ -55,7 +55,7 @@ const initialState: ResearchPanelState = {
  *   2. Sources-List        - panel open, sources tab, grouped list view
  *   3. Sources-Detail      - panel open, sources tab, viewing a specific source
  *   4. Sources-Add         - panel open, sources tab, add flow (drive browser / upload)
- *   5. Sources-ProviderDetail - panel open, sources tab, viewing docs from a single provider
+ *   5. Sources-Connections - panel open, sources tab, managing connections
  *   6. Ask                 - panel open, ask tab
  *   7. Clips               - panel open, clips tab
  *
@@ -115,12 +115,12 @@ export function researchPanelReducer(
     }
 
     case "BACK_TO_LIST": {
-      // Valid from detail, add, or provider-detail views
+      // Valid from detail, add, or connections views
       if (!state.isOpen || state.activeTab !== "sources") return state;
       if (
         state.sourcesView !== "detail" &&
         state.sourcesView !== "add" &&
-        state.sourcesView !== "provider-detail"
+        state.sourcesView !== "connections"
       )
         return state;
 
@@ -163,16 +163,17 @@ export function researchPanelReducer(
       };
     }
 
-    case "VIEW_PROVIDER_DETAIL": {
+    case "VIEW_CONNECTIONS": {
       if (!state.isOpen) return state;
 
       return {
         ...state,
         activeTab: "sources",
-        sourcesView: "provider-detail",
-        activeConnectionId: action.connectionId,
+        sourcesView: "connections",
         activeSourceId: null,
+        activeConnectionId: null,
         returnTab: null,
+        scrollToText: null,
       };
     }
 
@@ -222,7 +223,7 @@ export interface ResearchPanelContextValue {
   backToSourceList: () => void;
   returnToPreviousTab: () => void;
   startAddFlow: (connectionId?: string) => void;
-  viewProviderDetail: (connectionId: string | null) => void;
+  viewConnections: () => void;
   setDriveConnection: (connectionId: string) => void;
   finishAdd: () => void;
 
@@ -281,12 +282,9 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
     [dispatch],
   );
 
-  const viewProviderDetail = useCallback(
-    (connectionId: string | null) => {
-      dispatch({ type: "VIEW_PROVIDER_DETAIL", connectionId });
-    },
-    [dispatch],
-  );
+  const viewConnections = useCallback(() => {
+    dispatch({ type: "VIEW_CONNECTIONS" });
+  }, [dispatch]);
 
   const setDriveConnection = useCallback(
     (connectionId: string) => {
@@ -318,7 +316,7 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       backToSourceList,
       returnToPreviousTab,
       startAddFlow,
-      viewProviderDetail,
+      viewConnections,
       setDriveConnection,
       finishAdd,
 
@@ -334,7 +332,7 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       backToSourceList,
       returnToPreviousTab,
       startAddFlow,
-      viewProviderDetail,
+      viewConnections,
       setDriveConnection,
       finishAdd,
     ],
