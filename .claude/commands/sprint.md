@@ -207,6 +207,31 @@ If Abort, stop: "Sprint aborted. Re-run with adjusted arguments."
 
 ### Step 5: Set Up Worktrees
 
+**Sync main with remote:**
+
+Before creating worktrees, ensure the local main branch is up-to-date. Stale main causes every agent to branch from old code, producing PRs with widespread conflicts.
+
+```bash
+git fetch origin main
+```
+
+Compare local and remote:
+
+```bash
+git rev-parse main
+git rev-parse origin/main
+```
+
+- If they match: proceed.
+- If local is behind: fast-forward with `git merge --ff-only origin/main`. If the fast-forward fails (local has diverged), stop: `Local main has diverged from origin/main. Resolve manually before running a sprint.`
+- If local is ahead: warn `Local main is {N} commits ahead of origin. Agents will branch from local main.` Proceed (user may have unmerged local commits intentionally).
+
+Display:
+
+```
+Main synced: {short_sha} ({N} commits ahead of origin | up to date)
+```
+
 **Check for active sprint:**
 
 ```bash
@@ -432,7 +457,7 @@ Done.
 
 - **Single-wave execution**: Only Wave 1 is executed per run. User merges those PRs, then re-runs for Wave 2. This eliminates inter-wave state management and the dependency-branching problem.
 - **Worktrees inside repo**: `.worktrees/` lives at the repo root and is gitignored. No external directory management needed.
-- **Branches from main**: Every branch starts from current main. PRs are independently reviewable.
+- **Branches from main**: Every branch starts from current main, synced with remote via `git fetch` + `git merge --ff-only` before worktree creation. PRs are independently reviewable.
 - **Orchestrator owns side effects**: Label updates happen here, not in the coding agents. Agents only push code and open PRs.
 - **Retry semantics**: Failed agents get a fresh worktree from main. One retry max per failed issue. Second failure is final.
 - **Lock file**: Prevents concurrent sprint runs from colliding. PID-based with stale detection.
