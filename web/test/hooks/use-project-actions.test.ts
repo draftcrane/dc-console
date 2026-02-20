@@ -38,8 +38,6 @@ describe("useProjectActions", () => {
    */
   function renderProjectActions(overrides?: Record<string, unknown>) {
     const stableGetToken = vi.fn().mockResolvedValue("test-token");
-    const stableFetchDriveFiles = vi.fn();
-    const stableResetDriveFiles = vi.fn();
     const stableConnectDrive = vi.fn();
     const stableOnProjectConnected = vi.fn();
     const stableOnProjectDisconnected = vi.fn();
@@ -47,10 +45,7 @@ describe("useProjectActions", () => {
     const opts = {
       getToken: stableGetToken,
       projectId: "proj-1" as string | undefined,
-      fetchDriveFiles: stableFetchDriveFiles,
-      resetDriveFiles: stableResetDriveFiles,
       connectDrive: stableConnectDrive,
-      driveFolderId: "drive-folder-123" as string | null | undefined,
       onProjectConnected: stableOnProjectConnected,
       onProjectDisconnected: stableOnProjectDisconnected,
       ...overrides,
@@ -62,8 +57,6 @@ describe("useProjectActions", () => {
       ...hookResult,
       mocks: {
         getToken: stableGetToken,
-        fetchDriveFiles: stableFetchDriveFiles,
-        resetDriveFiles: stableResetDriveFiles,
         connectDrive: stableConnectDrive,
         onProjectConnected: stableOnProjectConnected,
         onProjectDisconnected: stableOnProjectDisconnected,
@@ -73,26 +66,14 @@ describe("useProjectActions", () => {
 
   // ------------------------------------------------------------------
   // TDZ regression coverage (#119)
-  //
-  // The EditorPage previously crashed with a TDZ error because
-  // `useProjectActions` accessed `fetchProjectData` before its
-  // `useCallback` declaration ran. The fix reordered hook declarations
-  // so `fetchProjectData` is defined before `useProjectActions`.
-  //
-  // These tests exercise the `onProjectConnected` and
-  // `onProjectDisconnected` callbacks (which in EditorPage close over
-  // `fetchProjectData`) to ensure they fire correctly during Drive
-  // connect and disconnect flows.
   // ------------------------------------------------------------------
 
   describe("Drive connect flow (onProjectConnected callback)", () => {
     it("calls onProjectConnected with driveFolderId after successful connect", async () => {
       const onProjectConnected = vi.fn();
-      const fetchDriveFiles = vi.fn();
 
       const { result } = renderProjectActions({
         onProjectConnected,
-        fetchDriveFiles,
       });
 
       // Wait for mount effect (fetchProjects) to settle
@@ -111,7 +92,6 @@ describe("useProjectActions", () => {
       });
 
       expect(onProjectConnected).toHaveBeenCalledWith("new-folder-456");
-      expect(fetchDriveFiles).toHaveBeenCalledWith("new-folder-456");
     });
 
     it("does not call onProjectConnected when API returns error", async () => {
@@ -134,37 +114,14 @@ describe("useProjectActions", () => {
 
       expect(onProjectConnected).not.toHaveBeenCalled();
     });
-
-    it("resets isConnectingDrive to false after connect completes", async () => {
-      const { result } = renderProjectActions();
-
-      await waitFor(() => {
-        expect(result.current.isLoadingProjects).toBe(false);
-      });
-
-      expect(result.current.isConnectingDrive).toBe(false);
-
-      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ driveFolderId: "folder-1" }),
-      });
-
-      await act(async () => {
-        await result.current.onConnectProjectToDrive();
-      });
-
-      expect(result.current.isConnectingDrive).toBe(false);
-    });
   });
 
   describe("Drive disconnect flow (onProjectDisconnected callback)", () => {
     it("calls onProjectDisconnected after successful disconnect", async () => {
       const onProjectDisconnected = vi.fn();
-      const resetDriveFiles = vi.fn();
 
       const { result } = renderProjectActions({
         onProjectDisconnected,
-        resetDriveFiles,
       });
 
       await waitFor(() => {
@@ -182,7 +139,6 @@ describe("useProjectActions", () => {
       });
 
       expect(success).toBe(true);
-      expect(resetDriveFiles).toHaveBeenCalled();
       expect(onProjectDisconnected).toHaveBeenCalled();
     });
 

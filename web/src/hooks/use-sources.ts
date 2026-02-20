@@ -2,9 +2,13 @@
 
 import { useAuth } from "@clerk/nextjs";
 import { useState, useCallback } from "react";
-import type { PickerFile } from "./use-google-picker";
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+export interface PickerFile {
+  driveFileId: string;
+  title: string;
+  mimeType: string;
+}
 
 /** Allowed local file extensions */
 const ALLOWED_EXTENSIONS = [".txt", ".md", ".docx", ".pdf"];

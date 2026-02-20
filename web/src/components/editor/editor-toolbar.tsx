@@ -7,7 +7,6 @@ import type { SheetState } from "@/hooks/use-ai-rewrite";
 import type { ProjectSummary } from "@/hooks/use-project-actions";
 import { ProjectSwitcher } from "@/components/project/project-switcher";
 import { SaveIndicator } from "./save-indicator";
-import { DriveStatusIndicator } from "@/components/drive/drive-status-indicator";
 import { ExportMenu } from "@/components/project/export-menu";
 import { SettingsMenu } from "@/components/project/settings-menu";
 import { FirstUseNudge, PulsingDot, useFirstUseNudge } from "@/components/research/first-use-nudge";
@@ -21,18 +20,13 @@ interface EditorToolbarProps {
   saveStatus: SaveStatus;
   onSaveRetry: () => void;
 
-  // Drive
-  driveConnected: boolean;
-  driveEmail: string;
-  onConnectDriveWithProject: () => void;
-  onViewDriveFiles: (() => void) | undefined;
-
   // AI Rewrite
   selectionWordCount: number;
   aiSheetState: SheetState;
   onOpenAiRewrite: () => void;
 
   // Export
+  driveConnected: boolean;
   projectId: string;
   activeChapterId: string | null;
   getToken: () => Promise<string | null>;
@@ -47,9 +41,10 @@ interface EditorToolbarProps {
 
   // Settings
   hasDriveFolder: boolean;
-  onViewSources: () => void;
+  driveFolderId?: string | null;
+  onSetupDrive?: () => void;
+  onUnlinkDrive?: () => void;
   onManageAccounts: () => void;
-  onDisconnectDrive: () => void;
   onRenameBook: () => void;
   onDuplicateBook: () => void;
   isDuplicating: boolean;
@@ -72,13 +67,10 @@ export function EditorToolbar({
   totalWordCount,
   saveStatus,
   onSaveRetry,
-  driveConnected,
-  driveEmail,
-  onConnectDriveWithProject,
-  onViewDriveFiles,
   selectionWordCount,
   aiSheetState,
   onOpenAiRewrite,
+  driveConnected,
   projectId,
   activeChapterId,
   getToken,
@@ -87,9 +79,10 @@ export function EditorToolbar({
   onToggleResearchPanel,
   hasAnySources,
   hasDriveFolder,
-  onViewSources,
+  driveFolderId,
+  onSetupDrive,
+  onUnlinkDrive,
   onManageAccounts,
-  onDisconnectDrive,
   onRenameBook,
   onDuplicateBook,
   isDuplicating,
@@ -124,17 +117,6 @@ export function EditorToolbar({
       <div className="flex items-center gap-2">
         {/* Save status indicator (US-015) */}
         <SaveIndicator status={saveStatus} onRetry={onSaveRetry} />
-
-        <div className="w-px h-5 bg-border" aria-hidden="true" />
-
-        {/* Persistent Drive connection status (US-005) */}
-        <DriveStatusIndicator
-          connected={driveConnected}
-          isProjectConnected={hasDriveFolder}
-          email={driveEmail}
-          onConnect={onConnectDriveWithProject}
-          onViewFiles={onViewDriveFiles}
-        />
 
         {/* Toolbar AI Rewrite fallback - visible when text is selected */}
         {selectionWordCount > 0 && aiSheetState === "idle" && (
@@ -215,12 +197,11 @@ export function EditorToolbar({
 
         {/* Settings dropdown menu (US-023) */}
         <SettingsMenu
-          driveConnected={driveConnected}
           hasDriveFolder={hasDriveFolder}
-          onViewDriveFiles={onViewDriveFiles ?? (() => {})}
-          onViewSources={onViewSources}
+          driveFolderId={driveFolderId}
+          onSetupDrive={onSetupDrive}
+          onUnlinkDrive={onUnlinkDrive}
           onManageAccounts={onManageAccounts}
-          onDisconnectDrive={onDisconnectDrive}
           onRenameBook={onRenameBook}
           onDuplicateBook={onDuplicateBook}
           isDuplicating={isDuplicating}

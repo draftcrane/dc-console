@@ -5,14 +5,11 @@ import type { ProjectData } from "@/types/editor";
 import type { AIRewriteResult } from "./ai-rewrite-sheet";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
 import type { DriveAccount } from "@/hooks/use-drive-accounts";
-import type { DriveFileItem } from "@/hooks/use-drive-files";
 import { DeleteProjectDialog } from "@/components/project/delete-project-dialog";
 import { RenameProjectDialog } from "@/components/project/rename-project-dialog";
 import { DuplicateProjectDialog } from "@/components/project/duplicate-project-dialog";
 import { DeleteChapterDialog } from "@/components/project/delete-chapter-dialog";
-import { DisconnectDriveDialog } from "@/components/project/disconnect-drive-dialog";
 import { AIRewriteSheet } from "./ai-rewrite-sheet";
-import { DriveFilesSheet } from "@/components/drive/drive-files-sheet";
 import { AccountsSheet } from "@/components/project/accounts-sheet";
 
 interface EditorDialogsProps {
@@ -41,13 +38,6 @@ interface EditorDialogsProps {
   onDeleteChapter: () => Promise<void>;
   onCloseDeleteChapterDialog: () => void;
 
-  // Disconnect Drive
-  disconnectDriveDialogOpen: boolean;
-  driveEmail: string;
-  driveAccounts: DriveAccount[];
-  onDisconnectDriveAccount: (connectionId: string) => Promise<void>;
-  onCloseDisconnectDriveDialog: () => void;
-
   // AI Rewrite
   aiSheetState: SheetState;
   aiCurrentResult: AIRewriteResult | null;
@@ -57,25 +47,13 @@ interface EditorDialogsProps {
   onAIDiscard: (result: AIRewriteResult) => Promise<void>;
   onGoDeeper: (result: AIRewriteResult) => void;
 
-  // Drive files
-  driveFilesOpen: boolean;
-  driveFiles: DriveFileItem[];
-  driveFilesLoading: boolean;
-  driveFilesError: string | null;
-  isConnectingDrive: boolean;
-  isProjectConnected: boolean;
-  onCloseDriveFiles: () => void;
-  onRefreshDriveFiles: () => void;
-  onConnectProjectToDrive: () => Promise<void>;
-  onDisconnectProjectFromDrive: () => Promise<boolean>;
-  onOpenSourcesPanel: () => void;
-  onOpenDriveBrowser: (connectionId?: string) => Promise<void>;
-
   // Accounts sheet
   isAccountsSheetOpen: boolean;
   onCloseAccountsSheet: () => void;
   onConnectAccount: () => void;
+  onDisconnectDriveAccount: (connectionId: string) => Promise<void>;
   onRefetchDriveAccounts: () => Promise<void>;
+  driveAccounts: DriveAccount[];
 
   // Research panel (minimal props -- state managed by ResearchPanelProvider)
   isResearchPanelOpen: boolean;
@@ -88,9 +66,8 @@ interface EditorDialogsProps {
  * Extracted to keep the page orchestrator focused on layout and state wiring.
  * Each dialog/sheet is a controlled component receiving open/close state from the parent.
  *
- * Source-related components (SourcesPanel, AddSourceSheet, DriveBrowserSheet,
- * SourceViewerSheet) have been removed. Source management is now handled by the
- * ResearchPanel via the ResearchPanelProvider context (#180).
+ * Source management is handled by the ResearchPanel via the ResearchPanelProvider context (#180).
+ * Drive backup config is handled by the SettingsMenu (2-state: setup vs open/unlink).
  */
 export function EditorDialogs({
   projectData,
@@ -109,11 +86,6 @@ export function EditorDialogs({
   chapterToDelete,
   onDeleteChapter,
   onCloseDeleteChapterDialog,
-  disconnectDriveDialogOpen,
-  driveEmail,
-  driveAccounts,
-  onDisconnectDriveAccount,
-  onCloseDisconnectDriveDialog,
   aiSheetState,
   aiCurrentResult,
   aiErrorMessage,
@@ -121,22 +93,12 @@ export function EditorDialogs({
   onAIRetry,
   onAIDiscard,
   onGoDeeper,
-  driveFilesOpen,
-  driveFiles,
-  driveFilesLoading,
-  driveFilesError,
-  isConnectingDrive,
-  isProjectConnected,
-  onCloseDriveFiles,
-  onRefreshDriveFiles,
-  onConnectProjectToDrive,
-  onDisconnectProjectFromDrive,
-  onOpenSourcesPanel,
-  onOpenDriveBrowser,
   isAccountsSheetOpen,
   onCloseAccountsSheet,
   onConnectAccount,
+  onDisconnectDriveAccount,
   onRefetchDriveAccounts,
+  driveAccounts,
 }: EditorDialogsProps) {
   const router = useRouter();
 
@@ -188,20 +150,6 @@ export function EditorDialogs({
         onCancel={onCloseDeleteChapterDialog}
       />
 
-      {/* Disconnect Google Drive confirmation dialog (US-008) */}
-      <DisconnectDriveDialog
-        email={driveEmail}
-        isOpen={disconnectDriveDialogOpen}
-        onConfirm={async () => {
-          // Disconnect all accounts (legacy behavior)
-          for (const account of driveAccounts) {
-            await onDisconnectDriveAccount(account.id);
-          }
-          onCloseDisconnectDriveDialog();
-        }}
-        onCancel={onCloseDisconnectDriveDialog}
-      />
-
       <AIRewriteSheet
         sheetState={aiSheetState}
         result={aiCurrentResult}
@@ -210,30 +158,6 @@ export function EditorDialogs({
         onRetry={onAIRetry}
         onDiscard={onAIDiscard}
         onGoDeeper={onGoDeeper}
-      />
-
-      {/* Drive files listing sheet (US-007) */}
-      <DriveFilesSheet
-        isOpen={driveFilesOpen}
-        files={driveFiles}
-        isLoading={driveFilesLoading || isConnectingDrive}
-        error={driveFilesError}
-        onClose={onCloseDriveFiles}
-        onRefresh={onRefreshDriveFiles}
-        onConnectDrive={onConnectProjectToDrive}
-        onAddSources={async () => {
-          onOpenSourcesPanel();
-          await onOpenDriveBrowser();
-        }}
-        onViewSources={onOpenSourcesPanel}
-        onDisconnectProject={async () => {
-          const confirmed = window.confirm(
-            "Disconnect this project from its Drive folder? Your Drive account remains connected.",
-          );
-          if (!confirmed) return;
-          await onDisconnectProjectFromDrive();
-        }}
-        isProjectConnected={isProjectConnected}
       />
 
       {/* Google Accounts management sheet */}
