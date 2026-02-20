@@ -155,11 +155,60 @@ export async function seedSourceFts(sourceId: string, title: string, content: st
 }
 
 /**
+ * Seed a source with cached content in R2.
+ * Unlike seedSource, this puts actual content in the R2 bucket.
+ */
+export async function seedSourceWithContent(
+  projectId: string,
+  content: string,
+  overrides?: {
+    id?: string;
+    title?: string;
+    mimeType?: string;
+    sortOrder?: number;
+  },
+) {
+  const id = overrides?.id ?? ulid();
+  const title = overrides?.title ?? "Source Doc";
+  const mimeType = overrides?.mimeType ?? "text/plain";
+  const sortOrder = overrides?.sortOrder ?? 1;
+  const ts = now();
+  const r2Key = `sources/${id}/content.html`;
+
+  // Write content to R2
+  await env.EXPORTS_BUCKET.put(r2Key, content, {
+    httpMetadata: { contentType: "text/html; charset=utf-8" },
+  });
+
+  // Insert source row with cached_at set
+  await env.DB.prepare(
+    `INSERT INTO source_materials (id, project_id, source_type, title, mime_type, sort_order, status, cached_at, word_count, r2_key, created_at, updated_at)
+     VALUES (?, ?, 'local', ?, ?, ?, 'active', ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      id,
+      projectId,
+      title,
+      mimeType,
+      sortOrder,
+      ts,
+      content.split(/\s+/).filter((w) => w.length > 0).length,
+      r2Key,
+      ts,
+      ts,
+    )
+    .run();
+
+  return { id, projectId, title, r2Key };
+}
+
+/**
  * Remove all rows from test tables in reverse FK order.
  */
 export async function cleanAll() {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM source_content_fts"),
+    env.DB.prepare("DELETE FROM research_queries"),
     env.DB.prepare("DELETE FROM ai_interactions"),
     env.DB.prepare("DELETE FROM export_jobs"),
     env.DB.prepare("DELETE FROM research_clips"),
