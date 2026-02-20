@@ -52,17 +52,38 @@ describe("ClipCard", () => {
     expect(screen.queryByRole("button", { name: /View source:/ })).not.toBeInTheDocument();
   });
 
-  it("shows chapter tag when assigned", () => {
+  it("shows chapter tag as compact 'Ch. N' label when assigned", () => {
     render(<ClipCard {...defaultProps} />);
 
-    expect(screen.getByText("Chapter 4: Case Studies")).toBeInTheDocument();
+    const tag = screen.getByTestId("chapter-tag");
+    expect(tag).toBeInTheDocument();
+    expect(tag).toHaveTextContent("Ch. 4");
+  });
+
+  it("shows full title for non-standard chapter names", () => {
+    const clip: ResearchClip = { ...baseClip, chapterTitle: "Introduction" };
+    render(<ClipCard {...defaultProps} clip={clip} />);
+
+    const tag = screen.getByTestId("chapter-tag");
+    expect(tag).toHaveTextContent("Introduction");
+  });
+
+  it("truncates long non-standard chapter names", () => {
+    const clip: ResearchClip = {
+      ...baseClip,
+      chapterTitle: "A Very Long Chapter Title That Exceeds Twenty Characters",
+    };
+    render(<ClipCard {...defaultProps} clip={clip} />);
+
+    const tag = screen.getByTestId("chapter-tag");
+    expect(tag.textContent!.length).toBeLessThanOrEqual(21); // 18 chars + "..."
   });
 
   it("does not show chapter tag when chapterTitle is null", () => {
     const clipNoChapter: ResearchClip = { ...baseClip, chapterId: null, chapterTitle: null };
     render(<ClipCard {...defaultProps} clip={clipNoChapter} />);
 
-    expect(screen.queryByText("Chapter 4: Case Studies")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("chapter-tag")).not.toBeInTheDocument();
   });
 
   it("truncates content longer than 300 chars with 'Show more'", () => {

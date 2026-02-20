@@ -40,6 +40,8 @@ export interface UseResearchClipsReturn {
   fetchClips: (chapterId?: string) => Promise<void>;
   /** Save a new clip. Returns the clip and whether it was a duplicate. */
   saveClip: (input: SaveClipInput) => Promise<{ clip: ResearchClip; existed: boolean } | null>;
+  /** Delete a clip by ID */
+  deleteClip: (clipId: string) => Promise<boolean>;
   /** Set of content strings that have been saved (for "Saved" button state) */
   savedContents: Set<string>;
   /** Whether a specific save is in progress (keyed by content hash) */
@@ -153,6 +155,33 @@ export function useResearchClips(projectId: string): UseResearchClipsReturn {
     [getToken, projectId, dedupKey],
   );
 
+  const deleteClip = useCallback(
+    async (clipId: string): Promise<boolean> => {
+      try {
+        setError(null);
+        const token = await getToken();
+        const response = await fetch(`${API_URL}/research/clips/${clipId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete clip");
+        }
+
+        // Remove from local state
+        setClips((prev) => prev.filter((c) => c.id !== clipId));
+        setClipCount((prev) => Math.max(0, prev - 1));
+
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to delete clip");
+        return false;
+      }
+    },
+    [getToken],
+  );
+
   return {
     clips,
     clipCount,
@@ -160,6 +189,7 @@ export function useResearchClips(projectId: string): UseResearchClipsReturn {
     error,
     fetchClips,
     saveClip,
+    deleteClip,
     savedContents,
     isSaving,
   };

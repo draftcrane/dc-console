@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useResearchPanel, type ResearchTab } from "./research-panel-provider";
 import { SourcesTab } from "./sources-tab";
 import { AskTab } from "./ask-tab";
+import { ClipsTab } from "./clips-tab";
 import { useResearchClips } from "@/hooks/use-research-clips";
 
 // === Tab Definitions ===
@@ -14,33 +15,6 @@ const TABS: Array<{ id: ResearchTab; label: string }> = [
   { id: "ask", label: "Ask" },
   { id: "clips", label: "Clips" },
 ];
-
-// === Placeholder Components ===
-
-function ComingSoonPlaceholder({ tabName }: { tabName: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full px-6 text-center">
-      <svg
-        className="w-12 h-12 text-muted-foreground mb-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-        />
-      </svg>
-      <p className="text-base font-medium text-foreground mb-2">Coming soon</p>
-      <p className="text-base text-muted-foreground">
-        The {tabName} tab is under development and will be available in a future update.
-      </p>
-    </div>
-  );
-}
 
 // === Panel Layout Mode ===
 
@@ -242,7 +216,7 @@ function TabContent({ activeTab }: { activeTab: ResearchTab }) {
         <AskTab />
       </TabPanel>
       <TabPanel id="clips" activeTab={activeTab}>
-        <ComingSoonPlaceholder tabName="Clips" />
+        <ClipsTab />
       </TabPanel>
     </div>
   );
