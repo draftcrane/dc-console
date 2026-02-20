@@ -10,7 +10,8 @@ import { Node, mergeAttributes } from "@tiptap/core";
  * Format: "[N] Source Title" per design-spec.md Principle 4.
  *
  * Renders as: `<div class="footnote-content" data-footnote-id="...">
- *               <span class="footnote-label">[N]</span> Source Title
+ *               <span class="footnote-label">[N]</span>
+ *               <div class="footnote-body">Source Title</div>
  *             </div>`
  *
  * Serializes to HTML with data attributes for round-trip deserialization.
@@ -47,7 +48,13 @@ export const FootnoteContent = Node.create({
   parseHTML() {
     return [
       {
+        // New structure: content lives inside .footnote-body
         tag: "div.footnote-content[data-footnote-id]",
+        contentElement: (element: HTMLElement): HTMLElement => {
+          const body = element.querySelector(".footnote-body") as HTMLElement | null;
+          // Fall back to the element itself for legacy HTML without .footnote-body wrapper
+          return body || element;
+        },
       },
     ];
   },
@@ -58,7 +65,7 @@ export const FootnoteContent = Node.create({
       "div",
       mergeAttributes(HTMLAttributes, { class: "footnote-content" }),
       ["span", { class: "footnote-label" }, `[${label}]`],
-      0,
+      ["div", { class: "footnote-body" }, 0],
     ];
   },
 });

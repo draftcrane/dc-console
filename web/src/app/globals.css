@@ -123,10 +123,14 @@ body {
   padding-left: 0;
 }
 
-.chapter-editor-content .footnote-content::before {
-  content: "[" attr(data-footnote-label) "] ";
+.chapter-editor-content .footnote-content .footnote-label {
   font-weight: 600;
   color: #374151;
+  margin-right: 0.25em;
+}
+
+.chapter-editor-content .footnote-content .footnote-body {
+  display: inline;
 }
 
 /* Separator between body text and footnotes — the <hr> before .footnotes */
