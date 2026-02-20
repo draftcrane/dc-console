@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useReducer, useCallback, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from "react";
 
 // === State Types ===
 
@@ -258,29 +265,43 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
     dispatch({ type: "FINISH_ADD" });
   }, [dispatch]);
 
-  const value: ResearchPanelContextValue = {
-    // State
-    isOpen: state.isOpen,
-    activeTab: state.activeTab,
-    sourcesView: state.sourcesView,
-    activeSourceId: state.activeSourceId,
-    driveConnectionId: state.driveConnectionId,
-    returnTab: state.returnTab,
+  const value = useMemo<ResearchPanelContextValue>(
+    () => ({
+      // State
+      isOpen: state.isOpen,
+      activeTab: state.activeTab,
+      sourcesView: state.sourcesView,
+      activeSourceId: state.activeSourceId,
+      driveConnectionId: state.driveConnectionId,
+      returnTab: state.returnTab,
 
-    // Actions
-    openPanel,
-    closePanel,
-    setActiveTab,
-    viewSource,
-    backToSourceList,
-    returnToPreviousTab,
-    startAddFlow,
-    setDriveConnection,
-    finishAdd,
+      // Actions
+      openPanel,
+      closePanel,
+      setActiveTab,
+      viewSource,
+      backToSourceList,
+      returnToPreviousTab,
+      startAddFlow,
+      setDriveConnection,
+      finishAdd,
 
-    // Raw dispatch
-    dispatch,
-  };
+      // Raw dispatch
+      dispatch,
+    }),
+    [
+      state,
+      openPanel,
+      closePanel,
+      setActiveTab,
+      viewSource,
+      backToSourceList,
+      returnToPreviousTab,
+      startAddFlow,
+      setDriveConnection,
+      finishAdd,
+    ],
+  );
 
   return <ResearchPanelContext.Provider value={value}>{children}</ResearchPanelContext.Provider>;
 }
