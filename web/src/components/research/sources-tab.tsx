@@ -4,6 +4,7 @@ import { useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useResearchPanel } from "./research-panel-provider";
 import { SourceAddFlow } from "./source-add-flow";
+import { SourceDetailView } from "./source-detail-view";
 import { useSources, type SourceMaterial } from "@/hooks/use-sources";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 
@@ -182,7 +183,16 @@ function SourcesEmptyState({ onAdd }: { onAdd: () => void }) {
 export function SourcesTab() {
   const params = useParams();
   const projectId = params.projectId as string;
-  const { sourcesView, startAddFlow, backToSourceList, finishAdd } = useResearchPanel();
+  const {
+    sourcesView,
+    activeSourceId,
+    returnTab,
+    startAddFlow,
+    viewSource,
+    backToSourceList,
+    returnToPreviousTab,
+    finishAdd,
+  } = useResearchPanel();
 
   const { sources, isLoading, error, fetchSources, uploadLocalFile, removeSource } =
     useSources(projectId);
@@ -216,6 +226,21 @@ export function SourcesTab() {
     connectDrive();
   }, [connectDrive]);
 
+  // Compute back label for source detail view based on returnTab
+  const handleDetailBack = useCallback(() => {
+    if (returnTab) {
+      returnToPreviousTab();
+    } else {
+      backToSourceList();
+    }
+  }, [returnTab, returnToPreviousTab, backToSourceList]);
+
+  const detailBackLabel =
+    returnTab === "ask" ? "Back to Ask" : returnTab === "clips" ? "Back to Clips" : "Sources";
+
+  // Find the active source for detail view
+  const activeSource = activeSourceId ? sources.find((s) => s.id === activeSourceId) : null;
+
   // Render add flow view
   if (sourcesView === "add") {
     return (
@@ -226,6 +251,18 @@ export function SourcesTab() {
         onSelectDriveAccount={handleSelectDriveAccount}
         onUploadLocal={handleUploadLocal}
         onConnectAccount={handleConnectAccount}
+      />
+    );
+  }
+
+  // Render source detail view
+  if (sourcesView === "detail" && activeSourceId) {
+    return (
+      <SourceDetailView
+        sourceId={activeSourceId}
+        title={activeSource?.title ?? "Source"}
+        onBack={handleDetailBack}
+        backLabel={detailBackLabel}
       />
     );
   }
@@ -297,9 +334,7 @@ export function SourcesTab() {
               <SourceCard
                 key={source.id}
                 source={source}
-                onTap={() => {
-                  // Source detail view will be implemented in a future issue
-                }}
+                onTap={() => viewSource(source.id)}
                 onRemove={() => removeSource(source.id)}
               />
             ))}
