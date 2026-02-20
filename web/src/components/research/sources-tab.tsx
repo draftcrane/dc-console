@@ -214,7 +214,7 @@ export function SourcesTab() {
   );
 
   const handleAddDriveFiles = useCallback(
-    (
+    async (
       files: Array<{ driveFileId: string; title: string; mimeType: string }>,
       connectionId: string,
     ) => {
@@ -224,7 +224,7 @@ export function SourcesTab() {
         title: f.title,
         mimeType: f.mimeType,
       }));
-      addSources(pickerFiles, connectionId);
+      await addSources(pickerFiles, connectionId);
       finishAdd();
     },
     [addSources, finishAdd],
@@ -238,7 +238,6 @@ export function SourcesTab() {
   if (sourcesView === "add") {
     return (
       <SourceAddFlow
-        projectId={projectId}
         driveAccounts={driveAccounts}
         existingDriveFileIds={existingDriveFileIds}
         onBack={backToSourceList}

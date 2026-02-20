@@ -13,7 +13,6 @@ import type { DriveAccount } from "@/hooks/use-drive-accounts";
 type AddFlowView = "accounts" | "browsing";
 
 interface SourceAddFlowProps {
-  projectId: string;
   driveAccounts: DriveAccount[];
   /** Drive file IDs already in the project (for "Already added" state) */
   existingDriveFileIds: Set<string>;
@@ -22,7 +21,7 @@ interface SourceAddFlowProps {
   onAddDriveFiles: (
     files: Array<{ driveFileId: string; title: string; mimeType: string }>,
     connectionId: string,
-  ) => void;
+  ) => Promise<void>;
   onUploadLocal: (file: File) => Promise<void>;
   onConnectAccount: () => void;
 }
@@ -63,6 +62,7 @@ export function SourceAddFlow({
     items: driveItems,
     isLoading: driveIsLoading,
     error: driveError,
+    folderId: driveFolderId,
     canGoBack: driveCanGoBack,
     openRoot: driveOpenRoot,
     openFolder: driveOpenFolder,
@@ -78,6 +78,11 @@ export function SourceAddFlow({
       setSelectedIds(new Set());
     }
   }, [view]);
+
+  // Clear selection when navigating to a different folder
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [driveFolderId]);
 
   const handleSelectAccount = useCallback(
     async (connectionId: string) => {
@@ -124,7 +129,7 @@ export function SourceAddFlow({
 
     setIsAdding(true);
     try {
-      onAddDriveFiles(selectedDocs, activeConnectionId);
+      await onAddDriveFiles(selectedDocs, activeConnectionId);
     } finally {
       setIsAdding(false);
     }
@@ -180,7 +185,6 @@ export function SourceAddFlow({
   if (view === "browsing") {
     return (
       <InlineDriveBrowser
-        items={driveItems}
         folders={folders}
         docs={docs}
         isLoading={driveIsLoading}
@@ -402,7 +406,6 @@ export function SourceAddFlow({
 // === Inline Drive Browser ===
 
 interface InlineDriveBrowserProps {
-  items: DriveBrowseItem[];
   folders: DriveBrowseItem[];
   docs: DriveBrowseItem[];
   isLoading: boolean;
