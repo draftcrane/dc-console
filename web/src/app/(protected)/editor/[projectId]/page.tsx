@@ -384,7 +384,9 @@ function EditorPageInner() {
       <ResearchPanel
         onInsertClip={insertClip}
         canInsert={canInsert}
-        projectDriveConnectionId={projectData?.driveConnectionId}
+        protectedConnectionIds={
+          projectData?.driveConnectionId ? [projectData.driveConnectionId] : []
+        }
       />
 
       <EditorDialogs

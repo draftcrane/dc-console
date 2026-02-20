@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useResearchPanel } from "./research-panel-provider";
 import { SourceAddFlow } from "./source-add-flow";
 import { SourceDetailView } from "./source-detail-view";
+import { SourceProviderDetail } from "./source-provider-detail";
 import { useSources, type SourceMaterial } from "@/hooks/use-sources";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 
@@ -145,7 +146,13 @@ function SourceCard({
 
 // === Sources Tab Empty State ===
 
-function SourcesEmptyState({ onAdd }: { onAdd: () => void }) {
+function SourcesEmptyState({
+  onConnectDrive,
+  onUploadFile,
+}: {
+  onConnectDrive: () => void;
+  onUploadFile: () => void;
+}) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 text-center">
       <svg
@@ -167,34 +174,183 @@ function SourcesEmptyState({ onAdd }: { onAdd: () => void }) {
         Add your Google Docs, PDFs, or other research files to search and reference them while you
         write.
       </p>
-      <button
-        onClick={onAdd}
-        className="h-10 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg
-                   hover:bg-blue-700 transition-colors"
-      >
-        Add Source
-      </button>
+      <div className="flex flex-col gap-2 w-full max-w-[200px]">
+        <button
+          onClick={onConnectDrive}
+          className="h-10 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg
+                     hover:bg-blue-700 transition-colors"
+        >
+          Connect Google Drive
+        </button>
+        <button
+          onClick={onUploadFile}
+          className="h-10 px-4 text-sm font-medium text-foreground rounded-lg border border-border
+                     hover:bg-gray-50 transition-colors"
+        >
+          Upload File
+        </button>
+      </div>
     </div>
   );
+}
+
+// === Provider Section Header ===
+
+function ProviderSectionHeader({
+  icon,
+  label,
+  subtitle,
+  docCount,
+  onTap,
+}: {
+  icon: "drive" | "device";
+  label: string;
+  subtitle?: string;
+  docCount: number;
+  onTap: () => void;
+}) {
+  return (
+    <button
+      onClick={onTap}
+      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50
+                 transition-colors min-h-[56px] text-left"
+    >
+      {icon === "drive" ? (
+        <div className="h-9 w-9 flex items-center justify-center rounded-full bg-blue-50 shrink-0">
+          <svg
+            className="w-4 h-4 text-gray-500"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
+          </svg>
+        </div>
+      ) : (
+        <div className="h-9 w-9 flex items-center justify-center rounded-full bg-gray-100 shrink-0">
+          <svg
+            className="w-4 h-4 text-gray-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+            />
+          </svg>
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-foreground truncate">{label}</p>
+        <p className="text-xs text-muted-foreground">
+          {docCount} document{docCount !== 1 ? "s" : ""}
+          {subtitle && <span className="ml-1.5 text-amber-600 font-medium">{subtitle}</span>}
+        </p>
+      </div>
+      <svg
+        className="w-4 h-4 text-gray-400 shrink-0"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+  );
+}
+
+// === Grouping utility ===
+
+interface SourceGroup {
+  connectionId: string | null;
+  email: string | null;
+  sources: SourceMaterial[];
+}
+
+function groupSourcesByProvider(
+  sources: SourceMaterial[],
+  driveAccounts: Array<{ id: string; email: string }>,
+): SourceGroup[] {
+  const groups = new Map<string | null, SourceMaterial[]>();
+
+  for (const source of sources) {
+    const key = source.driveConnectionId ?? null;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.push(source);
+    } else {
+      groups.set(key, [source]);
+    }
+  }
+
+  // Also ensure connected accounts with 0 documents appear
+  for (const account of driveAccounts) {
+    if (!groups.has(account.id)) {
+      groups.set(account.id, []);
+    }
+  }
+
+  const result: SourceGroup[] = [];
+
+  // Drive accounts first (ordered by driveAccounts order)
+  for (const account of driveAccounts) {
+    const accountSources = groups.get(account.id) ?? [];
+    result.push({
+      connectionId: account.id,
+      email: account.email,
+      sources: accountSources,
+    });
+    groups.delete(account.id);
+  }
+
+  // Unknown connection IDs (orphaned sources from disconnected accounts)
+  for (const [key, keySources] of groups) {
+    if (key !== null) {
+      result.push({
+        connectionId: key,
+        email: null,
+        sources: keySources,
+      });
+    }
+  }
+
+  // Device uploads last
+  const deviceSources = groups.get(null);
+  if (deviceSources && deviceSources.length > 0) {
+    result.push({
+      connectionId: null,
+      email: null,
+      sources: deviceSources,
+    });
+  }
+
+  return result;
 }
 
 // === Sources Tab ===
 
 export function SourcesTab({
-  projectDriveConnectionId,
+  protectedConnectionIds = [],
 }: {
-  /** The project's bound Drive connection ID. When set, only the bound account is shown. */
-  projectDriveConnectionId?: string | null;
+  /** Connection IDs that cannot be disconnected from within the Sources tab (e.g. backup accounts) */
+  protectedConnectionIds?: string[];
 }) {
   const params = useParams();
   const projectId = params.projectId as string;
   const {
     sourcesView,
     activeSourceId,
+    activeConnectionId,
     returnTab,
     scrollToText,
     startAddFlow,
     viewSource,
+    viewProviderDetail,
     backToSourceList,
     returnToPreviousTab,
     finishAdd,
@@ -203,18 +359,11 @@ export function SourcesTab({
   const { sources, isLoading, error, fetchSources, addSources, uploadLocalFile, removeSource } =
     useSources(projectId);
 
-  const { accounts: driveAccounts, connect: connectDrive } = useDriveAccounts();
-
-  // Filter Drive accounts to only the project's bound connection.
-  // Fallback: if the bound connection no longer exists (user disconnected the account),
-  // show all accounts so the user isn't stuck in a dead-end UI.
-  const filteredDriveAccounts = useMemo(() => {
-    if (!projectDriveConnectionId) return driveAccounts;
-    const bound = driveAccounts.filter((a) => a.id === projectDriveConnectionId);
-    return bound.length > 0 ? bound : driveAccounts;
-  }, [driveAccounts, projectDriveConnectionId]);
-
-  const isBoundProject = !!projectDriveConnectionId && filteredDriveAccounts.length === 1;
+  const {
+    accounts: driveAccounts,
+    connect: connectDrive,
+    disconnect: disconnectDrive,
+  } = useDriveAccounts();
 
   // Derive active source from sources list and activeSourceId (no state needed)
   const activeSource = useMemo<SourceMaterial | null>(() => {
@@ -238,6 +387,12 @@ export function SourcesTab({
     return ids;
   }, [sources]);
 
+  // Group sources by provider
+  const sourceGroups = useMemo(
+    () => groupSourcesByProvider(sources, driveAccounts),
+    [sources, driveAccounts],
+  );
+
   const handleUploadLocal = useCallback(
     async (file: File) => {
       await uploadLocalFile(file);
@@ -251,7 +406,6 @@ export function SourcesTab({
       files: Array<{ driveFileId: string; title: string; mimeType: string }>,
       connectionId: string,
     ) => {
-      // Map to PickerFile format expected by addSources
       const pickerFiles = files.map((f) => ({
         driveFileId: f.driveFileId,
         title: f.title,
@@ -279,22 +433,23 @@ export function SourcesTab({
   const detailBackLabel =
     returnTab === "ask" ? "Back to Ask" : returnTab === "clips" ? "Back to Clips" : "Sources";
 
-  // Render add flow view
+  // --- View Router ---
+
   if (sourcesView === "add") {
     return (
       <SourceAddFlow
-        driveAccounts={filteredDriveAccounts}
+        driveAccounts={driveAccounts}
         existingDriveFileIds={existingDriveFileIds}
+        protectedConnectionIds={protectedConnectionIds}
+        preSelectedConnectionId={activeConnectionId}
         onBack={backToSourceList}
         onAddDriveFiles={handleAddDriveFiles}
         onUploadLocal={handleUploadLocal}
         onConnectAccount={handleConnectAccount}
-        isBoundProject={isBoundProject}
       />
     );
   }
 
-  // Render source detail view
   if (sourcesView === "detail" && activeSourceId) {
     return (
       <SourceDetailView
@@ -308,7 +463,26 @@ export function SourcesTab({
     );
   }
 
-  // Source list view
+  if (sourcesView === "provider-detail" && activeConnectionId !== undefined) {
+    const group = sourceGroups.find((g) => g.connectionId === activeConnectionId);
+    return (
+      <SourceProviderDetail
+        connectionId={activeConnectionId}
+        email={group?.email ?? null}
+        sources={group?.sources ?? []}
+        isProtected={
+          activeConnectionId !== null && protectedConnectionIds.includes(activeConnectionId)
+        }
+        onViewSource={(sourceId) => viewSource(sourceId)}
+        onRemoveSource={removeSource}
+        onAddMore={() => startAddFlow(activeConnectionId ?? undefined)}
+        onDisconnect={disconnectDrive}
+        onBack={backToSourceList}
+      />
+    );
+  }
+
+  // --- Grouped Source List ---
   return (
     <div className="flex flex-col h-full">
       {/* Header with Add button */}
@@ -317,7 +491,7 @@ export function SourcesTab({
           {sources.length > 0 ? `${sources.length} source${sources.length === 1 ? "" : "s"}` : ""}
         </span>
         <button
-          onClick={startAddFlow}
+          onClick={() => startAddFlow()}
           className="h-8 px-3 flex items-center gap-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium
                      hover:bg-blue-700 transition-colors"
           aria-label="Add source"
@@ -366,20 +540,68 @@ export function SourcesTab({
         )}
 
         {/* Empty state */}
-        {!isLoading && !error && sources.length === 0 && <SourcesEmptyState onAdd={startAddFlow} />}
+        {!isLoading && !error && sources.length === 0 && driveAccounts.length === 0 && (
+          <SourcesEmptyState
+            onConnectDrive={handleConnectAccount}
+            onUploadFile={() => startAddFlow()}
+          />
+        )}
 
-        {/* Source list */}
-        {sources.length > 0 && (
-          <ul className="divide-y divide-border" role="list" aria-label="Source materials">
-            {sources.map((source) => (
-              <SourceCard
-                key={source.id}
-                source={source}
-                onTap={() => viewSource(source.id)}
-                onRemove={() => removeSource(source.id)}
-              />
-            ))}
-          </ul>
+        {/* Grouped source list */}
+        {(sources.length > 0 || driveAccounts.length > 0) && (
+          <div role="list" aria-label="Source materials">
+            {sourceGroups.map((group) => {
+              const isDevice = group.connectionId === null;
+              const sectionLabel = isDevice ? "FROM DEVICE" : "GOOGLE DRIVE";
+              const isBackup =
+                group.connectionId !== null && protectedConnectionIds.includes(group.connectionId);
+
+              return (
+                <div key={group.connectionId ?? "device"}>
+                  {/* Section label */}
+                  <div className="px-4 pt-4 pb-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      {sectionLabel}
+                    </p>
+                  </div>
+
+                  {/* Provider header */}
+                  <ProviderSectionHeader
+                    icon={isDevice ? "device" : "drive"}
+                    label={isDevice ? "Device Uploads" : (group.email ?? "Google Drive")}
+                    subtitle={isBackup ? "Backup account" : undefined}
+                    docCount={group.sources.length}
+                    onTap={() => viewProviderDetail(group.connectionId)}
+                  />
+
+                  {/* Document rows (max 3 shown inline, rest accessible via provider detail) */}
+                  {group.sources.length > 0 && (
+                    <ul className="divide-y divide-border border-t border-border">
+                      {group.sources.slice(0, 3).map((source) => (
+                        <SourceCard
+                          key={source.id}
+                          source={source}
+                          onTap={() => viewSource(source.id)}
+                          onRemove={() => removeSource(source.id)}
+                        />
+                      ))}
+                      {group.sources.length > 3 && (
+                        <li>
+                          <button
+                            onClick={() => viewProviderDetail(group.connectionId)}
+                            className="w-full px-4 py-2.5 text-xs font-medium text-blue-600
+                                       hover:bg-gray-50 transition-colors text-center"
+                          >
+                            View all {group.sources.length} documents
+                          </button>
+                        </li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

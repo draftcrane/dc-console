@@ -5,14 +5,15 @@ import { createContext, useContext, useReducer, useCallback, useMemo, type React
 // === State Types ===
 
 export type ResearchTab = "sources" | "ask" | "clips";
-export type SourcesView = "list" | "detail" | "add";
+export type SourcesView = "list" | "detail" | "add" | "provider-detail";
 
 export interface ResearchPanelState {
   isOpen: boolean;
   activeTab: ResearchTab;
   sourcesView: SourcesView;
   activeSourceId: string | null;
-  driveConnectionId: string | null;
+  /** Active Drive connection ID — used by provider-detail and add flow */
+  activeConnectionId: string | null;
   returnTab: "ask" | "clips" | null;
   /** Text to scroll to when viewing a source detail (from citation navigation) */
   scrollToText: string | null;
@@ -27,7 +28,8 @@ export type ResearchPanelAction =
   | { type: "VIEW_SOURCE"; sourceId: string; returnTo?: "ask" | "clips"; scrollToText?: string }
   | { type: "BACK_TO_LIST" }
   | { type: "RETURN_TO_TAB" }
-  | { type: "START_ADD_FLOW" }
+  | { type: "START_ADD_FLOW"; connectionId?: string }
+  | { type: "VIEW_PROVIDER_DETAIL"; connectionId: string | null }
   | { type: "SET_DRIVE_CONNECTION"; connectionId: string }
   | { type: "FINISH_ADD" };
 
@@ -38,7 +40,7 @@ const initialState: ResearchPanelState = {
   activeTab: "sources",
   sourcesView: "list",
   activeSourceId: null,
-  driveConnectionId: null,
+  activeConnectionId: null,
   returnTab: null,
   scrollToText: null,
 };
@@ -48,13 +50,14 @@ const initialState: ResearchPanelState = {
 /**
  * State machine reducer for the Research Panel.
  *
- * Valid states (6):
- *   1. Closed            - panel is not visible
- *   2. Sources-List      - panel open, sources tab, list view
- *   3. Sources-Detail    - panel open, sources tab, viewing a specific source
- *   4. Sources-Add       - panel open, sources tab, add flow (drive browser / upload)
- *   5. Ask               - panel open, ask tab
- *   6. Clips             - panel open, clips tab
+ * Valid states (7):
+ *   1. Closed              - panel is not visible
+ *   2. Sources-List        - panel open, sources tab, grouped list view
+ *   3. Sources-Detail      - panel open, sources tab, viewing a specific source
+ *   4. Sources-Add         - panel open, sources tab, add flow (drive browser / upload)
+ *   5. Sources-ProviderDetail - panel open, sources tab, viewing docs from a single provider
+ *   6. Ask                 - panel open, ask tab
+ *   7. Clips               - panel open, clips tab
  *
  * Invalid transitions are prevented by returning current state unchanged.
  */
@@ -112,15 +115,20 @@ export function researchPanelReducer(
     }
 
     case "BACK_TO_LIST": {
-      // Only valid when in sources detail or add view
+      // Valid from detail, add, or provider-detail views
       if (!state.isOpen || state.activeTab !== "sources") return state;
-      if (state.sourcesView !== "detail" && state.sourcesView !== "add") return state;
+      if (
+        state.sourcesView !== "detail" &&
+        state.sourcesView !== "add" &&
+        state.sourcesView !== "provider-detail"
+      )
+        return state;
 
       return {
         ...state,
         sourcesView: "list",
         activeSourceId: null,
-        driveConnectionId: null,
+        activeConnectionId: null,
         returnTab: null,
         scrollToText: null,
       };
@@ -142,13 +150,27 @@ export function researchPanelReducer(
     }
 
     case "START_ADD_FLOW": {
-      // Can only start add flow when panel is open and on sources tab
+      // Can only start add flow when panel is open
       if (!state.isOpen) return state;
 
       return {
         ...state,
         activeTab: "sources",
         sourcesView: "add",
+        activeSourceId: null,
+        activeConnectionId: action.connectionId ?? null,
+        returnTab: null,
+      };
+    }
+
+    case "VIEW_PROVIDER_DETAIL": {
+      if (!state.isOpen) return state;
+
+      return {
+        ...state,
+        activeTab: "sources",
+        sourcesView: "provider-detail",
+        activeConnectionId: action.connectionId,
         activeSourceId: null,
         returnTab: null,
       };
@@ -160,7 +182,7 @@ export function researchPanelReducer(
 
       return {
         ...state,
-        driveConnectionId: action.connectionId,
+        activeConnectionId: action.connectionId,
       };
     }
 
@@ -171,7 +193,7 @@ export function researchPanelReducer(
       return {
         ...state,
         sourcesView: "list",
-        driveConnectionId: null,
+        activeConnectionId: null,
       };
     }
 
@@ -188,7 +210,7 @@ export interface ResearchPanelContextValue {
   activeTab: ResearchTab;
   sourcesView: SourcesView;
   activeSourceId: string | null;
-  driveConnectionId: string | null;
+  activeConnectionId: string | null;
   returnTab: "ask" | "clips" | null;
   scrollToText: string | null;
 
@@ -199,7 +221,8 @@ export interface ResearchPanelContextValue {
   viewSource: (sourceId: string, returnTo?: "ask" | "clips", scrollToText?: string) => void;
   backToSourceList: () => void;
   returnToPreviousTab: () => void;
-  startAddFlow: () => void;
+  startAddFlow: (connectionId?: string) => void;
+  viewProviderDetail: (connectionId: string | null) => void;
   setDriveConnection: (connectionId: string) => void;
   finishAdd: () => void;
 
@@ -251,9 +274,19 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
     dispatch({ type: "RETURN_TO_TAB" });
   }, [dispatch]);
 
-  const startAddFlow = useCallback(() => {
-    dispatch({ type: "START_ADD_FLOW" });
-  }, [dispatch]);
+  const startAddFlow = useCallback(
+    (connectionId?: string) => {
+      dispatch({ type: "START_ADD_FLOW", connectionId });
+    },
+    [dispatch],
+  );
+
+  const viewProviderDetail = useCallback(
+    (connectionId: string | null) => {
+      dispatch({ type: "VIEW_PROVIDER_DETAIL", connectionId });
+    },
+    [dispatch],
+  );
 
   const setDriveConnection = useCallback(
     (connectionId: string) => {
@@ -273,7 +306,7 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       activeTab: state.activeTab,
       sourcesView: state.sourcesView,
       activeSourceId: state.activeSourceId,
-      driveConnectionId: state.driveConnectionId,
+      activeConnectionId: state.activeConnectionId,
       returnTab: state.returnTab,
       scrollToText: state.scrollToText,
 
@@ -285,6 +318,7 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       backToSourceList,
       returnToPreviousTab,
       startAddFlow,
+      viewProviderDetail,
       setDriveConnection,
       finishAdd,
 
@@ -300,6 +334,7 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       backToSourceList,
       returnToPreviousTab,
       startAddFlow,
+      viewProviderDetail,
       setDriveConnection,
       finishAdd,
     ],
