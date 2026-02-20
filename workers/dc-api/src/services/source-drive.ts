@@ -282,7 +282,9 @@ export class SourceDriveService {
 
   /**
    * Archive all sources for a disconnected Drive connection.
-   * Also soft-archives related chapter_sources links (preserving them for reconnection).
+   *
+   * Note: chapter_sources table is deprecated (#181) -- no writes.
+   * Table preserved for 90-day rollback window. See migration 0014.
    */
   async archiveByConnection(connectionId: string): Promise<void> {
     const now = new Date().toISOString();
@@ -294,15 +296,6 @@ export class SourceDriveService {
          WHERE drive_connection_id = ?`,
       )
       .bind(now, connectionId)
-      .run();
-
-    // Soft-archive chapter-source links
-    await this.db
-      .prepare(
-        `UPDATE chapter_sources SET status = 'archived'
-         WHERE source_id IN (SELECT id FROM source_materials WHERE drive_connection_id = ?)`,
-      )
-      .bind(connectionId)
       .run();
   }
 }

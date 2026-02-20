@@ -14,14 +14,6 @@ interface SourcesPanelProps {
   onViewSource: (source: SourceMaterial) => void;
   onImportAsChapter: (sourceId: string) => void;
   onRemoveSource: (sourceId: string) => void;
-  /** Active chapter name for link/unlink display */
-  activeChapterTitle?: string;
-  /** IDs of sources currently linked to the active chapter */
-  linkedSourceIds?: Set<string>;
-  /** Link a source to the active chapter */
-  onLinkSource?: (sourceId: string) => void;
-  /** Unlink a source from the active chapter */
-  onUnlinkSource?: (sourceId: string) => void;
 }
 
 function formatRelativeTime(dateStr?: string | null): string {
@@ -60,10 +52,6 @@ export function SourcesPanel({
   onViewSource,
   onImportAsChapter,
   onRemoveSource,
-  activeChapterTitle,
-  linkedSourceIds,
-  onLinkSource,
-  onUnlinkSource,
 }: SourcesPanelProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -227,19 +215,6 @@ export function SourcesPanel({
                   onView={() => onViewSource(source)}
                   onImport={() => onImportAsChapter(source.id)}
                   onRemove={() => onRemoveSource(source.id)}
-                  isLinked={linkedSourceIds?.has(source.id) ?? false}
-                  activeChapterTitle={activeChapterTitle}
-                  onToggleLink={
-                    onLinkSource && onUnlinkSource
-                      ? () => {
-                          if (linkedSourceIds?.has(source.id)) {
-                            onUnlinkSource(source.id);
-                          } else {
-                            onLinkSource(source.id);
-                          }
-                        }
-                      : undefined
-                  }
                 />
               ))}
             </ul>
@@ -264,17 +239,11 @@ function SourceRow({
   onView,
   onImport,
   onRemove,
-  isLinked,
-  activeChapterTitle,
-  onToggleLink,
 }: {
   source: SourceMaterial;
   onView: () => void;
   onImport: () => void;
   onRemove: () => void;
-  isLinked: boolean;
-  activeChapterTitle?: string;
-  onToggleLink?: () => void;
 }) {
   const isError = source.status === "error";
   const isArchived = source.status === "archived";
@@ -344,20 +313,6 @@ function SourceRow({
             >
               View
             </button>
-            {onToggleLink && (
-              <button
-                onClick={onToggleLink}
-                className={`h-8 px-2.5 text-xs font-medium rounded-md transition-colors ${
-                  isLinked
-                    ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {isLinked
-                  ? `Linked${activeChapterTitle ? "" : ""}`
-                  : `Link${activeChapterTitle ? ` to ${activeChapterTitle}` : ""}`}
-              </button>
-            )}
             <button
               onClick={onImport}
               className="h-8 px-2.5 text-xs font-medium text-gray-600 rounded-md hover:bg-gray-100 transition-colors"

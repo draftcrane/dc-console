@@ -13,7 +13,6 @@ import { EditorWritingArea } from "@/components/editor/editor-writing-area";
 import { EditorDialogs } from "@/components/editor/editor-dialogs";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useDriveFiles } from "@/hooks/use-drive-files";
-import { useChapterSources } from "@/hooks/use-chapter-sources";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { useChapterManagement } from "@/hooks/use-chapter-management";
@@ -266,9 +265,6 @@ export default function EditorPage() {
     contentError,
   } = useSourceActions(projectId);
 
-  // Chapter-source linking
-  const { linkedSources, linkSource, unlinkSource } = useChapterSources(projectId, activeChapterId);
-
   // --- Computed values ---
   const totalWordCount = projectData?.chapters.reduce((sum, ch) => sum + ch.wordCount, 0) ?? 0;
 
@@ -449,10 +445,6 @@ export default function EditorPage() {
         onOpenSourceViewer={openSourceViewer}
         onRemoveSource={removeSource}
         importSourceAsChapter={importSourceAsChapter}
-        activeChapterTitle={activeChapter?.title}
-        linkedSources={linkedSources}
-        onLinkSource={linkSource}
-        onUnlinkSource={unlinkSource}
         setActiveChapterId={setActiveChapterId}
         // Add source sheet
         isAddSourceSheetOpen={isAddSourceSheetOpen}
