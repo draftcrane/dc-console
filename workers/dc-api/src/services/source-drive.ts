@@ -20,6 +20,7 @@ import {
   type SourceMaterial,
   type SourceContentResult,
 } from "./source-types.js";
+import { extractPlainTextFromHtml, storeExtractionResult } from "./text-extraction.js";
 
 const ALLOWED_MIME_TYPE = "application/vnd.google-apps.document";
 const GOOGLE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
@@ -197,7 +198,8 @@ export class SourceDriveService {
   }
 
   /**
-   * Fetch content from Drive, sanitize, and cache in R2.
+   * Fetch content from Drive, sanitize, cache in R2 (HTML + plain text),
+   * and populate FTS index.
    * Updates D1 metadata (word_count, cached_at, drive_modified_time).
    */
   async fetchAndCache(
@@ -206,6 +208,7 @@ export class SourceDriveService {
     driveFileId: string,
     driveConnectionId: string | null,
     driveService: DriveService,
+    sourceTitle?: string,
   ): Promise<SourceContentResult> {
     // Get tokens: prefer connection-specific, fall back to user's first connection
     let accessToken: string;
@@ -238,9 +241,6 @@ export class SourceDriveService {
     }
 
     const content = sanitizeGoogleDocsHtml(rawHtml);
-    const wordCount = countWords(content);
-    const now = new Date().toISOString();
-    const r2Key = `sources/${sourceId}/content.html`;
 
     // Get Drive file's modifiedTime for staleness tracking
     let driveModifiedTime: string | null = null;
@@ -251,11 +251,20 @@ export class SourceDriveService {
       // Non-critical -- staleness detection just won't work until next fetch
     }
 
-    // Write sanitized content to R2
-    await this.bucket.put(r2Key, content, {
-      httpMetadata: { contentType: "text/html; charset=utf-8" },
-      customMetadata: { sourceId, cachedAt: now },
-    });
+    // Extract plain text from sanitized HTML and store both versions + FTS
+    const extractionResult = extractPlainTextFromHtml(content);
+
+    // Resolve title for FTS indexing
+    const title = sourceTitle || "Untitled";
+
+    // Store HTML + plain text in R2 and populate FTS index
+    const { r2Key, cachedAt } = await storeExtractionResult(
+      sourceId,
+      title,
+      extractionResult,
+      this.bucket,
+      this.db,
+    );
 
     // Update D1 metadata
     await this.db
@@ -265,10 +274,10 @@ export class SourceDriveService {
              status = 'active', updated_at = ?
          WHERE id = ?`,
       )
-      .bind(r2Key, wordCount, now, driveModifiedTime, now, sourceId)
+      .bind(r2Key, extractionResult.wordCount, cachedAt, driveModifiedTime, cachedAt, sourceId)
       .run();
 
-    return { content, wordCount, cachedAt: now };
+    return { content, wordCount: extractionResult.wordCount, cachedAt };
   }
 
   /**

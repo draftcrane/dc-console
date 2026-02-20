@@ -120,6 +120,7 @@ export async function cleanAll() {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM ai_interactions"),
     env.DB.prepare("DELETE FROM export_jobs"),
+    env.DB.prepare("DELETE FROM source_content_fts"),
     env.DB.prepare("DELETE FROM source_materials"),
     env.DB.prepare("DELETE FROM chapters"),
     env.DB.prepare("DELETE FROM projects"),

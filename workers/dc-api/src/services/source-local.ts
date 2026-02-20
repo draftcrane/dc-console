@@ -1,18 +1,34 @@
 /**
- * Local source material handling -- file upload, text/markdown conversion, dedup.
+ * Local source material handling -- file upload, text/markdown/docx/pdf conversion, dedup.
  *
  * Split from source-material.ts per Single Responsibility Principle.
- * Handles .txt and .md file uploads: validation, content conversion to HTML,
- * content hash dedup, R2 storage, and D1 metadata.
+ * Handles file uploads: validation, content extraction, content hash dedup,
+ * R2 storage (HTML + plain text), D1 metadata, and FTS indexing.
+ *
+ * Supported formats:
+ * - .txt and .md (text-based, 5MB limit)
+ * - .docx (via mammoth.js, 20MB limit) -- ADR-008
+ * - .pdf (via unpdf, 20MB limit) -- ADR-008
  */
 
 import { ulid } from "ulidx";
 import { notFound, validationError } from "../middleware/error-handler.js";
-import { countWords } from "../utils/word-count.js";
 import { type SourceMaterial, type SourceRow, rowToSource } from "./source-types.js";
+import { extractFromFile, storeExtractionResult } from "./text-extraction.js";
 
-const MAX_LOCAL_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_LOCAL_EXTENSIONS = [".txt", ".md"];
+/** Max file size per format per ADR-008 */
+const MAX_TEXT_FILE_SIZE = 5 * 1024 * 1024; // 5MB for .txt/.md
+const MAX_BINARY_FILE_SIZE = 20 * 1024 * 1024; // 20MB for .pdf/.docx
+
+const ALLOWED_LOCAL_EXTENSIONS = [".txt", ".md", ".docx", ".pdf"];
+
+/** MIME type mapping for supported local formats */
+const MIME_TYPE_MAP: Record<string, string> = {
+  ".txt": "text/plain",
+  ".md": "text/markdown",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".pdf": "application/pdf",
+};
 
 /** Convert plain text to simple HTML paragraphs */
 export function textToHtml(text: string): string {
@@ -93,8 +109,10 @@ export class SourceLocalService {
 
   /**
    * Add a local file as a source material.
-   * Supports .txt and .md files up to 5MB.
+   * Supports .txt, .md, .docx, and .pdf files.
    * Deduplicates on (project_id, content_hash).
+   * Stores HTML (for viewer) and plain text (for AI/FTS) in R2.
+   * Populates source_content_fts after extraction.
    */
   async addLocalSource(
     userId: string,
@@ -111,11 +129,6 @@ export class SourceLocalService {
       notFound("Project not found");
     }
 
-    // Validate file size
-    if (file.content.byteLength > MAX_LOCAL_FILE_SIZE) {
-      validationError(`File must be under ${MAX_LOCAL_FILE_SIZE / 1024 / 1024}MB`);
-    }
-
     // Validate extension
     const ext =
       file.name.lastIndexOf(".") >= 0
@@ -123,6 +136,12 @@ export class SourceLocalService {
         : "";
     if (!ALLOWED_LOCAL_EXTENSIONS.includes(ext)) {
       validationError(`Only ${ALLOWED_LOCAL_EXTENSIONS.join(", ")} files are supported`);
+    }
+
+    // Validate file size (different limits per format per ADR-008)
+    const maxSize = ext === ".txt" || ext === ".md" ? MAX_TEXT_FILE_SIZE : MAX_BINARY_FILE_SIZE;
+    if (file.content.byteLength > maxSize) {
+      validationError(`File must be under ${maxSize / 1024 / 1024}MB`);
     }
 
     // Compute content hash for dedup (SHA-256 via Web Crypto)
@@ -148,13 +167,70 @@ export class SourceLocalService {
       return rowToSource(row!);
     }
 
-    // Decode content
-    const textContent = new TextDecoder().decode(file.content);
+    // Extract content (HTML + plain text)
+    let extractionResult;
+    try {
+      extractionResult = await extractFromFile(file.content, ext);
+    } catch (err) {
+      // Extraction failed -- create source in error state
+      const id = ulid();
+      const now = new Date().toISOString();
+      const mimeType = MIME_TYPE_MAP[ext] || "application/octet-stream";
+      const title = file.name.replace(/\.[^.]+$/, "");
 
-    // Convert to HTML based on extension
-    const html = ext === ".md" ? markdownToHtml(textContent) : textToHtml(textContent);
-    const wordCount = countWords(html);
-    const mimeType = ext === ".md" ? "text/markdown" : "text/plain";
+      const maxSort = await this.db
+        .prepare(
+          `SELECT MAX(sort_order) as max_sort FROM source_materials
+           WHERE project_id = ? AND status = 'active'`,
+        )
+        .bind(projectId)
+        .first<{ max_sort: number | null }>();
+      const sortOrder = (maxSort?.max_sort || 0) + 1;
+
+      const errorMessage = err instanceof Error ? err.message : "Unknown extraction error";
+
+      await this.db
+        .prepare(
+          `INSERT INTO source_materials (id, project_id, source_type, title, mime_type, original_filename, content_hash, status, sort_order, created_at, updated_at)
+           VALUES (?, ?, 'local', ?, ?, ?, ?, 'error', ?, ?, ?)`,
+        )
+        .bind(id, projectId, title, mimeType, file.name, contentHash, sortOrder, now, now)
+        .run();
+
+      console.error(
+        JSON.stringify({
+          level: "error",
+          event: "source_extraction_failed",
+          source_id: id,
+          project_id: projectId,
+          filename: file.name,
+          extension: ext,
+          error: errorMessage,
+        }),
+      );
+
+      return {
+        id,
+        projectId,
+        sourceType: "local",
+        driveConnectionId: null,
+        driveFileId: null,
+        title,
+        mimeType,
+        originalFilename: file.name,
+        driveModifiedTime: null,
+        wordCount: 0,
+        r2Key: null,
+        cachedAt: null,
+        status: "error",
+        sortOrder,
+        createdAt: now,
+        updatedAt: now,
+      };
+    }
+
+    const mimeType = MIME_TYPE_MAP[ext] || "application/octet-stream";
+    const title = file.name.replace(/\.[^.]+$/, "");
 
     // Get next sort_order
     const maxSort = await this.db
@@ -167,21 +243,23 @@ export class SourceLocalService {
 
     const sortOrder = (maxSort?.max_sort || 0) + 1;
     const id = ulid();
-    const now = new Date().toISOString();
-    const r2Key = `sources/${id}/content.html`;
-    const title = file.name.replace(/\.[^.]+$/, ""); // Strip extension for title
-
-    // Write HTML content to R2
-    await this.bucket.put(r2Key, html, {
-      httpMetadata: { contentType: "text/html; charset=utf-8" },
-      customMetadata: { sourceId: id, cachedAt: now },
-    });
 
     // Store original file in R2
     await this.bucket.put(`sources/${id}/original${ext}`, file.content, {
       httpMetadata: { contentType: mimeType },
       customMetadata: { sourceId: id, originalFilename: file.name },
     });
+
+    // Store extraction results (HTML + plain text) in R2 and populate FTS
+    const { r2Key, cachedAt } = await storeExtractionResult(
+      id,
+      title,
+      extractionResult,
+      this.bucket,
+      this.db,
+    );
+
+    const now = cachedAt; // Use the same timestamp
 
     // Insert into D1
     await this.db
@@ -196,7 +274,7 @@ export class SourceLocalService {
         mimeType,
         file.name,
         contentHash,
-        wordCount,
+        extractionResult.wordCount,
         r2Key,
         now,
         sortOrder,
@@ -215,8 +293,8 @@ export class SourceLocalService {
       mimeType,
       originalFilename: file.name,
       driveModifiedTime: null,
-      wordCount,
-      r2Key: r2Key,
+      wordCount: extractionResult.wordCount,
+      r2Key,
       cachedAt: now,
       status: "active",
       sortOrder,
