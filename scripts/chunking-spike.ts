@@ -622,7 +622,14 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error("Chunking evaluation failed:", err);
-  process.exit(1);
-});
+// Only run when executed directly (not imported)
+const isMainModule =
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith("chunking-spike.ts");
+
+if (isMainModule) {
+  main().catch((err) => {
+    console.error("Chunking evaluation failed:", err);
+    process.exit(1);
+  });
+}
