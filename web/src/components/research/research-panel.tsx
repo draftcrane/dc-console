@@ -209,19 +209,19 @@ function TabContent({
   activeTab,
   onInsertClip,
   canInsert,
-  projectDriveConnectionId,
+  protectedConnectionIds,
 }: {
   activeTab: ResearchTab;
   onInsertClip: (text: string, sourceTitle: string) => InsertResult;
   canInsert: boolean;
-  projectDriveConnectionId?: string | null;
+  protectedConnectionIds?: string[];
 }) {
   // Render all tabs but only show the active one.
   // This preserves state when switching tabs (acceptance criteria).
   return (
     <div className="flex-1 min-h-0 relative">
       <TabPanel id="sources" activeTab={activeTab}>
-        <SourcesTab projectDriveConnectionId={projectDriveConnectionId} />
+        <SourcesTab protectedConnectionIds={protectedConnectionIds} />
       </TabPanel>
       <TabPanel id="ask" activeTab={activeTab}>
         <AskTab />
@@ -261,14 +261,14 @@ function TabPanel({
 export interface ResearchPanelProps {
   onInsertClip?: (text: string, sourceTitle: string) => InsertResult;
   canInsert?: boolean;
-  /** The project's bound Drive connection ID (filters which accounts the source add flow shows). */
-  projectDriveConnectionId?: string | null;
+  /** Connection IDs that cannot be disconnected from within the Sources tab (e.g. backup accounts) */
+  protectedConnectionIds?: string[];
 }
 
 export function ResearchPanel({
   onInsertClip,
   canInsert = false,
-  projectDriveConnectionId,
+  protectedConnectionIds,
 }: ResearchPanelProps) {
   const { isOpen, activeTab, setActiveTab, closePanel, openPanel } = useResearchPanel();
   const params = useParams();
@@ -341,7 +341,7 @@ export function ResearchPanel({
           activeTab={activeTab}
           onInsertClip={handleInsertClip}
           canInsert={canInsert}
-          projectDriveConnectionId={projectDriveConnectionId}
+          protectedConnectionIds={protectedConnectionIds}
         />
       </div>
     );
@@ -372,7 +372,7 @@ export function ResearchPanel({
           activeTab={activeTab}
           onInsertClip={handleInsertClip}
           canInsert={canInsert}
-          projectDriveConnectionId={projectDriveConnectionId}
+          protectedConnectionIds={protectedConnectionIds}
         />
       </div>
     </>

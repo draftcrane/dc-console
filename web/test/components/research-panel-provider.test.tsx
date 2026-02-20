@@ -19,7 +19,7 @@ describe("researchPanelReducer", () => {
     activeTab: "sources",
     sourcesView: "list",
     activeSourceId: null,
-    driveConnectionId: null,
+    activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
   };
@@ -29,7 +29,7 @@ describe("researchPanelReducer", () => {
     activeTab: "sources",
     sourcesView: "list",
     activeSourceId: null,
-    driveConnectionId: null,
+    activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
   };
@@ -39,7 +39,7 @@ describe("researchPanelReducer", () => {
     activeTab: "sources",
     sourcesView: "detail",
     activeSourceId: "src-1",
-    driveConnectionId: null,
+    activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
   };
@@ -49,7 +49,7 @@ describe("researchPanelReducer", () => {
     activeTab: "sources",
     sourcesView: "add",
     activeSourceId: null,
-    driveConnectionId: null,
+    activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
   };
@@ -59,7 +59,7 @@ describe("researchPanelReducer", () => {
     activeTab: "ask",
     sourcesView: "list",
     activeSourceId: null,
-    driveConnectionId: null,
+    activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
   };
@@ -69,7 +69,7 @@ describe("researchPanelReducer", () => {
     activeTab: "clips",
     sourcesView: "list",
     activeSourceId: null,
-    driveConnectionId: null,
+    activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
   };
@@ -284,13 +284,13 @@ describe("researchPanelReducer", () => {
     it("returns to list from add view", () => {
       const addWithConnection: ResearchPanelState = {
         ...sourcesAddState,
-        driveConnectionId: "conn-1",
+        activeConnectionId: "conn-1",
       };
       const result = researchPanelReducer(addWithConnection, {
         type: "BACK_TO_LIST",
       });
       expect(result.sourcesView).toBe("list");
-      expect(result.driveConnectionId).toBeNull();
+      expect(result.activeConnectionId).toBeNull();
     });
 
     it("is a no-op when already on list view", () => {
@@ -396,7 +396,7 @@ describe("researchPanelReducer", () => {
         type: "SET_DRIVE_CONNECTION",
         connectionId: "conn-123",
       });
-      expect(result.driveConnectionId).toBe("conn-123");
+      expect(result.activeConnectionId).toBe("conn-123");
     });
 
     it("is a no-op when not in add flow", () => {
@@ -422,13 +422,13 @@ describe("researchPanelReducer", () => {
     it("returns to list from add flow", () => {
       const addWithConnection: ResearchPanelState = {
         ...sourcesAddState,
-        driveConnectionId: "conn-123",
+        activeConnectionId: "conn-123",
       };
       const result = researchPanelReducer(addWithConnection, {
         type: "FINISH_ADD",
       });
       expect(result.sourcesView).toBe("list");
-      expect(result.driveConnectionId).toBeNull();
+      expect(result.activeConnectionId).toBeNull();
     });
 
     it("is a no-op when not in add flow", () => {
@@ -446,10 +446,95 @@ describe("researchPanelReducer", () => {
     });
   });
 
+  // --- VIEW_PROVIDER_DETAIL ---
+
+  describe("VIEW_PROVIDER_DETAIL", () => {
+    it("navigates to provider detail from sources list", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "VIEW_PROVIDER_DETAIL",
+        connectionId: "conn-1",
+      });
+      expect(result.activeTab).toBe("sources");
+      expect(result.sourcesView).toBe("provider-detail");
+      expect(result.activeConnectionId).toBe("conn-1");
+      expect(result.activeSourceId).toBeNull();
+    });
+
+    it("navigates to provider detail with null connectionId (device uploads)", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "VIEW_PROVIDER_DETAIL",
+        connectionId: null,
+      });
+      expect(result.sourcesView).toBe("provider-detail");
+      expect(result.activeConnectionId).toBeNull();
+    });
+
+    it("is a no-op when panel is closed", () => {
+      const result = researchPanelReducer(closedState, {
+        type: "VIEW_PROVIDER_DETAIL",
+        connectionId: "conn-1",
+      });
+      expect(result).toEqual(closedState);
+    });
+  });
+
+  // --- BACK_TO_LIST from provider-detail ---
+
+  describe("BACK_TO_LIST from provider-detail", () => {
+    const providerDetailState: ResearchPanelState = {
+      isOpen: true,
+      activeTab: "sources",
+      sourcesView: "provider-detail",
+      activeSourceId: null,
+      activeConnectionId: "conn-1",
+      returnTab: null,
+      scrollToText: null,
+    };
+
+    it("returns to list from provider detail", () => {
+      const result = researchPanelReducer(providerDetailState, {
+        type: "BACK_TO_LIST",
+      });
+      expect(result.sourcesView).toBe("list");
+      expect(result.activeConnectionId).toBeNull();
+    });
+  });
+
+  // --- START_ADD_FLOW with connectionId ---
+
+  describe("START_ADD_FLOW with connectionId", () => {
+    it("stores connectionId when provided (from Add More in provider detail)", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "START_ADD_FLOW",
+        connectionId: "conn-42",
+      });
+      expect(result.sourcesView).toBe("add");
+      expect(result.activeConnectionId).toBe("conn-42");
+    });
+
+    it("sets activeConnectionId to null when no connectionId provided", () => {
+      const result = researchPanelReducer(sourcesListState, {
+        type: "START_ADD_FLOW",
+      });
+      expect(result.sourcesView).toBe("add");
+      expect(result.activeConnectionId).toBeNull();
+    });
+  });
+
   // --- State machine invariants ---
 
   describe("state machine invariants", () => {
-    it("always has exactly one of the 6 valid states", () => {
+    const providerDetailState: ResearchPanelState = {
+      isOpen: true,
+      activeTab: "sources",
+      sourcesView: "provider-detail",
+      activeSourceId: null,
+      activeConnectionId: "conn-1",
+      returnTab: null,
+      scrollToText: null,
+    };
+
+    it("always has exactly one of the 7 valid states", () => {
       // Define all valid state combinations
       const isValidState = (s: ResearchPanelState): boolean => {
         if (!s.isOpen) return true; // State 1: Closed
@@ -457,8 +542,9 @@ describe("researchPanelReducer", () => {
         if (s.activeTab === "sources" && s.sourcesView === "detail" && s.activeSourceId !== null)
           return true; // State 3: Sources-Detail
         if (s.activeTab === "sources" && s.sourcesView === "add") return true; // State 4: Sources-Add
-        if (s.activeTab === "ask") return true; // State 5: Ask
-        if (s.activeTab === "clips") return true; // State 6: Clips
+        if (s.activeTab === "sources" && s.sourcesView === "provider-detail") return true; // State 5: Sources-ProviderDetail
+        if (s.activeTab === "ask") return true; // State 6: Ask
+        if (s.activeTab === "clips") return true; // State 7: Clips
         return false;
       };
 
@@ -468,6 +554,7 @@ describe("researchPanelReducer", () => {
         sourcesListState,
         sourcesDetailState,
         sourcesAddState,
+        providerDetailState,
         askState,
         clipsState,
       ];
@@ -488,6 +575,9 @@ describe("researchPanelReducer", () => {
         { type: "BACK_TO_LIST" },
         { type: "RETURN_TO_TAB" },
         { type: "START_ADD_FLOW" },
+        { type: "START_ADD_FLOW", connectionId: "conn-1" },
+        { type: "VIEW_PROVIDER_DETAIL", connectionId: "conn-1" },
+        { type: "VIEW_PROVIDER_DETAIL", connectionId: null },
         { type: "SET_DRIVE_CONNECTION", connectionId: "conn-1" },
         { type: "FINISH_ADD" },
       ];
@@ -633,6 +723,46 @@ describe("ResearchPanelProvider + useResearchPanel", () => {
     expect(result.current.scrollToText).toBeNull();
   });
 
+  it("navigates to provider detail and back", () => {
+    const { result } = renderHook(() => useResearchPanel(), { wrapper });
+
+    act(() => {
+      result.current.openPanel();
+    });
+
+    act(() => {
+      result.current.viewProviderDetail("conn-1");
+    });
+    expect(result.current.sourcesView).toBe("provider-detail");
+    expect(result.current.activeConnectionId).toBe("conn-1");
+
+    act(() => {
+      result.current.backToSourceList();
+    });
+    expect(result.current.sourcesView).toBe("list");
+    expect(result.current.activeConnectionId).toBeNull();
+  });
+
+  it("starts add flow with pre-selected connectionId from provider detail", () => {
+    const { result } = renderHook(() => useResearchPanel(), { wrapper });
+
+    act(() => {
+      result.current.openPanel();
+    });
+
+    act(() => {
+      result.current.startAddFlow("conn-42");
+    });
+    expect(result.current.sourcesView).toBe("add");
+    expect(result.current.activeConnectionId).toBe("conn-42");
+
+    act(() => {
+      result.current.finishAdd();
+    });
+    expect(result.current.sourcesView).toBe("list");
+    expect(result.current.activeConnectionId).toBeNull();
+  });
+
   it("manages add flow lifecycle", () => {
     const { result } = renderHook(() => useResearchPanel(), { wrapper });
 
@@ -648,13 +778,13 @@ describe("ResearchPanelProvider + useResearchPanel", () => {
     act(() => {
       result.current.setDriveConnection("conn-123");
     });
-    expect(result.current.driveConnectionId).toBe("conn-123");
+    expect(result.current.activeConnectionId).toBe("conn-123");
 
     act(() => {
       result.current.finishAdd();
     });
     expect(result.current.sourcesView).toBe("list");
-    expect(result.current.driveConnectionId).toBeNull();
+    expect(result.current.activeConnectionId).toBeNull();
   });
 
   it("throws when used outside provider", () => {
