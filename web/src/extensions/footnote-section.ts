@@ -21,7 +21,7 @@ export const FootnoteSection = Node.create({
   // individual footnoteContent nodes within it.
   draggable: false,
   defining: true,
-  isolating: true,
+  isolating: false,
 
   parseHTML() {
     return [

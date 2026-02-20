@@ -52,7 +52,13 @@ export const FootnoteContent = Node.create({
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
-    return ["div", mergeAttributes(HTMLAttributes, { class: "footnote-content" }), 0];
+  renderHTML({ node, HTMLAttributes }) {
+    const label = (node.attrs.label as string) || "0";
+    return [
+      "div",
+      mergeAttributes(HTMLAttributes, { class: "footnote-content" }),
+      ["span", { class: "footnote-label" }, `[${label}]`],
+      0,
+    ];
   },
 });
