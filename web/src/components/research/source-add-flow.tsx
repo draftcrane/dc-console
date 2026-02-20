@@ -5,11 +5,12 @@ import { validateUploadFile } from "@/hooks/use-sources";
 import type { DriveAccount } from "@/hooks/use-drive-accounts";
 
 interface SourceAddFlowProps {
+  /** Reserved for Drive browser integration (not yet used in component body). */
   projectId: string;
   driveAccounts: DriveAccount[];
   onBack: () => void;
   onSelectDriveAccount: (connectionId: string) => void;
-  onUploadLocal: (file: File) => void;
+  onUploadLocal: (file: File) => Promise<void>;
   onConnectAccount: () => void;
 }
 
