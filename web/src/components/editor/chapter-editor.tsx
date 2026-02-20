@@ -5,6 +5,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from "react";
 import { useTextSelection } from "@/hooks/use-text-selection";
+import { FootnoteRef, FootnoteContent, FootnoteSection, FootnotePlugin } from "@/extensions";
 
 /** Handle exposed by ChapterEditor for programmatic operations */
 export interface ChapterEditorHandle {
@@ -77,6 +78,10 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
           placeholder,
           emptyEditorClass: "is-editor-empty",
         }),
+        FootnoteRef,
+        FootnoteContent,
+        FootnoteSection,
+        FootnotePlugin,
       ],
       content,
       editable,
