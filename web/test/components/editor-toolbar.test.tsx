@@ -5,8 +5,8 @@ import { EditorToolbar } from "@/components/editor/editor-toolbar";
 /**
  * Tests for EditorToolbar — the top toolbar for the writing environment.
  *
- * Contains: ProjectSwitcher, SaveIndicator, DriveStatusIndicator,
- * AI Rewrite button, ExportMenu, SettingsMenu.
+ * Contains: ProjectSwitcher, SaveIndicator, AI Rewrite button,
+ * ExportMenu, SettingsMenu.
  *
  * Mock strategy: We mock all child components to isolate toolbar behavior.
  * The key behavior to test is the conditional rendering of the AI Rewrite button
@@ -24,14 +24,6 @@ vi.mock("@/components/editor/save-indicator", () => ({
   SaveIndicator: ({ status }: { status: { state: string } }) => (
     <div data-testid="save-indicator" data-state={status.state}>
       {status.state}
-    </div>
-  ),
-}));
-
-vi.mock("@/components/drive/drive-status-indicator", () => ({
-  DriveStatusIndicator: ({ connected }: { connected: boolean }) => (
-    <div data-testid="drive-status" data-connected={connected}>
-      {connected ? "Connected" : "Not connected"}
     </div>
   ),
 }));
@@ -78,9 +70,6 @@ function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorToolbar
     saveStatus: { state: "idle" as const },
     onSaveRetry: vi.fn(),
     driveConnected: false,
-    driveEmail: "",
-    onConnectDriveWithProject: vi.fn(),
-    onViewDriveFiles: undefined,
     selectionWordCount: 0,
     aiSheetState: "idle" as const,
     onOpenAiRewrite: vi.fn(),
@@ -124,12 +113,6 @@ describe("EditorToolbar", () => {
     render(<EditorToolbar {...makeProps()} />);
 
     expect(screen.getByTestId("save-indicator")).toBeInTheDocument();
-  });
-
-  it("renders drive status indicator", () => {
-    render(<EditorToolbar {...makeProps()} />);
-
-    expect(screen.getByTestId("drive-status")).toBeInTheDocument();
   });
 
   it("renders export menu", () => {
@@ -192,15 +175,5 @@ describe("EditorToolbar", () => {
     render(<EditorToolbar {...makeProps({ saveStatus: { state: "saving" } })} />);
 
     expect(screen.getByTestId("save-indicator")).toHaveAttribute("data-state", "saving");
-  });
-
-  // ────────────────────────────────────────────
-  // Drive status passthrough
-  // ────────────────────────────────────────────
-
-  it("passes connected state to DriveStatusIndicator", () => {
-    render(<EditorToolbar {...makeProps({ driveConnected: true })} />);
-
-    expect(screen.getByTestId("drive-status")).toHaveAttribute("data-connected", "true");
   });
 });

@@ -18,14 +18,12 @@ import {
 import { ResearchPanel } from "@/components/research/research-panel";
 import { ToastProvider } from "@/components/toast";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
-import { useDriveFiles } from "@/hooks/use-drive-files";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { useChapterManagement } from "@/hooks/use-chapter-management";
 import { useEditorAI } from "@/hooks/use-editor-ai";
 import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
-import { useSourceActions } from "@/hooks/use-source-actions";
 import { useSources } from "@/hooks/use-sources";
 import { isNudgeDismissed } from "@/components/research/first-use-nudge";
 import { useEditorProject } from "@/hooks/use-editor-project";
@@ -152,20 +150,10 @@ function EditorPageInner() {
   const {
     accounts: driveAccounts,
     connected: driveConnected,
-    email: driveEmail,
     connect: connectDrive,
     disconnect: disconnectDriveAccount,
     refetch: refetchDriveAccounts,
   } = useDriveAccounts();
-
-  // Drive files listing (US-007)
-  const {
-    fetchFiles,
-    files: driveFiles,
-    isLoading: driveFilesLoading,
-    error: driveFilesError,
-    reset: resetDriveFiles,
-  } = useDriveFiles();
 
   // --- Chapter management ---
   const {
@@ -241,30 +229,15 @@ function EditorPageInner() {
     openDeleteDialog,
     closeDeleteDialog,
     handleDeleteProject,
-    driveFilesOpen,
-    openDriveFiles,
-    closeDriveFiles,
-    refreshDriveFiles,
     connectDriveWithProject,
-    disconnectDriveDialogOpen,
-    openDisconnectDriveDialog,
-    closeDisconnectDriveDialog,
-    isConnectingDrive,
-    onConnectProjectToDrive,
     disconnectProjectFromDrive,
   } = useProjectActions({
     getToken: getToken as () => Promise<string | null>,
     projectId,
-    fetchDriveFiles: fetchFiles,
-    resetDriveFiles,
     connectDrive,
-    driveFolderId: projectData?.driveFolderId,
     onProjectConnected: handleProjectConnected,
     onProjectDisconnected: handleProjectDisconnected,
   });
-
-  // --- Source materials (retained for Drive files sheet callbacks) ---
-  const { openDriveBrowser } = useSourceActions(projectId);
 
   // --- Source count for first-use nudge (#185) ---
   const { sources: projectSources, fetchSources: fetchProjectSources } = useSources(projectId);
@@ -352,9 +325,6 @@ function EditorPageInner() {
             saveStatus={saveStatus}
             onSaveRetry={saveNow}
             driveConnected={driveConnected}
-            driveEmail={driveEmail}
-            onConnectDriveWithProject={connectDriveWithProject}
-            onViewDriveFiles={driveConnected ? openDriveFiles : undefined}
             selectionWordCount={selectionWordCount}
             aiSheetState={aiSheetState}
             onOpenAiRewrite={handleOpenAiRewrite}
@@ -372,9 +342,17 @@ function EditorPageInner() {
               }
             }}
             hasDriveFolder={!!projectData.driveFolderId}
-            onViewSources={() => openResearchPanel("sources")}
+            driveFolderId={projectData.driveFolderId}
+            onSetupDrive={connectDriveWithProject}
+            onUnlinkDrive={() => {
+              const confirmed = window.confirm(
+                "Unlink this project from its Google Drive folder? Your Drive files will not be deleted.",
+              );
+              if (confirmed) {
+                disconnectProjectFromDrive();
+              }
+            }}
             onManageAccounts={() => setIsAccountsSheetOpen(true)}
-            onDisconnectDrive={openDisconnectDriveDialog}
             onRenameBook={openRenameDialog}
             onDuplicateBook={openDuplicateDialog}
             isDuplicating={isDuplicating}
@@ -433,12 +411,6 @@ function EditorPageInner() {
           setDeleteChapterDialogOpen(false);
           setChapterToDelete(null);
         }}
-        // Disconnect Drive
-        disconnectDriveDialogOpen={disconnectDriveDialogOpen}
-        driveEmail={driveEmail}
-        driveAccounts={driveAccounts}
-        onDisconnectDriveAccount={disconnectDriveAccount}
-        onCloseDisconnectDriveDialog={closeDisconnectDriveDialog}
         // AI Rewrite
         aiSheetState={aiSheetState}
         aiCurrentResult={aiCurrentResult}
@@ -447,24 +419,13 @@ function EditorPageInner() {
         onAIRetry={handleAIRetry}
         onAIDiscard={handleAIDiscard}
         onGoDeeper={handleGoDeeper}
-        // Drive files
-        driveFilesOpen={driveFilesOpen}
-        driveFiles={driveFiles}
-        driveFilesLoading={driveFilesLoading}
-        driveFilesError={driveFilesError}
-        isConnectingDrive={isConnectingDrive}
-        isProjectConnected={!!projectData?.driveFolderId}
-        onCloseDriveFiles={closeDriveFiles}
-        onRefreshDriveFiles={refreshDriveFiles}
-        onConnectProjectToDrive={onConnectProjectToDrive}
-        onDisconnectProjectFromDrive={disconnectProjectFromDrive}
-        onOpenSourcesPanel={() => openResearchPanel("sources")}
-        onOpenDriveBrowser={openDriveBrowser}
         // Accounts sheet
         isAccountsSheetOpen={isAccountsSheetOpen}
         onCloseAccountsSheet={() => setIsAccountsSheetOpen(false)}
         onConnectAccount={() => connectDrive()}
+        onDisconnectDriveAccount={disconnectDriveAccount}
         onRefetchDriveAccounts={refetchDriveAccounts}
+        driveAccounts={driveAccounts}
         // Research panel (minimal props)
         isResearchPanelOpen={isResearchPanelOpen}
         onCloseResearchPanel={closeResearchPanel}

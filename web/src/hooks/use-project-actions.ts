@@ -18,14 +18,8 @@ interface UseProjectActionsOptions {
   getToken: () => Promise<string | null>;
   /** Required for delete/Drive features; omit when used on dashboard */
   projectId?: string;
-  /** Drive file-listing hook's fetchFiles fn */
-  fetchDriveFiles?: (folderId: string) => void;
-  /** Drive file-listing hook's reset fn */
-  resetDriveFiles?: () => void;
   /** Drive status hook's connect fn */
   connectDrive?: () => void;
-  /** Current project's driveFolderId (for opening Drive files sheet) */
-  driveFolderId?: string | null;
   /** Callback to refetch project data when Drive folder is connected */
   onProjectConnected?: (driveFolderId: string) => void | Promise<void>;
   /** Callback to refetch project data when Drive folder is disconnected */
@@ -41,10 +35,7 @@ interface UseProjectActionsOptions {
 export function useProjectActions({
   getToken,
   projectId,
-  fetchDriveFiles,
-  resetDriveFiles,
   connectDrive,
-  driveFolderId,
   onProjectConnected,
   onProjectDisconnected,
 }: UseProjectActionsOptions) {
@@ -64,15 +55,6 @@ export function useProjectActions({
 
   // Delete (US-023)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  // Drive files sheet (US-007)
-  const [driveFilesOpen, setDriveFilesOpen] = useState(false);
-
-  // Connect Project to Drive
-  const [isConnectingDrive, setIsConnectingDrive] = useState(false); // NEW STATE
-
-  // Disconnect Drive dialog (US-008)
-  const [disconnectDriveDialogOpen, setDisconnectDriveDialogOpen] = useState(false);
 
   const fetchProjects = useCallback(async () => {
     setIsLoadingProjects(true);
@@ -215,24 +197,6 @@ export function useProjectActions({
     }
   }, [getToken, projectId, router]);
 
-  // --- Drive files sheet (US-007) ---
-  const openDriveFiles = useCallback(() => {
-    setDriveFilesOpen(true); // Always open the sheet
-    if (driveFolderId && fetchDriveFiles) {
-      fetchDriveFiles(driveFolderId); // Only fetch files if connected
-    }
-  }, [driveFolderId, fetchDriveFiles]);
-
-  const closeDriveFiles = useCallback(() => {
-    setDriveFilesOpen(false);
-    resetDriveFiles?.();
-  }, [resetDriveFiles]);
-
-  const refreshDriveFiles = useCallback(() => {
-    if (!driveFolderId || !fetchDriveFiles) return;
-    fetchDriveFiles(driveFolderId);
-  }, [driveFolderId, fetchDriveFiles]);
-
   /**
    * Connect Drive with project context (US-006).
    * Stores the project ID in sessionStorage so the Drive success page
@@ -244,14 +208,9 @@ export function useProjectActions({
     connectDrive?.();
   }, [projectId, connectDrive]);
 
-  // --- Disconnect Drive dialog (US-008) ---
-  const openDisconnectDriveDialog = useCallback(() => setDisconnectDriveDialogOpen(true), []);
-  const closeDisconnectDriveDialog = useCallback(() => setDisconnectDriveDialogOpen(false), []);
-
   // Connect Project to Drive
   const onConnectProjectToDrive = useCallback(async () => {
     if (!projectId) return;
-    setIsConnectingDrive(true);
     try {
       const token = await getToken();
       const response = await fetch(`${API_URL}/projects/${projectId}/connect-drive`, {
@@ -275,19 +234,11 @@ export function useProjectActions({
         }),
       );
 
-      // Update parent project state first, then refresh from server.
       await onProjectConnected?.(data.driveFolderId);
-
-      // Load files immediately after project connection so the sheet content updates in place.
-      if (data.driveFolderId && fetchDriveFiles) {
-        await fetchDriveFiles(data.driveFolderId);
-      }
     } catch (err) {
       console.error("Failed to connect project to Drive:", err);
-    } finally {
-      setIsConnectingDrive(false);
     }
-  }, [getToken, projectId, onProjectConnected, fetchDriveFiles]);
+  }, [getToken, projectId, onProjectConnected]);
 
   const disconnectProjectFromDrive = useCallback(async (): Promise<boolean> => {
     if (!projectId) return false;
@@ -311,14 +262,13 @@ export function useProjectActions({
         }),
       );
 
-      resetDriveFiles?.();
       await onProjectDisconnected?.();
       return true;
     } catch (err) {
       console.error("Failed to disconnect project from Drive:", err);
       return false;
     }
-  }, [getToken, projectId, resetDriveFiles, onProjectDisconnected]);
+  }, [getToken, projectId, onProjectDisconnected]);
 
   return {
     projects,
@@ -342,18 +292,8 @@ export function useProjectActions({
     closeDeleteDialog,
     handleDeleteProject,
 
-    driveFilesOpen,
-    openDriveFiles,
-    closeDriveFiles,
-    refreshDriveFiles,
     connectDriveWithProject,
-
-    isConnectingDrive, // EXPOSED
-    onConnectProjectToDrive, // EXPOSED
+    onConnectProjectToDrive,
     disconnectProjectFromDrive,
-
-    disconnectDriveDialogOpen,
-    openDisconnectDriveDialog,
-    closeDisconnectDriveDialog,
   };
 }
