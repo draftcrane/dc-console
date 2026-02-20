@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { SourceCitationLink } from "./source-citation-link";
 
 /**
@@ -88,76 +88,132 @@ function formatRelativeTime(dateStr: string): string {
   }
 }
 
+const SWIPE_THRESHOLD = 60;
+const SWIPE_REVEAL_WIDTH = 80;
+
 export function ClipCard({ clip, onInsert, onDelete, onViewSource, canInsert }: ClipCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isTruncated = clip.content.length > TRUNCATE_LENGTH;
   const displayContent =
     isTruncated && !isExpanded ? clip.content.slice(0, TRUNCATE_LENGTH) + "..." : clip.content;
 
+  // Swipe-to-delete state
+  const touchStartX = useRef(0);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [swiped, setSwiped] = useState(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const diff = touchStartX.current - e.touches[0].clientX;
+    if (diff > 0) {
+      setSwipeOffset(Math.min(diff, SWIPE_REVEAL_WIDTH));
+    } else {
+      setSwipeOffset(0);
+      setSwiped(false);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (swipeOffset >= SWIPE_THRESHOLD) {
+      setSwiped(true);
+    } else {
+      setSwipeOffset(0);
+      setSwiped(false);
+    }
+  };
+
   return (
-    <div className="border border-border rounded-lg p-3 bg-white" data-testid="clip-card">
-      {/* Clip content */}
-      <p className="text-sm text-foreground select-text whitespace-pre-wrap mb-1">
-        {displayContent}
-      </p>
-
-      {/* Show more / less toggle */}
-      {isTruncated && (
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-xs text-blue-600 hover:text-blue-700 mb-2"
-        >
-          {isExpanded ? "Show less" : "Show more"}
-        </button>
-      )}
-
-      {/* Source citation */}
-      <SourceCitationLink
-        sourceTitle={clip.sourceTitle}
-        sourceId={clip.sourceId}
-        sourceLocation={clip.sourceLocation}
-        returnTo="clips"
-        onNavigateToSource={onViewSource}
-      />
-
-      {/* Metadata row: chapter tag + saved time */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-        {clip.chapterTitle && (
-          <>
-            <span
-              className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium text-[11px] leading-tight"
-              data-testid="chapter-tag"
-            >
-              {formatChapterLabel(clip.chapterTitle)}
-            </span>
-            <span className="text-gray-300" aria-hidden="true">
-              |
-            </span>
-          </>
-        )}
-        <span>Saved {formatRelativeTime(clip.createdAt)}</span>
-      </div>
-
-      {/* Action buttons */}
-      <div className="flex items-center gap-2 mt-2">
-        <button
-          onClick={onInsert}
-          disabled={!canInsert}
-          className="min-h-[44px] px-3 text-xs font-medium text-blue-600 rounded-md
-                     hover:bg-blue-50 transition-colors disabled:opacity-40 disabled:cursor-default"
-          aria-label="Insert quote into chapter with footnote"
-        >
-          Insert
-        </button>
-
+    <div className="relative overflow-hidden rounded-lg" data-testid="clip-card">
+      {/* Delete action behind the card (revealed by swipe) */}
+      <div
+        className="absolute inset-y-0 right-0 flex items-center bg-red-500"
+        style={{ width: SWIPE_REVEAL_WIDTH }}
+      >
         <button
           onClick={onDelete}
-          className="min-h-[44px] px-3 text-xs font-medium text-red-500 rounded-md
-                     hover:bg-red-50 transition-colors ml-auto"
-          aria-label="Delete clip"
+          className="w-full h-full flex items-center justify-center text-white text-sm font-medium"
+          style={{ minHeight: 44 }}
+          aria-label="Swipe delete clip"
         >
           Delete
         </button>
+      </div>
+
+      <div
+        className="relative border border-border rounded-lg p-3 bg-white transition-transform"
+        style={{
+          transform: `translateX(-${swiped ? SWIPE_REVEAL_WIDTH : swipeOffset}px)`,
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Clip content */}
+        <p className="text-sm text-foreground select-text whitespace-pre-wrap mb-1">
+          {displayContent}
+        </p>
+
+        {/* Show more / less toggle */}
+        {isTruncated && (
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-xs text-blue-600 hover:text-blue-700 mb-2"
+          >
+            {isExpanded ? "Show less" : "Show more"}
+          </button>
+        )}
+
+        {/* Source citation */}
+        <SourceCitationLink
+          sourceTitle={clip.sourceTitle}
+          sourceId={clip.sourceId}
+          sourceLocation={clip.sourceLocation}
+          returnTo="clips"
+          onNavigateToSource={onViewSource}
+        />
+
+        {/* Metadata row: chapter tag + saved time */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+          {clip.chapterTitle && (
+            <>
+              <span
+                className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium text-[11px] leading-tight"
+                data-testid="chapter-tag"
+              >
+                {formatChapterLabel(clip.chapterTitle)}
+              </span>
+              <span className="text-gray-300" aria-hidden="true">
+                |
+              </span>
+            </>
+          )}
+          <span>Saved {formatRelativeTime(clip.createdAt)}</span>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 mt-2">
+          <button
+            onClick={onInsert}
+            disabled={!canInsert}
+            className="min-h-[44px] px-3 text-xs font-medium text-blue-600 rounded-md
+                     hover:bg-blue-50 transition-colors disabled:opacity-40 disabled:cursor-default"
+            aria-label="Insert quote into chapter with footnote"
+          >
+            Insert
+          </button>
+
+          <button
+            onClick={onDelete}
+            className="min-h-[44px] px-3 text-xs font-medium text-red-500 rounded-md
+                     hover:bg-red-50 transition-colors ml-auto"
+            aria-label="Delete clip"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   );

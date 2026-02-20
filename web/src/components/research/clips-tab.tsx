@@ -74,10 +74,10 @@ function ClipsEmptyState() {
           d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
         />
       </svg>
-      <p className="text-base font-medium text-foreground mb-2">No clips saved yet</p>
+      <p className="text-base font-medium text-foreground mb-2">No clips yet</p>
       <p className="text-sm text-muted-foreground">
-        Select text in a source document and tap &quot;Save to Clips&quot; to start collecting
-        research snippets.
+        Save passages from AI results or select text in source documents to build your research
+        board.
       </p>
     </div>
   );
@@ -85,7 +85,7 @@ function ClipsEmptyState() {
 
 // === Chapter Filter Dropdown ===
 
-function ChapterFilter({
+function ChapterFilterInline({
   chapters,
   clips,
   selectedChapterId,
@@ -96,7 +96,6 @@ function ChapterFilter({
   selectedChapterId: string | null;
   onSelect: (chapterId: string | null) => void;
 }) {
-  // Only show chapters that have at least one tagged clip
   const chaptersWithClips = useMemo(() => {
     const chapterIdsWithClips = new Set(
       clips.filter((c) => c.chapterId !== null).map((c) => c.chapterId as string),
@@ -104,26 +103,23 @@ function ChapterFilter({
     return chapters.filter((ch) => chapterIdsWithClips.has(ch.id));
   }, [chapters, clips]);
 
-  // Don't render filter if no chapters have clips
   if (chaptersWithClips.length === 0) return null;
 
   return (
-    <div className="px-4 py-2 border-b border-border shrink-0">
-      <select
-        value={selectedChapterId ?? "all"}
-        onChange={(e) => onSelect(e.target.value === "all" ? null : e.target.value)}
-        className="w-full h-9 px-2 text-sm bg-white border border-border rounded-lg
-                   text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
-        aria-label="Filter clips by chapter"
-      >
-        <option value="all">All clips</option>
-        {chaptersWithClips.map((ch) => (
-          <option key={ch.id} value={ch.id}>
-            {ch.title}
-          </option>
-        ))}
-      </select>
-    </div>
+    <select
+      value={selectedChapterId ?? "all"}
+      onChange={(e) => onSelect(e.target.value === "all" ? null : e.target.value)}
+      className="w-full h-9 px-2 text-sm bg-white border border-border rounded-lg
+                 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500"
+      aria-label="Filter clips by chapter"
+    >
+      <option value="all">All clips</option>
+      {chaptersWithClips.map((ch) => (
+        <option key={ch.id} value={ch.id}>
+          {ch.title}
+        </option>
+      ))}
+    </select>
   );
 }
 
@@ -147,17 +143,27 @@ export function ClipsTab() {
   const { chapters } = useProjectChapters(projectId);
 
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch all clips on mount
   useEffect(() => {
     fetchClips();
   }, [fetchClips]);
 
-  // Filter clips client-side based on selected chapter
+  // Filter clips client-side based on selected chapter and search query
   const filteredClips = useMemo(() => {
-    if (!selectedChapterId) return clips;
-    return clips.filter((c) => c.chapterId === selectedChapterId);
-  }, [clips, selectedChapterId]);
+    let result = clips;
+    if (selectedChapterId) {
+      result = result.filter((c) => c.chapterId === selectedChapterId);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(
+        (c) => c.content.toLowerCase().includes(q) || c.sourceTitle.toLowerCase().includes(q),
+      );
+    }
+    return result;
+  }, [clips, selectedChapterId, searchQuery]);
 
   const handleDelete = useCallback(
     async (clipId: string) => {
@@ -179,13 +185,62 @@ export function ClipsTab() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Chapter filter */}
-      <ChapterFilter
-        chapters={chapters}
-        clips={clips}
-        selectedChapterId={selectedChapterId}
-        onSelect={handleChapterFilterChange}
-      />
+      {/* Search + Chapter filter toolbar */}
+      {clips.length > 0 && (
+        <div className="px-4 pt-3 pb-2 border-b border-border shrink-0 space-y-2">
+          {/* Search input */}
+          <div className="relative">
+            <svg
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search clips..."
+              className="w-full h-9 pl-9 pr-8 text-sm bg-white border border-border rounded-lg
+                         text-foreground placeholder:text-muted-foreground
+                         focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Search clips"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+
+          {/* Chapter filter inline (only if chapters have clips) */}
+          <ChapterFilterInline
+            chapters={chapters}
+            clips={clips}
+            selectedChapterId={selectedChapterId}
+            onSelect={handleChapterFilterChange}
+          />
+        </div>
+      )}
 
       {/* Content area */}
       <div className="flex-1 overflow-auto min-h-0">
@@ -226,15 +281,22 @@ export function ClipsTab() {
         {/* Empty state */}
         {!isLoading && !error && clips.length === 0 && <ClipsEmptyState />}
 
-        {/* Filtered empty state (clips exist but none match filter) */}
+        {/* Filtered empty state (clips exist but none match filter/search) */}
         {!isLoading && !error && clips.length > 0 && filteredClips.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-            <p className="text-sm text-muted-foreground">No clips tagged to this chapter.</p>
+            <p className="text-sm text-muted-foreground">
+              {searchQuery.trim()
+                ? "No clips match your search."
+                : "No clips tagged to this chapter."}
+            </p>
             <button
-              onClick={() => setSelectedChapterId(null)}
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedChapterId(null);
+              }}
               className="text-xs text-blue-600 hover:text-blue-700 mt-2"
             >
-              Show all clips
+              Clear filters
             </button>
           </div>
         )}
