@@ -44,6 +44,26 @@ export interface ClipCardProps {
 
 const TRUNCATE_LENGTH = 300;
 
+/**
+ * Format a chapter title into a compact label like "Ch. 4".
+ *
+ * Strategy:
+ * - If the title starts with "Chapter N" (with or without colon/rest), extract the number
+ * - Otherwise, truncate to a short label (max ~20 chars)
+ */
+function formatChapterLabel(title: string): string {
+  // Match "Chapter 1", "Chapter 1: Title", "chapter 12" etc.
+  const match = title.match(/^chapter\s+(\d+)/i);
+  if (match) {
+    return `Ch. ${match[1]}`;
+  }
+  // For non-standard chapter names, show a truncated version
+  if (title.length > 20) {
+    return title.slice(0, 18) + "...";
+  }
+  return title;
+}
+
 function formatRelativeTime(dateStr: string): string {
   try {
     const date = new Date(dateStr);
@@ -104,7 +124,12 @@ export function ClipCard({ clip, onInsert, onDelete, onViewSource, canInsert }: 
       <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
         {clip.chapterTitle && (
           <>
-            <span>{clip.chapterTitle}</span>
+            <span
+              className="inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 font-medium text-[11px] leading-tight"
+              data-testid="chapter-tag"
+            >
+              {formatChapterLabel(clip.chapterTitle)}
+            </span>
             <span className="text-gray-300" aria-hidden="true">
               |
             </span>
