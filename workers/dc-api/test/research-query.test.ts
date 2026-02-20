@@ -4,10 +4,10 @@ import {
   ResearchQueryService,
   NoSourcesError,
   type ResearchQueryInput,
-  _chunkSourceContent as chunkSourceContent,
-  _parseSnippetResponse as parseSnippetResponse,
-  type _SourceContent as SourceContent,
+  _distributeChunksAcrossSources as distributeChunksAcrossSources,
 } from "../src/services/research-query.js";
+import { chunkHtml, type Chunk } from "../src/services/chunking.js";
+import { parseSnippetResponse } from "../src/services/snippet-parser.js";
 import { seedUser, seedProject, seedSourceWithContent, cleanAll } from "./helpers/seed.js";
 
 // ── Mock fetch for OpenAI API ──
@@ -49,71 +49,49 @@ function mockOpenAIError(status: number): Response {
   } as unknown as Response;
 }
 
-// ── Unit tests: chunking ──
+// ── Unit tests: shared chunking service ──
 
-describe("chunkSourceContent", () => {
+describe("chunkHtml (shared chunking service)", () => {
   it("splits content into chunks", () => {
-    const source: SourceContent = {
-      sourceId: "src-1",
-      sourceTitle: "Test Source",
-      content: "First paragraph of content.\n\nSecond paragraph of content.",
-    };
-    const chunks = chunkSourceContent(source);
+    const chunks = chunkHtml(
+      "src-1",
+      "Test Source",
+      "<p>First paragraph of content.</p><p>Second paragraph of content.</p>",
+      "structured",
+    );
     expect(chunks.length).toBeGreaterThanOrEqual(1);
     expect(chunks[0].sourceId).toBe("src-1");
     expect(chunks[0].sourceTitle).toBe("Test Source");
   });
 
   it("returns empty for empty content", () => {
-    const source: SourceContent = {
-      sourceId: "src-1",
-      sourceTitle: "Empty",
-      content: "",
-    };
-    const chunks = chunkSourceContent(source);
+    const chunks = chunkHtml("src-1", "Empty", "", "structured");
     expect(chunks).toHaveLength(0);
   });
 
-  it("strips HTML tags before chunking", () => {
-    const source: SourceContent = {
-      sourceId: "src-1",
-      sourceTitle: "HTML Source",
-      content: "<p>Hello <strong>world</strong></p><p>Second paragraph</p>",
-    };
-    const chunks = chunkSourceContent(source);
+  it("strips HTML tags", () => {
+    const chunks = chunkHtml(
+      "src-1",
+      "HTML Source",
+      "<p>Hello <strong>world</strong></p><p>Second paragraph with enough content to form a chunk.</p>",
+      "structured",
+    );
     expect(chunks.length).toBeGreaterThanOrEqual(1);
     expect(chunks[0].text).not.toContain("<p>");
     expect(chunks[0].text).not.toContain("<strong>");
   });
 
-  it("creates multiple chunks for large content", () => {
-    // Create content with multiple paragraphs that together exceed MAX_CHUNK_SIZE (3000 chars)
-    // Each paragraph is ~500 chars, so 10 paragraphs = ~5000 chars across multiple chunks
-    const paragraph = "This is a test sentence with some content for chunking. ".repeat(10);
-    const paragraphs = Array.from({ length: 10 }, () => paragraph).join("\n\n");
-    const source: SourceContent = {
-      sourceId: "src-1",
-      sourceTitle: "Long Source",
-      content: paragraphs,
-    };
-    const chunks = chunkSourceContent(source);
-    expect(chunks.length).toBeGreaterThan(1);
-  });
-
-  it("includes heading chain with section numbers", () => {
-    const source: SourceContent = {
-      sourceId: "src-1",
-      sourceTitle: "Doc",
-      content: "Some content here.",
-    };
-    const chunks = chunkSourceContent(source);
-    expect(chunks[0].headingChain).toContain("Section 1");
+  it("preserves heading chain from structured HTML", () => {
+    const html = `<h1>Chapter One</h1><p>Some content in the chapter that is long enough to form a chunk on its own.</p>`;
+    const chunks = chunkHtml("src-1", "Doc", html, "structured");
+    expect(chunks.length).toBeGreaterThanOrEqual(1);
+    expect(chunks[0].headingChain).toContain("Chapter One");
   });
 });
 
-// ── Unit tests: snippet parsing ──
+// ── Unit tests: shared snippet parser ──
 
-describe("parseSnippetResponse", () => {
+describe("parseSnippetResponse (shared snippet parser)", () => {
   it("parses valid JSON response", () => {
     const raw = JSON.stringify({
       snippets: [
@@ -129,18 +107,23 @@ describe("parseSnippetResponse", () => {
       noResults: false,
     });
     const result = parseSnippetResponse(raw);
-    expect(result.snippets).toHaveLength(1);
-    expect(result.snippets[0].content).toBe("Test content");
-    expect(result.snippets[0].sourceId).toBe("src-1");
-    expect(result.summary).toBe("A summary");
-    expect(result.noResults).toBe(false);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected ok");
+    expect(result.data.snippets).toHaveLength(1);
+    expect(result.data.snippets[0].content).toBe("Test content");
+    expect(result.data.snippets[0].sourceId).toBe("src-1");
+    expect(result.data.snippets[0].relevance).toBe("Relevant because...");
+    expect(result.data.summary).toBe("A summary");
+    expect(result.data.noResults).toBe(false);
   });
 
   it("handles markdown fences", () => {
     const raw = '```json\n{"snippets":[],"summary":"None","noResults":true}\n```';
     const result = parseSnippetResponse(raw);
-    expect(result.noResults).toBe(true);
-    expect(result.snippets).toHaveLength(0);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected ok");
+    expect(result.data.noResults).toBe(true);
+    expect(result.data.snippets).toHaveLength(0);
   });
 
   it("handles snake_case fields", () => {
@@ -158,9 +141,11 @@ describe("parseSnippetResponse", () => {
       no_results: false,
     });
     const result = parseSnippetResponse(raw);
-    expect(result.snippets[0].sourceId).toBe("src-1");
-    expect(result.snippets[0].sourceTitle).toBe("Title");
-    expect(result.snippets[0].sourceLocation).toBe("Location");
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected ok");
+    expect(result.data.snippets[0].sourceId).toBe("src-1");
+    expect(result.data.snippets[0].sourceTitle).toBe("Title");
+    expect(result.data.snippets[0].sourceLocation).toBe("Location");
   });
 
   it("returns noResults true for empty snippets array", () => {
@@ -170,8 +155,10 @@ describe("parseSnippetResponse", () => {
       noResults: true,
     });
     const result = parseSnippetResponse(raw);
-    expect(result.noResults).toBe(true);
-    expect(result.snippets).toHaveLength(0);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected ok");
+    expect(result.data.noResults).toBe(true);
+    expect(result.data.snippets).toHaveLength(0);
   });
 
   it("skips snippets missing content or sourceId", () => {
@@ -185,8 +172,10 @@ describe("parseSnippetResponse", () => {
       noResults: false,
     });
     const result = parseSnippetResponse(raw);
-    expect(result.snippets).toHaveLength(1);
-    expect(result.snippets[0].sourceId).toBe("src-2");
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected ok");
+    expect(result.data.snippets).toHaveLength(1);
+    expect(result.data.snippets[0].sourceId).toBe("src-2");
   });
 
   it("limits to MAX_SNIPPETS (8)", () => {
@@ -199,18 +188,115 @@ describe("parseSnippetResponse", () => {
     }));
     const raw = JSON.stringify({ snippets, summary: "Sum", noResults: false });
     const result = parseSnippetResponse(raw);
-    expect(result.snippets).toHaveLength(8);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected ok");
+    expect(result.data.snippets).toHaveLength(8);
   });
 
-  it("throws on invalid JSON", () => {
-    expect(() => parseSnippetResponse("not json")).toThrow();
+  it("returns ok: false for invalid JSON", () => {
+    const result = parseSnippetResponse("not json");
+    expect(result.ok).toBe(false);
   });
 
-  it("returns empty snippets for missing snippets array", () => {
+  it("handles missing snippets array with noResults", () => {
     const raw = JSON.stringify({ summary: "Sum", noResults: true });
     const result = parseSnippetResponse(raw);
-    expect(result.snippets).toHaveLength(0);
-    expect(result.noResults).toBe(true);
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("Expected ok");
+    expect(result.data.snippets).toHaveLength(0);
+    expect(result.data.noResults).toBe(true);
+  });
+});
+
+// ── Unit tests: round-robin chunk distribution ──
+
+describe("distributeChunksAcrossSources", () => {
+  function makeChunk(sourceId: string, index: number): Chunk {
+    return {
+      id: `${sourceId}:${index}`,
+      sourceId,
+      sourceTitle: `Source ${sourceId}`,
+      headingChain: [`Section ${index + 1}`],
+      text: `Content from ${sourceId} chunk ${index}`,
+      html: `<p>Content from ${sourceId} chunk ${index}</p>`,
+      wordCount: 5,
+      startOffset: 0,
+      endOffset: 100,
+    };
+  }
+
+  it("distributes evenly across 3 sources with budget of 6", () => {
+    const chunksBySource = new Map<string, Chunk[]>();
+    chunksBySource.set("a", [makeChunk("a", 0), makeChunk("a", 1), makeChunk("a", 2)]);
+    chunksBySource.set("b", [makeChunk("b", 0), makeChunk("b", 1), makeChunk("b", 2)]);
+    chunksBySource.set("c", [makeChunk("c", 0), makeChunk("c", 1), makeChunk("c", 2)]);
+
+    const result = distributeChunksAcrossSources(chunksBySource, 6);
+    expect(result).toHaveLength(6);
+
+    // Each source should have 2 chunks
+    const countA = result.filter((c) => c.sourceId === "a").length;
+    const countB = result.filter((c) => c.sourceId === "b").length;
+    const countC = result.filter((c) => c.sourceId === "c").length;
+    expect(countA).toBe(2);
+    expect(countB).toBe(2);
+    expect(countC).toBe(2);
+  });
+
+  it("distributes unevenly when budget doesn't divide evenly", () => {
+    const chunksBySource = new Map<string, Chunk[]>();
+    chunksBySource.set(
+      "a",
+      Array.from({ length: 5 }, (_, i) => makeChunk("a", i)),
+    );
+    chunksBySource.set(
+      "b",
+      Array.from({ length: 5 }, (_, i) => makeChunk("b", i)),
+    );
+    chunksBySource.set(
+      "c",
+      Array.from({ length: 5 }, (_, i) => makeChunk("c", i)),
+    );
+
+    const result = distributeChunksAcrossSources(chunksBySource, 8);
+    expect(result).toHaveLength(8);
+
+    // Each source should have at least 2 chunks, and at most 3
+    const countA = result.filter((c) => c.sourceId === "a").length;
+    const countB = result.filter((c) => c.sourceId === "b").length;
+    const countC = result.filter((c) => c.sourceId === "c").length;
+    expect(countA).toBeGreaterThanOrEqual(2);
+    expect(countB).toBeGreaterThanOrEqual(2);
+    expect(countC).toBeGreaterThanOrEqual(2);
+    expect(countA).toBeLessThanOrEqual(3);
+    expect(countB).toBeLessThanOrEqual(3);
+    expect(countC).toBeLessThanOrEqual(3);
+  });
+
+  it("handles single source correctly", () => {
+    const chunksBySource = new Map<string, Chunk[]>();
+    chunksBySource.set(
+      "a",
+      Array.from({ length: 10 }, (_, i) => makeChunk("a", i)),
+    );
+
+    const result = distributeChunksAcrossSources(chunksBySource, 8);
+    expect(result).toHaveLength(8);
+    expect(result.every((c) => c.sourceId === "a")).toBe(true);
+  });
+
+  it("handles empty map", () => {
+    const result = distributeChunksAcrossSources(new Map(), 8);
+    expect(result).toHaveLength(0);
+  });
+
+  it("handles budget larger than total chunks", () => {
+    const chunksBySource = new Map<string, Chunk[]>();
+    chunksBySource.set("a", [makeChunk("a", 0)]);
+    chunksBySource.set("b", [makeChunk("b", 0)]);
+
+    const result = distributeChunksAcrossSources(chunksBySource, 8);
+    expect(result).toHaveLength(2); // Only 2 chunks total
   });
 });
 
@@ -321,10 +407,10 @@ describe("ResearchQueryService", () => {
   });
 
   describe("executeQuery", () => {
-    it("executes a query and returns structured results", async () => {
+    it("executes a query and returns structured results with relevance", async () => {
       await seedSourceWithContent(
         projectId,
-        "Photosynthesis is the process by which plants convert sunlight into energy.",
+        "<p>Photosynthesis is the process by which plants convert sunlight into energy.</p>",
         {
           id: "src-photo",
           title: "Biology Notes",
@@ -354,6 +440,7 @@ describe("ResearchQueryService", () => {
 
       expect(result.snippets).toHaveLength(1);
       expect(result.snippets[0].sourceId).toBe("src-photo");
+      expect(result.snippets[0].relevance).toBe("Directly answers the query");
       expect(result.summary).toContain("photosynthesis");
       expect(queryId).toBeDefined();
       expect(latencyMs).toBeGreaterThanOrEqual(0);
@@ -366,7 +453,7 @@ describe("ResearchQueryService", () => {
     });
 
     it("records query metadata in D1", async () => {
-      await seedSourceWithContent(projectId, "Some content");
+      await seedSourceWithContent(projectId, "<p>Some content</p>");
 
       mockFetch(
         mockOpenAIResponse({
@@ -402,7 +489,7 @@ describe("ResearchQueryService", () => {
     });
 
     it("records error status on AI provider failure", async () => {
-      await seedSourceWithContent(projectId, "Some content");
+      await seedSourceWithContent(projectId, "<p>Some content</p>");
       mockFetch(mockOpenAIError(500));
 
       await expect(service.executeQuery(userId, projectId, { query: "test" })).rejects.toThrow();
@@ -419,7 +506,7 @@ describe("ResearchQueryService", () => {
   });
 
   describe("buildSSEStream", () => {
-    it("produces correctly formatted SSE events", async () => {
+    it("produces correctly formatted SSE events with relevance field", async () => {
       const result = {
         snippets: [
           {
@@ -427,6 +514,7 @@ describe("ResearchQueryService", () => {
             sourceId: "src-1",
             sourceTitle: "Source One",
             sourceLocation: "Section 1" as string | null,
+            relevance: "Directly answers the query",
           },
         ],
         summary: "A summary",
@@ -449,6 +537,7 @@ describe("ResearchQueryService", () => {
       // First event: result
       expect(events[0]).toContain("event: result");
       expect(events[0]).toContain('"sourceId":"src-1"');
+      expect(events[0]).toContain('"relevance":"Directly answers the query"');
 
       // Second event: done
       expect(events[1]).toContain("event: done");
@@ -480,7 +569,7 @@ describe("ResearchQueryService", () => {
   });
 
   describe("buildJsonResponse", () => {
-    it("returns structured JSON response", () => {
+    it("returns structured JSON response with relevance", () => {
       const result = {
         snippets: [
           {
@@ -488,6 +577,7 @@ describe("ResearchQueryService", () => {
             sourceId: "s1",
             sourceTitle: "Title",
             sourceLocation: null,
+            relevance: "Important finding",
           },
         ],
         summary: "Sum",
@@ -496,6 +586,7 @@ describe("ResearchQueryService", () => {
 
       const json = service.buildJsonResponse(result, 2000);
       expect(json.results).toHaveLength(1);
+      expect(json.results[0].relevance).toBe("Important finding");
       expect(json.summary).toBe("Sum");
       expect(json.processingTimeMs).toBe(2000);
     });

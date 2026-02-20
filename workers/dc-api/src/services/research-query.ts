@@ -3,10 +3,11 @@
  *
  * Flow:
  * 1. Collect source content from R2 (plain text cached versions)
- * 2. Chunk content for context window management
- * 3. Send chunks + query to LLM (OpenAI GPT-4o with json_object mode per ADR-010)
- * 4. Parse response into structured snippets
- * 5. Return results for SSE streaming or JSON response
+ * 2. Chunk content using shared chunking service (sentence-boundary, overlap, heading-chain)
+ * 3. Distribute chunks across sources with round-robin selection
+ * 4. Send chunks + query to LLM (OpenAI GPT-4o with json_object mode per ADR-010)
+ * 5. Parse response with shared snippet parser
+ * 6. Return results for SSE streaming or JSON response
  *
  * Per ADR-010: Uses non-streaming OpenAI call with response_format: { type: "json_object" }
  * then re-emits results as SSE events to the client.
@@ -16,6 +17,8 @@
  */
 
 import { ulid } from "ulidx";
+import { chunkHtml, htmlTypeFromMime, type Chunk } from "./chunking.js";
+import { parseSnippetResponse, type Snippet, type SnippetParseResult } from "./snippet-parser.js";
 
 // ── Types ──
 
@@ -29,6 +32,7 @@ export interface ResearchSnippet {
   sourceId: string;
   sourceTitle: string;
   sourceLocation: string | null;
+  relevance: string;
 }
 
 export interface ResearchQueryResult {
@@ -53,16 +57,27 @@ export interface ResearchQueryJsonResult {
 interface SourceContent {
   sourceId: string;
   sourceTitle: string;
+  mimeType: string;
   content: string;
 }
 
-// ── Chunking types (inline, pending PR #204 merge) ──
+// ── Chunk adapter: maps shared Chunk to the shape the prompt builder needs ──
 
-interface SourceChunk {
+interface PromptChunk {
   sourceId: string;
   sourceTitle: string;
   headingChain: string;
   text: string;
+}
+
+/** Convert a shared Chunk into the shape used by buildResearchUserMessage */
+function toPromptChunk(chunk: Chunk): PromptChunk {
+  return {
+    sourceId: chunk.sourceId,
+    sourceTitle: chunk.sourceTitle,
+    headingChain: chunk.headingChain.length > 0 ? chunk.headingChain.join(" > ") : "Full document",
+    text: chunk.text,
+  };
 }
 
 // ── Constants ──
@@ -70,7 +85,6 @@ interface SourceChunk {
 const MAX_QUERY_LENGTH = 1000;
 const MAX_SNIPPETS = 8;
 const MAX_CHUNKS_PER_QUERY = 8;
-const MAX_CHUNK_SIZE = 3000; // characters per chunk
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
 // ── Prompt Templates (from ADR-010) ──
@@ -126,7 +140,7 @@ Respond ONLY with valid JSON. No markdown fences, no explanation, no preamble.`;
 /**
  * Build user message with source chunks following ADR-010 template.
  */
-export function buildResearchUserMessage(query: string, chunks: SourceChunk[]): string {
+export function buildResearchUserMessage(query: string, chunks: PromptChunk[]): string {
   const parts: string[] = [];
   parts.push(`## Research Query\n\n${query}\n`);
   parts.push(
@@ -144,132 +158,59 @@ export function buildResearchUserMessage(query: string, chunks: SourceChunk[]): 
   return parts.join("\n");
 }
 
-// ── Inline chunking (pending PR #204 merge) ──
+// ── Round-robin chunk distribution across sources ──
 
 /**
- * Split source content into chunks suitable for LLM context window.
- * Simple paragraph-based chunking: split on double newlines, merge small
- * paragraphs, split large ones. Each chunk carries source attribution.
+ * Distribute a chunk budget across sources using round-robin selection,
+ * so every source gets representation in multi-source projects.
  *
- * This is an inline implementation pending the chunking service from PR #204.
+ * For example: 3 sources, budget of 8 -> approx 3, 3, 2 chunks.
  */
-function chunkSourceContent(source: SourceContent): SourceChunk[] {
-  const { content, sourceId, sourceTitle } = source;
+function distributeChunksAcrossSources(
+  chunksBySource: Map<string, Chunk[]>,
+  budget: number,
+): Chunk[] {
+  const sourceIds = [...chunksBySource.keys()];
+  if (sourceIds.length === 0) return [];
 
-  // Split HTML into paragraphs first (by block-level tags), then strip tags
-  // This preserves paragraph boundaries that HTML encodes
-  const paragraphs = content
-    // Replace block-level closing tags with double newlines
-    .replace(/<\/(p|div|h[1-6]|li|blockquote|br\s*\/?)>/gi, "\n\n")
-    // Strip remaining HTML tags
-    .replace(/<[^>]+>/g, " ")
-    // Normalize runs of whitespace within lines (but preserve \n)
-    .replace(/[^\S\n]+/g, " ")
-    // Split on double newlines
-    .split(/\n\n+/)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
+  const selected: Chunk[] = [];
+  const indices = new Map<string, number>();
 
-  if (paragraphs.length === 0) return [];
-
-  const chunks: SourceChunk[] = [];
-  let currentText = "";
-  let sectionIndex = 1;
-
-  const flushChunk = () => {
-    if (currentText) {
-      chunks.push({
-        sourceId,
-        sourceTitle,
-        headingChain: `Section ${sectionIndex} of document`,
-        text: currentText,
-      });
-      sectionIndex++;
-      currentText = "";
-    }
-  };
-
-  for (const paragraph of paragraphs) {
-    // If a single paragraph exceeds max chunk size, split it at sentence boundaries
-    if (paragraph.length > MAX_CHUNK_SIZE) {
-      flushChunk();
-      const sentences = paragraph.match(/[^.!?]+[.!?]+\s*/g) || [paragraph];
-      for (const sentence of sentences) {
-        if (currentText && currentText.length + sentence.length > MAX_CHUNK_SIZE) {
-          flushChunk();
-        }
-        currentText = currentText ? currentText + sentence : sentence;
-      }
-      continue;
-    }
-
-    // If adding this paragraph would exceed max chunk size, flush current
-    if (currentText && currentText.length + paragraph.length + 2 > MAX_CHUNK_SIZE) {
-      flushChunk();
-      currentText = paragraph;
-    } else {
-      currentText = currentText ? `${currentText}\n\n${paragraph}` : paragraph;
-    }
+  // Initialize position tracker for each source
+  for (const id of sourceIds) {
+    indices.set(id, 0);
   }
 
-  // Flush remaining
-  flushChunk();
+  let round = 0;
+  while (selected.length < budget) {
+    let addedInRound = false;
+    for (const sourceId of sourceIds) {
+      if (selected.length >= budget) break;
+      const chunks = chunksBySource.get(sourceId)!;
+      const idx = indices.get(sourceId)!;
+      if (idx < chunks.length) {
+        selected.push(chunks[idx]);
+        indices.set(sourceId, idx + 1);
+        addedInRound = true;
+      }
+    }
+    if (!addedInRound) break; // All sources exhausted
+    round++;
+  }
 
-  return chunks;
+  return selected;
 }
 
-// ── Inline snippet parser (pending PR #203 merge) ──
+// ── Snippet adapter: maps shared Snippet to ResearchSnippet ──
 
-/**
- * Parse LLM JSON response into structured snippets.
- * Handles valid JSON, markdown fences, missing optional fields.
- */
-function parseSnippetResponse(raw: string): ResearchQueryResult {
-  // Strip markdown fences if present
-  let cleaned = raw.trim();
-  if (cleaned.startsWith("```json")) {
-    cleaned = cleaned.slice(7);
-  } else if (cleaned.startsWith("```")) {
-    cleaned = cleaned.slice(3);
-  }
-  if (cleaned.endsWith("```")) {
-    cleaned = cleaned.slice(0, -3);
-  }
-  cleaned = cleaned.trim();
-
-  const parsed = JSON.parse(cleaned);
-
-  const noResults = parsed.noResults === true || parsed.no_results === true;
-  const summary = typeof parsed.summary === "string" ? parsed.summary : "";
-
-  if (!Array.isArray(parsed.snippets)) {
-    return { snippets: [], summary, noResults: true };
-  }
-
-  const snippets: ResearchSnippet[] = [];
-  for (const item of parsed.snippets.slice(0, MAX_SNIPPETS)) {
-    if (!item || typeof item !== "object") continue;
-
-    const content = typeof item.content === "string" ? item.content : "";
-    const sourceId =
-      typeof (item.sourceId ?? item.source_id) === "string"
-        ? (item.sourceId ?? item.source_id)
-        : "";
-    const sourceTitle =
-      typeof (item.sourceTitle ?? item.source_title) === "string"
-        ? (item.sourceTitle ?? item.source_title)
-        : "";
-    const sourceLocation =
-      typeof (item.sourceLocation ?? item.source_location ?? item.location_in_source) === "string"
-        ? (item.sourceLocation ?? item.source_location ?? item.location_in_source)
-        : null;
-
-    if (!content || !sourceId) continue;
-
-    snippets.push({ content, sourceId, sourceTitle, sourceLocation });
-  }
-
-  return { snippets, summary, noResults: noResults && snippets.length === 0 };
+function toResearchSnippet(snippet: Snippet): ResearchSnippet {
+  return {
+    content: snippet.content,
+    sourceId: snippet.sourceId,
+    sourceTitle: snippet.sourceTitle,
+    sourceLocation: snippet.sourceLocation || null,
+    relevance: snippet.relevance,
+  };
 }
 
 // ── Service ──
@@ -308,7 +249,7 @@ export class ResearchQueryService {
     sourceIds?: string[],
   ): Promise<SourceContent[]> {
     // Build query to get active sources with cached content
-    let sql = `SELECT sm.id, sm.title, sm.r2_key
+    let sql = `SELECT sm.id, sm.title, sm.mime_type, sm.r2_key
       FROM source_materials sm
       JOIN projects p ON p.id = sm.project_id
       WHERE sm.project_id = ? AND p.user_id = ? AND sm.status = 'active' AND sm.cached_at IS NOT NULL`;
@@ -324,7 +265,7 @@ export class ResearchQueryService {
     const result = await this.db
       .prepare(sql)
       .bind(...params)
-      .all<{ id: string; title: string; r2_key: string | null }>();
+      .all<{ id: string; title: string; mime_type: string; r2_key: string | null }>();
 
     const rows = result.results ?? [];
 
@@ -339,6 +280,7 @@ export class ResearchQueryService {
           contents.push({
             sourceId: row.id,
             sourceTitle: row.title,
+            mimeType: row.mime_type || "text/plain",
             content: text,
           });
         }
@@ -381,18 +323,24 @@ export class ResearchQueryService {
         throw new NoSourcesError();
       }
 
-      // 2. Chunk all source content
-      const allChunks: SourceChunk[] = [];
+      // 2. Chunk all source content using shared chunking service
+      const chunksBySource = new Map<string, Chunk[]>();
       for (const source of sources) {
-        const chunks = chunkSourceContent(source);
-        allChunks.push(...chunks);
+        const htmlType = htmlTypeFromMime(source.mimeType);
+        const chunks = chunkHtml(source.sourceId, source.sourceTitle, source.content, htmlType);
+        if (chunks.length > 0) {
+          chunksBySource.set(source.sourceId, chunks);
+        }
       }
 
-      // Limit to top chunks to stay within context window
-      const topChunks = allChunks.slice(0, MAX_CHUNKS_PER_QUERY);
+      // 3. Distribute chunks across sources with round-robin selection
+      const topChunks = distributeChunksAcrossSources(chunksBySource, MAX_CHUNKS_PER_QUERY);
 
-      // 3. Build prompt and call LLM (non-streaming, per ADR-010)
-      const userMessage = buildResearchUserMessage(input.query, topChunks);
+      // Convert to prompt format
+      const promptChunks = topChunks.map(toPromptChunk);
+
+      // 4. Build prompt and call LLM (non-streaming, per ADR-010)
+      const userMessage = buildResearchUserMessage(input.query, promptChunks);
 
       const llmResponse = await fetch(OPENAI_API_URL, {
         method: "POST",
@@ -403,6 +351,7 @@ export class ResearchQueryService {
         body: JSON.stringify({
           model: this.model,
           max_tokens: 4096,
+          temperature: 0,
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: RESEARCH_SYSTEM_PROMPT },
@@ -437,21 +386,36 @@ export class ResearchQueryService {
         throw new AIUnavailableError();
       }
 
-      // 4. Parse response
+      // 5. Parse response using shared snippet parser
+      const parseResult: SnippetParseResult = parseSnippetResponse(rawContent);
+
       let result: ResearchQueryResult;
-      try {
-        result = parseSnippetResponse(rawContent);
-      } catch {
-        await this.updateQueryRecord(queryId, {
-          status: "error",
-          errorMessage: "Failed to parse AI response",
-        });
-        throw new QueryFailedError("Failed to parse AI response");
+      if (parseResult.ok) {
+        result = {
+          snippets: parseResult.data.snippets.map(toResearchSnippet),
+          summary: parseResult.data.summary,
+          noResults: parseResult.data.noResults,
+        };
+      } else {
+        // Shared parser returned an error — try to use partial data if available
+        if (parseResult.partial) {
+          result = {
+            snippets: parseResult.partial.snippets.map(toResearchSnippet),
+            summary: parseResult.partial.summary,
+            noResults: parseResult.partial.noResults,
+          };
+        } else {
+          await this.updateQueryRecord(queryId, {
+            status: "error",
+            errorMessage: `Failed to parse AI response: ${parseResult.error.message}`,
+          });
+          throw new QueryFailedError("Failed to parse AI response");
+        }
       }
 
       const latencyMs = Date.now() - startTime;
 
-      // 5. Update query record with results
+      // 6. Update query record with results
       await this.updateQueryRecord(queryId, {
         status: "completed",
         sourceCount: sources.length,
@@ -501,6 +465,7 @@ export class ResearchQueryService {
             sourceId: snippet.sourceId,
             sourceTitle: snippet.sourceTitle,
             sourceLocation: snippet.sourceLocation,
+            relevance: snippet.relevance,
           });
           controller.enqueue(encoder.encode(`event: result\ndata: ${data}\n\n`));
         }
@@ -600,9 +565,6 @@ export class QueryFailedError extends Error {
 
 // ── Exports for testing ──
 
-export {
-  chunkSourceContent as _chunkSourceContent,
-  parseSnippetResponse as _parseSnippetResponse,
-  RESEARCH_SYSTEM_PROMPT as _RESEARCH_SYSTEM_PROMPT,
-};
-export type { SourceChunk as _SourceChunk, SourceContent as _SourceContent };
+export { RESEARCH_SYSTEM_PROMPT as _RESEARCH_SYSTEM_PROMPT };
+export { distributeChunksAcrossSources as _distributeChunksAcrossSources };
+export type { SourceContent as _SourceContent, PromptChunk as _PromptChunk };
