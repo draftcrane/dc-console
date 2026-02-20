@@ -21,6 +21,7 @@ import {
   type SourceContentResult,
 } from "./source-types.js";
 import { extractPlainTextFromHtml, storeExtractionResult } from "./text-extraction.js";
+import { resolveReadOnlyConnection } from "./drive-connection-resolver.js";
 
 const ALLOWED_MIME_TYPE = "application/vnd.google-apps.document";
 const GOOGLE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
@@ -201,6 +202,10 @@ export class SourceDriveService {
    * Fetch content from Drive, sanitize, cache in R2 (HTML + plain text),
    * and populate FTS index.
    * Updates D1 metadata (word_count, cached_at, drive_modified_time).
+   *
+   * Connection resolution: uses the source's driveConnectionId if available,
+   * otherwise falls back to single-connection or rejects with DRIVE_AMBIGUOUS
+   * for multi-account users. See drive-connection-resolver.ts for rules.
    */
   async fetchAndCache(
     userId: string,
@@ -210,23 +215,13 @@ export class SourceDriveService {
     driveService: DriveService,
     sourceTitle?: string,
   ): Promise<SourceContentResult> {
-    // Get tokens: prefer connection-specific, fall back to user's first connection
-    let accessToken: string;
-    if (driveConnectionId) {
-      const tokens = await driveService.getValidTokensByConnection(driveConnectionId);
-      if (!tokens) {
-        validationError(
-          "Drive connection not found. The Google account may have been disconnected.",
-        );
-      }
-      accessToken = tokens.accessToken;
-    } else {
-      const tokens = await driveService.getValidTokens(userId);
-      if (!tokens) {
-        validationError("Google Drive is not connected. Connect Drive to access source content.");
-      }
-      accessToken = tokens.accessToken;
-    }
+    // Resolve connection: prefer source-specific binding, reject ambiguous state
+    const { tokens } = await resolveReadOnlyConnection(
+      driveService.tokenService,
+      userId,
+      driveConnectionId ?? undefined,
+    );
+    const accessToken = tokens.accessToken;
 
     let rawHtml: string;
     try {

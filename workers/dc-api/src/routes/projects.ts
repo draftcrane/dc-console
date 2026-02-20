@@ -4,7 +4,8 @@ import { standardRateLimit, exportRateLimit } from "../middleware/rate-limit.js"
 import { validationError } from "../middleware/error-handler.js";
 import { ProjectService } from "../services/project.js";
 import { BackupService } from "../services/backup.js";
-import { DriveService } from "../services/drive.js"; // NEW IMPORT
+import { DriveService } from "../services/drive.js";
+import { resolveProjectConnection } from "../services/drive-connection-resolver.js";
 import { safeContentDisposition } from "../utils/file-names.js";
 
 /**
@@ -181,39 +182,22 @@ projects.post("/:projectId/connect-drive", async (c) => {
 
   const driveService = new DriveService(c.env);
 
-  // Get tokens: prefer specified connectionId, fall back to first connection
-  let accessToken: string;
-  let connectionId: string;
-
-  if (body.connectionId) {
-    // Verify connection belongs to user
-    const connections = await driveService.getConnectionsForUser(userId);
-    if (!connections.some((conn) => conn.id === body.connectionId)) {
-      validationError("Drive connection not found for this user.");
-    }
-    const tokens = await driveService.getValidTokensByConnection(body.connectionId);
-    if (!tokens) {
-      validationError("Drive connection tokens are invalid.");
-    }
-    accessToken = tokens.accessToken;
-    connectionId = body.connectionId;
-  } else {
-    const tokens = await driveService.getValidTokens(userId);
-    if (!tokens) {
-      validationError("Google Drive is not connected for this user.");
-    }
-    accessToken = tokens.accessToken;
-    connectionId = tokens.connectionId;
-  }
+  // Resolve Drive connection: request param > single-connection fallback > reject ambiguous
+  const resolved = await resolveProjectConnection(
+    driveService.tokenService,
+    userId,
+    null, // No project binding yet (this is the connect flow)
+    body.connectionId,
+  );
 
   // Create a folder named after the project title
-  const driveFolder = await driveService.createFolder(accessToken, project.title);
+  const driveFolder = await driveService.createFolder(resolved.tokens.accessToken, project.title);
 
   // Store drive_folder_id and drive_connection_id on the project
   await c.env.DB.prepare(
     `UPDATE projects SET drive_folder_id = ?, drive_connection_id = ? WHERE id = ?`,
   )
-    .bind(driveFolder.id, connectionId, project.id)
+    .bind(driveFolder.id, resolved.connectionId, project.id)
     .run();
 
   console.info(
@@ -223,7 +207,7 @@ projects.post("/:projectId/connect-drive", async (c) => {
       user_id: userId,
       project_id: project.id,
       drive_folder_id: driveFolder.id,
-      connection_id: connectionId,
+      connection_id: resolved.connectionId,
     }),
   );
 

@@ -20,6 +20,7 @@ import { DriveFileService } from "./drive-files.js";
 // Re-export public types so existing imports from "./drive.js" still work
 export type { DriveFile } from "./drive-files.js";
 export type { ValidTokens, DriveConnection, GoogleTokenResponse } from "./drive-token.js";
+export { DriveTokenService } from "./drive-token.js";
 
 /**
  * DriveService composes token management and file operations into a single
@@ -33,6 +34,11 @@ export class DriveService {
   constructor(private readonly env: Env) {
     this.tokens = new DriveTokenService(env);
     this.files = new DriveFileService();
+  }
+
+  /** Access the underlying token service for connection resolution. */
+  get tokenService(): DriveTokenService {
+    return this.tokens;
   }
 
   // ── OAuth & Token management (delegated to DriveTokenService) ──
@@ -69,6 +75,11 @@ export class DriveService {
     return this.tokens.getValidTokensByConnection(connectionId);
   }
 
+  /**
+   * @deprecated Use resolveProjectConnection() or resolveReadOnlyConnection() instead.
+   * This method selects nondeterministically when users have multiple Drive connections.
+   * Retained for backward compatibility but no production code should call it. See #166.
+   */
   getValidTokens(userId: string) {
     return this.tokens.getValidTokens(userId);
   }

@@ -8,6 +8,7 @@
 
 import { notFound, validationError } from "../middleware/error-handler.js";
 import type { DriveService } from "./drive.js";
+import { resolveProjectConnection } from "./drive-connection-resolver.js";
 
 export interface ExportToDriveResult {
   driveFileId: string;
@@ -197,13 +198,19 @@ export class ExportDeliveryService {
       };
     }
 
-    // 2. Look up the project's drive_folder_id
+    // 2. Look up the project's drive_folder_id and drive_connection_id
     const project = await this.db
       .prepare(
-        `SELECT id, title, drive_folder_id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`,
+        `SELECT id, title, drive_folder_id, drive_connection_id
+         FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`,
       )
       .bind(job.project_id, userId)
-      .first<{ id: string; title: string; drive_folder_id: string | null }>();
+      .first<{
+        id: string;
+        title: string;
+        drive_folder_id: string | null;
+        drive_connection_id: string | null;
+      }>();
 
     if (!project) {
       notFound("Project not found");
@@ -215,11 +222,12 @@ export class ExportDeliveryService {
       );
     }
 
-    // 3. Get valid Drive tokens
-    const tokens = await driveService.getValidTokens(userId);
-    if (!tokens) {
-      validationError("Google Drive is not connected");
-    }
+    // 3. Resolve Drive connection via project binding (fails fast on ambiguous state)
+    const { tokens } = await resolveProjectConnection(
+      driveService.tokenService,
+      userId,
+      project.drive_connection_id,
+    );
 
     // 4. Find or create the _exports/ subfolder
     const exportsFolderId = await driveService.findOrCreateSubfolder(

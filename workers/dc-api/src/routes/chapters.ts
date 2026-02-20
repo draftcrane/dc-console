@@ -5,6 +5,7 @@ import { validationError } from "../middleware/error-handler.js";
 import { ChapterService } from "../services/chapter.js";
 import { ContentService } from "../services/content.js";
 import { DriveService } from "../services/drive.js";
+import { resolveProjectConnection } from "../services/drive-connection-resolver.js";
 
 /**
  * Chapters API routes
@@ -46,7 +47,8 @@ chapters.post("/projects/:projectId/chapters", async (c) => {
   });
 
   // If Drive is connected and project has a folder, create an HTML file on Drive (fire-and-forget)
-  // Uses project.drive_connection_id for multi-account token lookup
+  // Uses project.drive_connection_id for multi-account token lookup.
+  // Skips silently if no connection can be resolved (fire-and-forget, non-blocking).
   const driveService = new DriveService(c.env);
   (async () => {
     // Check if project has a Drive folder and connection
@@ -58,24 +60,20 @@ chapters.post("/projects/:projectId/chapters", async (c) => {
 
     if (!project?.drive_folder_id) return;
 
-    // Get tokens via connection or fallback
-    let accessToken: string;
-    if (project.drive_connection_id) {
-      const tokens = await driveService.getValidTokensByConnection(project.drive_connection_id);
-      if (!tokens) return;
-      accessToken = tokens.accessToken;
-    } else {
-      const tokens = await driveService.getValidTokens(userId);
-      if (!tokens) return;
-      accessToken = tokens.accessToken;
-    }
+    // Resolve connection via project binding; skip on failure (fire-and-forget)
+    const resolved = await resolveProjectConnection(
+      driveService.tokenService,
+      userId,
+      project.drive_connection_id,
+    ).catch(() => null);
+    if (!resolved) return;
 
     // Create empty HTML file on Drive
     const fileName = `${chapter.title}.html`;
     const emptyHtml = "";
     const encoder = new TextEncoder();
     const driveFile = await driveService.uploadFile(
-      accessToken,
+      resolved.tokens.accessToken,
       project.drive_folder_id,
       fileName,
       "text/html",
@@ -167,7 +165,8 @@ chapters.patch("/chapters/:chapterId", async (c) => {
   const chapter = await service.updateChapter(userId, chapterId, body);
 
   // If title was updated and chapter has a Drive file, rename it (fire-and-forget)
-  // Per PRD US-013: If Drive is connected, Drive file renamed to match new chapter title
+  // Per PRD US-013: If Drive is connected, Drive file renamed to match new chapter title.
+  // Skips silently if no connection can be resolved (fire-and-forget, non-blocking).
   if (body.title !== undefined && chapter.driveFileId) {
     const driveService = new DriveService(c.env);
     (async () => {
@@ -178,18 +177,19 @@ chapters.patch("/chapters/:chapterId", async (c) => {
         .bind(chapterId)
         .first<{ drive_connection_id: string | null }>();
 
-      let accessToken: string;
-      if (project?.drive_connection_id) {
-        const tokens = await driveService.getValidTokensByConnection(project.drive_connection_id);
-        if (!tokens) return;
-        accessToken = tokens.accessToken;
-      } else {
-        const tokens = await driveService.getValidTokens(userId);
-        if (!tokens) return;
-        accessToken = tokens.accessToken;
-      }
+      // Resolve connection via project binding; skip on failure (fire-and-forget)
+      const resolved = await resolveProjectConnection(
+        driveService.tokenService,
+        userId,
+        project?.drive_connection_id ?? null,
+      ).catch(() => null);
+      if (!resolved) return;
 
-      await driveService.renameFile(accessToken, chapter.driveFileId!, chapter.title);
+      await driveService.renameFile(
+        resolved.tokens.accessToken,
+        chapter.driveFileId!,
+        chapter.title,
+      );
     })().catch((err) => {
       console.error("Drive file rename failed (non-blocking):", err);
     });
@@ -211,15 +211,29 @@ chapters.delete("/chapters/:chapterId", async (c) => {
   const chapterId = c.req.param("chapterId");
 
   const service = new ChapterService(c.env.DB);
-  const { driveFileId } = await service.deleteChapter(userId, chapterId);
+  const { projectId, driveFileId } = await service.deleteChapter(userId, chapterId);
 
-  // If the chapter had a Drive file, move it to trash (best effort)
+  // If the chapter had a Drive file, move it to trash (best effort).
+  // Uses the project's drive_connection_id for multi-account token resolution.
+  // Skips silently if no connection can be resolved (D1 record is already gone).
   if (driveFileId) {
     try {
       const driveService = new DriveService(c.env);
-      const tokens = await driveService.getValidTokens(userId);
-      if (tokens) {
-        await driveService.trashFile(tokens.accessToken, driveFileId);
+
+      // Look up project's drive_connection_id (project still exists after chapter delete)
+      const project = await c.env.DB.prepare(
+        `SELECT drive_connection_id FROM projects WHERE id = ? AND user_id = ?`,
+      )
+        .bind(projectId, userId)
+        .first<{ drive_connection_id: string | null }>();
+
+      const resolved = await resolveProjectConnection(
+        driveService.tokenService,
+        userId,
+        project?.drive_connection_id ?? null,
+      ).catch(() => null);
+      if (resolved) {
+        await driveService.trashFile(resolved.tokens.accessToken, driveFileId);
       }
     } catch (err) {
       // Log but don't fail the delete - D1 record is already gone
@@ -298,21 +312,14 @@ chapters.put("/chapters/:chapterId/content", async (c) => {
 
     if (!chapter?.drive_folder_id) return; // No Drive folder on project
 
-    // Get tokens: prefer project's drive_connection_id, fall back to user's first connection
-    let accessToken: string;
-    if (chapter.drive_connection_id) {
-      const tokens = await driveService.getValidTokensByConnection(chapter.drive_connection_id);
-      if (!tokens) return; // Connection tokens invalid
-      accessToken = tokens.accessToken;
-    } else {
-      // Fallback: project has drive_folder_id but no drive_connection_id (pre-migration data)
-      console.warn(
-        `Project missing drive_connection_id but has drive_folder_id, falling back to user connection`,
-      );
-      const tokens = await driveService.getValidTokens(userId);
-      if (!tokens) return;
-      accessToken = tokens.accessToken;
-    }
+    // Resolve connection via project binding; skip on failure (fire-and-forget)
+    const resolved = await resolveProjectConnection(
+      driveService.tokenService,
+      userId,
+      chapter.drive_connection_id,
+    ).catch(() => null);
+    if (!resolved) return;
+    const accessToken = resolved.tokens.accessToken;
 
     // Mark coalescing window (30s TTL)
     await c.env.CACHE.put(coalesceKey, String(Date.now()), { expirationTtl: 30 });
