@@ -108,11 +108,44 @@ describe("SourceViewerSheet", () => {
     expect(document.activeElement).toBe(searchInput);
   });
 
-  it("calls onClose on Escape", () => {
+  it("calls onClose on Escape when search input is not focused", () => {
     render(<SourceViewerSheet {...defaultProps} />);
 
     fireEvent.keyDown(document, { key: "Escape" });
 
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not close on Escape when search input is focused with a non-empty query", () => {
+    render(<SourceViewerSheet {...defaultProps} />);
+
+    const searchInput = screen.getByLabelText("Search within document");
+    searchInput.focus();
+    // Simulate typing a query into the input
+    fireEvent.change(searchInput, { target: { value: "test" } });
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    // Should NOT close — let the search input's own handler clear the query
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+  });
+
+  it("closes on second Escape after search query is cleared", () => {
+    render(<SourceViewerSheet {...defaultProps} />);
+
+    const searchInput = screen.getByLabelText("Search within document");
+    searchInput.focus();
+    fireEvent.change(searchInput, { target: { value: "test" } });
+
+    // First Escape: search input focused with query — don't close
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+
+    // Simulate query being cleared (by the search input's own Escape handler)
+    fireEvent.change(searchInput, { target: { value: "" } });
+
+    // Second Escape: query is empty — close the sheet
+    fireEvent.keyDown(document, { key: "Escape" });
     expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -133,21 +166,6 @@ describe("SourceViewerSheet", () => {
     render(<SourceViewerSheet {...defaultProps} content="" />);
 
     expect(screen.queryByTestId("source-content-renderer")).not.toBeInTheDocument();
-  });
-
-  it("renders source tabs when multiple tabs provided", () => {
-    const tabs = [
-      { id: "1", title: "Source A" },
-      { id: "2", title: "Source B" },
-    ];
-    const onTabChange = vi.fn();
-
-    render(
-      <SourceViewerSheet {...defaultProps} tabs={tabs} activeTabId="1" onTabChange={onTabChange} />,
-    );
-
-    expect(screen.getByText("Source A")).toBeInTheDocument();
-    expect(screen.getByText("Source B")).toBeInTheDocument();
   });
 
   it("has dialog role and aria attributes", () => {

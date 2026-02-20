@@ -272,7 +272,7 @@ export function SourceContentRenderer({
             <button
               onClick={search.goToPrev}
               disabled={search.matchCount === 0}
-              className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
+              className="p-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
               aria-label="Previous match"
             >
               <svg
@@ -292,7 +292,7 @@ export function SourceContentRenderer({
             <button
               onClick={search.goToNext}
               disabled={search.matchCount === 0}
-              className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
+              className="p-1 min-h-[44px] min-w-[44px] flex items-center justify-center rounded hover:bg-gray-100 disabled:opacity-30 disabled:cursor-default"
               aria-label="Next match"
             >
               <svg

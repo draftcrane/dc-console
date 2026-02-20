@@ -29,6 +29,13 @@ export function SourceViewerSheet({
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        // If the search input is focused with a non-empty query, let the
+        // search input's own Escape handler clear the query first.
+        // A second Escape (empty query or not focused) closes the sheet.
+        const input = searchInputRef.current;
+        if (input && document.activeElement === input && input.value.length > 0) {
+          return;
+        }
         onClose();
       }
       // Cmd+F (Mac) or Ctrl+F (Windows/Linux) focuses the search field
@@ -110,25 +117,6 @@ export function SourceViewerSheet({
             </button>
           </div>
         </div>
-
-        {/* Source tabs (shown when multiple linked sources) */}
-        {tabs && tabs.length > 1 && onTabChange && (
-          <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-200 overflow-x-auto shrink-0">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
-                  activeTabId === tab.id
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                {tab.title}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Content with integrated search */}
         <div className="flex-1 overflow-hidden flex flex-col">
