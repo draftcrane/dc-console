@@ -1,0 +1,397 @@
+"use client";
+
+import { useEffect, useRef, useCallback, useState, type ReactNode } from "react";
+import { useResearchPanel, type ResearchTab } from "./research-panel-provider";
+
+// === Tab Definitions ===
+
+const TABS: Array<{ id: ResearchTab; label: string }> = [
+  { id: "sources", label: "Sources" },
+  { id: "ask", label: "Ask" },
+  { id: "clips", label: "Clips" },
+];
+
+// === Placeholder Components ===
+
+function SourcesTabPlaceholder() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+      <svg
+        className="w-12 h-12 text-muted-foreground mb-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
+        />
+      </svg>
+      <p className="text-base font-medium text-foreground mb-2">No sources yet</p>
+      <p className="text-base text-muted-foreground">
+        Add your Google Docs, PDFs, or other research files to search and reference them while you
+        write.
+      </p>
+    </div>
+  );
+}
+
+function ComingSoonPlaceholder({ tabName }: { tabName: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-6 text-center">
+      <svg
+        className="w-12 h-12 text-muted-foreground mb-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      <p className="text-base font-medium text-foreground mb-2">Coming soon</p>
+      <p className="text-base text-muted-foreground">
+        The {tabName} tab is under development and will be available in a future update.
+      </p>
+    </div>
+  );
+}
+
+// === Panel Layout Mode ===
+
+/**
+ * Determines the panel display mode based on viewport width.
+ * - "side": 1024pt+ landscape, panel pushes editor (340pt wide)
+ * - "overlay": below 1024pt, panel overlays at 85% width
+ */
+function useLayoutMode() {
+  const [mode, setMode] = useState<"side" | "overlay">("side");
+
+  useEffect(() => {
+    function check() {
+      setMode(window.innerWidth >= 1024 ? "side" : "overlay");
+    }
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  return mode;
+}
+
+// === Focus Trap Hook (overlay mode) ===
+
+function useFocusTrap(containerRef: React.RefObject<HTMLElement | null>, enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Tab") return;
+      const focusable = container!.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [containerRef, enabled]);
+}
+
+// === Swipe-to-Dismiss Hook ===
+
+function useSwipeToDismiss(
+  elementRef: React.RefObject<HTMLElement | null>,
+  enabled: boolean,
+  onDismiss: () => void,
+) {
+  const touchStartX = useRef(0);
+  const touchCurrentX = useRef(0);
+  const isSwiping = useRef(false);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const el = elementRef.current;
+    if (!el) return;
+
+    function handleTouchStart(e: TouchEvent) {
+      touchStartX.current = e.touches[0].clientX;
+      touchCurrentX.current = e.touches[0].clientX;
+      isSwiping.current = true;
+    }
+
+    function handleTouchMove(e: TouchEvent) {
+      if (!isSwiping.current) return;
+      touchCurrentX.current = e.touches[0].clientX;
+      const delta = touchCurrentX.current - touchStartX.current;
+      // Only allow swiping right (positive delta)
+      if (delta > 0) {
+        el!.style.transform = `translateX(${delta}px)`;
+      }
+    }
+
+    function handleTouchEnd() {
+      if (!isSwiping.current) return;
+      isSwiping.current = false;
+      const delta = touchCurrentX.current - touchStartX.current;
+      if (delta > 60) {
+        onDismiss();
+      }
+      el!.style.transform = "";
+    }
+
+    el.addEventListener("touchstart", handleTouchStart, { passive: true });
+    el.addEventListener("touchmove", handleTouchMove, { passive: true });
+    el.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [elementRef, enabled, onDismiss]);
+}
+
+// === Keyboard Shortcuts Hook ===
+
+function useKeyboardShortcuts(
+  isOpen: boolean,
+  openPanel: (tab?: ResearchTab) => void,
+  closePanel: () => void,
+) {
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Cmd+Shift+R (Mac) or Ctrl+Shift+R (Windows/Linux) toggles panel
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "R") {
+        e.preventDefault();
+        if (isOpen) {
+          closePanel();
+        } else {
+          openPanel();
+        }
+      }
+      // Escape closes panel
+      if (e.key === "Escape" && isOpen) {
+        e.preventDefault();
+        closePanel();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, openPanel, closePanel]);
+}
+
+// === Tab Bar Component ===
+
+function TabBar({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: ResearchTab;
+  onTabChange: (tab: ResearchTab) => void;
+}) {
+  return (
+    <div role="tablist" aria-label="Research tabs" className="flex border-b border-border">
+      {TABS.map((tab) => (
+        <button
+          key={tab.id}
+          role="tab"
+          id={`research-tab-${tab.id}`}
+          aria-selected={activeTab === tab.id}
+          aria-controls={`research-tabpanel-${tab.id}`}
+          onClick={() => onTabChange(tab.id)}
+          className={`flex-1 h-11 text-base font-medium transition-colors
+            ${
+              activeTab === tab.id
+                ? "text-foreground border-b-2 border-blue-600"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// === Tab Content Component ===
+
+function TabContent({ activeTab }: { activeTab: ResearchTab }) {
+  // Render all tabs but only show the active one.
+  // This preserves state when switching tabs (acceptance criteria).
+  return (
+    <div className="flex-1 min-h-0 relative">
+      <TabPanel id="sources" activeTab={activeTab}>
+        <SourcesTabPlaceholder />
+      </TabPanel>
+      <TabPanel id="ask" activeTab={activeTab}>
+        <ComingSoonPlaceholder tabName="Ask" />
+      </TabPanel>
+      <TabPanel id="clips" activeTab={activeTab}>
+        <ComingSoonPlaceholder tabName="Clips" />
+      </TabPanel>
+    </div>
+  );
+}
+
+function TabPanel({
+  id,
+  activeTab,
+  children,
+}: {
+  id: ResearchTab;
+  activeTab: ResearchTab;
+  children: ReactNode;
+}) {
+  const isActive = activeTab === id;
+  return (
+    <div
+      role="tabpanel"
+      id={`research-tabpanel-${id}`}
+      aria-labelledby={`research-tab-${id}`}
+      className={`absolute inset-0 flex flex-col ${isActive ? "" : "hidden"}`}
+      tabIndex={isActive ? 0 : -1}
+    >
+      {children}
+    </div>
+  );
+}
+
+// === Main Research Panel Component ===
+
+export function ResearchPanel() {
+  const { isOpen, activeTab, setActiveTab, closePanel, openPanel } = useResearchPanel();
+
+  const layoutMode = useLayoutMode();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const isOverlay = layoutMode === "overlay";
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts(isOpen, openPanel, closePanel);
+
+  // Focus trap in overlay mode
+  useFocusTrap(panelRef, isOpen && isOverlay);
+
+  // Swipe-to-dismiss in overlay mode
+  const handleDismiss = useCallback(() => {
+    closePanel();
+  }, [closePanel]);
+  useSwipeToDismiss(panelRef, isOpen && isOverlay, handleDismiss);
+
+  // Focus the panel when it opens in overlay mode
+  useEffect(() => {
+    if (isOpen && isOverlay && panelRef.current) {
+      // Focus the first focusable element after a short delay
+      const timer = setTimeout(() => {
+        const firstFocusable = panelRef.current?.querySelector<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        firstFocusable?.focus();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, isOverlay]);
+
+  if (!isOpen) return null;
+
+  // Side panel mode (1024pt+ landscape)
+  if (!isOverlay) {
+    return (
+      <div
+        ref={panelRef}
+        id="research-panel"
+        role="complementary"
+        aria-label="Research panel"
+        className="research-panel w-[340px] shrink-0 border-l border-border bg-background flex flex-col
+                   research-panel-slide-in"
+      >
+        <PanelHeader onClose={closePanel} />
+        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabContent activeTab={activeTab} />
+      </div>
+    );
+  }
+
+  // Overlay mode (portrait / narrow viewports)
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/30 z-40 research-backdrop-fade-in"
+        onClick={closePanel}
+        aria-hidden="true"
+      />
+
+      {/* Overlay panel */}
+      <div
+        ref={panelRef}
+        id="research-panel"
+        role="complementary"
+        aria-label="Research panel"
+        className="research-panel-overlay fixed top-0 right-0 bottom-0 w-[85%] z-50
+                   bg-background flex flex-col shadow-xl research-panel-slide-in"
+      >
+        <PanelHeader onClose={closePanel} />
+        <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabContent activeTab={activeTab} />
+      </div>
+    </>
+  );
+}
+
+// === Panel Header ===
+
+function PanelHeader({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="flex items-center justify-between h-12 px-4 shrink-0">
+      <h2 className="text-base font-semibold text-foreground">Research</h2>
+      <button
+        onClick={onClose}
+        className="w-11 h-11 flex items-center justify-center rounded-lg
+                   text-muted-foreground hover:text-foreground hover:bg-gray-100
+                   transition-colors"
+        aria-label="Close research panel"
+      >
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M6 18L18 6M6 6l12 12"
+          />
+        </svg>
+      </button>
+    </div>
+  );
+}
