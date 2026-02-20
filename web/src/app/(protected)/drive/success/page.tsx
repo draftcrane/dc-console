@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState, useSyncExternalStore } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { useDriveStatus } from "@/hooks/use-drive-status";
 
 const STORAGE_KEY = "dc_pending_drive_project";
+const SOURCE_LINK_KEY = "dc_pending_source_link";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 /**
- * Module-level snapshot for the pending project ID.
+ * Module-level snapshot for the pending project ID (backup folder flow).
  * Read once from sessionStorage and cleared immediately.
  * This avoids ref-during-render and setState-in-effect lint issues.
  */
@@ -28,8 +29,26 @@ function readPendingProject(): string | null {
   return pendingProjectSnapshot;
 }
 
-function subscribePendingProject(): () => void {
-  // Value is read once and never changes - no subscription needed
+/**
+ * Module-level snapshot for the pending source link project ID.
+ * Separate from backup flow — used when linking a Drive account as a research source.
+ */
+let pendingSourceLinkSnapshot: string | null = null;
+let sourceLinkSnapshotRead = false;
+
+function readPendingSourceLink(): string | null {
+  if (!sourceLinkSnapshotRead && typeof window !== "undefined") {
+    const value = sessionStorage.getItem(SOURCE_LINK_KEY);
+    if (value) {
+      pendingSourceLinkSnapshot = value;
+      sessionStorage.removeItem(SOURCE_LINK_KEY);
+    }
+    sourceLinkSnapshotRead = true;
+  }
+  return pendingSourceLinkSnapshot;
+}
+
+function subscribeNoop(): () => void {
   return () => {};
 }
 
@@ -42,27 +61,44 @@ function getServerSnapshot(): string | null {
  *
  * After the OAuth callback redirects here, we:
  * 1. Confirm the Drive connection succeeded
- * 2. If a project ID is stored in sessionStorage (from setup or editor),
+ * 2. If dc_pending_drive_project is in sessionStorage (from setup or editor),
  *    auto-create the book folder in Google Drive (US-006)
- * 3. Show folder confirmation with name, green checkmark, and "View in Google Drive" link
- * 4. If folder creation fails, show error and retry button
- * 5. Auto-redirect to editor (if project) or dashboard after success
+ * 3. If dc_pending_source_link is in sessionStorage (from "+ Link" in Sources),
+ *    auto-link the connection as a research source for the project
+ * 4. Show confirmation and auto-redirect to editor or dashboard
+ *
+ * The ?cid= query param (set by the OAuth callback) identifies which
+ * Drive connection was just created/updated.
  *
  * Per PRD Section 8 (US-005/US-006): Works with iPad Safari redirect flow.
  */
 export default function DriveSuccessPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { getToken } = useAuth();
   const { status, isLoading: isLoadingDrive } = useDriveStatus();
-  const projectId = useSyncExternalStore(
-    subscribePendingProject,
-    readPendingProject,
+
+  // Connection ID from OAuth callback redirect
+  const connectionId = searchParams.get("cid");
+
+  // Backup folder flow: project ID from sessionStorage
+  const projectId = useSyncExternalStore(subscribeNoop, readPendingProject, getServerSnapshot);
+
+  // Source-link flow: project ID from sessionStorage
+  const sourceLinkProjectId = useSyncExternalStore(
+    subscribeNoop,
+    readPendingSourceLink,
     getServerSnapshot,
   );
+
+  // Determine redirect destination (source-link flow also has a projectId)
+  const redirectProjectId = projectId || sourceLinkProjectId;
+
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [folderId, setFolderId] = useState<string | null>(null);
   const [folderError, setFolderError] = useState<string | null>(null);
   const createAttempted = useRef(false);
+  const linkAttempted = useRef(false);
 
   // Auto-redirect after successful connection
   useEffect(() => {
@@ -72,15 +108,15 @@ export default function DriveSuccessPage() {
 
     // Redirect after a short delay
     setTimeout(() => {
-      const destination = projectId ? `/editor/${projectId}` : "/dashboard";
+      const destination = redirectProjectId ? `/editor/${redirectProjectId}` : "/dashboard";
       router.push(destination);
     }, 3000); // 3-second delay to show success message
-  }, [isLoadingDrive, status?.connected, projectId, router]);
+  }, [isLoadingDrive, status?.connected, redirectProjectId, router]);
 
   const handleContinue = useCallback(() => {
-    const destination = projectId ? `/editor/${projectId}` : "/dashboard";
+    const destination = redirectProjectId ? `/editor/${redirectProjectId}` : "/dashboard";
     router.push(destination);
-  }, [projectId, router]);
+  }, [redirectProjectId, router]);
 
   const createFolder = useCallback(async () => {
     if (!projectId) return;
@@ -109,7 +145,7 @@ export default function DriveSuccessPage() {
     }
   }, [getToken, projectId]);
 
-  // After OAuth success, auto-create the book folder if projectId is present.
+  // After OAuth success, auto-create the book folder if projectId is present (backup flow).
   useEffect(() => {
     if (createAttempted.current) return;
     if (isLoadingDrive) return;
@@ -118,6 +154,32 @@ export default function DriveSuccessPage() {
     createAttempted.current = true;
     void createFolder();
   }, [isLoadingDrive, status?.connected, projectId, createFolder]);
+
+  // After OAuth success, auto-link the connection as a research source (source-link flow).
+  useEffect(() => {
+    if (linkAttempted.current) return;
+    if (isLoadingDrive) return;
+    if (!status?.connected) return;
+    if (!sourceLinkProjectId || !connectionId) return;
+    linkAttempted.current = true;
+
+    void (async () => {
+      try {
+        const token = await getToken();
+        await fetch(`${API_URL}/projects/${sourceLinkProjectId}/source-connections`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ driveConnectionId: connectionId }),
+        });
+        // Best-effort — if it fails (e.g. already linked), we still redirect
+      } catch {
+        // Non-blocking: user can manually link from the editor
+      }
+    })();
+  }, [isLoadingDrive, status?.connected, sourceLinkProjectId, connectionId, getToken]);
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-4">
@@ -177,6 +239,14 @@ export default function DriveSuccessPage() {
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {sourceLinkProjectId && !projectId && (
+          <div className="mt-4">
+            <p className="text-sm text-muted-foreground">
+              Linked as a research source. Redirecting to editor...
+            </p>
           </div>
         )}
 

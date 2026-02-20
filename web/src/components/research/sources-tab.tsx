@@ -232,161 +232,6 @@ function ConnectionRow({
   );
 }
 
-// === Link Source Sub-View ===
-
-function LinkSourceView({
-  projectConnections,
-  onLink,
-  onBack,
-}: {
-  projectConnections: ProjectSourceConnection[];
-  onLink: (driveConnectionId: string) => void;
-  onBack: () => void;
-}) {
-  const { accounts: allAccounts, connect: connectDrive, isLoading } = useDriveAccounts();
-
-  const linkedConnectionIds = useMemo(
-    () => new Set(projectConnections.map((c) => c.driveConnectionId)),
-    [projectConnections],
-  );
-
-  const unlinkableAccounts = useMemo(
-    () => allAccounts.filter((a) => !linkedConnectionIds.has(a.id)),
-    [allAccounts, linkedConnectionIds],
-  );
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center gap-2 h-12 px-4 shrink-0 border-b border-border">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700
-                     min-h-[44px] px-1 transition-colors"
-          aria-label="Back to sources"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Sources
-        </button>
-        <span className="text-sm font-semibold text-foreground ml-auto">Link Source</span>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-auto px-4 py-3">
-        <p className="text-sm text-muted-foreground mb-4">
-          Choose a Google Drive account to link to this project:
-        </p>
-
-        {isLoading && (
-          <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            Loading accounts...
-          </div>
-        )}
-
-        {!isLoading && unlinkableAccounts.length > 0 && (
-          <div className="space-y-1 mb-4">
-            {unlinkableAccounts.map((account) => (
-              <button
-                key={account.id}
-                onClick={() => onLink(account.id)}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-gray-50
-                           transition-colors min-h-[56px] text-left"
-              >
-                <svg
-                  className="w-5 h-5 text-gray-500 shrink-0"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  aria-hidden="true"
-                >
-                  <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
-                </svg>
-                <span className="text-sm font-medium text-foreground truncate flex-1">
-                  {account.email}
-                </span>
-                <svg
-                  className="w-4 h-4 text-gray-400 shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {!isLoading && unlinkableAccounts.length === 0 && allAccounts.length > 0 && (
-          <p className="text-sm text-muted-foreground mb-4">
-            All your Google accounts are linked. Connect a new one?
-          </p>
-        )}
-
-        {/* Connect new account */}
-        <button
-          onClick={() => connectDrive()}
-          className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-gray-50
-                     transition-colors min-h-[44px] text-left border border-dashed border-border"
-        >
-          <svg
-            className="w-5 h-5 text-gray-400 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-            />
-          </svg>
-          <span className="text-sm font-medium text-foreground">Connect new Google account</span>
-        </button>
-
-        <p className="text-xs text-muted-foreground mt-4">
-          Device uploads don&apos;t need linking &mdash; use &quot;+ Add&quot; in Documents anytime.
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // === Sources Tab ===
 
 export function SourcesTab() {
@@ -399,7 +244,6 @@ export function SourcesTab() {
     returnTab,
     scrollToText,
     startAddDocument,
-    startLinkSource,
     viewSource,
     backToSourceList,
     returnToPreviousTab,
@@ -412,9 +256,11 @@ export function SourcesTab() {
   const {
     connections: projectConnections,
     isLoading: connectionsLoading,
-    linkConnection,
     unlinkConnection,
   } = useProjectSourceConnections(projectId);
+
+  // Drive connect function for "+ Link" button (starts OAuth flow)
+  const { connect: connectDrive } = useDriveAccounts();
 
   // Derive active source from sources list and activeSourceId (no state needed)
   const activeSource = useMemo<SourceMaterial | null>(() => {
@@ -491,16 +337,6 @@ export function SourcesTab() {
     [addSources, finishFlow],
   );
 
-  const handleLinkConnection = useCallback(
-    async (driveConnectionId: string) => {
-      await linkConnection(driveConnectionId);
-      finishFlow();
-      // Refresh sources in case the link brought archived sources back
-      fetchSources();
-    },
-    [linkConnection, finishFlow, fetchSources],
-  );
-
   const handleUnlinkConnection = useCallback(
     async (driveConnectionId: string) => {
       await unlinkConnection(driveConnectionId);
@@ -509,6 +345,16 @@ export function SourcesTab() {
     },
     [unlinkConnection, fetchSources],
   );
+
+  /**
+   * "+ Link" handler: sets sessionStorage flag and starts OAuth.
+   * After OAuth completes, the success page auto-links the connection
+   * to this project and redirects back to the editor.
+   */
+  const handleLinkSource = useCallback(() => {
+    sessionStorage.setItem("dc_pending_source_link", projectId);
+    connectDrive();
+  }, [projectId, connectDrive]);
 
   // Compute back label for source detail view based on returnTab
   const handleDetailBack = useCallback(() => {
@@ -546,16 +392,6 @@ export function SourcesTab() {
         onBack={handleDetailBack}
         backLabel={detailBackLabel}
         scrollToText={scrollToText ?? undefined}
-      />
-    );
-  }
-
-  if (sourcesView === "link-source") {
-    return (
-      <LinkSourceView
-        projectConnections={projectConnections}
-        onLink={handleLinkConnection}
-        onBack={backToSourceList}
       />
     );
   }
@@ -610,7 +446,7 @@ export function SourcesTab() {
                   Sources
                 </p>
                 <button
-                  onClick={startLinkSource}
+                  onClick={handleLinkSource}
                   className="text-xs font-medium text-blue-600 hover:text-blue-700
                              min-h-[32px] flex items-center transition-colors"
                 >

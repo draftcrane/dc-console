@@ -148,11 +148,17 @@ driveCallback.get("/callback", async (c) => {
 
     // Store encrypted tokens (upserts on user_id + email, preserving existing connection ID)
     const connectionId = ulid();
-    await driveService.storeTokens(storedUserId, connectionId, tokens, email);
+    const actualConnectionId = await driveService.storeTokens(
+      storedUserId,
+      connectionId,
+      tokens,
+      email,
+    );
 
-    // Redirect to success page
+    // Redirect to success page with connection ID for auto-linking flows
     const redirectUrl = new URL(c.env.FRONTEND_URL);
     redirectUrl.pathname = "/drive/success";
+    redirectUrl.searchParams.set("cid", actualConnectionId);
     validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL);
     return c.redirect(redirectUrl.toString());
   } catch (err) {

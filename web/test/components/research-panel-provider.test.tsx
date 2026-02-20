@@ -54,16 +54,6 @@ describe("researchPanelReducer", () => {
     scrollToText: null,
   };
 
-  const linkSourceState: ResearchPanelState = {
-    isOpen: true,
-    activeTab: "sources",
-    sourcesView: "link-source",
-    activeSourceId: null,
-    activeConnectionId: null,
-    returnTab: null,
-    scrollToText: null,
-  };
-
   const askState: ResearchPanelState = {
     isOpen: true,
     activeTab: "ask",
@@ -303,14 +293,6 @@ describe("researchPanelReducer", () => {
       expect(result.activeConnectionId).toBeNull();
     });
 
-    it("returns to list from link-source view", () => {
-      const result = researchPanelReducer(linkSourceState, {
-        type: "BACK_TO_LIST",
-      });
-      expect(result.sourcesView).toBe("list");
-      expect(result.activeConnectionId).toBeNull();
-    });
-
     it("is a no-op when already on list view", () => {
       const result = researchPanelReducer(sourcesListState, {
         type: "BACK_TO_LIST",
@@ -423,38 +405,6 @@ describe("researchPanelReducer", () => {
     });
   });
 
-  // --- START_LINK_SOURCE ---
-
-  describe("START_LINK_SOURCE", () => {
-    it("navigates to link-source view from sources list", () => {
-      const result = researchPanelReducer(sourcesListState, {
-        type: "START_LINK_SOURCE",
-      });
-      expect(result.activeTab).toBe("sources");
-      expect(result.sourcesView).toBe("link-source");
-      expect(result.activeConnectionId).toBeNull();
-      expect(result.activeSourceId).toBeNull();
-    });
-
-    it("clears scrollToText when navigating to link-source", () => {
-      const stateWithScroll: ResearchPanelState = {
-        ...sourcesListState,
-        scrollToText: "some text",
-      };
-      const result = researchPanelReducer(stateWithScroll, {
-        type: "START_LINK_SOURCE",
-      });
-      expect(result.scrollToText).toBeNull();
-    });
-
-    it("is a no-op when panel is closed", () => {
-      const result = researchPanelReducer(closedState, {
-        type: "START_LINK_SOURCE",
-      });
-      expect(result).toEqual(closedState);
-    });
-  });
-
   // --- SET_DRIVE_CONNECTION ---
 
   describe("SET_DRIVE_CONNECTION", () => {
@@ -498,14 +448,6 @@ describe("researchPanelReducer", () => {
       expect(result.activeConnectionId).toBeNull();
     });
 
-    it("returns to list from link-source flow", () => {
-      const result = researchPanelReducer(linkSourceState, {
-        type: "FINISH_FLOW",
-      });
-      expect(result.sourcesView).toBe("list");
-      expect(result.activeConnectionId).toBeNull();
-    });
-
     it("is a no-op when not in a flow", () => {
       const result = researchPanelReducer(sourcesListState, {
         type: "FINISH_FLOW",
@@ -524,7 +466,7 @@ describe("researchPanelReducer", () => {
   // --- State machine invariants ---
 
   describe("state machine invariants", () => {
-    it("always has exactly one of the 7 valid states", () => {
+    it("always has exactly one of the 6 valid states", () => {
       // Define all valid state combinations
       const isValidState = (s: ResearchPanelState): boolean => {
         if (!s.isOpen) return true; // State 1: Closed
@@ -532,9 +474,8 @@ describe("researchPanelReducer", () => {
         if (s.activeTab === "sources" && s.sourcesView === "detail" && s.activeSourceId !== null)
           return true; // State 3: Sources-Detail
         if (s.activeTab === "sources" && s.sourcesView === "add-document") return true; // State 4: Sources-AddDocument
-        if (s.activeTab === "sources" && s.sourcesView === "link-source") return true; // State 5: Sources-LinkSource
-        if (s.activeTab === "ask") return true; // State 6: Ask
-        if (s.activeTab === "clips") return true; // State 7: Clips
+        if (s.activeTab === "ask") return true; // State 5: Ask
+        if (s.activeTab === "clips") return true; // State 6: Clips
         return false;
       };
 
@@ -544,7 +485,6 @@ describe("researchPanelReducer", () => {
         sourcesListState,
         sourcesDetailState,
         addDocumentState,
-        linkSourceState,
         askState,
         clipsState,
       ];
@@ -566,7 +506,6 @@ describe("researchPanelReducer", () => {
         { type: "RETURN_TO_TAB" },
         { type: "START_ADD_DOCUMENT" },
         { type: "START_ADD_DOCUMENT", connectionId: "conn-1" },
-        { type: "START_LINK_SOURCE" },
         { type: "SET_DRIVE_CONNECTION", connectionId: "conn-1" },
         { type: "FINISH_FLOW" },
       ];
@@ -712,26 +651,6 @@ describe("ResearchPanelProvider + useResearchPanel", () => {
     expect(result.current.scrollToText).toBeNull();
   });
 
-  it("navigates to link-source view and back", () => {
-    const { result } = renderHook(() => useResearchPanel(), { wrapper });
-
-    act(() => {
-      result.current.openPanel();
-    });
-
-    act(() => {
-      result.current.startLinkSource();
-    });
-    expect(result.current.sourcesView).toBe("link-source");
-    expect(result.current.activeConnectionId).toBeNull();
-
-    act(() => {
-      result.current.backToSourceList();
-    });
-    expect(result.current.sourcesView).toBe("list");
-    expect(result.current.activeConnectionId).toBeNull();
-  });
-
   it("starts add-document flow with pre-selected connectionId from source row", () => {
     const { result } = renderHook(() => useResearchPanel(), { wrapper });
 
@@ -774,24 +693,6 @@ describe("ResearchPanelProvider + useResearchPanel", () => {
     });
     expect(result.current.sourcesView).toBe("list");
     expect(result.current.activeConnectionId).toBeNull();
-  });
-
-  it("finishes link-source flow", () => {
-    const { result } = renderHook(() => useResearchPanel(), { wrapper });
-
-    act(() => {
-      result.current.openPanel();
-    });
-
-    act(() => {
-      result.current.startLinkSource();
-    });
-    expect(result.current.sourcesView).toBe("link-source");
-
-    act(() => {
-      result.current.finishFlow();
-    });
-    expect(result.current.sourcesView).toBe("list");
   });
 
   it("throws when used outside provider", () => {

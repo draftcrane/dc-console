@@ -5,7 +5,7 @@ import { createContext, useContext, useReducer, useCallback, useMemo, type React
 // === State Types ===
 
 export type ResearchTab = "sources" | "ask" | "clips";
-export type SourcesView = "list" | "detail" | "link-source" | "add-document";
+export type SourcesView = "list" | "detail" | "add-document";
 
 export interface ResearchPanelState {
   isOpen: boolean;
@@ -29,7 +29,6 @@ export type ResearchPanelAction =
   | { type: "BACK_TO_LIST" }
   | { type: "RETURN_TO_TAB" }
   | { type: "START_ADD_DOCUMENT"; connectionId?: string }
-  | { type: "START_LINK_SOURCE" }
   | { type: "SET_DRIVE_CONNECTION"; connectionId: string }
   | { type: "FINISH_FLOW" };
 
@@ -50,14 +49,13 @@ const initialState: ResearchPanelState = {
 /**
  * State machine reducer for the Research Panel.
  *
- * Valid states (7):
+ * Valid states (6):
  *   1. Closed              - panel is not visible
  *   2. Sources-List        - panel open, sources tab, two-section list view
  *   3. Sources-Detail      - panel open, sources tab, viewing a specific source
  *   4. Sources-AddDocument - panel open, sources tab, add document flow (drive browser / upload)
- *   5. Sources-LinkSource  - panel open, sources tab, linking a new source connection
- *   6. Ask                 - panel open, ask tab
- *   7. Clips               - panel open, clips tab
+ *   5. Ask                 - panel open, ask tab
+ *   6. Clips               - panel open, clips tab
  *
  * Invalid transitions are prevented by returning current state unchanged.
  */
@@ -115,14 +113,9 @@ export function researchPanelReducer(
     }
 
     case "BACK_TO_LIST": {
-      // Valid from detail, add-document, or link-source views
+      // Valid from detail or add-document views
       if (!state.isOpen || state.activeTab !== "sources") return state;
-      if (
-        state.sourcesView !== "detail" &&
-        state.sourcesView !== "add-document" &&
-        state.sourcesView !== "link-source"
-      )
-        return state;
+      if (state.sourcesView !== "detail" && state.sourcesView !== "add-document") return state;
 
       return {
         ...state,
@@ -163,20 +156,6 @@ export function researchPanelReducer(
       };
     }
 
-    case "START_LINK_SOURCE": {
-      if (!state.isOpen) return state;
-
-      return {
-        ...state,
-        activeTab: "sources",
-        sourcesView: "link-source",
-        activeSourceId: null,
-        activeConnectionId: null,
-        returnTab: null,
-        scrollToText: null,
-      };
-    }
-
     case "SET_DRIVE_CONNECTION": {
       // Only valid during add-document flow
       if (!state.isOpen || state.sourcesView !== "add-document") return state;
@@ -188,9 +167,9 @@ export function researchPanelReducer(
     }
 
     case "FINISH_FLOW": {
-      // Valid during add-document or link-source flows
+      // Valid during add-document flow
       if (!state.isOpen) return state;
-      if (state.sourcesView !== "add-document" && state.sourcesView !== "link-source") return state;
+      if (state.sourcesView !== "add-document") return state;
 
       return {
         ...state,
@@ -224,7 +203,6 @@ export interface ResearchPanelContextValue {
   backToSourceList: () => void;
   returnToPreviousTab: () => void;
   startAddDocument: (connectionId?: string) => void;
-  startLinkSource: () => void;
   setDriveConnection: (connectionId: string) => void;
   finishFlow: () => void;
 
@@ -283,10 +261,6 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
     [dispatch],
   );
 
-  const startLinkSource = useCallback(() => {
-    dispatch({ type: "START_LINK_SOURCE" });
-  }, [dispatch]);
-
   const setDriveConnection = useCallback(
     (connectionId: string) => {
       dispatch({ type: "SET_DRIVE_CONNECTION", connectionId });
@@ -317,7 +291,6 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       backToSourceList,
       returnToPreviousTab,
       startAddDocument,
-      startLinkSource,
       setDriveConnection,
       finishFlow,
 
@@ -333,7 +306,6 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       backToSourceList,
       returnToPreviousTab,
       startAddDocument,
-      startLinkSource,
       setDriveConnection,
       finishFlow,
     ],
