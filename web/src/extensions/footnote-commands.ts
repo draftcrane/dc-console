@@ -1,6 +1,6 @@
 import type { Editor } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { Fragment } from "@tiptap/pm/model";
+import { Fragment, Slice } from "@tiptap/pm/model";
 
 /**
  * Generates a unique footnote ID for linking footnoteRef and footnoteContent.
@@ -89,6 +89,67 @@ export function insertFootnote(editor: Editor, sourceTitle: string): boolean {
   }
 
   // Dispatch as a single transaction for atomic undo/redo
+  editor.view.dispatch(tr);
+
+  return true;
+}
+
+/**
+ * Insert a clip as a blockquote with an auto-created footnote.
+ *
+ * This is the primary API for inserting research clips into the editor (#200).
+ * It performs both the blockquote insertion and footnote creation in a single
+ * ProseMirror transaction, so that Cmd+Z undoes the entire operation atomically.
+ *
+ * @param editor - The Tiptap editor instance
+ * @param clipText - The clip/snippet text to insert as a blockquote
+ * @param sourceTitle - The source document title for the footnote content
+ * @returns true if the clip was successfully inserted
+ */
+export function insertClipWithFootnote(
+  editor: Editor,
+  clipText: string,
+  sourceTitle: string,
+): boolean {
+  if (!editor) return false;
+
+  const footnoteId = generateFootnoteId();
+  const { doc, schema } = editor.state;
+
+  const existingSection = findFootnoteSection(doc);
+  const { tr } = editor.state;
+
+  // Build blockquote containing the clip text
+  const blockquoteParagraph = schema.nodes.paragraph.create(null, schema.text(clipText));
+  const blockquoteNode = schema.nodes.blockquote.create(null, blockquoteParagraph);
+  const refNodePM = schema.nodes.footnoteRef.create({
+    footnoteId,
+    label: "0",
+  });
+  const refParagraph = schema.nodes.paragraph.create(null, refNodePM);
+
+  // Insert blockquote + footnote-ref paragraph as complete blocks
+  const insertSlice = new Slice(Fragment.from([blockquoteNode, refParagraph]), 0, 0);
+  const { from, to } = tr.selection;
+  tr.replaceRange(from, to, insertSlice);
+
+  // Add footnoteContent to the section
+  const contentNodePM = schema.nodes.footnoteContent.create(
+    { footnoteId, label: "0" },
+    schema.text(sourceTitle),
+  );
+
+  if (existingSection) {
+    const sectionEndPos = existingSection.pos + existingSection.node.nodeSize - 1;
+    const mappedEnd = tr.mapping.map(sectionEndPos);
+    tr.insert(mappedEnd, contentNodePM);
+  } else {
+    const sectionNodePM = schema.nodes.footnoteSection.create(null, contentNodePM);
+    const hrNode = schema.nodes.horizontalRule.create();
+    const insertPos = tr.mapping.map(doc.content.size);
+    tr.insert(insertPos, Fragment.from([hrNode, sectionNodePM]));
+  }
+
   editor.view.dispatch(tr);
 
   return true;

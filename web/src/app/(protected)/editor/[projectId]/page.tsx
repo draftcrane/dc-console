@@ -30,6 +30,7 @@ import { useSources } from "@/hooks/use-sources";
 import { isNudgeDismissed } from "@/components/research/first-use-nudge";
 import { useEditorProject } from "@/hooks/use-editor-project";
 import { useChapterContent } from "@/hooks/use-chapter-content";
+import { useClipInsert } from "@/hooks/use-clip-insert";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -133,6 +134,12 @@ function EditorPageInner() {
       setContent,
       currentContent,
     });
+
+  // --- Clip insertion (#200) ---
+  const { canInsert, insertClip, trackSelection } = useClipInsert({
+    editorRef,
+    activeChapterId,
+  });
 
   // --- Sidebar UI state ---
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -391,11 +398,12 @@ function EditorPageInner() {
           onTitleEditCancel={() => setEditingTitle(false)}
           currentWordCount={currentWordCount}
           selectionWordCount={selectionWordCount}
+          onSelectionUpdate={trackSelection}
         />
       </div>
 
       {/* Research Panel (#182) - side-by-side in landscape, overlay in portrait */}
-      <ResearchPanel />
+      <ResearchPanel onInsertClip={insertClip} canInsert={canInsert} />
 
       <EditorDialogs
         projectData={projectData}

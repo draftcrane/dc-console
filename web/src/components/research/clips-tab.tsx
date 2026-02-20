@@ -6,6 +6,8 @@ import { useAuth } from "@clerk/nextjs";
 import { useResearchPanel } from "./research-panel-provider";
 import { ClipCard } from "./clip-card";
 import { useResearchClips, type ResearchClip } from "@/hooks/use-research-clips";
+import type { InsertResult } from "@/hooks/use-clip-insert";
+import { useToast } from "@/components/toast";
 
 // === Types ===
 
@@ -134,10 +136,16 @@ function ChapterFilterInline({
  * - ClipCard with Insert/Delete actions and source citation navigation
  * - Empty state when no clips exist
  */
-export function ClipsTab() {
+interface ClipsTabProps {
+  onInsertClip: (text: string, sourceTitle: string) => InsertResult;
+  canInsert: boolean;
+}
+
+export function ClipsTab({ onInsertClip, canInsert }: ClipsTabProps) {
   const params = useParams();
   const projectId = params.projectId as string;
   const { viewSource } = useResearchPanel();
+  const { showToast } = useToast();
 
   const { clips, isLoading, error, fetchClips, deleteClip } = useResearchClips(projectId);
   const { chapters } = useProjectChapters(projectId);
@@ -164,6 +172,18 @@ export function ClipsTab() {
     }
     return result;
   }, [clips, selectedChapterId, searchQuery]);
+
+  const handleInsert = useCallback(
+    (text: string, sourceTitle: string) => {
+      const result = onInsertClip(text, sourceTitle);
+      if (result === "inserted") {
+        showToast("Inserted with footnote");
+      } else if (result === "appended") {
+        showToast("Inserted at end of chapter");
+      }
+    },
+    [onInsertClip, showToast],
+  );
 
   const handleDelete = useCallback(
     async (clipId: string) => {
@@ -308,12 +328,10 @@ export function ClipsTab() {
               <ClipCard
                 key={clip.id}
                 clip={clip}
-                onInsert={() => {
-                  // Insert action -- will be wired to editor in a future issue
-                }}
+                onInsert={() => handleInsert(clip.content, clip.sourceTitle)}
                 onDelete={() => handleDelete(clip.id)}
                 onViewSource={handleViewSource}
-                canInsert={false}
+                canInsert={canInsert}
               />
             ))}
           </div>

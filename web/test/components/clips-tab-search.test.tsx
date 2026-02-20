@@ -35,6 +35,10 @@ vi.mock("@/components/research/research-panel-provider", () => ({
   }),
 }));
 
+vi.mock("@/components/toast", () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 // Mock useResearchClips to control clips data
 let mockClips: ReturnType<typeof makeClip>[] = [];
 vi.mock("@/hooks/use-research-clips", () => ({
@@ -99,14 +103,14 @@ describe("ClipsTab search", () => {
 
   it("shows search input when clips exist", () => {
     mockClips = [makeClip({ id: "c1", content: "First clip" })];
-    render(<ClipsTab />);
+    render(<ClipsTab onInsertClip={vi.fn().mockReturnValue("no-editor")} canInsert={false} />);
 
     expect(screen.getByLabelText("Search clips")).toBeInTheDocument();
   });
 
   it("does not show search input when no clips", () => {
     mockClips = [];
-    render(<ClipsTab />);
+    render(<ClipsTab onInsertClip={vi.fn().mockReturnValue("no-editor")} canInsert={false} />);
 
     expect(screen.queryByLabelText("Search clips")).not.toBeInTheDocument();
   });
@@ -116,7 +120,7 @@ describe("ClipsTab search", () => {
       makeClip({ id: "c1", content: "Alpha beta gamma" }),
       makeClip({ id: "c2", content: "Delta epsilon zeta" }),
     ];
-    render(<ClipsTab />);
+    render(<ClipsTab onInsertClip={vi.fn().mockReturnValue("no-editor")} canInsert={false} />);
 
     const search = screen.getByLabelText("Search clips");
     fireEvent.change(search, { target: { value: "alpha" } });
@@ -130,7 +134,7 @@ describe("ClipsTab search", () => {
       makeClip({ id: "c1", content: "Clip A", sourceTitle: "Interview Notes" }),
       makeClip({ id: "c2", content: "Clip B", sourceTitle: "Research Paper" }),
     ];
-    render(<ClipsTab />);
+    render(<ClipsTab onInsertClip={vi.fn().mockReturnValue("no-editor")} canInsert={false} />);
 
     const search = screen.getByLabelText("Search clips");
     fireEvent.change(search, { target: { value: "interview" } });
@@ -141,7 +145,7 @@ describe("ClipsTab search", () => {
 
   it("shows 'no results' message when search matches nothing", () => {
     mockClips = [makeClip({ id: "c1", content: "Alpha" })];
-    render(<ClipsTab />);
+    render(<ClipsTab onInsertClip={vi.fn().mockReturnValue("no-editor")} canInsert={false} />);
 
     const search = screen.getByLabelText("Search clips");
     fireEvent.change(search, { target: { value: "zzzzz" } });
@@ -151,7 +155,7 @@ describe("ClipsTab search", () => {
 
   it("clears search with clear button", () => {
     mockClips = [makeClip({ id: "c1", content: "Alpha" }), makeClip({ id: "c2", content: "Beta" })];
-    render(<ClipsTab />);
+    render(<ClipsTab onInsertClip={vi.fn().mockReturnValue("no-editor")} canInsert={false} />);
 
     const search = screen.getByLabelText("Search clips");
     fireEvent.change(search, { target: { value: "alpha" } });
@@ -164,7 +168,7 @@ describe("ClipsTab search", () => {
 
   it("search is case-insensitive", () => {
     mockClips = [makeClip({ id: "c1", content: "UPPERCASE content" })];
-    render(<ClipsTab />);
+    render(<ClipsTab onInsertClip={vi.fn().mockReturnValue("no-editor")} canInsert={false} />);
 
     const search = screen.getByLabelText("Search clips");
     fireEvent.change(search, { target: { value: "uppercase" } });
@@ -174,7 +178,7 @@ describe("ClipsTab search", () => {
 
   it("shows empty state with correct wording", () => {
     mockClips = [];
-    render(<ClipsTab />);
+    render(<ClipsTab onInsertClip={vi.fn().mockReturnValue("no-editor")} canInsert={false} />);
 
     expect(screen.getByText("No clips yet")).toBeInTheDocument();
     expect(
