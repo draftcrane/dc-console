@@ -16,6 +16,16 @@ import { fetchChapterContentsFromR2 } from "../utils/r2-content.js";
  * streamed directly to the client.
  */
 
+/** Decompression guards — prevent zip-bomb style payloads */
+export const IMPORT_LIMITS = {
+  /** Maximum total uncompressed bytes across all entries (200 MB) */
+  MAX_TOTAL_UNCOMPRESSED_BYTES: 200 * 1024 * 1024,
+  /** Maximum uncompressed bytes for a single entry (50 MB) */
+  MAX_ENTRY_UNCOMPRESSED_BYTES: 50 * 1024 * 1024,
+  /** Maximum number of entries in the ZIP */
+  MAX_ENTRY_COUNT: 500,
+} as const;
+
 interface ProjectRow {
   id: string;
   title: string;
@@ -150,13 +160,45 @@ export class BackupService {
   async importBackup(userId: string, zipBuffer: ArrayBuffer): Promise<ImportBackupResult> {
     const zip = await JSZip.loadAsync(zipBuffer);
 
+    // --- Zip-bomb guard: entry count ---
+    const fileEntries = Object.values(zip.files).filter((e) => !e.dir);
+    if (fileEntries.length > IMPORT_LIMITS.MAX_ENTRY_COUNT) {
+      validationError(
+        `Backup exceeds maximum entry count (${fileEntries.length} > ${IMPORT_LIMITS.MAX_ENTRY_COUNT})`,
+      );
+    }
+
+    // --- Zip-bomb guard: uncompressed sizes ---
+    // Decompress each entry to ArrayBuffer and check sizes before proceeding.
+    // This catches zip-bombs where compressed data expands to huge payloads.
+    let totalUncompressed = 0;
+    const decompressedEntries = new Map<string, ArrayBuffer>();
+    for (const entry of fileEntries) {
+      const buf = await entry.async("arraybuffer");
+
+      if (buf.byteLength > IMPORT_LIMITS.MAX_ENTRY_UNCOMPRESSED_BYTES) {
+        validationError(
+          `Entry "${entry.name}" exceeds maximum uncompressed size (${buf.byteLength} bytes > ${IMPORT_LIMITS.MAX_ENTRY_UNCOMPRESSED_BYTES} bytes)`,
+        );
+      }
+
+      totalUncompressed += buf.byteLength;
+      if (totalUncompressed > IMPORT_LIMITS.MAX_TOTAL_UNCOMPRESSED_BYTES) {
+        validationError(
+          `Backup exceeds maximum total uncompressed size (> ${IMPORT_LIMITS.MAX_TOTAL_UNCOMPRESSED_BYTES} bytes)`,
+        );
+      }
+
+      decompressedEntries.set(entry.name, buf);
+    }
+
     // Read and validate manifest
-    const manifestFile = zip.file("manifest.json");
-    if (!manifestFile) {
+    const manifestBuf = decompressedEntries.get("manifest.json");
+    if (!manifestBuf) {
       validationError("Invalid backup: missing manifest.json");
     }
 
-    const manifestText = await manifestFile.async("text");
+    const manifestText = new TextDecoder().decode(manifestBuf);
     let manifest: BackupManifest;
     try {
       manifest = JSON.parse(manifestText);
@@ -195,14 +237,15 @@ export class BackupService {
       )
       .run();
 
-    // Create chapters
+    // Create chapters — use already-decompressed content
+    const decoder = new TextDecoder();
     for (const chapter of manifest.chapters) {
       const chapterId = ulid();
       const r2Key = `chapters/${chapterId}/content.html`;
 
-      // Read HTML from ZIP
-      const chapterFile = zip.file(`chapters/${chapter.fileName}`);
-      const html = chapterFile ? await chapterFile.async("text") : "";
+      // Read HTML from pre-decompressed entries
+      const chapterBuf = decompressedEntries.get(`chapters/${chapter.fileName}`);
+      const html = chapterBuf ? decoder.decode(chapterBuf) : "";
       const wordCount = countWords(html);
 
       // Write to R2
