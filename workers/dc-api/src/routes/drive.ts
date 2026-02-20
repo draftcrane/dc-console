@@ -27,6 +27,10 @@ import { validationError, AppError } from "../middleware/index.js";
 import { standardRateLimit, rateLimit } from "../middleware/rate-limit.js";
 import { DriveService } from "../services/drive.js";
 import { SourceMaterialService } from "../services/source-material.js";
+import {
+  resolveProjectConnection,
+  resolveReadOnlyConnection,
+} from "../services/drive-connection-resolver.js";
 
 /** Picker token rate limit: 10 req/min (only needed once per Picker open) */
 const pickerTokenRateLimit = rateLimit({
@@ -242,16 +246,16 @@ drive.get("/picker-token/:connectionId", pickerTokenRateLimit, async (c) => {
 
 /**
  * Legacy: GET /drive/picker-token (no connectionId)
- * Falls back to user's first connection for backward compatibility.
+ * Uses single-connection fallback for users with one Drive account.
+ * Rejects with DRIVE_AMBIGUOUS if multiple connections exist (multi-account users
+ * must use the connectionId-scoped endpoint).
  */
 drive.get("/picker-token", pickerTokenRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 
-  const tokens = await driveService.getValidTokens(userId);
-  if (!tokens) {
-    driveNotConnected();
-  }
+  // Read-only: resolve via single-connection or reject ambiguous
+  const { tokens } = await resolveReadOnlyConnection(driveService.tokenService, userId);
 
   const expiresIn = Math.max(0, Math.floor((tokens.expiresAt.getTime() - Date.now()) / 1000));
 
@@ -273,24 +277,24 @@ drive.post("/folders", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const driveService = new DriveService(c.env);
 
-  // Get valid tokens (refreshing if needed)
-  const tokens = await driveService.getValidTokens(userId);
-  if (!tokens) {
-    driveNotConnected();
-  }
-
-  // Parse request body - requires projectId
-  const body = await c.req.json<{ projectId: string }>();
+  // Parse request body - requires projectId, optional connectionId
+  const body = await c.req.json<{ projectId: string; connectionId?: string }>();
   if (!body.projectId || typeof body.projectId !== "string") {
     validationError("projectId is required");
   }
 
   // Look up the project (with ownership check)
   const project = await c.env.DB.prepare(
-    `SELECT id, title, drive_folder_id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`,
+    `SELECT id, title, drive_folder_id, drive_connection_id
+     FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`,
   )
     .bind(body.projectId, userId)
-    .first<{ id: string; title: string; drive_folder_id: string | null }>();
+    .first<{
+      id: string;
+      title: string;
+      drive_folder_id: string | null;
+      drive_connection_id: string | null;
+    }>();
 
   if (!project) {
     throw new AppError(404, "NOT_FOUND", "Project not found");
@@ -306,6 +310,14 @@ drive.post("/folders", standardRateLimit, async (c) => {
     });
   }
 
+  // Resolve Drive connection: project binding > request param > single-connection fallback
+  const { connectionId, tokens } = await resolveProjectConnection(
+    driveService.tokenService,
+    userId,
+    project.drive_connection_id,
+    body.connectionId,
+  );
+
   const folderName = project.title.trim();
   if (!folderName || folderName.length > 500) {
     validationError("Project title must be between 1 and 500 characters for folder creation");
@@ -314,11 +326,12 @@ drive.post("/folders", standardRateLimit, async (c) => {
   try {
     const folder = await driveService.createFolder(tokens.accessToken, folderName);
 
-    // Store the drive_folder_id on the project
+    // Store the drive_folder_id and bind connection if not already bound
     await c.env.DB.prepare(
-      `UPDATE projects SET drive_folder_id = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ? AND user_id = ?`,
+      `UPDATE projects SET drive_folder_id = ?, drive_connection_id = COALESCE(drive_connection_id, ?),
+       updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE id = ? AND user_id = ?`,
     )
-      .bind(folder.id, project.id, userId)
+      .bind(folder.id, connectionId, project.id, userId)
       .run();
 
     return c.json({
@@ -341,17 +354,19 @@ drive.post("/folders", standardRateLimit, async (c) => {
 drive.get("/folders/:folderId/children", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const folderId = c.req.param("folderId");
+  const connectionId = c.req.query("connectionId") || undefined;
   const driveService = new DriveService(c.env);
 
   if (!folderId) {
     validationError("Folder ID is required");
   }
 
-  // Get valid tokens (refreshing if needed)
-  const tokens = await driveService.getValidTokens(userId);
-  if (!tokens) {
-    driveNotConnected();
-  }
+  // Resolve connection: explicit param > single-connection fallback > reject ambiguous
+  const { tokens } = await resolveReadOnlyConnection(
+    driveService.tokenService,
+    userId,
+    connectionId,
+  );
 
   try {
     const files = await driveService.listFolderChildren(tokens.accessToken, folderId);
@@ -388,28 +403,15 @@ drive.get("/browse", standardRateLimit, async (c) => {
   const connectionId = c.req.query("connectionId") || undefined;
   const pageToken = c.req.query("pageToken") || undefined;
 
-  let accessToken: string;
-
-  if (connectionId) {
-    const tokens = await driveService.getValidTokensByConnection(connectionId);
-    if (!tokens) {
-      driveNotConnected();
-    }
-    const connections = await driveService.getConnectionsForUser(userId);
-    if (!connections.some((conn) => conn.id === connectionId)) {
-      driveNotConnected("Connection not found for this user");
-    }
-    accessToken = tokens.accessToken;
-  } else {
-    const tokens = await driveService.getValidTokens(userId);
-    if (!tokens) {
-      driveNotConnected();
-    }
-    accessToken = tokens.accessToken;
-  }
+  // Read-only: resolve via explicit connectionId or single-connection fallback
+  const { tokens } = await resolveReadOnlyConnection(
+    driveService.tokenService,
+    userId,
+    connectionId,
+  );
 
   try {
-    const result = await driveService.listFolderChildrenPage(accessToken, folderId, {
+    const result = await driveService.listFolderChildrenPage(tokens.accessToken, folderId, {
       pageSize: 200,
       pageToken,
     });

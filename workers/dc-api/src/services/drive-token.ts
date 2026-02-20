@@ -211,8 +211,9 @@ export class DriveTokenService {
   }
 
   /**
-   * Gets stored tokens for a user's first connection (legacy fallback).
-   * Used when we only have userId, not a specific connectionId.
+   * @deprecated Use resolveProjectConnection() or resolveReadOnlyConnection() instead.
+   * Gets stored tokens for a user's first connection via LIMIT 1 (nondeterministic
+   * when multiple connections exist). See #166.
    *
    * @param userId - The user ID
    * @returns Decrypted tokens or null if not connected
@@ -288,8 +289,9 @@ export class DriveTokenService {
   }
 
   /**
-   * Gets valid tokens for a user's first connection (legacy fallback).
-   * Used by fire-and-forget write-through code that only has userId.
+   * @deprecated Use resolveProjectConnection() or resolveReadOnlyConnection() instead.
+   * This method selects nondeterministically when users have multiple Drive connections.
+   * Retained for backward compatibility but no production code should call it. See #166.
    *
    * @param userId - The user ID
    * @returns Valid tokens with connectionId, or null if not connected

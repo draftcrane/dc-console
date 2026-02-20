@@ -12,6 +12,7 @@ export type ErrorCode =
   | "RATE_LIMITED"
   | "DRIVE_ERROR"
   | "DRIVE_NOT_CONNECTED"
+  | "DRIVE_AMBIGUOUS"
   | "VALIDATION_ERROR"
   | "LAST_CHAPTER"
   | "AI_ERROR"
