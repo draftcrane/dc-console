@@ -24,6 +24,8 @@ interface SourceAddFlowProps {
   ) => Promise<void>;
   onUploadLocal: (file: File) => Promise<void>;
   onConnectAccount: () => void;
+  /** When true, the project is bound to a specific Drive account — hide "Connect another" button. */
+  isBoundProject?: boolean;
 }
 
 /**
@@ -49,6 +51,7 @@ export function SourceAddFlow({
   onAddDriveFiles,
   onUploadLocal,
   onConnectAccount,
+  isBoundProject = false,
 }: SourceAddFlowProps) {
   const [view, setView] = useState<AddFlowView>("accounts");
   const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null);
@@ -384,8 +387,8 @@ export function SourceAddFlow({
           />
         </div>
 
-        {/* Connect another account */}
-        {driveAccounts.length < 3 && (
+        {/* Connect another account (hidden when project is bound to a specific Drive account) */}
+        {!isBoundProject && driveAccounts.length < 3 && (
           <div>
             <button
               onClick={onConnectAccount}

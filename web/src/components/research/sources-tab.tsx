@@ -180,7 +180,12 @@ function SourcesEmptyState({ onAdd }: { onAdd: () => void }) {
 
 // === Sources Tab ===
 
-export function SourcesTab() {
+export function SourcesTab({
+  projectDriveConnectionId,
+}: {
+  /** The project's bound Drive connection ID. When set, only the bound account is shown. */
+  projectDriveConnectionId?: string | null;
+}) {
   const params = useParams();
   const projectId = params.projectId as string;
   const {
@@ -199,6 +204,17 @@ export function SourcesTab() {
     useSources(projectId);
 
   const { accounts: driveAccounts, connect: connectDrive } = useDriveAccounts();
+
+  // Filter Drive accounts to only the project's bound connection.
+  // Fallback: if the bound connection no longer exists (user disconnected the account),
+  // show all accounts so the user isn't stuck in a dead-end UI.
+  const filteredDriveAccounts = useMemo(() => {
+    if (!projectDriveConnectionId) return driveAccounts;
+    const bound = driveAccounts.filter((a) => a.id === projectDriveConnectionId);
+    return bound.length > 0 ? bound : driveAccounts;
+  }, [driveAccounts, projectDriveConnectionId]);
+
+  const isBoundProject = !!projectDriveConnectionId && filteredDriveAccounts.length === 1;
 
   // Derive active source from sources list and activeSourceId (no state needed)
   const activeSource = useMemo<SourceMaterial | null>(() => {
@@ -267,12 +283,13 @@ export function SourcesTab() {
   if (sourcesView === "add") {
     return (
       <SourceAddFlow
-        driveAccounts={driveAccounts}
+        driveAccounts={filteredDriveAccounts}
         existingDriveFileIds={existingDriveFileIds}
         onBack={backToSourceList}
         onAddDriveFiles={handleAddDriveFiles}
         onUploadLocal={handleUploadLocal}
         onConnectAccount={handleConnectAccount}
+        isBoundProject={isBoundProject}
       />
     );
   }

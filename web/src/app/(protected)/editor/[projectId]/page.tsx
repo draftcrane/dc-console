@@ -403,7 +403,11 @@ function EditorPageInner() {
       </div>
 
       {/* Research Panel (#182) - side-by-side in landscape, overlay in portrait */}
-      <ResearchPanel onInsertClip={insertClip} canInsert={canInsert} />
+      <ResearchPanel
+        onInsertClip={insertClip}
+        canInsert={canInsert}
+        projectDriveConnectionId={projectData?.driveConnectionId}
+      />
 
       <EditorDialogs
         projectData={projectData}

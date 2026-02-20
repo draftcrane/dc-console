@@ -84,15 +84,19 @@ export function useEditorProject({
   const handleProjectConnected = useCallback(
     async (driveFolderId: string) => {
       // Optimistically reflect connection in the current view.
+      // Note: driveConnectionId is not available from the connect-drive API response,
+      // so it will be populated when fetchProjectData() completes below.
       setProjectData((prev) => (prev ? { ...prev, driveFolderId } : prev));
-      // Then refresh canonical server state.
+      // Then refresh canonical server state (populates driveConnectionId).
       await fetchProjectData();
     },
     [fetchProjectData],
   );
 
   const handleProjectDisconnected = useCallback(async () => {
-    setProjectData((prev) => (prev ? { ...prev, driveFolderId: null } : prev));
+    setProjectData((prev) =>
+      prev ? { ...prev, driveFolderId: null, driveConnectionId: null } : prev,
+    );
     await fetchProjectData();
   }, [fetchProjectData]);
 
