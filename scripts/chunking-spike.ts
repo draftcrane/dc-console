@@ -86,7 +86,10 @@ function splitSentences(text: string): string[] {
 
   // Protect common abbreviations from being split on
   const protected_ = text
-    .replace(/\b(Dr|Mr|Mrs|Ms|Prof|Jr|Sr|Inc|Ltd|Corp|Co|vs|etc|al|ed|vol|Rev|Gen|Gov)\./g, "$1\u0000")
+    .replace(
+      /\b(Dr|Mr|Mrs|Ms|Prof|Jr|Sr|Inc|Ltd|Corp|Co|vs|etc|al|ed|vol|Rev|Gen|Gov)\./g,
+      "$1\u0000",
+    )
     .replace(/\b([A-Z])\./g, "$1\u0000")
     .replace(/(\d)\./g, "$1\u0000")
     .replace(/\be\.g\./g, "e\u0000g\u0000")
@@ -95,9 +98,7 @@ function splitSentences(text: string): string[] {
 
   const parts = protected_.split(/(?<=[.!?]["')\]]?)\s+(?=[A-Z"(])/);
 
-  return parts
-    .map((s) => s.replace(/\u0000/g, ".").trim())
-    .filter((s) => s.length > 0);
+  return parts.map((s) => s.replace(/\u0000/g, ".").trim()).filter((s) => s.length > 0);
 }
 
 /** Get the last N sentences from text */
@@ -284,9 +285,7 @@ class ChunkAccumulator {
       prev.wordCount = countWords(prev.text);
       prev.endOffset = endOffset;
     } else if (wordCount > 0) {
-      const fullText = this.lastChunkOverlap
-        ? this.lastChunkOverlap + " " + text
-        : text;
+      const fullText = this.lastChunkOverlap ? this.lastChunkOverlap + " " + text : text;
 
       this.chunks.push({
         id: `${this.sourceId}:${this.chunks.length}`,
@@ -302,9 +301,7 @@ class ChunkAccumulator {
     }
 
     // Overlap: last N sentences for continuity
-    this.lastChunkOverlap = this.currentSentences
-      .slice(-this.opts.overlapSentences)
-      .join(" ");
+    this.lastChunkOverlap = this.currentSentences.slice(-this.opts.overlapSentences).join(" ");
 
     this.currentSentences = [];
     this.currentWordCount = 0;
@@ -524,7 +521,11 @@ async function main() {
 
   for (const dir of fixtureDirs.filter((d) => d.startsWith("fixture-")).sort()) {
     const manifestPath = resolve(FIXTURES_DIR, dir, "manifest.json");
-    let manifest: { name: string; sources: { id: string; title: string; htmlType: string; wordCount: number; file: string }[]; totalWordCount: number };
+    let manifest: {
+      name: string;
+      sources: { id: string; title: string; htmlType: string; wordCount: number; file: string }[];
+      totalWordCount: number;
+    };
     try {
       manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
     } catch {
@@ -574,9 +575,7 @@ async function main() {
   // Summary
   console.log("\n=== Summary ===\n");
   console.log(`Total chunks: ${allChunks.length}`);
-  console.log(
-    `Total checks: ${totalPass + totalFail} (${totalPass} PASS, ${totalFail} FAIL)`,
-  );
+  console.log(`Total checks: ${totalPass + totalFail} (${totalPass} PASS, ${totalFail} FAIL)`);
 
   const structured = results.filter((r) => r.htmlType === "structured");
   const flat = results.filter((r) => r.htmlType === "flat");
@@ -622,7 +621,13 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error("Chunking evaluation failed:", err);
-  process.exit(1);
-});
+// Only run when executed directly (not imported)
+const isMainModule =
+  import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("chunking-spike.ts");
+
+if (isMainModule) {
+  main().catch((err) => {
+    console.error("Chunking evaluation failed:", err);
+    process.exit(1);
+  });
+}

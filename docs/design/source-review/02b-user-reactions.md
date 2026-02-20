@@ -14,7 +14,7 @@
 
 Okay, so I've got my chapters on the left -- that makes sense, that's like a table of contents. The writing area in the middle, fine, that's my document. And then there's this panel on the right that says "Sources" with a search box and an "Add" button.
 
-My first thought: "Sources? Like a bibliography?" I haven't written a bibliography since grad school. I'd wonder if this is something I'm supposed to fill in for proper citations. It takes me a few seconds to realize these are my Google Docs -- my workshop notes, my interview transcripts, the stuff I'm writing *from*. The word "Sources" doesn't connect to how I think about my files. I think of them as "my notes" or "my stuff." I'd probably figure it out after 15 seconds, but that initial flash of "is this for academics?" would make me feel like maybe this tool isn't for someone like me.
+My first thought: "Sources? Like a bibliography?" I haven't written a bibliography since grad school. I'd wonder if this is something I'm supposed to fill in for proper citations. It takes me a few seconds to realize these are my Google Docs -- my workshop notes, my interview transcripts, the stuff I'm writing _from_. The word "Sources" doesn't connect to how I think about my files. I think of them as "my notes" or "my stuff." I'd probably figure it out after 15 seconds, but that initial flash of "is this for academics?" would make me feel like maybe this tool isn't for someone like me.
 
 The layout itself, though -- three columns, everything visible at once -- that I understand immediately. It looks like a workspace. Left is navigation, middle is where I write, right is... reference material, I guess. That part is intuitive. I've used enough apps to get the three-column thing.
 
@@ -22,9 +22,9 @@ The layout itself, though -- three columns, everything visible at once -- that I
 
 I see the search box at the top of the right panel. Okay. I'd tap it and type "managers who receive coaching" or maybe just "coaching stats." If my docs are already in that panel, I'd expect the search to filter the list down to relevant files.
 
-Here's where I'd get stuck: Does the search look *inside* the documents? Or does it just match file names? Because my Google Doc titles are useless -- things like "Workshop Notes March 2024" and "Client Debrief - Consolidated." The stat I'm looking for could be in any of them. If the search only matches titles, I'm stuck scrolling through every document one by one, opening each, reading, closing, opening the next. That's basically what I do now in Google Drive.
+Here's where I'd get stuck: Does the search look _inside_ the documents? Or does it just match file names? Because my Google Doc titles are useless -- things like "Workshop Notes March 2024" and "Client Debrief - Consolidated." The stat I'm looking for could be in any of them. If the search only matches titles, I'm stuck scrolling through every document one by one, opening each, reading, closing, opening the next. That's basically what I do now in Google Drive.
 
-If the search looks inside the documents and shows me where the match is -- *that* would be the moment I'd say "oh, this is actually useful." But the design doesn't make it obvious which kind of search this is. I'd try it and see. If it only matches titles, I'd be disappointed but not surprised. That's how most things work.
+If the search looks inside the documents and shows me where the match is -- _that_ would be the moment I'd say "oh, this is actually useful." But the design doesn't make it obvious which kind of search this is. I'd try it and see. If it only matches titles, I'd be disappointed but not surprised. That's how most things work.
 
 **3. "If I'm writing Chapter 4 and need to check a fact from an old workshop doc, what do I do?"**
 
@@ -38,17 +38,17 @@ I'd find the stat eventually -- or maybe I wouldn't, maybe it's in a different d
 
 **4. "Does this feel like one more thing to learn, or like it's helping me?"**
 
-It feels... neutral. Like, it's not *complicated*. I can see what everything does. There's no jargon I don't understand (except "Sources," which I'd get over). It's clean. I wouldn't need anyone to explain it to me.
+It feels... neutral. Like, it's not _complicated_. I can see what everything does. There's no jargon I don't understand (except "Sources," which I'd get over). It's clean. I wouldn't need anyone to explain it to me.
 
-But it also doesn't feel like it's *doing* anything for me. It's a file browser next to my writing. I already have a file browser -- it's called Google Drive. The difference is that this one is right there instead of in another tab. Is that enough to change my workflow? Honestly, maybe. Not having to switch tabs is genuinely helpful. But I was hoping for more. When I heard "writing tool with AI," I imagined something that would help me *find* things, not just show me a list of files.
+But it also doesn't feel like it's _doing_ anything for me. It's a file browser next to my writing. I already have a file browser -- it's called Google Drive. The difference is that this one is right there instead of in another tab. Is that enough to change my workflow? Honestly, maybe. Not having to switch tabs is genuinely helpful. But I was hoping for more. When I heard "writing tool with AI," I imagined something that would help me _find_ things, not just show me a list of files.
 
 It reduces one annoyance (tab switching) without solving the real problem (I can't find anything in my own notes).
 
 **5. "What would make me go back to copy-pasting between Google Docs and ChatGPT?"**
 
-If I have to manually scroll through every document to find what I'm looking for, I'll go back to ChatGPT within a week. ChatGPT is messy -- I have to paste my doc content in, it loses context between sessions, and I can't keep track of what I've asked before. But at least I can *ask it a question* and get an answer. "Find the stat about coaching effectiveness in my workshop notes" -- ChatGPT does that. This panel doesn't.
+If I have to manually scroll through every document to find what I'm looking for, I'll go back to ChatGPT within a week. ChatGPT is messy -- I have to paste my doc content in, it loses context between sessions, and I can't keep track of what I've asked before. But at least I can _ask it a question_ and get an answer. "Find the stat about coaching effectiveness in my workshop notes" -- ChatGPT does that. This panel doesn't.
 
-The other breaking point: portrait mode on my iPad. If viewing a source means I lose my editor entirely, and I have to tap back and forth constantly, that's actually *worse* than having two Safari tabs side by side in Split View. At least with Split View, I can see both at once.
+The other breaking point: portrait mode on my iPad. If viewing a source means I lose my editor entirely, and I have to tap back and forth constantly, that's actually _worse_ than having two Safari tabs side by side in Split View. At least with Split View, I can see both at once.
 
 ---
 
@@ -86,7 +86,7 @@ The friction is manageable for me because I'm organized. I usually know which do
 
 It feels like a minor improvement. I currently use a system of subfolders and a master index Google Sheet to track which documents go with which chapters. This replaces the "open in another tab" part of my workflow, which saves time. But it doesn't replace my index sheet. It doesn't help me see the relationship between sources and chapters.
 
-The removal of chapter linking actually concerns me. I *want* to associate specific sources with specific chapters. That's how I organize my thinking. In the current design, the "link" feature was confusing (I'll grant that), but the underlying need -- "Chapter 4 draws from these 5 documents, Chapter 7 draws from these 3" -- is real. Flattening everything to one project-level list loses that structure.
+The removal of chapter linking actually concerns me. I _want_ to associate specific sources with specific chapters. That's how I organize my thinking. In the current design, the "link" feature was confusing (I'll grant that), but the underlying need -- "Chapter 4 draws from these 5 documents, Chapter 7 draws from these 3" -- is real. Flattening everything to one project-level list loses that structure.
 
 I'd use this, but I'd probably also keep my Google Sheet index alongside it. Which means DraftCrane isn't fully replacing my existing system -- it's just adding a slightly better file viewer.
 
@@ -106,9 +106,9 @@ The other deal-breaker: if adding sources from Drive is a pain. I have deep fold
 
 Three columns again, but the right panel says "Research" at the top with three tabs: Sources, Ask, Clips. Let me look at each.
 
-"Sources" -- okay, same as before, that's my documents. "Ask" -- wait. Ask? Like... I can ask it questions? I'd tap on that tab out of curiosity. I see a text field that says "Ask about your sources..." Oh. *Oh.* Like ChatGPT, but it already knows my stuff? I wouldn't have to paste anything in?
+"Sources" -- okay, same as before, that's my documents. "Ask" -- wait. Ask? Like... I can ask it questions? I'd tap on that tab out of curiosity. I see a text field that says "Ask about your sources..." Oh. _Oh._ Like ChatGPT, but it already knows my stuff? I wouldn't have to paste anything in?
 
-That's the moment. That single text field would make me understand what this tool is for. It's not just a file organizer. It's a research assistant that can actually *look through* my documents and find things. I'd immediately type something: "What did I write about psychological safety?" And if it came back with an answer citing my workshop notes -- with the actual document name and a quote -- I would feel something I don't often feel with new software: genuine excitement.
+That's the moment. That single text field would make me understand what this tool is for. It's not just a file organizer. It's a research assistant that can actually _look through_ my documents and find things. I'd immediately type something: "What did I write about psychological safety?" And if it came back with an answer citing my workshop notes -- with the actual document name and a quote -- I would feel something I don't often feel with new software: genuine excitement.
 
 "Clips" -- I'm not sure what that means at first. Clips of what? Video clips? I'd tap on it and see it's empty. "0 clips saved." Okay, I don't know what this is yet but I'll come back to it.
 
@@ -118,7 +118,7 @@ Two out of three tabs make immediate sense. That's a strong start.
 
 I'd go straight to the "Ask" tab. "Find the stat about managers who receive coaching." If the AI finds it and tells me "In your document 'Workshop Notes March 2024,' page 3: '67% of managers who receive structured coaching show measurable improvement in team outcomes within 6 months'" -- I would actually tear up a little. I've been looking for that number for three weeks across 30 documents.
 
-The Sources tab also has search, so if I wanted to browse manually, I could. But why would I? The Ask tab is faster and smarter. It searches *inside* all my documents at once. That's the thing I couldn't do before.
+The Sources tab also has search, so if I wanted to browse manually, I could. But why would I? The Ask tab is faster and smarter. It searches _inside_ all my documents at once. That's the thing I couldn't do before.
 
 Where I might get stuck: if the AI gives me a wrong answer or can't find it. "I couldn't find information about that in your sources." Then I'd have to fall back to the Sources tab and manually browse. But at least I have the fallback. I'm not worse off than Option A -- I just have an extra tool that might save me time.
 
@@ -128,17 +128,17 @@ I tap the "Ask" tab (if I'm not already there) and type: "What's the stat about 
 
 I verify the number. I go back to my chapter and keep writing. Total interruption: maybe 20 seconds. My flow barely breaks.
 
-And then -- *and then* -- I see the "Save to Clips" button on the AI's response. I tap it because why not. Now that quote is saved somewhere. Later, when I'm writing Chapter 7 and need the same stat, I go to the Clips tab and it's right there. I don't have to re-ask. I don't have to remember which chapter I was in when I found it.
+And then -- _and then_ -- I see the "Save to Clips" button on the AI's response. I tap it because why not. Now that quote is saved somewhere. Later, when I'm writing Chapter 7 and need the same stat, I go to the Clips tab and it's right there. I don't have to re-ask. I don't have to remember which chapter I was in when I found it.
 
 That's when the "Clips" tab makes sense to me. It's my collection of useful quotes. Like sticky notes in a real book. I finally understand the three tabs: Sources is my bookshelf. Ask is my research assistant. Clips is my sticky notes. That metaphor clicks.
 
 **4. "Does this feel like one more thing to learn, or like it's helping me?"**
 
-This feels like it's helping me. Genuinely. The Ask tab alone is worth switching from my current Google Docs + ChatGPT setup. Right now, I open ChatGPT, paste in 2,000 words from one document, ask a question, get an answer, then realize the stat I need is in a *different* document, paste that one in, ask again... it's exhausting. This does all of that automatically because it already has my documents.
+This feels like it's helping me. Genuinely. The Ask tab alone is worth switching from my current Google Docs + ChatGPT setup. Right now, I open ChatGPT, paste in 2,000 words from one document, ask a question, get an answer, then realize the stat I need is in a _different_ document, paste that one in, ask again... it's exhausting. This does all of that automatically because it already has my documents.
 
 The three tabs are more to learn than Option A's single panel. But the tabs are labeled with normal words and each does one clear thing. I don't feel overwhelmed. I feel like I have tools I'll actually use. The Sources tab is there if I want to browse, but honestly, I think I'd live in the Ask tab.
 
-The Clips tab is the one that might not stick immediately. Saving clips is an extra step in my workflow that I don't currently do. Right now I just copy-paste. But if the "Insert" button on a clip puts the quote into my chapter *and* adds a footnote automatically? That's worth the extra step. I hate doing footnotes manually.
+The Clips tab is the one that might not stick immediately. Saving clips is an extra step in my workflow that I don't currently do. Right now I just copy-paste. But if the "Insert" button on a clip puts the quote into my chapter _and_ adds a footnote automatically? That's worth the extra step. I hate doing footnotes manually.
 
 **5. "What would make me go back to copy-pasting between Google Docs and ChatGPT?"**
 
@@ -166,7 +166,7 @@ My second question: can I see which sources the AI is drawing from? In ChatGPT P
 
 Two paths available to me, and I'd use both depending on context.
 
-If I know *which* document has the information -- say, I know the coaching stat is in my Deloitte report -- I'd go to the Sources tab, search for "Deloitte," open it, and find the stat manually. This is the direct path.
+If I know _which_ document has the information -- say, I know the coaching stat is in my Deloitte report -- I'd go to the Sources tab, search for "Deloitte," open it, and find the stat manually. This is the direct path.
 
 If I don't know which document has it, or if it might be in several documents, I'd go to the Ask tab. "Which of my documents discusses coaching ROI statistics?" The AI could tell me it's mentioned in three documents and give me the relevant passages from each. That's something I literally cannot do today without opening each document individually.
 
@@ -176,13 +176,13 @@ Where I'd want more: after the AI shows me the results, I'd want to tap on a cit
 
 I'd use the Ask tab. "What's the psychological safety stat from the team effectiveness research?" The AI returns the answer with citations. I verify the number, see it matches my recollection, and keep writing.
 
-But here's what I'd really want to do next: save that clip *tagged to Chapter 4*. When I'm later reviewing Chapter 4, I want to see all the clips I collected for it. The flat Clips tab is fine for now, but as my book grows and I have 50+ clips across 15 chapters, I'll need to filter by chapter.
+But here's what I'd really want to do next: save that clip _tagged to Chapter 4_. When I'm later reviewing Chapter 4, I want to see all the clips I collected for it. The flat Clips tab is fine for now, but as my book grows and I have 50+ clips across 15 chapters, I'll need to filter by chapter.
 
 The workflow for me would be: Ask a question, get a result, save it to Clips, tag it "Chapter 4," and then later when I'm editing Chapter 4, pull up all the Chapter 4 clips to make sure I've incorporated all my research. That's the organizational structure I need. The current Clips design doesn't show this level of organization, but the infrastructure seems like it could support it in a future iteration.
 
 **4. "Does this feel like one more thing to learn, or like it's helping me?"**
 
-This feels like it's solving the right problem. My problem isn't finding my files -- I know where they are. My problem is that I have *too many* files and I need help synthesizing across them. The Ask tab directly addresses that. "What have I collected about leadership resilience across all my documents?" -- that question currently takes me 90 minutes to answer by opening documents one at a time. If the AI can answer it in 10 seconds, this tool pays for itself in the first session.
+This feels like it's solving the right problem. My problem isn't finding my files -- I know where they are. My problem is that I have _too many_ files and I need help synthesizing across them. The Ask tab directly addresses that. "What have I collected about leadership resilience across all my documents?" -- that question currently takes me 90 minutes to answer by opening documents one at a time. If the AI can answer it in 10 seconds, this tool pays for itself in the first session.
 
 The three-tab structure adds a small learning curve, but each tab maps to a distinct workflow I actually have: browse files (Sources), ask questions (Ask), collect useful bits (Clips). These aren't abstract concepts -- they're things I already do, just scattered across Google Drive, ChatGPT, and Apple Notes. Having them in one panel next to my editor is a real consolidation.
 
@@ -212,7 +212,7 @@ I'd tap "Research." A panel slides in. And instead of showing me a list of files
 
 This is either brilliant or terrifying, and I'm not sure which. On one hand, it's radically simple. There's nothing to figure out -- just type a question. On the other hand, I feel disoriented. Where are my files? Did they get imported? Are they connected? The panel doesn't tell me. I have to trust that somewhere behind this text field, my documents are there and the AI knows about them.
 
-I think I'd tap the gear icon out of anxiety. I'd see my connected sources listed there -- six documents. Okay, they're there. I can breathe. But I shouldn't *have* to check. The main interface should give me some confidence that my stuff is connected without making me look for it.
+I think I'd tap the gear icon out of anxiety. I'd see my connected sources listed there -- six documents. Okay, they're there. I can breathe. But I shouldn't _have_ to check. The main interface should give me some confidence that my stuff is connected without making me look for it.
 
 **2. "Can I figure out how to find something in my research materials without instructions?"**
 
@@ -220,9 +220,9 @@ The interface basically forces me to use the AI. There's no browse-first option 
 
 If the AI nails it -- gives me the exact quote with the document name -- this is the fastest, most intuitive experience of all three options. I didn't have to browse. I didn't have to remember which file it was in. I just asked, like I would ask a research assistant.
 
-But if the AI fumbles -- gives me a vague answer, cites the wrong document, or says "I couldn't find that" when I *know* it's in my notes -- I'm stuck. How do I search manually? I'd have to tap the gear icon, find the right document, tap "View," and then scroll through it. That's 3 taps just to get to the same starting point that Option A gives me for free.
+But if the AI fumbles -- gives me a vague answer, cites the wrong document, or says "I couldn't find that" when I _know_ it's in my notes -- I'm stuck. How do I search manually? I'd have to tap the gear icon, find the right document, tap "View," and then scroll through it. That's 3 taps just to get to the same starting point that Option A gives me for free.
 
-There's a psychological issue here too. In Options A and B, I can *see* my documents. I feel in control. Here, I'm delegating control to the AI. That's fine when the AI is right. When it's wrong, I feel helpless. I'm the kind of person who wants to verify things myself. If the AI says "the stat is 67%," I want to open the document and see it with my own eyes. Option C makes that verification harder than it needs to be.
+There's a psychological issue here too. In Options A and B, I can _see_ my documents. I feel in control. Here, I'm delegating control to the AI. That's fine when the AI is right. When it's wrong, I feel helpless. I'm the kind of person who wants to verify things myself. If the AI says "the stat is 67%," I want to open the document and see it with my own eyes. Option C makes that verification harder than it needs to be.
 
 **3. "If I'm writing Chapter 4 and need to check a fact from an old workshop doc, what do I do?"**
 
@@ -230,7 +230,7 @@ I tap "Research" to open the panel (if it's not already open). I type my questio
 
 In the happy path, this is the most seamless experience. Open panel, ask, get answer, close panel, keep writing. Three taps and a few seconds. My flow barely pauses.
 
-But the unhappy path is worse than the other options. If the AI misunderstands my question, or gives me a result from the wrong document, I have to either rephrase and ask again (adding time and frustration), or bail out to the source settings to browse manually (which is buried behind the gear icon, behind a "View" button, and requires me to know which document to look in). The backup path has more friction than Option A's *primary* path.
+But the unhappy path is worse than the other options. If the AI misunderstands my question, or gives me a result from the wrong document, I have to either rephrase and ask again (adding time and frustration), or bail out to the source settings to browse manually (which is buried behind the gear icon, behind a "View" button, and requires me to know which document to look in). The backup path has more friction than Option A's _primary_ path.
 
 And there's another scenario: what if I'm not looking for a specific fact? What if I want to re-read an entire section of my workshop notes to refresh my memory? "I want to read the part about team dynamics from my March notes." The AI would give me a summary or an excerpt. But I don't want a summary -- I want to read my own words. Getting to the full document view requires navigating through settings, which feels wrong. Reading my own source documents shouldn't feel like going into the settings menu.
 
@@ -248,7 +248,7 @@ I could see myself growing into this over time. If the AI is consistently good, 
 
 One bad AI answer. Honestly, one is probably enough in the first week. If I'm relying entirely on the AI to find things in my documents and it gets something wrong -- wrong stat, wrong document attribution, a hallucinated quote that sounds real but isn't in any of my docs -- I will immediately lose trust in the entire system.
 
-With Options A and B, a bad AI answer isn't catastrophic because I have manual browsing as a primary feature. I can verify. I can look things up myself. With Option C, the AI *is* the product. If the AI fails, the product fails.
+With Options A and B, a bad AI answer isn't catastrophic because I have manual browsing as a primary feature. I can verify. I can look things up myself. With Option C, the AI _is_ the product. If the AI fails, the product fails.
 
 The second trigger: if initial setup is confusing. Option C buries source management in settings. If I connect my Google Drive and add some documents but can't see them prominently -- just a "6 sources connected" note at the bottom of the Research panel -- I won't feel confident that my sources are properly ingested. Did it actually read them? Does it understand them? I need some kind of confirmation that's more reassuring than a number at the bottom of a panel.
 
@@ -260,7 +260,7 @@ The second trigger: if initial setup is confusing. Option C buries source manage
 
 Clean writing space. Chapters on the left, big editor in the middle. A "Research" button tucked in the corner. This is a writing-first design. The statement it makes is: "Your primary activity here is writing. Research is available when you need it."
 
-I appreciate the philosophy but I'm suspicious of it. I *want* to see my research landscape. I want to know which sources are connected, how many there are, whether they've been updated since I last looked. Option C hides all of that behind a gear icon inside a panel I have to actively open. That's three levels deep from my default view.
+I appreciate the philosophy but I'm suspicious of it. I _want_ to see my research landscape. I want to know which sources are connected, how many there are, whether they've been updated since I last looked. Option C hides all of that behind a gear icon inside a panel I have to actively open. That's three levels deep from my default view.
 
 When I open the Research panel, I see the conversational interface. No tabs. Just a text field and some response history. This is clearly modeled after ChatGPT, and I get it -- type a question, get an answer from my documents. But my relationship with my research isn't primarily conversational. I don't always have a question. Sometimes I want to survey the territory. "Let me look at my Chapter 5 sources and see what I have to work with." Option C doesn't support that workflow naturally.
 
@@ -310,7 +310,7 @@ Option B. Here's why.
 
 I came into this expecting to love Option C -- the "just ask" model sounded like exactly what I need. And it is, in the happy path. But I know myself. I'm the person who will not trust the AI fully on day one. I need to be able to check its work. I need to see my documents with my own eyes sometimes. Option C makes that hard. It's like hiring a research assistant but then locking the filing cabinet.
 
-Option B gives me the AI I want (the Ask tab) *and* the filing cabinet I need (the Sources tab). When the AI gives me an answer, I can tap through to the source document and verify it myself. When I don't have a specific question, I can browse my files. When I find something useful, I can save it to Clips and insert it later with a proper footnote.
+Option B gives me the AI I want (the Ask tab) _and_ the filing cabinet I need (the Sources tab). When the AI gives me an answer, I can tap through to the source document and verify it myself. When I don't have a specific question, I can browse my files. When I find something useful, I can save it to Clips and insert it later with a proper footnote.
 
 Option A is fine but boring. It's a file browser. I already have a file browser. I didn't switch to DraftCrane for a slightly better file browser.
 
@@ -326,7 +326,7 @@ My asterisk: the flat source list and the flat clips list won't scale for my pro
 
 I rejected Option A because it doesn't include AI search, and AI search is the feature that solves my core problem of having too many documents to manage manually. I rejected Option C because it demotes source browsing to a settings submenu, and I need browsing to be a first-class activity. I'm an organizer. Taking away my ability to see, sort, and structure my sources is taking away how I think.
 
-Option B is the one that respects both my need for AI power *and* my need for structural organization. It treats sources, querying, and collection as equally important activities. That's correct.
+Option B is the one that respects both my need for AI power _and_ my need for structural organization. It treats sources, querying, and collection as equally important activities. That's correct.
 
 ### Consensus and Conflicts
 

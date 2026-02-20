@@ -88,29 +88,29 @@ The current source management UX -- a 4-layer sheet stack with confusing chapter
 
 **Primary surfaces (always available):**
 
-| Surface | Type | Purpose | Status |
-|---------|------|---------|--------|
-| Chapter Sidebar | Persistent left panel (260pt) | Chapter navigation, word counts | Unchanged |
-| Editor | Central content area (flex, min 400pt) | Tiptap rich text editor | Unchanged |
-| Research Panel | Toggleable right panel (340pt) | Three-tab container for Sources, Ask, Clips | **New** |
+| Surface         | Type                                   | Purpose                                     | Status    |
+| --------------- | -------------------------------------- | ------------------------------------------- | --------- |
+| Chapter Sidebar | Persistent left panel (260pt)          | Chapter navigation, word counts             | Unchanged |
+| Editor          | Central content area (flex, min 400pt) | Tiptap rich text editor                     | Unchanged |
+| Research Panel  | Toggleable right panel (340pt)         | Three-tab container for Sources, Ask, Clips | **New**   |
 
 **Secondary surfaces (within Research Panel):**
 
-| Surface | Type | Purpose | Status |
-|---------|------|---------|--------|
+| Surface            | Type                                  | Purpose                                               | Status  |
+| ------------------ | ------------------------------------- | ----------------------------------------------------- | ------- |
 | Source Detail View | Inline replacement within Sources tab | Full source content viewer with always-visible search | **New** |
-| Source Add Flow | Inline replacement within Sources tab | Drive browser + local upload with trust messaging | **New** |
+| Source Add Flow    | Inline replacement within Sources tab | Drive browser + local upload with trust messaging     | **New** |
 
 **Confirmation dialogs (modal):**
 
-| Surface | Type | Purpose | Status |
-|---------|------|---------|--------|
+| Surface                    | Type          | Purpose                            | Status  |
+| -------------------------- | ------------- | ---------------------------------- | ------- |
 | Remove Source Confirmation | Center dialog | Confirm destructive source removal | **New** |
 
 **First-use elements:**
 
-| Surface | Type | Purpose | Status |
-|---------|------|---------|--------|
+| Surface              | Type                               | Purpose                                  | Status  |
+| -------------------- | ---------------------------------- | ---------------------------------------- | ------- |
 | Research Panel Nudge | One-time tooltip on toolbar button | Bridge discoverability gap for new users | **New** |
 
 ### Navigation Model
@@ -150,31 +150,31 @@ Toolbar -------->+     +-- Detail view -> |  [Source Content] |
 
 ### What Was Removed
 
-| Component/Concept | File(s) | Reason |
-|-------------------|---------|--------|
-| `SourcesPanel` | `web/src/components/drive/sources-panel.tsx` | Replaced by `ResearchPanel` > `SourcesTab` |
-| `AddSourceSheet` | `web/src/components/drive/add-source-sheet.tsx` | Merged into `SourceAddFlow` within Sources tab |
-| `DriveBrowserSheet` | `web/src/components/drive/drive-browser-sheet.tsx` | Merged into `SourceAddFlow` within Sources tab |
-| `SourceViewerSheet` | `web/src/components/drive/source-viewer-sheet.tsx` | Replaced by `SourceDetailView` within Sources tab |
-| `useChapterSources` hook | `web/src/hooks/use-chapter-sources.ts` | Chapter-source linking eliminated entirely |
-| Chapter-source linking (concept) | All link/unlink UI and endpoints | Both personas found it confusing; invisible outcomes |
-| Sheet stacking (z-50/z-60 layering) | `editor-dialogs.tsx` | Replaced by inline view replacement within panel |
-| ~50 EditorDialogsProps source-related props | `editor-dialogs.tsx` | Replaced by `ResearchPanelProvider` context |
+| Component/Concept                           | File(s)                                            | Reason                                               |
+| ------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------- |
+| `SourcesPanel`                              | `web/src/components/drive/sources-panel.tsx`       | Replaced by `ResearchPanel` > `SourcesTab`           |
+| `AddSourceSheet`                            | `web/src/components/drive/add-source-sheet.tsx`    | Merged into `SourceAddFlow` within Sources tab       |
+| `DriveBrowserSheet`                         | `web/src/components/drive/drive-browser-sheet.tsx` | Merged into `SourceAddFlow` within Sources tab       |
+| `SourceViewerSheet`                         | `web/src/components/drive/source-viewer-sheet.tsx` | Replaced by `SourceDetailView` within Sources tab    |
+| `useChapterSources` hook                    | `web/src/hooks/use-chapter-sources.ts`             | Chapter-source linking eliminated entirely           |
+| Chapter-source linking (concept)            | All link/unlink UI and endpoints                   | Both personas found it confusing; invisible outcomes |
+| Sheet stacking (z-50/z-60 layering)         | `editor-dialogs.tsx`                               | Replaced by inline view replacement within panel     |
+| ~50 EditorDialogsProps source-related props | `editor-dialogs.tsx`                               | Replaced by `ResearchPanelProvider` context          |
 
 ### What Was Added
 
-| Component/Concept | Purpose |
-|-------------------|---------|
-| Research Panel | Unified right-hand panel with tab navigation |
-| Sources tab | Source list, search, inline add flow, inline detail view |
-| Ask tab | AI natural-language query with streaming cited results |
-| Clips tab | Saved snippet board with chapter tagging and insertion |
-| Trust messaging | "Your originals are never changed" during source addition |
-| First-use nudge | One-time tooltip on Research toolbar button |
-| Always-visible search | Search field in Source Detail View regardless of document length |
-| Chapter tag on clips | Optional chapter association when saving clips |
-| Back-to-origin breadcrumb | "Back to Ask" / "Back to Clips" after cross-tab navigation |
-| `ResearchPanelProvider` | Context provider encapsulating all panel state |
+| Component/Concept         | Purpose                                                          |
+| ------------------------- | ---------------------------------------------------------------- |
+| Research Panel            | Unified right-hand panel with tab navigation                     |
+| Sources tab               | Source list, search, inline add flow, inline detail view         |
+| Ask tab                   | AI natural-language query with streaming cited results           |
+| Clips tab                 | Saved snippet board with chapter tagging and insertion           |
+| Trust messaging           | "Your originals are never changed" during source addition        |
+| First-use nudge           | One-time tooltip on Research toolbar button                      |
+| Always-visible search     | Search field in Source Detail View regardless of document length |
+| Chapter tag on clips      | Optional chapter association when saving clips                   |
+| Back-to-origin breadcrumb | "Back to Ask" / "Back to Clips" after cross-tab navigation       |
+| `ResearchPanelProvider`   | Context provider encapsulating all panel state                   |
 
 ---
 
@@ -192,17 +192,17 @@ Toolbar -------->+     +-- Detail view -> |  [Source Content] |
 
 ### Technical Mapping
 
-| User's mental model | Technical component | Data store |
-|---------------------|---------------------|------------|
-| "My bookshelf" (Sources tab) | `SourcesTab` + `SourceCard` list | `source_materials` table (D1) + content cache (R2) |
-| "Open a document" (Source Detail View) | `SourceDetailView` reading from R2 | `sources/{sourceId}/content.html` (R2) |
-| "Add from my Drive" (Source Add Flow) | `SourceAddFlow` using Drive API | Google Drive API + `source_materials` (D1) |
-| "Ask a question" (Ask tab) | `AskTab` > `POST /research/query` | Source content (R2) > LLM > SSE stream |
-| "It found the answer" (Result card) | `ResultCard` displaying parsed LLM response | Ephemeral (not stored; query metadata in `research_queries`) |
-| "Save for later" (Save to Clips) | `POST /research/clips` | `research_clips` table (D1) |
-| "My sticky notes" (Clips tab) | `ClipsTab` + `ClipCard` list | `research_clips` table (D1) |
-| "Drop it in with a footnote" (Insert) | `SnippetInsertButton` > Tiptap commands | Tiptap blockquote node + footnote node > Drive write-through |
-| "Tag it for Chapter 4" (Chapter tag) | `chapter_id` field on `research_clips` | `research_clips.chapter_id` (D1) |
+| User's mental model                    | Technical component                         | Data store                                                   |
+| -------------------------------------- | ------------------------------------------- | ------------------------------------------------------------ |
+| "My bookshelf" (Sources tab)           | `SourcesTab` + `SourceCard` list            | `source_materials` table (D1) + content cache (R2)           |
+| "Open a document" (Source Detail View) | `SourceDetailView` reading from R2          | `sources/{sourceId}/content.html` (R2)                       |
+| "Add from my Drive" (Source Add Flow)  | `SourceAddFlow` using Drive API             | Google Drive API + `source_materials` (D1)                   |
+| "Ask a question" (Ask tab)             | `AskTab` > `POST /research/query`           | Source content (R2) > LLM > SSE stream                       |
+| "It found the answer" (Result card)    | `ResultCard` displaying parsed LLM response | Ephemeral (not stored; query metadata in `research_queries`) |
+| "Save for later" (Save to Clips)       | `POST /research/clips`                      | `research_clips` table (D1)                                  |
+| "My sticky notes" (Clips tab)          | `ClipsTab` + `ClipCard` list                | `research_clips` table (D1)                                  |
+| "Drop it in with a footnote" (Insert)  | `SnippetInsertButton` > Tiptap commands     | Tiptap blockquote node + footnote node > Drive write-through |
+| "Tag it for Chapter 4" (Chapter tag)   | `chapter_id` field on `research_clips`      | `research_clips.chapter_id` (D1)                             |
 
 ---
 
@@ -214,16 +214,16 @@ All flows revised based on stress test feedback. YELLOW resolutions are called o
 
 **Precondition:** User has at least one Google account connected. Research Panel is open with Sources tab active.
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Tap [+ Add] button in Sources tab header | Sources tab | 1 |
-| 2 | Source Add Flow replaces source list. **Trust line visible: "DraftCrane reads your files to help you search and reference them. Your originals are never changed."** Shows connected accounts and "Upload from device." | Source Add Flow | 0 (transition) |
-| 3 | Tap a connected Google account row | Source Add Flow | 1 |
-| 4 | Inline Drive browser appears. Shows root of user's Drive. | Source Add Flow | 0 (transition) |
-| 5 | Navigate into target folder | Source Add Flow | 1-3 per level |
-| 6 | Tap checkbox on each Google Doc to select | Source Add Flow | 1 per file |
-| 7 | Tap "Add N Selected" footer button | Source Add Flow | 1 |
-| 8 | View transitions back to source list showing new sources with "Processing..." status | Sources tab | 0 (transition) |
+| Step | Action                                                                                                                                                                                                                  | Surface         | Taps           |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | -------------- |
+| 1    | Tap [+ Add] button in Sources tab header                                                                                                                                                                                | Sources tab     | 1              |
+| 2    | Source Add Flow replaces source list. **Trust line visible: "DraftCrane reads your files to help you search and reference them. Your originals are never changed."** Shows connected accounts and "Upload from device." | Source Add Flow | 0 (transition) |
+| 3    | Tap a connected Google account row                                                                                                                                                                                      | Source Add Flow | 1              |
+| 4    | Inline Drive browser appears. Shows root of user's Drive.                                                                                                                                                               | Source Add Flow | 0 (transition) |
+| 5    | Navigate into target folder                                                                                                                                                                                             | Source Add Flow | 1-3 per level  |
+| 6    | Tap checkbox on each Google Doc to select                                                                                                                                                                               | Source Add Flow | 1 per file     |
+| 7    | Tap "Add N Selected" footer button                                                                                                                                                                                      | Source Add Flow | 1              |
+| 8    | View transitions back to source list showing new sources with "Processing..." status                                                                                                                                    | Sources tab     | 0 (transition) |
 
 **Total: 4-8 taps across a single surface.**
 
@@ -257,12 +257,14 @@ STEP 2: Source Add Flow with trust messaging
 ```
 
 **Error states:**
+
 - **No Google accounts connected:** Shows only "Upload from device" and prominent "Connect Google Account" button.
 - **Drive API error:** Inline error banner: "Could not access Google Drive. Please try again." with Retry.
 - **File already added:** Checkmark badge, disabled checkbox, "Already in your sources" label.
 - **Network failure during add:** Source card shows "Error -- could not process" with Retry/Remove.
 
 **iPad notes:**
+
 - All touch targets minimum 44pt height.
 - Checkboxes: 44x44pt tap area (visually 24x24px icon).
 - Folder rows: full-width tap targets.
@@ -274,18 +276,19 @@ STEP 2: Source Add Flow with trust messaging
 
 **Precondition:** Research Panel is open with Sources tab active.
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Tap [+ Add] in Sources tab header | Sources tab | 1 |
-| 2 | Source Add Flow appears with trust line | Source Add Flow | 0 |
-| 3 | Tap "Upload file" row | Source Add Flow | 1 |
-| 4 | iOS/iPadOS file picker opens (system UI) | System file picker | 0 |
-| 5 | Navigate to and select file(s) | System file picker | 2-4 |
-| 6 | File picker closes. Source appears with "Processing..." spinner. | Sources tab | 0 |
+| Step | Action                                                           | Surface            | Taps |
+| ---- | ---------------------------------------------------------------- | ------------------ | ---- |
+| 1    | Tap [+ Add] in Sources tab header                                | Sources tab        | 1    |
+| 2    | Source Add Flow appears with trust line                          | Source Add Flow    | 0    |
+| 3    | Tap "Upload file" row                                            | Source Add Flow    | 1    |
+| 4    | iOS/iPadOS file picker opens (system UI)                         | System file picker | 0    |
+| 5    | Navigate to and select file(s)                                   | System file picker | 2-4  |
+| 6    | File picker closes. Source appears with "Processing..." spinner. | Sources tab        | 0    |
 
 **Total: 4-7 taps across 2 surfaces (Sources tab + system file picker).**
 
 **Error states:**
+
 - **Unsupported file type:** "Unsupported file format" with Remove action.
 - **File too large:** "File too large (max 5MB)" with Remove action.
 - **Upload fails:** "Upload failed" with Retry and Remove.
@@ -297,12 +300,12 @@ STEP 2: Source Add Flow with trust messaging
 
 **Precondition:** Research Panel open, Sources tab active, at least one source.
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Tap a source card in the source list | Sources tab | 1 |
-| 2 | Source Detail View replaces source list. Content loads. **Search field always visible at top.** | Source Detail View | 0 (transition) |
-| 3 | User reads source content. In landscape, editor visible to left. | Source Detail View + Editor | 0 |
-| 4 | Tap [< Sources] to return to list | Source Detail View | 1 |
+| Step | Action                                                                                          | Surface                     | Taps           |
+| ---- | ----------------------------------------------------------------------------------------------- | --------------------------- | -------------- |
+| 1    | Tap a source card in the source list                                                            | Sources tab                 | 1              |
+| 2    | Source Detail View replaces source list. Content loads. **Search field always visible at top.** | Source Detail View          | 0 (transition) |
+| 3    | User reads source content. In landscape, editor visible to left.                                | Source Detail View + Editor | 0              |
+| 4    | Tap [< Sources] to return to list                                                               | Source Detail View          | 1              |
 
 **Total: 2 taps.**
 
@@ -332,10 +335,12 @@ STEP 2: Source Detail View with always-visible search
 ```
 
 **Error states:**
+
 - **Content not cached:** Loading spinner; if Drive API fails, "Could not load content" with Retry/Back.
 - **Account disconnected:** "This source's Google account has been disconnected. Reconnect to view content."
 
 **iPad notes:**
+
 - Landscape: editor visible alongside panel. Core value proposition.
 - Portrait: panel is overlay. User cannot see editor while viewing source. [< Sources] and panel close are primary navigation.
 - Text selection via long-press. Selected text shows "Save to Clips" in floating toolbar.
@@ -347,15 +352,15 @@ STEP 2: Source Detail View with always-visible search
 
 **Precondition:** Research Panel open, at least one source with cached content.
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Tap "Ask" tab | Research Panel tab bar | 1 |
-| 2 | Ask tab shows input at bottom and suggested queries (or conversation history) | Ask tab | 0 |
-| 3 | Tap input field. Keyboard appears. | Ask tab | 1 |
-| 4 | Type natural-language question | Ask tab | 0 (typing) |
-| 5 | Tap Send (or Cmd+Return) | Ask tab | 1 |
-| 6 | Loading: "Searching across N sources..." | Ask tab | 0 |
-| 7 | AI response streams in. Result cards appear with cited passages. | Ask tab | 0 |
+| Step | Action                                                                        | Surface                | Taps       |
+| ---- | ----------------------------------------------------------------------------- | ---------------------- | ---------- |
+| 1    | Tap "Ask" tab                                                                 | Research Panel tab bar | 1          |
+| 2    | Ask tab shows input at bottom and suggested queries (or conversation history) | Ask tab                | 0          |
+| 3    | Tap input field. Keyboard appears.                                            | Ask tab                | 1          |
+| 4    | Type natural-language question                                                | Ask tab                | 0 (typing) |
+| 5    | Tap Send (or Cmd+Return)                                                      | Ask tab                | 1          |
+| 6    | Loading: "Searching across N sources..."                                      | Ask tab                | 0          |
+| 7    | AI response streams in. Result cards appear with cited passages.              | Ask tab                | 0          |
 
 **Total: 3 taps + typing.**
 
@@ -398,6 +403,7 @@ STEP 7: AI response with result cards
 ```
 
 **Error states:**
+
 - **No sources in project:** "Add source documents first." with "Go to Sources" link.
 - **No cached content:** "Your sources haven't been processed yet. Try again in a moment."
 - **AI query fails:** "Something went wrong. Please try again." with Retry.
@@ -406,6 +412,7 @@ STEP 7: AI response with result cards
 - **Streaming interrupted:** Partial response with "Response was interrupted. Tap to retry."
 
 **iPad notes:**
+
 - Input at bottom (iMessage/chat pattern). Keyboard pushes conversation up via `visualViewport` API.
 - Send button: 44x44pt minimum. Disabled when input empty.
 - Suggested queries: tappable full-width rows (44pt height). Tap populates input and auto-submits.
@@ -418,27 +425,28 @@ STEP 7: AI response with result cards
 
 **Path A: Save from AI result (1 tap)**
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Tap "Save to Clips" on a result card | Ask tab | 1 |
-| 2 | **Optional chapter tag popup: "Save to: [All] [Ch. 1] [Ch. 2]..."** Defaults to "All" if dismissed. | Inline dropdown | 0-1 |
-| 3 | Button changes to checkmark "Saved." Clips tab badge increments. | Ask tab | 0 |
+| Step | Action                                                                                              | Surface         | Taps |
+| ---- | --------------------------------------------------------------------------------------------------- | --------------- | ---- |
+| 1    | Tap "Save to Clips" on a result card                                                                | Ask tab         | 1    |
+| 2    | **Optional chapter tag popup: "Save to: [All] [Ch. 1] [Ch. 2]..."** Defaults to "All" if dismissed. | Inline dropdown | 0-1  |
+| 3    | Button changes to checkmark "Saved." Clips tab badge increments.                                    | Ask tab         | 0    |
 
 **Path B: Save from Source Detail View (2-3 taps)**
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Long-press on text to select | Source Detail View | 1 |
-| 2 | Adjust selection handles | Source Detail View | 0-2 |
-| 3 | **Floating toolbar appears with "Copy" and "Save to Clips" -- both prominently labeled, full-height buttons** | Floating toolbar | 0 |
-| 4 | Tap "Save to Clips" | Floating toolbar | 1 |
-| 5 | Toast: "Saved to Clips." Clips badge increments. | Source Detail View | 0 |
+| Step | Action                                                                                                        | Surface            | Taps |
+| ---- | ------------------------------------------------------------------------------------------------------------- | ------------------ | ---- |
+| 1    | Long-press on text to select                                                                                  | Source Detail View | 1    |
+| 2    | Adjust selection handles                                                                                      | Source Detail View | 0-2  |
+| 3    | **Floating toolbar appears with "Copy" and "Save to Clips" -- both prominently labeled, full-height buttons** | Floating toolbar   | 0    |
+| 4    | Tap "Save to Clips"                                                                                           | Floating toolbar   | 1    |
+| 5    | Toast: "Saved to Clips." Clips badge increments.                                                              | Source Detail View | 0    |
 
 **Stress test resolution -- Text selection discoverability (YELLOW, Flow 5):** The floating toolbar now uses full-height (44pt) labeled buttons rather than small text links. "Save to Clips" is visually prominent alongside the system "Copy" action. Additionally, the Source Detail View shows a subtle hint below the content: "Tip: Select text to save passages to Clips." This hint appears only on the first 3 source views, then disappears.
 
 **Stress test resolution -- Chapter tagging for power users (YELLOW from Flow 8, Marcus RED):** When saving a clip, an optional chapter tag dropdown appears briefly. It defaults to "All chapters" and auto-dismisses after 2 seconds if not interacted with. Users who want to tag (Marcus) can tap a chapter; users who want simplicity (Diane) can ignore it.
 
 **Error states:**
+
 - **Clip already saved:** Button shows "Already saved" -- no-op with feedback.
 - **API fails:** Toast: "Could not save clip. Please try again." Button reverts.
 
@@ -448,18 +456,18 @@ STEP 7: AI response with result cards
 
 **Path A: Insert from Clips tab (2 taps)**
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Tap "Clips" tab | Research Panel tab bar | 1 |
-| 2 | Tap "Insert" on a clip card | Clips tab | 1 |
-| 3 | Text inserted at cursor. Footnote auto-created. Toast: "Inserted with footnote." | Editor + Clips tab | 0 |
+| Step | Action                                                                           | Surface                | Taps |
+| ---- | -------------------------------------------------------------------------------- | ---------------------- | ---- |
+| 1    | Tap "Clips" tab                                                                  | Research Panel tab bar | 1    |
+| 2    | Tap "Insert" on a clip card                                                      | Clips tab              | 1    |
+| 3    | Text inserted at cursor. Footnote auto-created. Toast: "Inserted with footnote." | Editor + Clips tab     | 0    |
 
 **Path B: Insert from AI result (1 tap)**
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Tap "Insert" on a result card | Ask tab | 1 |
-| 2 | Text inserted at cursor with footnote. Toast: "Inserted with footnote." | Editor + Ask tab | 0 |
+| Step | Action                                                                  | Surface          | Taps |
+| ---- | ----------------------------------------------------------------------- | ---------------- | ---- |
+| 1    | Tap "Insert" on a result card                                           | Ask tab          | 1    |
+| 2    | Text inserted at cursor with footnote. Toast: "Inserted with footnote." | Editor + Ask tab | 0    |
 
 **Stress test resolution -- iPad cursor position uncertainty (YELLOW, Flow 6):** The editor stores its last known cursor position in a ref (`lastSelectionRef`) that persists even when the editor loses focus to the Research Panel. On insert:
 
@@ -496,13 +504,13 @@ AFTER INSERT:
 
 ### Flow 7: Remove a Source
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Swipe left on source card (or tap "..." overflow) | Sources tab | 1 |
-| 2 | Tap "Remove" (red text) | Source card action area | 1 |
-| 3 | Confirmation dialog: "Remove [Title]? This removes the source from your project. The original file in Google Drive is not affected. Related clips will keep their text but lose the source link." | Center dialog | 0 |
-| 4 | Tap "Remove" in dialog | Center dialog | 1 |
-| 5 | Source fades out. Clips retain text with "[Source removed]" reference. | Sources tab | 0 |
+| Step | Action                                                                                                                                                                                            | Surface                 | Taps |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- | ---- |
+| 1    | Swipe left on source card (or tap "..." overflow)                                                                                                                                                 | Sources tab             | 1    |
+| 2    | Tap "Remove" (red text)                                                                                                                                                                           | Source card action area | 1    |
+| 3    | Confirmation dialog: "Remove [Title]? This removes the source from your project. The original file in Google Drive is not affected. Related clips will keep their text but lose the source link." | Center dialog           | 0    |
+| 4    | Tap "Remove" in dialog                                                                                                                                                                            | Center dialog           | 1    |
+| 5    | Source fades out. Clips retain text with "[Source removed]" reference.                                                                                                                            | Sources tab             | 0    |
 
 **Total: 3 taps (including confirmation).**
 
@@ -510,14 +518,14 @@ AFTER INSERT:
 
 ### Flow 8: Browse Collected Snippets on Research Board
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Tap "Clips" tab. Badge shows count. | Research Panel tab bar | 1 |
-| 2 | Clips tab shows all saved clips. **Chapter filter dropdown at top: "All Chapters" / "Chapter 1" / "Chapter 2" / ...** | Clips tab | 0 |
-| 3 | Scroll and review clips. | Clips tab | 0 |
-| 4 | (Optional) Tap source title on a clip | Clip card | 1 |
-| 5 | **Sources tab opens with Source Detail View. A "Back to Clips" breadcrumb appears at top.** | Source Detail View | 0 |
-| 6 | Tap "Back to Clips" to return | Source Detail View | 1 |
+| Step | Action                                                                                                                | Surface                | Taps |
+| ---- | --------------------------------------------------------------------------------------------------------------------- | ---------------------- | ---- |
+| 1    | Tap "Clips" tab. Badge shows count.                                                                                   | Research Panel tab bar | 1    |
+| 2    | Clips tab shows all saved clips. **Chapter filter dropdown at top: "All Chapters" / "Chapter 1" / "Chapter 2" / ...** | Clips tab              | 0    |
+| 3    | Scroll and review clips.                                                                                              | Clips tab              | 0    |
+| 4    | (Optional) Tap source title on a clip                                                                                 | Clip card              | 1    |
+| 5    | **Sources tab opens with Source Detail View. A "Back to Clips" breadcrumb appears at top.**                           | Source Detail View     | 0    |
+| 6    | Tap "Back to Clips" to return                                                                                         | Source Detail View     | 1    |
 
 **Stress test resolution -- Flat clip list scaling (YELLOW, Flow 8; RED for Marcus):** Two changes:
 
@@ -580,6 +588,7 @@ When a user first opens a project that has no sources, a one-time tooltip appear
 ```
 
 The tooltip:
+
 - Appears once per project, only when the project has zero sources.
 - Dismisses on tap anywhere, or after 8 seconds.
 - Uses a pulsing dot indicator on the Research button that persists until the panel is opened for the first time.
@@ -602,22 +611,22 @@ Additionally, the Sources tab empty state provides clear guidance:
 +--------+------------------------------------------+------------------+
 ```
 
-| Element | Width | Constraints |
-|---------|-------|-------------|
-| Chapter Sidebar | 260pt fixed | Collapsible to 0pt. When collapsed, editor expands. |
-| Editor | Flex (remaining) | **Minimum 400pt.** If panel would push below 400pt, panel opens as overlay instead. |
-| Research Panel | 340pt fixed | Opens from right. Pushes editor left (does not overlay). |
+| Element         | Width            | Constraints                                                                         |
+| --------------- | ---------------- | ----------------------------------------------------------------------------------- |
+| Chapter Sidebar | 260pt fixed      | Collapsible to 0pt. When collapsed, editor expands.                                 |
+| Editor          | Flex (remaining) | **Minimum 400pt.** If panel would push below 400pt, panel opens as overlay instead. |
+| Research Panel  | 340pt fixed      | Opens from right. Pushes editor left (does not overlay).                            |
 
 **Device-specific viability:**
 
-| Device | Orientation | Viewport | Sidebar | Editor | Research | Mode |
-|--------|-------------|----------|---------|--------|----------|------|
-| iPad Air 11" | Landscape | 1180pt | 260pt | 580pt | 340pt | Side-by-side |
-| iPad Air 11" | Portrait | 820pt | 260pt | 220pt | 340pt | **Overlay** |
-| iPad Pro 13" | Landscape | 1366pt | 260pt | 766pt | 340pt | Side-by-side |
-| iPad Pro 13" | Portrait | 1024pt | 260pt | 424pt | 340pt | Side-by-side |
-| iPad Mini 6 | Landscape | 1133pt | 260pt | 533pt | 340pt | Side-by-side |
-| iPad Mini 6 | Portrait | 744pt | 260pt | 144pt | 340pt | **Overlay** |
+| Device       | Orientation | Viewport | Sidebar | Editor | Research | Mode         |
+| ------------ | ----------- | -------- | ------- | ------ | -------- | ------------ |
+| iPad Air 11" | Landscape   | 1180pt   | 260pt   | 580pt  | 340pt    | Side-by-side |
+| iPad Air 11" | Portrait    | 820pt    | 260pt   | 220pt  | 340pt    | **Overlay**  |
+| iPad Pro 13" | Landscape   | 1366pt   | 260pt   | 766pt  | 340pt    | Side-by-side |
+| iPad Pro 13" | Portrait    | 1024pt   | 260pt   | 424pt  | 340pt    | Side-by-side |
+| iPad Mini 6  | Landscape   | 1133pt   | 260pt   | 533pt  | 340pt    | Side-by-side |
+| iPad Mini 6  | Portrait    | 744pt    | 260pt   | 144pt  | 340pt    | **Overlay**  |
 
 **Sidebar auto-collapse:** When the Research Panel is open and the sidebar is also visible, if the editor width falls below 400pt, the sidebar auto-collapses. When the panel closes, the sidebar restores.
 
@@ -636,12 +645,13 @@ Additionally, the Sources tab empty state provides clear guidance:
                      +-----------+
 ```
 
-| Element | Width | Behavior |
-|---------|-------|----------|
-| Research Panel | 85% of viewport | Overlay from right. Editor dimmed behind. |
-| Backdrop | 15% visible on left | Tapping dismisses panel. Visual "peek" at editor. |
+| Element        | Width               | Behavior                                          |
+| -------------- | ------------------- | ------------------------------------------------- |
+| Research Panel | 85% of viewport     | Overlay from right. Editor dimmed behind.         |
+| Backdrop       | 15% visible on left | Tapping dismisses panel. Visual "peek" at editor. |
 
 **Overlay behavior:**
+
 - Slides in from right over 200ms (`ease-out`). Backdrop fades in (`bg-black/30`).
 - Closes: slides out over 150ms (`ease-in`). Backdrop fades out.
 - Swipe-right on panel (delta > 60pt) dismisses.
@@ -653,23 +663,23 @@ Identical to landscape iPad but with more editor space. No additional desktop-sp
 
 ### Responsive Breakpoints
 
-| Breakpoint | Behavior |
-|------------|----------|
-| < 768pt | Research Panel always overlay (full-screen). Sidebar hidden. |
-| 768pt - 1023pt | Research Panel overlay (85% width). Sidebar visible. |
-| 1024pt+ | Research Panel side-by-side (340pt). Sidebar visible. |
+| Breakpoint     | Behavior                                                     |
+| -------------- | ------------------------------------------------------------ |
+| < 768pt        | Research Panel always overlay (full-screen). Sidebar hidden. |
+| 768pt - 1023pt | Research Panel overlay (85% width). Sidebar visible.         |
+| 1024pt+        | Research Panel side-by-side (340pt). Sidebar visible.        |
 
 ### Animation Specifications
 
-| Animation | Duration | Easing | Reduced Motion |
-|-----------|----------|--------|----------------|
-| Panel slide open | 200ms | `ease-out` | Instant (0ms) |
-| Panel slide close | 150ms | `ease-in` | Instant (0ms) |
-| Backdrop fade in | 200ms | `ease-out` | Instant |
-| Backdrop fade out | 150ms | `ease-in` | Instant |
-| Inline view transition (list <-> detail) | 150ms | `ease-in-out` | Instant |
-| Source card fade-out (on remove) | 200ms | `ease-out` | Instant |
-| Toast appear/disappear | 150ms / 300ms | `ease-out` / `ease-in` | Instant |
+| Animation                                | Duration      | Easing                 | Reduced Motion |
+| ---------------------------------------- | ------------- | ---------------------- | -------------- |
+| Panel slide open                         | 200ms         | `ease-out`             | Instant (0ms)  |
+| Panel slide close                        | 150ms         | `ease-in`              | Instant (0ms)  |
+| Backdrop fade in                         | 200ms         | `ease-out`             | Instant        |
+| Backdrop fade out                        | 150ms         | `ease-in`              | Instant        |
+| Inline view transition (list <-> detail) | 150ms         | `ease-in-out`          | Instant        |
+| Source card fade-out (on remove)         | 200ms         | `ease-out`             | Instant        |
+| Toast appear/disappear                   | 150ms / 300ms | `ease-out` / `ease-in` | Instant        |
 
 ### Safe Area Handling
 
@@ -710,6 +720,7 @@ interface ResearchPanelProps {
 **States:** Closed, Open/Sources, Open/Ask, Open/Clips
 
 **Accessibility:**
+
 - `role="complementary"` with `aria-label="Research panel"`
 - Tab bar: `role="tablist"`, tabs: `role="tab"` with `aria-selected`
 - Tab panels: `role="tabpanel"` with `aria-labelledby`
@@ -734,6 +745,7 @@ interface SourcesTabProps {
 **States:** List (default), Detail view, Add view, Loading, Empty, Error
 
 **Accessibility:**
+
 - `role="list"` with `role="listitem"` per card
 - Search: `aria-label="Search sources"`, `aria-live="polite"` for result count
 - Empty state with guidance text
@@ -765,6 +777,7 @@ interface AskTabProps {
 **States:** Empty (suggested queries), Input focused, Loading, Results, Conversation (multi-Q&A), Error, No sources
 
 **Accessibility:**
+
 - Query input: `aria-label="Ask about your sources"`
 - Submit: `aria-label="Submit query"` / `aria-label="Searching..."`
 - Responses: `aria-live="polite"`
@@ -791,6 +804,7 @@ interface ClipsTabProps {
 **States:** Empty, List, Searching, Chapter-filtered
 
 **Accessibility:**
+
 - `role="list"` with `role="listitem"` per card
 - Chapter filter: `aria-label="Filter clips by chapter"`
 - Search: `aria-label="Search clips"`
@@ -1063,6 +1077,7 @@ CREATE UNIQUE INDEX idx_research_clips_dedup
 ```
 
 **Key decisions:**
+
 - `source_id` uses `ON DELETE SET NULL` -- removing a source preserves the clip text and title.
 - `source_title` stored redundantly so clips display the title even after source removal.
 - `chapter_id` is nullable -- clips can be untagged ("All chapters") or tagged to a specific chapter. Uses `ON DELETE SET NULL` so deleting a chapter unlinks but preserves the clip.
@@ -1087,6 +1102,7 @@ CREATE INDEX idx_research_queries_project ON research_queries(project_id);
 ```
 
 **Key decisions:**
+
 - AI responses are NOT stored. They are ephemeral/streamed. Users save what they want as clips.
 - Only query text and metadata stored for conversation history and analytics.
 
@@ -1104,6 +1120,7 @@ CREATE VIRTUAL TABLE source_content_fts USING fts5(
 ```
 
 **Key decisions:**
+
 - D1 supports FTS5. Enables fast keyword search in Sources tab without a vector database.
 - Populated when source content is cached (after text extraction). Rebuilt on content refresh.
 - NOT used for AI queries (AI uses full source text via LLM). FTS is for the Sources tab search.
@@ -1129,11 +1146,11 @@ No schema changes. The text extraction service (#124) will populate `r2_key` and
 
 ### R2 Storage Patterns
 
-| Data | Key Pattern | Notes |
-|------|-------------|-------|
-| Source content (HTML, for viewer) | `sources/{sourceId}/content.html` | Existing, unchanged |
-| Source content (plain text, for AI + FTS) | `sources/{sourceId}/content.txt` | **New:** generated during text extraction |
-| Uploaded local files (original) | `sources/{sourceId}/original.{ext}` | Existing for .txt/.md, extended for .docx/.pdf |
+| Data                                      | Key Pattern                         | Notes                                          |
+| ----------------------------------------- | ----------------------------------- | ---------------------------------------------- |
+| Source content (HTML, for viewer)         | `sources/{sourceId}/content.html`   | Existing, unchanged                            |
+| Source content (plain text, for AI + FTS) | `sources/{sourceId}/content.txt`    | **New:** generated during text extraction      |
+| Uploaded local files (original)           | `sources/{sourceId}/original.{ext}` | Existing for .txt/.md, extended for .docx/.pdf |
 
 ### KV Cache Patterns
 
@@ -1145,17 +1162,17 @@ No new KV patterns. Existing rate-limit patterns apply to the new research query
 
 ### Existing Endpoints -- Disposition
 
-| Endpoint | Disposition | Notes |
-|----------|-------------|-------|
-| `POST /projects/:projectId/sources` | **Keep** | Add Drive sources. No changes. |
-| `POST /projects/:projectId/sources/upload` | **Modify** | Expand accepted types to `.docx`, `.pdf`. |
-| `GET /projects/:projectId/sources` | **Keep** | List project sources. No changes. |
-| `GET /sources/:sourceId/content` | **Keep** | Get cached content. No changes. |
-| `DELETE /sources/:sourceId` | **Modify** | On delete, set `source_id = NULL` on referencing `research_clips`. |
-| `POST /sources/:sourceId/import-as-chapter` | **Keep** | No changes. |
-| `GET /chapters/:chapterId/sources` | **Remove** | Chapter-source linking eliminated. |
-| `POST /chapters/:chapterId/sources/:sourceId/link` | **Remove** | Chapter-source linking eliminated. |
-| `DELETE /chapters/:chapterId/sources/:sourceId/link` | **Remove** | Chapter-source linking eliminated. |
+| Endpoint                                             | Disposition | Notes                                                              |
+| ---------------------------------------------------- | ----------- | ------------------------------------------------------------------ |
+| `POST /projects/:projectId/sources`                  | **Keep**    | Add Drive sources. No changes.                                     |
+| `POST /projects/:projectId/sources/upload`           | **Modify**  | Expand accepted types to `.docx`, `.pdf`.                          |
+| `GET /projects/:projectId/sources`                   | **Keep**    | List project sources. No changes.                                  |
+| `GET /sources/:sourceId/content`                     | **Keep**    | Get cached content. No changes.                                    |
+| `DELETE /sources/:sourceId`                          | **Modify**  | On delete, set `source_id = NULL` on referencing `research_clips`. |
+| `POST /sources/:sourceId/import-as-chapter`          | **Keep**    | No changes.                                                        |
+| `GET /chapters/:chapterId/sources`                   | **Remove**  | Chapter-source linking eliminated.                                 |
+| `POST /chapters/:chapterId/sources/:sourceId/link`   | **Remove**  | Chapter-source linking eliminated.                                 |
+| `DELETE /chapters/:chapterId/sources/:sourceId/link` | **Remove**  | Chapter-source linking eliminated.                                 |
 
 ### New Endpoints
 
@@ -1202,13 +1219,13 @@ interface ResearchQueryResponse {
 
 **Error codes:**
 
-| Code | HTTP | Description |
-|------|------|-------------|
-| `NO_SOURCES` | 400 | Project has no sources with cached content |
-| `QUERY_TOO_LONG` | 400 | Query exceeds 1000 characters |
-| `RATE_LIMITED` | 429 | Exceeded 20 queries/minute |
-| `AI_UNAVAILABLE` | 503 | LLM service unavailable |
-| `QUERY_FAILED` | 500 | Internal error during query processing |
+| Code             | HTTP | Description                                |
+| ---------------- | ---- | ------------------------------------------ |
+| `NO_SOURCES`     | 400  | Project has no sources with cached content |
+| `QUERY_TOO_LONG` | 400  | Query exceeds 1000 characters              |
+| `RATE_LIMITED`   | 429  | Exceeded 20 queries/minute                 |
+| `AI_UNAVAILABLE` | 503  | LLM service unavailable                    |
+| `QUERY_FAILED`   | 500  | Internal error during query processing     |
 
 #### GET /projects/:projectId/research/clips
 
@@ -1382,6 +1399,7 @@ type ResearchPanelAction =
 **What ships:** The Research Panel with full Sources tab. Panel replaces all existing source management UI. Ask and Clips tabs show "Coming soon" placeholders. Immediate value: fixes sheet stacking, eliminates chapter-source linking confusion, provides panel infrastructure.
 
 **Components built:**
+
 - `ResearchPanel`, `ResearchPanelProvider`
 - `SourcesTab`, `SourceCard`
 - `SourceAddFlow` (inline Drive browser + upload + trust message)
@@ -1391,22 +1409,26 @@ type ResearchPanelAction =
 - Ask/Clips tab placeholders
 
 **Components removed:**
+
 - `SourcesPanel`, `AddSourceSheet`, `DriveBrowserSheet`, `SourceViewerSheet`
 - `useChapterSources` hook
 - ~50 source-related props from `EditorDialogsProps`
 
 **API changes:**
+
 - Remove 3 chapter-source endpoints
 - Add `GET /projects/:projectId/research/sources/search`
 - Modify `POST /projects/:projectId/sources/upload` for `.docx`, `.pdf`
 - Modify `DELETE /sources/:sourceId` for clip cascade
 
 **DB changes:**
+
 - Migration 0014: `research_clips` table (created early, used in Phase C)
 - Migration 0016: `source_content_fts` virtual table
 - Migration 0017: `chapter_sources` deprecation
 
 **Ship criteria:**
+
 - [ ] Research Panel opens/closes correctly in landscape and portrait on iPad Air, Pro, Mini
 - [ ] Sources tab shows all project sources with search
 - [ ] Inline Drive browser works (navigate, select, add)
@@ -1419,6 +1441,7 @@ type ResearchPanelAction =
 - [ ] Existing auto-save and Drive write-through unaffected
 
 **Risks:**
+
 - `SourceAddFlow` reuses `useDriveBrowser` hook but renders inline. Minor hook adjustments may be needed.
 - Removing chapter-source linking is a breaking change for existing users. Phase 0 user count is very low; display a one-time notice.
 
@@ -1431,19 +1454,23 @@ type ResearchPanelAction =
 **What ships:** Ask tab becomes functional. Users type questions, receive streaming AI results with citations. "Save to Clips" on results. Source citation links navigate to Source Detail View.
 
 **Components built:**
+
 - `AskTab` (full implementation)
 - `ResultCard`
 - `SnippetInsertButton` (basic version -- full editor integration in Phase C)
 
 **API changes:**
+
 - Add `POST /projects/:projectId/research/query` (SSE streaming)
 - Add `POST /projects/:projectId/research/clips` (save clip)
 - Add `GET /projects/:projectId/research/clips` (for badge count)
 
 **DB changes:**
+
 - Migration 0015: `research_queries` table
 
 **Ship criteria:**
+
 - [ ] Ask tab accepts natural-language queries
 - [ ] Results stream in with source citations
 - [ ] "Save to Clips" works on result cards
@@ -1455,6 +1482,7 @@ type ResearchPanelAction =
 - [ ] iPad keyboard handling correct in Ask tab
 
 **Risks:**
+
 - AI query quality is the existential risk. Bad answers = product failure. Spike outputs must produce reliable approaches.
 - SSE streaming on Workers has execution time limits.
 - Performance at scale (100+ docs) requires testing. Chunking must handle large libraries.
@@ -1466,6 +1494,7 @@ type ResearchPanelAction =
 **What ships:** Clips tab fully functional. Chapter filter, search, delete. Insert action creates blockquote + footnote in editor. Tiptap footnote extension built.
 
 **Components built:**
+
 - `ClipsTab` (full implementation with chapter filter)
 - `ClipCard`
 - `SnippetInsertButton` (full editor integration)
@@ -1473,10 +1502,12 @@ type ResearchPanelAction =
 - Footnote rendering in chapter content
 
 **API changes:**
+
 - Add `DELETE /research/clips/:clipId`
 - Clip save/list endpoints already exist from Phase B
 
 **Ship criteria:**
+
 - [ ] Clips tab shows all clips with chapter filter
 - [ ] Search filters clips by text and source title
 - [ ] Delete works (swipe or button)
@@ -1489,6 +1520,7 @@ type ResearchPanelAction =
 - [ ] Footnotes survive Drive write-through (HTML serialization)
 
 **Risks:**
+
 - Tiptap footnote extension is non-trivial. Must handle serialization, undo/redo, and Drive write-through.
 - Cursor position management between editor and Research Panel on iPad requires thorough testing.
 - Insert must not break three-tier save (local, R2, Drive).
@@ -1581,19 +1613,19 @@ type ResearchPanelAction =
 
 ## 12. Appendix: User Feedback Resolution Tracker
 
-| # | Finding | Source | Rating | Resolution | Section |
-|---|---------|--------|--------|------------|---------|
-| 1 | Text selection discoverability for custom clips | Flow 5, Path B | YELLOW | Full-height labeled buttons in floating toolbar + "Tip: Select text to save passages" hint on first 3 views | [Flow 5](#flow-5-save-a-snippet-from-search-results) |
-| 2 | iPad cursor position uncertainty on insert | Flow 6 | YELLOW | `lastSelectionRef` stores position; `requestAnimationFrame` wrapper prevents viewport jumping; fallback to append-to-end | [Flow 6](#flow-6-insert-a-snippet-into-the-editor) |
-| 3 | Flat clip list doesn't scale for Marcus (100+ docs) | Flow 8, Marcus RED | YELLOW/RED | Chapter filter dropdown in Clips tab; optional chapter tag when saving clips | [Flow 8](#flow-8-browse-collected-snippets-on-research-board) |
-| 4 | Panel discoverability gap for new users | Scenario A | YELLOW | One-time tooltip + pulsing dot on Research toolbar button; clear Sources tab empty state | [First-Use Experience](#first-use-experience) |
-| 5 | Flat clip list doesn't support research session organization | Scenario C | YELLOW | Chapter filter + chapter tag enable per-chapter clip organization | [Flow 8](#flow-8-browse-collected-snippets-on-research-board) |
-| 6 | Trust line needed during source addition | Top 3 Change #1 | Requested | "Your originals are never changed" in Source Add Flow | [Flow 1](#flow-1-add-source-from-google-drive) |
-| 7 | In-document search threshold too high (10,000 words) | Top 3 Change #2 | Requested | Always-visible search in Source Detail View | [Flow 3](#flow-3-view-a-source-while-writing) |
-| 8 | First-use nudge for Research Panel | Top 3 Change #3 | Requested | Tooltip + pulsing dot for projects with zero sources | [First-Use Experience](#first-use-experience) |
-| 9 | Cross-tab navigation confusion (Clips to Sources) | Flow 8, Scenario concern | YELLOW | "Back to Clips" / "Back to Ask" breadcrumb in Source Detail View | [Flow 8](#flow-8-browse-collected-snippets-on-research-board) |
-| 10 | "Cached" terminology unclear | Terminology review | Observation | Changed to "Updated Xh ago" in display text | [Component Specs: SourceCard](#sourcecard) |
-| 11 | Clips terminology slightly confusing at first | Terminology review | Observation | Clear empty state: "Save passages from your sources to reference them later" | [Component Specs: ClipsTab](#clipstab) |
-| 12 | Portrait mode: 15% editor strip may be wasted space | iPad-specific concern | YELLOW | Maintained as visual context cue. Full-screen with "Back to editor" is a future option if testing confirms. | [Panel Specifications](#portrait-layout-768pt-1023pt-viewport-width) |
-| 13 | Marcus wants "select entire folder" for bulk add | Flow 1, Marcus YELLOW | Observation | Deferred to post-Phase A. Current design handles folder-by-folder addition. | [Decisions Log](#decisions-log) |
-| 14 | Blockquote-only insertion; sometimes want plain text + citation | Flow 6, Diane note | Observation | Deferred. Future: "Insert as quote" vs. "Insert citation only" options. | [Decision 9](#decision-9-blockquote--footnote-insertion-format) |
+| #   | Finding                                                         | Source                   | Rating      | Resolution                                                                                                               | Section                                                              |
+| --- | --------------------------------------------------------------- | ------------------------ | ----------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| 1   | Text selection discoverability for custom clips                 | Flow 5, Path B           | YELLOW      | Full-height labeled buttons in floating toolbar + "Tip: Select text to save passages" hint on first 3 views              | [Flow 5](#flow-5-save-a-snippet-from-search-results)                 |
+| 2   | iPad cursor position uncertainty on insert                      | Flow 6                   | YELLOW      | `lastSelectionRef` stores position; `requestAnimationFrame` wrapper prevents viewport jumping; fallback to append-to-end | [Flow 6](#flow-6-insert-a-snippet-into-the-editor)                   |
+| 3   | Flat clip list doesn't scale for Marcus (100+ docs)             | Flow 8, Marcus RED       | YELLOW/RED  | Chapter filter dropdown in Clips tab; optional chapter tag when saving clips                                             | [Flow 8](#flow-8-browse-collected-snippets-on-research-board)        |
+| 4   | Panel discoverability gap for new users                         | Scenario A               | YELLOW      | One-time tooltip + pulsing dot on Research toolbar button; clear Sources tab empty state                                 | [First-Use Experience](#first-use-experience)                        |
+| 5   | Flat clip list doesn't support research session organization    | Scenario C               | YELLOW      | Chapter filter + chapter tag enable per-chapter clip organization                                                        | [Flow 8](#flow-8-browse-collected-snippets-on-research-board)        |
+| 6   | Trust line needed during source addition                        | Top 3 Change #1          | Requested   | "Your originals are never changed" in Source Add Flow                                                                    | [Flow 1](#flow-1-add-source-from-google-drive)                       |
+| 7   | In-document search threshold too high (10,000 words)            | Top 3 Change #2          | Requested   | Always-visible search in Source Detail View                                                                              | [Flow 3](#flow-3-view-a-source-while-writing)                        |
+| 8   | First-use nudge for Research Panel                              | Top 3 Change #3          | Requested   | Tooltip + pulsing dot for projects with zero sources                                                                     | [First-Use Experience](#first-use-experience)                        |
+| 9   | Cross-tab navigation confusion (Clips to Sources)               | Flow 8, Scenario concern | YELLOW      | "Back to Clips" / "Back to Ask" breadcrumb in Source Detail View                                                         | [Flow 8](#flow-8-browse-collected-snippets-on-research-board)        |
+| 10  | "Cached" terminology unclear                                    | Terminology review       | Observation | Changed to "Updated Xh ago" in display text                                                                              | [Component Specs: SourceCard](#sourcecard)                           |
+| 11  | Clips terminology slightly confusing at first                   | Terminology review       | Observation | Clear empty state: "Save passages from your sources to reference them later"                                             | [Component Specs: ClipsTab](#clipstab)                               |
+| 12  | Portrait mode: 15% editor strip may be wasted space             | iPad-specific concern    | YELLOW      | Maintained as visual context cue. Full-screen with "Back to editor" is a future option if testing confirms.              | [Panel Specifications](#portrait-layout-768pt-1023pt-viewport-width) |
+| 13  | Marcus wants "select entire folder" for bulk add                | Flow 1, Marcus YELLOW    | Observation | Deferred to post-Phase A. Current design handles folder-by-folder addition.                                              | [Decisions Log](#decisions-log)                                      |
+| 14  | Blockquote-only insertion; sometimes want plain text + citation | Flow 6, Diane note       | Observation | Deferred. Future: "Insert as quote" vs. "Insert citation only" options.                                                  | [Decision 9](#decision-9-blockquote--footnote-insertion-format)      |

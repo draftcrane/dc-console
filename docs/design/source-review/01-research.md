@@ -345,61 +345,61 @@ ChatGPT Projects treats files as context for a conversational AI. Users upload d
 
 ### 2.1 Source Organization Patterns
 
-| Pattern | Tools | Description | Complexity |
-|---|---|---|---|
-| **Folder/Tree Hierarchy** | Scrivener (Binder), Zotero (Collections) | Sources organized into nested folders. Visual tree in sidebar. | Medium -- requires upfront folder creation |
-| **Tag-Based** | Bear (#tags), Ulysses (Keywords), Obsidian (YAML tags) | Sources tagged with one or more labels. Cross-referenced without duplication. | Low-Medium -- tags are flexible but require naming discipline |
-| **Link-Based / Graph** | Obsidian (wiki-links), Bear (wiki-links) | Sources connected through explicit links. Structure emerges from connections. | Low (creation) / High (comprehension) |
-| **Database/Relational** | Notion (databases + relations) | Sources as database entries with structured metadata and formal relationships. | High -- requires schema design |
-| **Flat Upload** | ChatGPT Projects | Sources uploaded to a bucket with no required organization. | Minimal -- no organization required |
-| **Material Designation** | Ulysses (Material Sheets), Scrivener (Research folder) | Sources marked as "not-manuscript" but coexisting in the project structure. | Low -- one toggle to designate |
+| Pattern                   | Tools                                                  | Description                                                                    | Complexity                                                    |
+| ------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| **Folder/Tree Hierarchy** | Scrivener (Binder), Zotero (Collections)               | Sources organized into nested folders. Visual tree in sidebar.                 | Medium -- requires upfront folder creation                    |
+| **Tag-Based**             | Bear (#tags), Ulysses (Keywords), Obsidian (YAML tags) | Sources tagged with one or more labels. Cross-referenced without duplication.  | Low-Medium -- tags are flexible but require naming discipline |
+| **Link-Based / Graph**    | Obsidian (wiki-links), Bear (wiki-links)               | Sources connected through explicit links. Structure emerges from connections.  | Low (creation) / High (comprehension)                         |
+| **Database/Relational**   | Notion (databases + relations)                         | Sources as database entries with structured metadata and formal relationships. | High -- requires schema design                                |
+| **Flat Upload**           | ChatGPT Projects                                       | Sources uploaded to a bucket with no required organization.                    | Minimal -- no organization required                           |
+| **Material Designation**  | Ulysses (Material Sheets), Scrivener (Research folder) | Sources marked as "not-manuscript" but coexisting in the project structure.    | Low -- one toggle to designate                                |
 
 ### 2.2 Source Access Patterns
 
-| Pattern | Tools | Description | Screen Impact |
-|---|---|---|---|
-| **Persistent Sidebar** | Scrivener (Binder), Zotero (Library), Notion (Sidebar) | Always-visible navigation panel for source browsing. | Takes 20-30% of screen width permanently |
-| **Split Editor / Dual Pane** | Scrivener (Split Editor), Obsidian (Split Panes) | Editor divided into two areas, one for writing and one for reference. | 50/50 screen split, reduces writing area |
-| **Copyholder / Pinned Reference** | Scrivener (Copyholder) | A smaller reference pane pinned to the editor that persists during navigation. | Takes 20-30% of one editor pane |
-| **Right-Hand Panel / Side Peek** | Notion (Side Peek), Bear (Info Panel), Zotero (Context Pane), Google Docs (Gemini Panel) | Contextual panel that opens on the right, showing details of selected item. | Overlays or pushes content; can be dismissed |
-| **Center Modal / Overlay** | Notion (Center Peek) | Focused modal overlay for deep reading of a source. | Covers primary content; focuses attention |
-| **Floating Window** | Scrivener (Quick Reference) | Independent floating window for reference viewing. | Desktop-only; not practical on iPad |
-| **Inline Embedding / Transclusion** | Obsidian (transclusion) | Source content embedded directly in the writing surface. | No additional screen cost; content is inline |
-| **Conversational Interface** | ChatGPT Projects, Google Docs (Gemini) | Natural language Q&A that retrieves and presents source content. | Side panel for chat; content arrives as conversation |
+| Pattern                             | Tools                                                                                    | Description                                                                    | Screen Impact                                        |
+| ----------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------- |
+| **Persistent Sidebar**              | Scrivener (Binder), Zotero (Library), Notion (Sidebar)                                   | Always-visible navigation panel for source browsing.                           | Takes 20-30% of screen width permanently             |
+| **Split Editor / Dual Pane**        | Scrivener (Split Editor), Obsidian (Split Panes)                                         | Editor divided into two areas, one for writing and one for reference.          | 50/50 screen split, reduces writing area             |
+| **Copyholder / Pinned Reference**   | Scrivener (Copyholder)                                                                   | A smaller reference pane pinned to the editor that persists during navigation. | Takes 20-30% of one editor pane                      |
+| **Right-Hand Panel / Side Peek**    | Notion (Side Peek), Bear (Info Panel), Zotero (Context Pane), Google Docs (Gemini Panel) | Contextual panel that opens on the right, showing details of selected item.    | Overlays or pushes content; can be dismissed         |
+| **Center Modal / Overlay**          | Notion (Center Peek)                                                                     | Focused modal overlay for deep reading of a source.                            | Covers primary content; focuses attention            |
+| **Floating Window**                 | Scrivener (Quick Reference)                                                              | Independent floating window for reference viewing.                             | Desktop-only; not practical on iPad                  |
+| **Inline Embedding / Transclusion** | Obsidian (transclusion)                                                                  | Source content embedded directly in the writing surface.                       | No additional screen cost; content is inline         |
+| **Conversational Interface**        | ChatGPT Projects, Google Docs (Gemini)                                                   | Natural language Q&A that retrieves and presents source content.               | Side panel for chat; content arrives as conversation |
 
 ### 2.3 Source-to-Writing Integration Patterns
 
-| Pattern | Tools | Description | Formality |
-|---|---|---|---|
-| **Drag-and-Drop Insertion** | Obsidian (embed link), Notion (@ mention) | Drag a source or snippet from a panel directly into the editor. | Informal -- creates a reference or embed |
-| **Search-Select-Cite Pipeline** | Zotero (citation dialog) | Invoke a search, select from results, citation + bibliography auto-generated. | Formal -- structured citation with bibliography |
-| **@ Mention / Inline Reference** | Notion (@ page mention), Obsidian ([[wiki-link]]) | Type a trigger character to reference another document inline. | Semi-formal -- creates a clickable link |
-| **Copy-Paste with Attribution** | Manual pattern across all tools | User copies from source, pastes into editor, manually adds footnote. | Informal -- relies on user discipline |
-| **AI-Mediated Insertion** | ChatGPT Projects, Google Docs (Gemini) | Ask AI a question, receive answer with source reference, paste or insert into text. | Variable -- depends on AI's citation quality |
-| **Transclusion / Live Embed** | Obsidian (![[note]]) | Embed source content that stays synchronized with the original. | Formal -- content is live-linked |
-| **Snippet Collection to Insertion** | Zotero (annotations to notes), planned DraftCrane Research Board | Collect relevant excerpts from sources, then selectively insert into manuscript. | Two-stage -- collect first, insert later |
+| Pattern                             | Tools                                                            | Description                                                                         | Formality                                       |
+| ----------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **Drag-and-Drop Insertion**         | Obsidian (embed link), Notion (@ mention)                        | Drag a source or snippet from a panel directly into the editor.                     | Informal -- creates a reference or embed        |
+| **Search-Select-Cite Pipeline**     | Zotero (citation dialog)                                         | Invoke a search, select from results, citation + bibliography auto-generated.       | Formal -- structured citation with bibliography |
+| **@ Mention / Inline Reference**    | Notion (@ page mention), Obsidian ([[wiki-link]])                | Type a trigger character to reference another document inline.                      | Semi-formal -- creates a clickable link         |
+| **Copy-Paste with Attribution**     | Manual pattern across all tools                                  | User copies from source, pastes into editor, manually adds footnote.                | Informal -- relies on user discipline           |
+| **AI-Mediated Insertion**           | ChatGPT Projects, Google Docs (Gemini)                           | Ask AI a question, receive answer with source reference, paste or insert into text. | Variable -- depends on AI's citation quality    |
+| **Transclusion / Live Embed**       | Obsidian (![[note]])                                             | Embed source content that stays synchronized with the original.                     | Formal -- content is live-linked                |
+| **Snippet Collection to Insertion** | Zotero (annotations to notes), planned DraftCrane Research Board | Collect relevant excerpts from sources, then selectively insert into manuscript.    | Two-stage -- collect first, insert later        |
 
 ### 2.4 AI + Source Patterns
 
-| Pattern | Tools | Description |
-|---|---|---|
-| **Document-Scoped Q&A** | ChatGPT Projects, Google NotebookLM | Upload documents, ask questions, receive answers grounded in uploaded content |
-| **Side Panel AI Assistant** | Google Docs (Gemini), Notion AI | AI assistant in a side panel that can reference the current document and connected files |
-| **Summarization on Demand** | Google Docs (Gemini audio summaries), ChatGPT, NotebookLM | AI generates a summary of a document or set of documents |
-| **AI-Powered Search** | Google Docs (deprecated Explore), Notion AI | AI finds relevant content across connected documents based on a query |
-| **Structured Snippet Extraction** | Google NotebookLM (inline citations), planned DraftCrane (#127) | AI extracts specific passages with source attribution and presents them as structured results |
-| **Contextual Suggestion** | Notion AI (database autofill), Google Docs (Gemini writing suggestions) | AI proactively suggests relevant information or improvements based on context |
+| Pattern                           | Tools                                                                   | Description                                                                                   |
+| --------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Document-Scoped Q&A**           | ChatGPT Projects, Google NotebookLM                                     | Upload documents, ask questions, receive answers grounded in uploaded content                 |
+| **Side Panel AI Assistant**       | Google Docs (Gemini), Notion AI                                         | AI assistant in a side panel that can reference the current document and connected files      |
+| **Summarization on Demand**       | Google Docs (Gemini audio summaries), ChatGPT, NotebookLM               | AI generates a summary of a document or set of documents                                      |
+| **AI-Powered Search**             | Google Docs (deprecated Explore), Notion AI                             | AI finds relevant content across connected documents based on a query                         |
+| **Structured Snippet Extraction** | Google NotebookLM (inline citations), planned DraftCrane (#127)         | AI extracts specific passages with source attribution and presents them as structured results |
+| **Contextual Suggestion**         | Notion AI (database autofill), Google Docs (Gemini writing suggestions) | AI proactively suggests relevant information or improvements based on context                 |
 
 ### 2.5 Progressive Disclosure Patterns
 
-| Pattern | Tools | Description | Levels |
-|---|---|---|---|
-| **Default Hidden Panel** | Bear (Info Panel), Google Docs (Gemini Panel) | Metadata and tools are hidden until explicitly invoked. Editor takes full width by default. | 2 (hidden / visible) |
-| **Collapsible Panes** | Ulysses (3-pane to 1-pane), Obsidian (sidebar toggle) | Multiple panes can be individually shown or hidden to control information density. | 3+ (each pane toggleable) |
-| **Contextual Surface** | Notion (Side Peek on click), Zotero (Context Pane on selection) | Additional information appears only when a specific item is selected or clicked. | 2 (no selection / selected) |
-| **Mode Switching** | Scrivener (Composition Mode vs. Standard), Ulysses (Editor-only vs. 3-pane) | Distinct modes that offer different levels of UI complexity. | 2-3 (focus / standard / full) |
-| **Conversational Escalation** | ChatGPT Projects | Start with a question, receive a brief answer, ask follow-ups for more depth. | Continuous (user controls depth) |
-| **Nested Sheets / Modals** | DraftCrane current (4 layers of nested sheets) | Each action opens a new layer on top of the previous one. | 4+ (becomes disorienting) |
+| Pattern                       | Tools                                                                       | Description                                                                                 | Levels                           |
+| ----------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------------------------- |
+| **Default Hidden Panel**      | Bear (Info Panel), Google Docs (Gemini Panel)                               | Metadata and tools are hidden until explicitly invoked. Editor takes full width by default. | 2 (hidden / visible)             |
+| **Collapsible Panes**         | Ulysses (3-pane to 1-pane), Obsidian (sidebar toggle)                       | Multiple panes can be individually shown or hidden to control information density.          | 3+ (each pane toggleable)        |
+| **Contextual Surface**        | Notion (Side Peek on click), Zotero (Context Pane on selection)             | Additional information appears only when a specific item is selected or clicked.            | 2 (no selection / selected)      |
+| **Mode Switching**            | Scrivener (Composition Mode vs. Standard), Ulysses (Editor-only vs. 3-pane) | Distinct modes that offer different levels of UI complexity.                                | 2-3 (focus / standard / full)    |
+| **Conversational Escalation** | ChatGPT Projects                                                            | Start with a question, receive a brief answer, ask follow-ups for more depth.               | Continuous (user controls depth) |
+| **Nested Sheets / Modals**    | DraftCrane current (4 layers of nested sheets)                              | Each action opens a new layer on top of the previous one.                                   | 4+ (becomes disorienting)        |
 
 ---
 
@@ -411,7 +411,7 @@ ChatGPT Projects treats files as context for a conversational AI. Users upload d
 
 **Offenders:** Notion (database relations), Zotero (library setup + collections), Scrivener (Research folder hierarchy), Obsidian (vault structure + frontmatter tags).
 
-**Why it fails for DraftCrane:** Diane has 14 years of scattered Google Docs. She needs to *write*, not build an organizational system. Marcus has his own Google Drive folder structure that works for him. Forcing either persona to recreate or remap their organization inside DraftCrane is a deal-breaker. Sources should "just work" once connected to a project, with optional organization available for users who want it.
+**Why it fails for DraftCrane:** Diane has 14 years of scattered Google Docs. She needs to _write_, not build an organizational system. Marcus has his own Google Drive folder structure that works for him. Forcing either persona to recreate or remap their organization inside DraftCrane is a deal-breaker. Sources should "just work" once connected to a project, with optional organization available for users who want it.
 
 ### 3.2 Technical Mental Model Requirement
 
@@ -451,42 +451,44 @@ ChatGPT Projects treats files as context for a conversational AI. Users upload d
 
 **Offenders:** Scrivener (4 methods for viewing references), Notion (3 peek modes), Obsidian (sidebar backlinks vs. inline backlinks vs. graph view vs. Dataview queries).
 
-**Why it fails for DraftCrane:** DraftCrane should provide *one clear way* to view a source alongside writing, *one clear way* to link a source to a chapter, and *one clear way* to insert a source reference. Optionality is complexity.
+**Why it fails for DraftCrane:** DraftCrane should provide _one clear way_ to view a source alongside writing, _one clear way_ to link a source to a chapter, and _one clear way_ to insert a source reference. Optionality is complexity.
 
 ---
 
 ## 4. Relevance Matrix
 
-| Pattern | iPad-First | Non-Technical | Google Drive Compat. | AI Integration | Complexity Budget |
-|---|---|---|---|---|---|
-| **Persistent sidebar (Binder)** | Moderate Fit | Strong Fit | Strong Fit | Moderate Fit | Moderate Fit |
-| **Split editor (dual pane)** | Poor Fit | Strong Fit | Strong Fit | Moderate Fit | Moderate Fit |
-| **Copyholder (pinned reference)** | Moderate Fit | Strong Fit | Strong Fit | Moderate Fit | Strong Fit |
-| **Right-hand panel (Side Peek)** | Strong Fit | Strong Fit | Strong Fit | Strong Fit | Strong Fit |
-| **Center modal (overlay)** | Strong Fit | Strong Fit | Strong Fit | Moderate Fit | Strong Fit |
-| **Floating windows** | Poor Fit | Moderate Fit | Moderate Fit | Poor Fit | Poor Fit |
-| **Inline transclusion** | Strong Fit | Poor Fit | Poor Fit | Moderate Fit | Poor Fit |
-| **Conversational AI panel** | Strong Fit | Strong Fit | Strong Fit | Strong Fit | Strong Fit |
-| **Search-select-cite pipeline** | Strong Fit | Moderate Fit | Strong Fit | Strong Fit | Moderate Fit |
-| **@ mention inline reference** | Strong Fit | Moderate Fit | Moderate Fit | Moderate Fit | Strong Fit |
-| **Tag-based organization** | Strong Fit | Moderate Fit | Moderate Fit | Moderate Fit | Moderate Fit |
-| **Material sheet designation** | Strong Fit | Strong Fit | Strong Fit | Moderate Fit | Strong Fit |
-| **Folder/tree hierarchy** | Moderate Fit | Strong Fit | Strong Fit | Moderate Fit | Moderate Fit |
-| **Database/relational model** | Poor Fit | Poor Fit | Poor Fit | Moderate Fit | Poor Fit |
-| **Wiki-link syntax** | Moderate Fit | Poor Fit | Poor Fit | Poor Fit | Poor Fit |
-| **Upload-and-ask (ChatGPT)** | Strong Fit | Strong Fit | Strong Fit | Strong Fit | Strong Fit |
-| **Info panel (progressive disclosure)** | Strong Fit | Strong Fit | Strong Fit | Strong Fit | Strong Fit |
-| **Collapsible panes** | Strong Fit | Strong Fit | Strong Fit | Moderate Fit | Strong Fit |
-| **Snippet collect-then-insert** | Strong Fit | Strong Fit | Strong Fit | Strong Fit | Moderate Fit |
-| **Graph visualization** | Poor Fit | Poor Fit | Poor Fit | Moderate Fit | Poor Fit |
+| Pattern                                 | iPad-First   | Non-Technical | Google Drive Compat. | AI Integration | Complexity Budget |
+| --------------------------------------- | ------------ | ------------- | -------------------- | -------------- | ----------------- |
+| **Persistent sidebar (Binder)**         | Moderate Fit | Strong Fit    | Strong Fit           | Moderate Fit   | Moderate Fit      |
+| **Split editor (dual pane)**            | Poor Fit     | Strong Fit    | Strong Fit           | Moderate Fit   | Moderate Fit      |
+| **Copyholder (pinned reference)**       | Moderate Fit | Strong Fit    | Strong Fit           | Moderate Fit   | Strong Fit        |
+| **Right-hand panel (Side Peek)**        | Strong Fit   | Strong Fit    | Strong Fit           | Strong Fit     | Strong Fit        |
+| **Center modal (overlay)**              | Strong Fit   | Strong Fit    | Strong Fit           | Moderate Fit   | Strong Fit        |
+| **Floating windows**                    | Poor Fit     | Moderate Fit  | Moderate Fit         | Poor Fit       | Poor Fit          |
+| **Inline transclusion**                 | Strong Fit   | Poor Fit      | Poor Fit             | Moderate Fit   | Poor Fit          |
+| **Conversational AI panel**             | Strong Fit   | Strong Fit    | Strong Fit           | Strong Fit     | Strong Fit        |
+| **Search-select-cite pipeline**         | Strong Fit   | Moderate Fit  | Strong Fit           | Strong Fit     | Moderate Fit      |
+| **@ mention inline reference**          | Strong Fit   | Moderate Fit  | Moderate Fit         | Moderate Fit   | Strong Fit        |
+| **Tag-based organization**              | Strong Fit   | Moderate Fit  | Moderate Fit         | Moderate Fit   | Moderate Fit      |
+| **Material sheet designation**          | Strong Fit   | Strong Fit    | Strong Fit           | Moderate Fit   | Strong Fit        |
+| **Folder/tree hierarchy**               | Moderate Fit | Strong Fit    | Strong Fit           | Moderate Fit   | Moderate Fit      |
+| **Database/relational model**           | Poor Fit     | Poor Fit      | Poor Fit             | Moderate Fit   | Poor Fit          |
+| **Wiki-link syntax**                    | Moderate Fit | Poor Fit      | Poor Fit             | Poor Fit       | Poor Fit          |
+| **Upload-and-ask (ChatGPT)**            | Strong Fit   | Strong Fit    | Strong Fit           | Strong Fit     | Strong Fit        |
+| **Info panel (progressive disclosure)** | Strong Fit   | Strong Fit    | Strong Fit           | Strong Fit     | Strong Fit        |
+| **Collapsible panes**                   | Strong Fit   | Strong Fit    | Strong Fit           | Moderate Fit   | Strong Fit        |
+| **Snippet collect-then-insert**         | Strong Fit   | Strong Fit    | Strong Fit           | Strong Fit     | Moderate Fit      |
+| **Graph visualization**                 | Poor Fit     | Poor Fit      | Poor Fit             | Moderate Fit   | Poor Fit          |
 
 **Top-scoring patterns (5/5 Strong Fit):**
+
 - Right-hand panel (Side Peek)
 - Conversational AI panel
 - Upload-and-ask
 - Info panel (progressive disclosure)
 
 **Strong patterns (4/5 Strong Fit):**
+
 - Center modal (overlay)
 - Copyholder (pinned reference)
 - Collapsible panes
@@ -530,6 +532,7 @@ Zotero's "search > select > cite" pipeline, ChatGPT Projects' "ask > receive ans
 ## Sources
 
 ### Scrivener
+
 - [4 Ways to View Reference Materials in Scrivener](https://www.jenterpstra.com/blog/view-reference-materials-in-scrivener)
 - [Splitting the Scrivener Editor](https://www.literatureandlatte.com/blog/see-more-of-your-project-splitting-the-scrivener-editor)
 - [Scrivener's Research Folder](https://www.literatureandlatte.com/blog/use-scriveners-research-folder-to-store-information-about-your-project)
@@ -540,6 +543,7 @@ Zotero's "search > select > cite" pipeline, ChatGPT Projects' "ask > receive ans
 - [Scrivener Review 2025](https://writergadgets.com/scrivener-review/)
 
 ### Notion
+
 - [How to Link Databases in Notion](https://notiondemy.com/link-databases-in-notion/)
 - [Open Any Page in Peek Mode](https://bensomething.notion.site/Open-Any-Page-in-Peek-Mode-ba4fb02f62e7432c8e596b5038b1f198)
 - [Notion Side Peek Release](https://www.notion.com/releases/2022-07-20)
@@ -548,6 +552,7 @@ Zotero's "search > select > cite" pipeline, ChatGPT Projects' "ask > receive ans
 - [Notion AI for Docs](https://www.notion.com/help/guides/notion-ai-for-docs)
 
 ### Google Docs
+
 - [Google Docs Explore Tool](https://shakeuplearning.com/blog/5-ways-to-use-the-google-docs-explore-tool/)
 - [Gemini in Google Docs](https://workspace.google.com/products/docs/ai/)
 - [Gemini for Google Workspace Guide 2026](https://refractiv.co.uk/news/gemini-google-workspace-guide/)
@@ -556,6 +561,7 @@ Zotero's "search > select > cite" pipeline, ChatGPT Projects' "ask > receive ans
 - [Google Workspace Gemini Sidebar](https://www.computerworld.com/article/3845447/google-workspace-how-to-use-gemini-ai-side-panel.html)
 
 ### Ulysses
+
 - [Ulysses 19 Review - MacStories](https://www.macstories.net/reviews/ulysses-19-brings-cursor-support-external-folders-material-sheets-and-more/)
 - [Ulysses Material Sheets](https://blog.ulysses.app/material-sheets/)
 - [First Steps: Library & Editor](https://help.ulysses.app/en_US/getting-started/first-steps-library-editor)
@@ -563,6 +569,7 @@ Zotero's "search > select > cite" pipeline, ChatGPT Projects' "ask > receive ans
 - [Ulysses Split View Editor](https://thesweetsetup.com/ulysses-15-introduces-split-view-editor-new-image-export-and-previewing-features-and-keyword-management-improvements/)
 
 ### Obsidian
+
 - [Obsidian Backlinks Documentation](https://help.obsidian.md/plugins/backlinks)
 - [Mastering Obsidian Backlinks](https://bluprio.com/blog/mastering-obsidian-backlinks-a-complete)
 - [Connecting and Transcluding Notes in Obsidian](https://thesweetsetup.com/connecting-and-transcluding-notes-in-obsidian/)
@@ -571,6 +578,7 @@ Zotero's "search > select > cite" pipeline, ChatGPT Projects' "ask > receive ans
 - [Customizing Obsidian on iPad](https://tfthacker.substack.com/p/customizing-obsidian-on-your-ipad-8b71019a276c)
 
 ### Bear
+
 - [Bear Info Panel, ToC, and Backlinks](https://bear.app/faq/how-to-use-the-info-panel-table-of-contents-and-backlinks-in-bear/)
 - [Bear App Review 2026](https://dockshare.io/apps/bear)
 - [Bear: Linked Notes vs Tags](https://www.laroquephoto.com/blog/2024/3/12/bear-days-linked-notes-vs-tags)
@@ -578,6 +586,7 @@ Zotero's "search > select > cite" pipeline, ChatGPT Projects' "ask > receive ans
 - [Bear Community: Backlinks and Info Column](https://community.bear.app/t/forum-feedback-backlinks-and-info-column/5926/129)
 
 ### Zotero
+
 - [Zotero Word Processor Integration](https://www.zotero.org/support/word_processor_integration)
 - [Zotero Google Docs Integration](https://www.zotero.org/support/google_docs)
 - [Zotero PDF Reader](https://www.zotero.org/support/pdf_reader)
@@ -585,6 +594,7 @@ Zotero's "search > select > cite" pipeline, ChatGPT Projects' "ask > receive ans
 - [Zotero Citations Between Google Docs and Word](https://www.zotero.org/blog/move-zotero-citations-between-google-docs-word-and-libreoffice/)
 
 ### ChatGPT Projects
+
 - [Using Projects in ChatGPT (OpenAI)](https://help.openai.com/en/articles/10169521-using-projects-in-chatgpt)
 - [ChatGPT Project Sharing](https://www.aioperator.com/blog/chatgpt-project-sharing-a-new-feature-that-improves-team-collaboration)
 - [What is ChatGPT Projects](https://elephas.app/blog/what-is-chatgpt-projects-how-it-works-pricing-and-more-2025-cmbadknjf0044yq8md6n8jrlp)
@@ -592,11 +602,13 @@ Zotero's "search > select > cite" pipeline, ChatGPT Projects' "ask > receive ans
 - [ChatGPT File Upload Limits 2026](https://onefileapp.com/blog/bypass-chatgpt-file-upload-limit-2025)
 
 ### UX Research
+
 - [Progressive Disclosure - NN/g](https://www.nngroup.com/articles/progressive-disclosure/)
 - [Progressive Disclosure - IxDF](https://www.interaction-design.org/literature/topics/progressive-disclosure)
 - [Progressive Disclosure for Mobile Apps](https://uxplanet.org/design-patterns-progressive-disclosure-for-mobile-apps-f41001a293ba)
 
 ### Google NotebookLM
+
 - [NotebookLM Sources](https://support.google.com/notebooklm/answer/14276468)
 - [NotebookLM FAQ](https://support.google.com/notebooklm/answer/16269187?hl=en)
 - [NotebookLM Tutorial - DataCamp](https://www.datacamp.com/tutorial/notebooklm)

@@ -25,17 +25,17 @@
 
 #### Add a source from Google Drive
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Tap "Sources" in toolbar menu | EditorToolbar (settings/overflow menu) | 1 |
-| 2 | SourcesPanel slides in from right | SourcesPanel (z-50, max-w-md) | 0 (animation) |
-| 3 | Tap "Add" button in panel header | SourcesPanel header | 1 |
-| 4 | AddSourceSheet slides up from bottom | AddSourceSheet (z-50, max-h-[70vh]) | 0 (animation) |
-| 5 | Tap a connected Google account row | AddSourceSheet account list | 1 |
-| 6 | AddSourceSheet closes, DriveBrowserSheet slides up | DriveBrowserSheet (z-50, max-h-[80vh]) | 0 (animation) |
-| 7 | Navigate into target folder (1 tap per folder level) | DriveBrowserSheet folder list | 1-5 |
-| 8 | Tap checkbox on each Google Doc to select | DriveBrowserSheet doc list | 1+ |
-| 9 | Tap "Add to Sources" button | DriveBrowserSheet footer | 1 |
+| Step | Action                                               | Surface                                | Taps          |
+| ---- | ---------------------------------------------------- | -------------------------------------- | ------------- |
+| 1    | Tap "Sources" in toolbar menu                        | EditorToolbar (settings/overflow menu) | 1             |
+| 2    | SourcesPanel slides in from right                    | SourcesPanel (z-50, max-w-md)          | 0 (animation) |
+| 3    | Tap "Add" button in panel header                     | SourcesPanel header                    | 1             |
+| 4    | AddSourceSheet slides up from bottom                 | AddSourceSheet (z-50, max-h-[70vh])    | 0 (animation) |
+| 5    | Tap a connected Google account row                   | AddSourceSheet account list            | 1             |
+| 6    | AddSourceSheet closes, DriveBrowserSheet slides up   | DriveBrowserSheet (z-50, max-h-[80vh]) | 0 (animation) |
+| 7    | Navigate into target folder (1 tap per folder level) | DriveBrowserSheet folder list          | 1-5           |
+| 8    | Tap checkbox on each Google Doc to select            | DriveBrowserSheet doc list             | 1+            |
+| 9    | Tap "Add to Sources" button                          | DriveBrowserSheet footer               | 1             |
 
 **Total: 6-12 taps across 4 distinct surfaces (toolbar, panel, sheet, sheet).**
 
@@ -43,15 +43,15 @@ The minimum path for a user who has one Drive account and files at the root leve
 
 #### Add a source from local device
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Open SourcesPanel (via toolbar) | EditorToolbar | 1 |
-| 2 | Tap "Add" button | SourcesPanel header | 1 |
-| 3 | AddSourceSheet slides up | AddSourceSheet | 0 |
-| 4 | Tap "Upload from device" | AddSourceSheet | 1 |
-| 5 | iOS file picker opens | System file picker | 0 |
-| 6 | Navigate to and select file | System file picker | 2-4 |
-| 7 | File uploads, AddSourceSheet auto-closes | AddSourceSheet | 0 |
+| Step | Action                                   | Surface             | Taps |
+| ---- | ---------------------------------------- | ------------------- | ---- |
+| 1    | Open SourcesPanel (via toolbar)          | EditorToolbar       | 1    |
+| 2    | Tap "Add" button                         | SourcesPanel header | 1    |
+| 3    | AddSourceSheet slides up                 | AddSourceSheet      | 0    |
+| 4    | Tap "Upload from device"                 | AddSourceSheet      | 1    |
+| 5    | iOS file picker opens                    | System file picker  | 0    |
+| 6    | Navigate to and select file              | System file picker  | 2-4  |
+| 7    | File uploads, AddSourceSheet auto-closes | AddSourceSheet      | 0    |
 
 **Total: 5-7 taps across 3 surfaces (toolbar, panel, sheet + system picker).**
 
@@ -59,17 +59,18 @@ Notably simpler than the Drive path because the system file picker replaces the 
 
 #### View a source while writing
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Open SourcesPanel (via toolbar) | EditorToolbar | 1 |
-| 2 | Tap "View" button on a source row | SourcesPanel source list | 1 |
-| 3 | SourceViewerSheet slides in from right at z-[60] | SourceViewerSheet (overlays SourcesPanel) | 0 |
+| Step | Action                                           | Surface                                   | Taps |
+| ---- | ------------------------------------------------ | ----------------------------------------- | ---- |
+| 1    | Open SourcesPanel (via toolbar)                  | EditorToolbar                             | 1    |
+| 2    | Tap "View" button on a source row                | SourcesPanel source list                  | 1    |
+| 3    | SourceViewerSheet slides in from right at z-[60] | SourceViewerSheet (overlays SourcesPanel) | 0    |
 
 **Total: 2 taps to reach the content viewer.**
 
 This is the most efficient path in the current design. However, once the viewer is open, the user cannot see the editor at all -- the SourceViewerSheet is full-height, full-width (max-w-lg) at z-[60], overlaying everything. The user must close the viewer to write, then reopen it to check the source. There is no side-by-side capability.
 
 If the user wants to switch to a different source, they must:
+
 - Close the SourceViewerSheet (1 tap on X, or swipe)
 - The SourcesPanel is now visible again behind it
 - Tap "View" on a different source (1 tap)
@@ -81,11 +82,11 @@ The tab bar in SourceViewerSheet only appears when multiple sources are linked t
 
 #### Link/unlink a source to current chapter
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Open SourcesPanel (via toolbar) | EditorToolbar | 1 |
-| 2 | Find the source in the list | SourcesPanel source list | 0 (scan) |
-| 3 | Tap "Link to [Chapter Title]" button | SourcesPanel, per-source action row | 1 |
+| Step | Action                               | Surface                             | Taps     |
+| ---- | ------------------------------------ | ----------------------------------- | -------- |
+| 1    | Open SourcesPanel (via toolbar)      | EditorToolbar                       | 1        |
+| 2    | Find the source in the list          | SourcesPanel source list            | 0 (scan) |
+| 3    | Tap "Link to [Chapter Title]" button | SourcesPanel, per-source action row | 1        |
 
 **Total: 2 taps.**
 
@@ -93,22 +94,22 @@ Unlinking follows the same path but the button reads "Linked" (toggled state). T
 
 #### Remove a source
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Open SourcesPanel (via toolbar) | EditorToolbar | 1 |
-| 2 | Tap "Remove" on the source row | SourcesPanel source list | 1 |
+| Step | Action                          | Surface                  | Taps |
+| ---- | ------------------------------- | ------------------------ | ---- |
+| 1    | Open SourcesPanel (via toolbar) | EditorToolbar            | 1    |
+| 2    | Tap "Remove" on the source row  | SourcesPanel source list | 1    |
 
 **Total: 2 taps.** There is no confirmation dialog. The source is removed immediately from the project. This is destructive and irreversible from the UI perspective (the file still exists in Drive, but the DraftCrane association, any chapter links, and cached content are deleted).
 
 #### Import a source as chapter
 
-| Step | Action | Surface | Taps |
-|------|--------|---------|------|
-| 1 | Open SourcesPanel (via toolbar) | EditorToolbar | 1 |
-| 2 | Tap "Import as Chapter" on a source row | SourcesPanel source list | 1 |
-| -- | OR from the viewer: | -- | -- |
-| 1 | Open SourcesPanel, then open viewer | EditorToolbar + SourcesPanel | 2 |
-| 2 | Tap "Import as Chapter" in viewer header | SourceViewerSheet header | 1 |
+| Step | Action                                   | Surface                      | Taps |
+| ---- | ---------------------------------------- | ---------------------------- | ---- |
+| 1    | Open SourcesPanel (via toolbar)          | EditorToolbar                | 1    |
+| 2    | Tap "Import as Chapter" on a source row  | SourcesPanel source list     | 1    |
+| --   | OR from the viewer:                      | --                           | --   |
+| 1    | Open SourcesPanel, then open viewer      | EditorToolbar + SourcesPanel | 2    |
+| 2    | Tap "Import as Chapter" in viewer header | SourceViewerSheet header     | 1    |
 
 **Total: 2-3 taps.** Both paths work. The import creates a new chapter with the source content and navigates to it, closing the SourcesPanel. This path is reasonably well-designed, though the lack of confirmation before a potentially large content import is worth noting.
 
@@ -249,6 +250,7 @@ The PRD mandates: "A management consultant should be able to figure out any scre
 #### Failure 1: AddSourceSheet purpose is unclear
 
 When the AddSourceSheet slides up, it shows:
+
 - A list of connected Google accounts (email addresses with "Browse Google Drive" subtitle)
 - An "Upload from device" option
 - A "Connect another Google account" option
@@ -262,6 +264,7 @@ A new user (Diane) who has never connected a Google account sees only "Upload fr
 #### Failure 2: Link/Unlink button intention
 
 See section 1.3. The "Link to Chapter 3" button fails the 10-second test because:
+
 - The purpose of linking is not explained.
 - The outcome of tapping is not visible.
 - The chapter-specific context is not obvious.
@@ -313,6 +316,7 @@ This architectural fragmentation mirrors the UX fragmentation. The user experien
 **2. The number of boolean state variables reveals modal complexity.**
 
 The source system manages 6 boolean state variables in `useSourceActions`:
+
 - `isSourcesPanelOpen`
 - `isViewerOpen`
 - `isAddSourceSheetOpen`
@@ -395,32 +399,33 @@ This option preserves the fundamental concept of a project-level source library 
 
 #### Tap-count analysis
 
-| Task | Taps | Path |
-|------|------|------|
-| **Task 1:** Add a new source from Google Drive | **3-6** | Tap [+ Add] in panel header (1) > unified Drive browser opens inline in panel: navigate folders (1-3) > check files (1+) > tap "Add" (1) |
-| **Task 2:** View source content while writing | **1** | Tap source row in panel (panel is already visible in landscape) |
-| **Task 3:** Find a specific fact from source materials | **2-4** | Type in search field at top of panel (1) > scan filtered results (0) > tap source (1) > scroll to find fact (manual) |
-| **Task 4:** Save a useful passage for later | **N/A** | Not supported. Option A does not include a snippet/clipboard feature. User must copy-paste manually. |
-| **Task 5:** Insert a sourced quote into the editor | **N/A** | Not supported natively. User must manually copy from viewer, paste into editor, and create a footnote. |
+| Task                                                   | Taps    | Path                                                                                                                                     |
+| ------------------------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Task 1:** Add a new source from Google Drive         | **3-6** | Tap [+ Add] in panel header (1) > unified Drive browser opens inline in panel: navigate folders (1-3) > check files (1+) > tap "Add" (1) |
+| **Task 2:** View source content while writing          | **1**   | Tap source row in panel (panel is already visible in landscape)                                                                          |
+| **Task 3:** Find a specific fact from source materials | **2-4** | Type in search field at top of panel (1) > scan filtered results (0) > tap source (1) > scroll to find fact (manual)                     |
+| **Task 4:** Save a useful passage for later            | **N/A** | Not supported. Option A does not include a snippet/clipboard feature. User must copy-paste manually.                                     |
+| **Task 5:** Insert a sourced quote into the editor     | **N/A** | Not supported natively. User must manually copy from viewer, paste into editor, and create a footnote.                                   |
 
 #### Backlog issue coverage
 
-| Issue | Coverage | Notes |
-|-------|----------|-------|
-| #121 Drive auth | Unchanged | Existing auth flow preserved |
-| #122 Drive file selection | Improved | Merged into single inline browser (replaces AddSourceSheet + DriveBrowserSheet) |
-| #123 Local upload | Unchanged | Upload option remains in the add flow |
-| #124 Text extraction | Unchanged | Backend work, independent of UX |
-| #125-127 AI query pipeline | Not addressed | Option A does not include AI research |
-| #128-130 Research Assistant UI | Not addressed | No AI panel |
-| #131-133 Research Board | Not addressed | No snippet collection |
-| #134-137 Spikes | Partially addressed | #137 (preview component) is addressed by the improved viewer |
+| Issue                          | Coverage            | Notes                                                                           |
+| ------------------------------ | ------------------- | ------------------------------------------------------------------------------- |
+| #121 Drive auth                | Unchanged           | Existing auth flow preserved                                                    |
+| #122 Drive file selection      | Improved            | Merged into single inline browser (replaces AddSourceSheet + DriveBrowserSheet) |
+| #123 Local upload              | Unchanged           | Upload option remains in the add flow                                           |
+| #124 Text extraction           | Unchanged           | Backend work, independent of UX                                                 |
+| #125-127 AI query pipeline     | Not addressed       | Option A does not include AI research                                           |
+| #128-130 Research Assistant UI | Not addressed       | No AI panel                                                                     |
+| #131-133 Research Board        | Not addressed       | No snippet collection                                                           |
+| #134-137 Spikes                | Partially addressed | #137 (preview component) is addressed by the improved viewer                    |
 
 **Coverage: 4 of 17 issues addressed. Option A is source management only.**
 
 #### Technical complexity
 
 **Components changed:**
+
 - `SourcesPanel` -- Refactored: remove link/unlink buttons, add search field, add inline Drive browser mode, add inline detail view (replaces SourceViewerSheet)
 - `AddSourceSheet` -- **Removed.** Merged into SourcesPanel's add flow.
 - `DriveBrowserSheet` -- **Removed.** Replaced by inline Drive browser within SourcesPanel.
@@ -428,15 +433,18 @@ This option preserves the fundamental concept of a project-level source library 
 - `EditorDialogs` -- Simplified: ~50 source-related props reduced to ~15.
 
 **Hooks changed:**
+
 - `useSourceActions` -- Simplified: remove `isAddSourceSheetOpen`, `isDriveBrowserOpen` state. Add `viewMode` state (`'list' | 'detail' | 'add'`).
 - `useChapterSources` -- **Removed entirely.** No chapter-level linking.
 
 **API changes:**
+
 - Remove `POST /chapters/:chapterId/sources/:sourceId/link` endpoint
 - Remove `DELETE /chapters/:chapterId/sources/:sourceId/link` endpoint
 - Remove `GET /chapters/:chapterId/sources` endpoint
 
 **Database changes:**
+
 - `chapter_sources` table becomes unused (can be deprecated or dropped)
 - No new tables
 
@@ -445,29 +453,31 @@ This option preserves the fundamental concept of a project-level source library 
 #### Risk assessment
 
 **Risks for Diane:**
+
 - Low risk. The simplified panel is more discoverable and the single-surface navigation prevents getting lost.
 - The term "Sources" may still cause confusion. Consider "Reference Docs" or "Research Docs" as alternatives.
 - In portrait mode, the full-screen overlay means Diane cannot see her chapter while viewing a source. She must toggle back and forth.
 
 **Risks for Marcus:**
+
 - Moderate risk. Marcus has 100+ documents. A flat source list does not scale for him. The search field mitigates this, but Marcus may want folder-level organization within DraftCrane.
 - Removing chapter linking means Marcus loses the ability to organize sources by chapter -- everything is a flat project-level list. For a book with 15 chapters, this could feel disorganized.
 - Marcus's 12 subfolder structure in Drive is navigable through the inline browser, but the flat display after import removes his organizational hierarchy.
 
 #### What gets removed
 
-| Component/Concept | Status |
-|---|---|
-| `AddSourceSheet` component | Removed -- merged into panel |
-| `DriveBrowserSheet` component | Removed -- merged into panel |
-| `SourceViewerSheet` component | Removed -- merged into panel |
-| `useChapterSources` hook | Removed entirely |
-| `chapter_sources` database table | Deprecated |
-| Chapter-source linking concept | Eliminated |
-| Link/Unlink buttons | Eliminated |
-| Source viewer tab bar | Eliminated |
-| 3 backend API endpoints (link, unlink, get chapter sources) | Removed |
-| ~50 props from EditorDialogsProps | Removed |
+| Component/Concept                                           | Status                       |
+| ----------------------------------------------------------- | ---------------------------- |
+| `AddSourceSheet` component                                  | Removed -- merged into panel |
+| `DriveBrowserSheet` component                               | Removed -- merged into panel |
+| `SourceViewerSheet` component                               | Removed -- merged into panel |
+| `useChapterSources` hook                                    | Removed entirely             |
+| `chapter_sources` database table                            | Deprecated                   |
+| Chapter-source linking concept                              | Eliminated                   |
+| Link/Unlink buttons                                         | Eliminated                   |
+| Source viewer tab bar                                       | Eliminated                   |
+| 3 backend API endpoints (link, unlink, get chapter sources) | Removed                      |
+| ~50 props from EditorDialogsProps                           | Removed                      |
 
 ---
 
@@ -582,59 +592,63 @@ This option unifies source management, the future AI Research Assistant, and the
 
 #### Tap-count analysis
 
-| Task | Taps | Path |
-|------|------|------|
-| **Task 1:** Add a new source from Google Drive | **3-6** | Panel is open > Sources tab active > tap [+ Add] (1) > inline Drive browser: navigate (1-3) > select (1+) > tap "Add" (1) |
-| **Task 2:** View source content while writing | **1** | Tap source row in Sources tab (panel already visible in landscape) |
-| **Task 3:** Find a specific fact from source materials | **2** | Switch to Ask tab (1) > type question and tap send (1) > AI returns answer with source citation |
-| **Task 4:** Save a useful passage for later | **2** | From AI response: tap "Save to Clips" (1). Or from source viewer: long-press to select text (1) > tap "Save to Clips" in context menu (1) |
-| **Task 5:** Insert a sourced quote into the editor | **1-2** | From Clips tab: tap "Insert" on a clip (1) > clip text + footnote inserted at cursor. Or from AI response: tap "Insert Quote" (1) |
+| Task                                                   | Taps    | Path                                                                                                                                      |
+| ------------------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Task 1:** Add a new source from Google Drive         | **3-6** | Panel is open > Sources tab active > tap [+ Add] (1) > inline Drive browser: navigate (1-3) > select (1+) > tap "Add" (1)                 |
+| **Task 2:** View source content while writing          | **1**   | Tap source row in Sources tab (panel already visible in landscape)                                                                        |
+| **Task 3:** Find a specific fact from source materials | **2**   | Switch to Ask tab (1) > type question and tap send (1) > AI returns answer with source citation                                           |
+| **Task 4:** Save a useful passage for later            | **2**   | From AI response: tap "Save to Clips" (1). Or from source viewer: long-press to select text (1) > tap "Save to Clips" in context menu (1) |
+| **Task 5:** Insert a sourced quote into the editor     | **1-2** | From Clips tab: tap "Insert" on a clip (1) > clip text + footnote inserted at cursor. Or from AI response: tap "Insert Quote" (1)         |
 
 #### Backlog issue coverage
 
-| Issue | Coverage | Notes |
-|-------|----------|-------|
-| #121 Drive auth | Unchanged | Existing auth flow preserved |
-| #122 Drive file selection | Improved | Single inline browser in Sources tab |
-| #123 Local upload | Unchanged | Upload option in add flow |
-| #124 Text extraction | Unchanged | Backend work, independent |
-| #125 AI query API endpoint | **Addressed** | Ask tab sends queries to this endpoint |
-| #126 Chunking strategy | **Addressed** | Required for Ask tab to work |
-| #127 Response parsing | **Addressed** | AI responses displayed in Ask tab |
-| #128 Research panel | **Addressed** | The Research panel IS this component |
-| #129 Query input | **Addressed** | Ask tab input field |
-| #130 File preview | **Addressed** | Source detail view in Sources tab |
-| #131 Collect snippets | **Addressed** | "Save to Clips" action from Ask and viewer |
-| #132 View/manage board | **Addressed** | Clips tab |
-| #133 Drag-to-editor with footnotes | **Addressed** | "Insert" button on clips + auto-footnote |
-| #134 Prompt engineering spike | Partially | Needed for Ask tab quality |
-| #135 Doc parsing spike | Partially | Needed for source ingestion |
-| #136 Chunking strategy spike | Partially | Needed for AI search quality |
-| #137 Preview component spike | **Addressed** | Source detail view |
+| Issue                              | Coverage      | Notes                                      |
+| ---------------------------------- | ------------- | ------------------------------------------ |
+| #121 Drive auth                    | Unchanged     | Existing auth flow preserved               |
+| #122 Drive file selection          | Improved      | Single inline browser in Sources tab       |
+| #123 Local upload                  | Unchanged     | Upload option in add flow                  |
+| #124 Text extraction               | Unchanged     | Backend work, independent                  |
+| #125 AI query API endpoint         | **Addressed** | Ask tab sends queries to this endpoint     |
+| #126 Chunking strategy             | **Addressed** | Required for Ask tab to work               |
+| #127 Response parsing              | **Addressed** | AI responses displayed in Ask tab          |
+| #128 Research panel                | **Addressed** | The Research panel IS this component       |
+| #129 Query input                   | **Addressed** | Ask tab input field                        |
+| #130 File preview                  | **Addressed** | Source detail view in Sources tab          |
+| #131 Collect snippets              | **Addressed** | "Save to Clips" action from Ask and viewer |
+| #132 View/manage board             | **Addressed** | Clips tab                                  |
+| #133 Drag-to-editor with footnotes | **Addressed** | "Insert" button on clips + auto-footnote   |
+| #134 Prompt engineering spike      | Partially     | Needed for Ask tab quality                 |
+| #135 Doc parsing spike             | Partially     | Needed for source ingestion                |
+| #136 Chunking strategy spike       | Partially     | Needed for AI search quality               |
+| #137 Preview component spike       | **Addressed** | Source detail view                         |
 
 **Coverage: 14 of 17 issues addressed. Option B provides a unified frame for the entire research feature set.**
 
 #### Technical complexity
 
 **Components created (new):**
+
 - `ResearchPanel` -- Container with tab navigation (Sources, Ask, Clips)
 - `ResearchSourcesTab` -- Replaces SourcesPanel (source list + inline add + inline detail)
 - `ResearchAskTab` -- AI query interface (input, response display, save/insert actions)
 - `ResearchClipsTab` -- Saved snippets with insert/delete actions
 
 **Components removed:**
+
 - `SourcesPanel` -- Replaced by ResearchSourcesTab
 - `AddSourceSheet` -- Merged into ResearchSourcesTab add flow
 - `DriveBrowserSheet` -- Merged into ResearchSourcesTab add flow
 - `SourceViewerSheet` -- Merged into ResearchSourcesTab detail view
 
 **Hooks changed:**
+
 - `useSourceActions` -- Refactored to `useResearchPanel` with tab state, unified source management, and viewer state. State machine with defined transitions: `idle | sources-list | sources-detail | sources-add | ask | clips`.
 - `useChapterSources` -- **Removed entirely.**
 - New: `useAIResearch` -- manages query state, response parsing, and snippet extraction.
 - New: `useResearchClips` -- manages saved snippets (CRUD against new backend endpoint).
 
 **API changes:**
+
 - Remove chapter-source link/unlink endpoints (3 endpoints)
 - Add `POST /projects/:projectId/research/query` -- AI query endpoint
 - Add `GET /projects/:projectId/clips` -- list saved clips
@@ -642,6 +656,7 @@ This option unifies source management, the future AI Research Assistant, and the
 - Add `DELETE /clips/:clipId` -- delete a clip
 
 **Database changes:**
+
 - `chapter_sources` table deprecated
 - New: `research_clips` table:
   ```sql
@@ -660,32 +675,35 @@ This option unifies source management, the future AI Research Assistant, and the
 #### Risk assessment
 
 **Risks for Diane:**
+
 - The three-tab structure adds cognitive overhead. Diane must learn what "Sources," "Ask," and "Clips" mean and when to use each. However, the tabs are labeled with plain language and the default tab (Sources) is the simplest view.
 - The AI "Ask" feature depends on source ingestion quality (#124, #126). If the AI gives poor answers because source parsing fails (e.g., Google Doc formatting artifacts), Diane will lose trust in the feature.
 - The "Clips" concept introduces a new workflow step. Diane currently uses copy-paste. Switching to "save clip then insert clip" is an extra step. The value proposition must be clear: the clip carries its source attribution automatically.
 
 **Risks for Marcus:**
+
 - Marcus may want to organize clips by chapter. The flat clips list could become unwieldy for a 15-chapter book with 50+ clips. Consider adding optional chapter tags to clips in a future iteration.
 - The "Ask" tab is powerful for Marcus's "find the right document" use case, but depends on the quality of the AI's document search. If it cannot reliably distinguish between his 4 partial drafts of Chapter 3, the feature frustrates rather than helps.
 
 **General risks:**
+
 - Scope creep. Implementing the full Ask + Clips flow alongside source management refactoring is a large effort. The risk is that the source management improvements are delayed by the AI pipeline work.
 - The panel width (400px in the layout above) reduces the editor to 540px in landscape. This is marginally acceptable for writing but pushes against the lower limit. In portrait mode, the panel must be a full overlay, which eliminates side-by-side viewing.
 
 #### What gets removed
 
-| Component/Concept | Status |
-|---|---|
-| `SourcesPanel` component | Replaced by `ResearchSourcesTab` |
-| `AddSourceSheet` component | Removed -- merged into Sources tab |
-| `DriveBrowserSheet` component | Removed -- merged into Sources tab |
-| `SourceViewerSheet` component | Removed -- merged into Sources tab |
-| `useChapterSources` hook | Removed entirely |
-| `chapter_sources` database table | Deprecated |
-| Chapter-source linking concept | Eliminated |
-| Link/Unlink buttons | Eliminated |
-| Source viewer tab bar | Eliminated -- replaced by source detail view with back navigation |
-| ~50 props from EditorDialogsProps | Replaced by ~20 props for ResearchPanel |
+| Component/Concept                 | Status                                                            |
+| --------------------------------- | ----------------------------------------------------------------- |
+| `SourcesPanel` component          | Replaced by `ResearchSourcesTab`                                  |
+| `AddSourceSheet` component        | Removed -- merged into Sources tab                                |
+| `DriveBrowserSheet` component     | Removed -- merged into Sources tab                                |
+| `SourceViewerSheet` component     | Removed -- merged into Sources tab                                |
+| `useChapterSources` hook          | Removed entirely                                                  |
+| `chapter_sources` database table  | Deprecated                                                        |
+| Chapter-source linking concept    | Eliminated                                                        |
+| Link/Unlink buttons               | Eliminated                                                        |
+| Source viewer tab bar             | Eliminated -- replaced by source detail view with back navigation |
+| ~50 props from EditorDialogsProps | Replaced by ~20 props for ResearchPanel                           |
 
 ---
 
@@ -805,41 +823,42 @@ This option eliminates the concept of a "source library" as a primary surface. S
 
 #### Tap-count analysis
 
-| Task | Taps | Path |
-|------|------|------|
-| **Task 1:** Add a new source from Google Drive | **4-8** | Open Research panel (1) > tap [Gear] for settings (1) > tap [+ Add] (1) > Drive browser: navigate (1-3) > select (1+) > tap "Add" (1) |
-| **Task 2:** View source content while writing | **3** | Open Research panel (1) > tap [Gear] for settings (1) > tap "View" on a source (1) |
-| **Task 3:** Find a specific fact from source materials | **2** | Open Research panel (if closed) (1) > type question and tap send (1) > AI returns answer with citation |
-| **Task 4:** Save a useful passage for later | **1** | From AI response: tap "Save" (1) |
-| **Task 5:** Insert a sourced quote into the editor | **1** | From AI response: tap "Insert+Cite" (1) > quote inserted at cursor with auto-footnote |
+| Task                                                   | Taps    | Path                                                                                                                                  |
+| ------------------------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Task 1:** Add a new source from Google Drive         | **4-8** | Open Research panel (1) > tap [Gear] for settings (1) > tap [+ Add] (1) > Drive browser: navigate (1-3) > select (1+) > tap "Add" (1) |
+| **Task 2:** View source content while writing          | **3**   | Open Research panel (1) > tap [Gear] for settings (1) > tap "View" on a source (1)                                                    |
+| **Task 3:** Find a specific fact from source materials | **2**   | Open Research panel (if closed) (1) > type question and tap send (1) > AI returns answer with citation                                |
+| **Task 4:** Save a useful passage for later            | **1**   | From AI response: tap "Save" (1)                                                                                                      |
+| **Task 5:** Insert a sourced quote into the editor     | **1**   | From AI response: tap "Insert+Cite" (1) > quote inserted at cursor with auto-footnote                                                 |
 
 #### Backlog issue coverage
 
-| Issue | Coverage | Notes |
-|-------|----------|-------|
-| #121 Drive auth | Unchanged | Existing auth flow preserved |
-| #122 Drive file selection | Addressed | Source settings inline browser |
-| #123 Local upload | Addressed | Upload option in source settings |
-| #124 Text extraction | **Critical dependency** | AI cannot answer without text extraction |
-| #125 AI query API endpoint | **Addressed** | Core feature of the Research panel |
-| #126 Chunking strategy | **Critical dependency** | AI quality depends on chunking |
-| #127 Response parsing | **Addressed** | Response display in Research panel |
-| #128 Research panel | **Addressed** | The Research panel IS this component |
-| #129 Query input | **Addressed** | Conversational input field |
-| #130 File preview | **Addressed** | Source viewer in settings subview |
-| #131 Collect snippets | **Addressed** | "Save" action on AI responses |
-| #132 View/manage board | **Addressed** | Clips drawer |
-| #133 Drag-to-editor with footnotes | **Addressed** | "Insert+Cite" with auto-footnote |
-| #134 Prompt engineering spike | **Critical dependency** | Answer quality is the product |
-| #135 Doc parsing spike | **Critical dependency** | Source ingestion quality |
-| #136 Chunking strategy spike | **Critical dependency** | Search relevance quality |
-| #137 Preview component spike | **Addressed** | Source viewer |
+| Issue                              | Coverage                | Notes                                    |
+| ---------------------------------- | ----------------------- | ---------------------------------------- |
+| #121 Drive auth                    | Unchanged               | Existing auth flow preserved             |
+| #122 Drive file selection          | Addressed               | Source settings inline browser           |
+| #123 Local upload                  | Addressed               | Upload option in source settings         |
+| #124 Text extraction               | **Critical dependency** | AI cannot answer without text extraction |
+| #125 AI query API endpoint         | **Addressed**           | Core feature of the Research panel       |
+| #126 Chunking strategy             | **Critical dependency** | AI quality depends on chunking           |
+| #127 Response parsing              | **Addressed**           | Response display in Research panel       |
+| #128 Research panel                | **Addressed**           | The Research panel IS this component     |
+| #129 Query input                   | **Addressed**           | Conversational input field               |
+| #130 File preview                  | **Addressed**           | Source viewer in settings subview        |
+| #131 Collect snippets              | **Addressed**           | "Save" action on AI responses            |
+| #132 View/manage board             | **Addressed**           | Clips drawer                             |
+| #133 Drag-to-editor with footnotes | **Addressed**           | "Insert+Cite" with auto-footnote         |
+| #134 Prompt engineering spike      | **Critical dependency** | Answer quality is the product            |
+| #135 Doc parsing spike             | **Critical dependency** | Source ingestion quality                 |
+| #136 Chunking strategy spike       | **Critical dependency** | Search relevance quality                 |
+| #137 Preview component spike       | **Addressed**           | Source viewer                            |
 
 **Coverage: 17 of 17 issues addressed, but 4 are critical dependencies that must be completed before the UX delivers value.** Without high-quality AI responses, this option is a worse source browser than Option A.
 
 #### Technical complexity
 
 **Components created (new):**
+
 - `ResearchPanel` -- Conversational AI interface with sub-views for settings and clips
 - `ResearchInput` -- Query input field with send button and suggested questions
 - `ResearchResponse` -- AI response display with source citations, save/insert actions
@@ -847,12 +866,14 @@ This option eliminates the concept of a "source library" as a primary surface. S
 - `ResearchSourceSettings` -- Source management (list, add, remove, view)
 
 **Components removed:**
+
 - `SourcesPanel` -- Replaced by ResearchSourceSettings (secondary surface)
 - `AddSourceSheet` -- Merged into ResearchSourceSettings
 - `DriveBrowserSheet` -- Merged into ResearchSourceSettings
 - `SourceViewerSheet` -- Merged into ResearchSourceSettings
 
 **Hooks changed:**
+
 - `useSourceActions` -- Refactored to `useResearch` with state machine: `closed | asking | viewing-response | clips | source-settings | source-detail | source-add`.
 - `useChapterSources` -- **Removed entirely.**
 - New: `useAIResearch` -- manages conversation state, streaming responses, citation parsing.
@@ -860,6 +881,7 @@ This option eliminates the concept of a "source library" as a primary surface. S
 - New: `useResearchSuggestions` -- generates contextual question suggestions based on current chapter content and available sources.
 
 **API changes:**
+
 - Remove chapter-source link/unlink endpoints (3 endpoints)
 - Add `POST /projects/:projectId/research/query` -- AI query with streaming SSE response
 - Add `GET /projects/:projectId/research/suggestions` -- contextual question suggestions
@@ -869,6 +891,7 @@ This option eliminates the concept of a "source library" as a primary surface. S
 - Add `POST /chapters/:chapterId/insert-citation` -- insert text + create footnote reference
 
 **Database changes:**
+
 - `chapter_sources` table deprecated
 - New: `research_clips` table (same as Option B)
 - New: `research_conversations` table (for conversation history):
@@ -899,61 +922,64 @@ This option eliminates the concept of a "source library" as a primary surface. S
 #### Risk assessment
 
 **Risks for Diane:**
+
 - **High dependency on AI quality.** If the AI gives wrong answers, cites the wrong source, or hallucinates, Diane has no fallback. In Option A and B, she can manually browse sources. In Option C, the browse path is buried 2 taps deep in settings. The primary path IS the AI.
 - **Source addition is deprioritized.** Adding sources requires navigating to settings within the Research panel (2 extra taps). For initial setup, this is acceptable. But if Diane realizes mid-writing that she needs to add another source, the path is longer than in Options A or B.
 - **The conversational paradigm may not match Diane's workflow.** Diane currently writes from a Google Doc open in another tab. Her workflow is "read source, then write." Option C's workflow is "ask a question, read the answer, insert it." This is a fundamentally different mode of working. Diane may not naturally formulate questions about her own documents.
 - **Suggested questions could bridge this gap.** If the system generates good questions ("What does your Smith interview say about team dynamics?"), Diane has a starting point. But this depends on the suggestion quality, which is itself an AI feature.
 
 **Risks for Marcus:**
+
 - Marcus knows exactly which documents he needs. The "ask and receive" model adds friction for his "I want to open Document X and find Section Y" workflow. He must either navigate to source settings (indirect) or ask the AI to find it (slower than direct access).
 - Marcus may want to browse his sources to re-familiarize himself with what he has. Option C makes browsing a secondary activity, which conflicts with Marcus's organizational nature.
 - The 100+ document scenario is theoretically ideal for AI search (too many docs to browse manually), but the AI must handle the scale reliably. Vector search across 100 documents with hundreds of chunks requires infrastructure that may exceed D1/Workers AI capacity.
 
 **General risks:**
+
 - **All-or-nothing delivery.** Unlike Options A and B, Option C cannot be partially delivered. A Research panel without working AI is an empty shell. The AI pipeline must be functional before the UX delivers any value.
 - **Performance on Workers.** Streaming SSE responses from Workers AI while simultaneously serving the editor, auto-saving, and handling Drive sync is a significant load. Edge compute constraints may cause latency or timeout issues.
 - **The Tiptap footnote insertion** ("Insert+Cite") requires extending the editor's schema to support footnote nodes. This is a non-trivial Tiptap extension that must handle edge cases (inserting at selection boundaries, undo/redo, export to Google Docs).
 
 #### What gets removed
 
-| Component/Concept | Status |
-|---|---|
-| `SourcesPanel` component | Removed -- sources managed through Research > Settings |
-| `AddSourceSheet` component | Removed -- merged into Research > Settings > Add |
-| `DriveBrowserSheet` component | Removed -- merged into Research > Settings > Add |
-| `SourceViewerSheet` component | Removed -- merged into Research > Settings > View |
-| `useChapterSources` hook | Removed entirely |
-| `chapter_sources` database table | Deprecated |
-| Chapter-source linking concept | Eliminated |
-| Link/Unlink buttons | Eliminated |
-| Source viewer tab bar | Eliminated |
-| "Sources" as a primary concept | Demoted to settings |
-| Manual source browsing as primary interaction | Replaced by AI query |
-| ~50 source props from EditorDialogsProps | Replaced by ~15 Research panel props |
+| Component/Concept                             | Status                                                 |
+| --------------------------------------------- | ------------------------------------------------------ |
+| `SourcesPanel` component                      | Removed -- sources managed through Research > Settings |
+| `AddSourceSheet` component                    | Removed -- merged into Research > Settings > Add       |
+| `DriveBrowserSheet` component                 | Removed -- merged into Research > Settings > Add       |
+| `SourceViewerSheet` component                 | Removed -- merged into Research > Settings > View      |
+| `useChapterSources` hook                      | Removed entirely                                       |
+| `chapter_sources` database table              | Deprecated                                             |
+| Chapter-source linking concept                | Eliminated                                             |
+| Link/Unlink buttons                           | Eliminated                                             |
+| Source viewer tab bar                         | Eliminated                                             |
+| "Sources" as a primary concept                | Demoted to settings                                    |
+| Manual source browsing as primary interaction | Replaced by AI query                                   |
+| ~50 source props from EditorDialogsProps      | Replaced by ~15 Research panel props                   |
 
 ---
 
 ## Summary Comparison
 
-| Dimension | Option A: Polished Library | Option B: Research Companion | Option C: Integrated Assistant |
-|-----------|---------------------------|------------------------------|-------------------------------|
-| **Philosophy** | Fix what's broken | Unify sources + AI + clips | AI-first, sources invisible |
-| **Primary interaction** | Browse source list | Browse OR ask | Ask questions |
-| **Source browsing** | Primary | Primary (Sources tab) | Secondary (Settings) |
-| **AI research** | Not included | Included (Ask tab) | Core feature |
-| **Snippet collection** | Not included | Included (Clips tab) | Included (Clips drawer) |
-| **Auto-citation** | Not included | Included (Insert action) | Core feature |
-| **Max sheet depth** | 1 (detail replaces list) | 1 (tab switching, detail replaces tab) | 1 (sub-views within panel) |
-| **Backlog coverage** | 4 of 17 issues | 14 of 17 issues | 17 of 17 issues |
-| **Props removed** | ~50 | ~50 | ~50 |
-| **Props added** | ~15 | ~20 | ~15 |
-| **New backend endpoints** | 0 | 4 | 6 |
-| **New DB tables** | 0 | 1 | 3 |
-| **Dev effort** | 1-2 weeks | 4-6 weeks | 8-12 weeks |
-| **Diane risk** | Low | Medium | High |
-| **Marcus risk** | Medium (flat list) | Low-Medium | Medium (browse friction) |
-| **Dependency risk** | Low | Medium (AI quality) | High (AI is the product) |
-| **Can ship incrementally?** | Yes | Yes (Sources tab first, Ask/Clips later) | No (AI must work first) |
+| Dimension                   | Option A: Polished Library | Option B: Research Companion             | Option C: Integrated Assistant |
+| --------------------------- | -------------------------- | ---------------------------------------- | ------------------------------ |
+| **Philosophy**              | Fix what's broken          | Unify sources + AI + clips               | AI-first, sources invisible    |
+| **Primary interaction**     | Browse source list         | Browse OR ask                            | Ask questions                  |
+| **Source browsing**         | Primary                    | Primary (Sources tab)                    | Secondary (Settings)           |
+| **AI research**             | Not included               | Included (Ask tab)                       | Core feature                   |
+| **Snippet collection**      | Not included               | Included (Clips tab)                     | Included (Clips drawer)        |
+| **Auto-citation**           | Not included               | Included (Insert action)                 | Core feature                   |
+| **Max sheet depth**         | 1 (detail replaces list)   | 1 (tab switching, detail replaces tab)   | 1 (sub-views within panel)     |
+| **Backlog coverage**        | 4 of 17 issues             | 14 of 17 issues                          | 17 of 17 issues                |
+| **Props removed**           | ~50                        | ~50                                      | ~50                            |
+| **Props added**             | ~15                        | ~20                                      | ~15                            |
+| **New backend endpoints**   | 0                          | 4                                        | 6                              |
+| **New DB tables**           | 0                          | 1                                        | 3                              |
+| **Dev effort**              | 1-2 weeks                  | 4-6 weeks                                | 8-12 weeks                     |
+| **Diane risk**              | Low                        | Medium                                   | High                           |
+| **Marcus risk**             | Medium (flat list)         | Low-Medium                               | Medium (browse friction)       |
+| **Dependency risk**         | Low                        | Medium (AI quality)                      | High (AI is the product)       |
+| **Can ship incrementally?** | Yes                        | Yes (Sources tab first, Ask/Clips later) | No (AI must work first)        |
 
 ### Recommended Sequencing
 
