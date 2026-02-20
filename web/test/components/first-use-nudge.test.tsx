@@ -250,17 +250,10 @@ describe("FirstUseNudge component", () => {
     };
   }
 
-  it("renders tooltip after 500ms delay when conditions are met", () => {
+  it("renders tooltip after 500ms delay when isActive is true", () => {
     const { ref, cleanup } = createTargetRef();
 
-    render(
-      <FirstUseNudge
-        projectId="proj-1"
-        hasAnySources={false}
-        isResearchPanelOpen={false}
-        targetRef={ref}
-      />,
-    );
+    render(<FirstUseNudge isActive={true} targetRef={ref} />);
 
     // Before delay -- no tooltip yet
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
@@ -278,14 +271,7 @@ describe("FirstUseNudge component", () => {
   it("auto-dismisses tooltip after 8 seconds", () => {
     const { ref, cleanup } = createTargetRef();
 
-    render(
-      <FirstUseNudge
-        projectId="proj-1"
-        hasAnySources={false}
-        isResearchPanelOpen={false}
-        targetRef={ref}
-      />,
-    );
+    render(<FirstUseNudge isActive={true} targetRef={ref} />);
 
     act(() => {
       vi.advanceTimersByTime(500);
@@ -300,39 +286,10 @@ describe("FirstUseNudge component", () => {
     cleanup();
   });
 
-  it("does not render when project has sources", () => {
+  it("does not render when isActive is false", () => {
     const { ref, cleanup } = createTargetRef();
 
-    render(
-      <FirstUseNudge
-        projectId="proj-1"
-        hasAnySources={true}
-        isResearchPanelOpen={false}
-        targetRef={ref}
-      />,
-    );
-
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
-
-    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
-
-    cleanup();
-  });
-
-  it("does not render when already dismissed in localStorage", () => {
-    storage["research-nudge-dismissed-proj-1"] = "true";
-    const { ref, cleanup } = createTargetRef();
-
-    render(
-      <FirstUseNudge
-        projectId="proj-1"
-        hasAnySources={false}
-        isResearchPanelOpen={false}
-        targetRef={ref}
-      />,
-    );
+    render(<FirstUseNudge isActive={false} targetRef={ref} />);
 
     act(() => {
       vi.advanceTimersByTime(500);
@@ -346,14 +303,7 @@ describe("FirstUseNudge component", () => {
   it("dismisses tooltip when backdrop is clicked", () => {
     const { ref, cleanup } = createTargetRef();
 
-    render(
-      <FirstUseNudge
-        projectId="proj-1"
-        hasAnySources={false}
-        isResearchPanelOpen={false}
-        targetRef={ref}
-      />,
-    );
+    render(<FirstUseNudge isActive={true} targetRef={ref} />);
 
     act(() => {
       vi.advanceTimersByTime(500);
@@ -375,14 +325,7 @@ describe("FirstUseNudge component", () => {
   it("tooltip text matches acceptance criteria", () => {
     const { ref, cleanup } = createTargetRef();
 
-    render(
-      <FirstUseNudge
-        projectId="proj-1"
-        hasAnySources={false}
-        isResearchPanelOpen={false}
-        targetRef={ref}
-      />,
-    );
+    render(<FirstUseNudge isActive={true} targetRef={ref} />);
 
     act(() => {
       vi.advanceTimersByTime(500);

@@ -98,7 +98,7 @@ export function EditorToolbar({
   isSigningOut,
 }: EditorToolbarProps) {
   const researchButtonRef = useRef<HTMLButtonElement>(null);
-  const { showPulsingDot } = useFirstUseNudge({
+  const { showPulsingDot, isActive: nudgeIsActive } = useFirstUseNudge({
     projectId,
     hasAnySources,
     isResearchPanelOpen,
@@ -201,12 +201,7 @@ export function EditorToolbar({
         </div>
 
         {/* First-use nudge tooltip (#185) */}
-        <FirstUseNudge
-          projectId={projectId}
-          hasAnySources={hasAnySources}
-          isResearchPanelOpen={isResearchPanelOpen}
-          targetRef={researchButtonRef}
-        />
+        <FirstUseNudge isActive={nudgeIsActive} targetRef={researchButtonRef} />
 
         <div className="w-px h-5 bg-border" aria-hidden="true" />
 

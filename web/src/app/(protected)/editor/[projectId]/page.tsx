@@ -26,6 +26,7 @@ import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { useSourceActions } from "@/hooks/use-source-actions";
 import { useSources } from "@/hooks/use-sources";
+import { isNudgeDismissed } from "@/components/research/first-use-nudge";
 import { useEditorProject } from "@/hooks/use-editor-project";
 import { useChapterContent } from "@/hooks/use-chapter-content";
 
@@ -258,10 +259,12 @@ function EditorPageInner() {
   // --- Source count for first-use nudge (#185) ---
   const { sources: projectSources, fetchSources: fetchProjectSources } = useSources(projectId);
 
-  // Fetch sources on mount to check count for first-use nudge
+  // Only fetch sources for the nudge if the nudge hasn't been dismissed yet
   useEffect(() => {
-    fetchProjectSources();
-  }, [fetchProjectSources]);
+    if (!isNudgeDismissed(projectId)) {
+      fetchProjectSources();
+    }
+  }, [fetchProjectSources, projectId]);
 
   // --- Computed values ---
   const totalWordCount = projectData?.chapters.reduce((sum, ch) => sum + ch.wordCount, 0) ?? 0;

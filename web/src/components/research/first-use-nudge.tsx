@@ -258,9 +258,7 @@ function TooltipController({ targetRef }: { targetRef: RefObject<HTMLButtonEleme
 // === Main FirstUseNudge Component ===
 
 interface FirstUseNudgeProps {
-  projectId: string;
-  hasAnySources: boolean;
-  isResearchPanelOpen: boolean;
+  isActive: boolean;
   targetRef: RefObject<HTMLButtonElement | null>;
 }
 
@@ -275,19 +273,10 @@ interface FirstUseNudgeProps {
  * - State stored in localStorage: research-nudge-dismissed-{projectId}
  * - Uses createPortal to render above other content
  * - Pulsing dot: CSS animation, prefers-reduced-motion disables animation
+ *
+ * The parent owns the hook (useFirstUseNudge) and passes isActive as a prop.
  */
-export function FirstUseNudge({
-  projectId,
-  hasAnySources,
-  isResearchPanelOpen,
-  targetRef,
-}: FirstUseNudgeProps) {
-  const { isActive } = useFirstUseNudge({
-    projectId,
-    hasAnySources,
-    isResearchPanelOpen,
-  });
-
+export function FirstUseNudge({ isActive, targetRef }: FirstUseNudgeProps) {
   // TooltipController is only mounted when active.
   // Unmounting resets the timer state automatically.
   if (!isActive) return null;
