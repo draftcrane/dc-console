@@ -246,11 +246,11 @@ function validateSnippet(obj: Record<string, unknown>): Snippet | null {
   const relevance = typeof obj.relevance === "string" ? obj.relevance : "";
 
   return {
-    content: content.slice(0, MAX_CONTENT_LENGTH),
-    sourceId,
-    sourceTitle,
-    sourceLocation,
-    relevance,
+    content: content.trim().slice(0, MAX_CONTENT_LENGTH),
+    sourceId: sourceId.trim(),
+    sourceTitle: sourceTitle.trim(),
+    sourceLocation: sourceLocation.trim(),
+    relevance: relevance.trim(),
   };
 }
 
