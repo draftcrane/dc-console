@@ -1,0 +1,76 @@
+{
+  "name": "fixture-2-medium",
+  "sources": [
+    {
+      "id": "med-lead-1",
+      "title": "Transformational Leadership Theory",
+      "htmlType": "structured",
+      "wordCount": 4101,
+      "file": "med-lead-1.html"
+    },
+    {
+      "id": "med-lead-2",
+      "title": "Servant Leadership in Practice",
+      "htmlType": "structured",
+      "wordCount": 4102,
+      "file": "med-lead-2.html"
+    },
+    {
+      "id": "med-research-1",
+      "title": "Qualitative Data Analysis",
+      "htmlType": "structured",
+      "wordCount": 4076,
+      "file": "med-research-1.html"
+    },
+    {
+      "id": "med-research-2",
+      "title": "Interview Protocol Design",
+      "htmlType": "structured",
+      "wordCount": 4096,
+      "file": "med-research-2.html"
+    },
+    {
+      "id": "med-change-1",
+      "title": "Leading Change in Healthcare",
+      "htmlType": "structured",
+      "wordCount": 4033,
+      "file": "med-change-1.html"
+    },
+    {
+      "id": "med-change-2",
+      "title": "Digital Transformation Strategy",
+      "htmlType": "structured",
+      "wordCount": 4055,
+      "file": "med-change-2.html"
+    },
+    {
+      "id": "med-teams-1",
+      "title": "Building High-Performance Teams",
+      "htmlType": "structured",
+      "wordCount": 4078,
+      "file": "med-teams-1.html"
+    },
+    {
+      "id": "med-coach-1",
+      "title": "Executive Coaching Frameworks",
+      "htmlType": "structured",
+      "wordCount": 4032,
+      "file": "med-coach-1.html"
+    },
+    {
+      "id": "med-strategy-1",
+      "title": "Competitive Strategy Analysis",
+      "htmlType": "structured",
+      "wordCount": 4051,
+      "file": "med-strategy-1.html"
+    },
+    {
+      "id": "med-pm-1",
+      "title": "Agile Project Management",
+      "htmlType": "structured",
+      "wordCount": 4036,
+      "file": "med-pm-1.html"
+    }
+  ],
+  "totalWordCount": 40660
+}

@@ -1,0 +1,27 @@
+{
+  "name": "fixture-1-small",
+  "sources": [
+    {
+      "id": "small-leadership",
+      "title": "Leadership Fundamentals for Practitioners",
+      "htmlType": "structured",
+      "wordCount": 1911,
+      "file": "small-leadership.html"
+    },
+    {
+      "id": "small-research",
+      "title": "Research Methods Handbook",
+      "htmlType": "structured",
+      "wordCount": 1859,
+      "file": "small-research.html"
+    },
+    {
+      "id": "small-change",
+      "title": "Managing Organizational Change",
+      "htmlType": "structured",
+      "wordCount": 1856,
+      "file": "small-change.html"
+    }
+  ],
+  "totalWordCount": 5626
+}
