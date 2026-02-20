@@ -13,7 +13,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply dc-main --remote"
   },
   "dependencies": {
-    "hono": "^4.7.0",
+    "hono": "^4.11.10",
     "jszip": "^3.10.1",
     "sanitize-html": "^2.17.0",
     "svix": "^1.84.1",
