@@ -324,14 +324,11 @@ export function ResearchPanel() {
     return (
       <div
         ref={panelRef}
+        id="research-panel"
         role="complementary"
         aria-label="Research panel"
         className="research-panel w-[340px] shrink-0 border-l border-border bg-background flex flex-col
                    research-panel-slide-in"
-        style={{
-          paddingRight: "env(safe-area-inset-right, 0px)",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        }}
       >
         <PanelHeader onClose={closePanel} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -353,16 +350,11 @@ export function ResearchPanel() {
       {/* Overlay panel */}
       <div
         ref={panelRef}
+        id="research-panel"
         role="complementary"
         aria-label="Research panel"
         className="research-panel-overlay fixed top-0 right-0 bottom-0 w-[85%] z-50
                    bg-background flex flex-col shadow-xl research-panel-slide-in"
-        style={{
-          height: "100dvh",
-          paddingTop: "env(safe-area-inset-top, 0px)",
-          paddingRight: "env(safe-area-inset-right, 0px)",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
-        }}
       >
         <PanelHeader onClose={closePanel} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
