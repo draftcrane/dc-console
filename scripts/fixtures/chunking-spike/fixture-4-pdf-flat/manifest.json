@@ -1,0 +1,27 @@
+{
+  "name": "fixture-4-pdf-flat",
+  "sources": [
+    {
+      "id": "pdf-leadership",
+      "title": "Leadership Research Review 2023",
+      "htmlType": "flat",
+      "wordCount": 1518,
+      "file": "pdf-leadership.html"
+    },
+    {
+      "id": "pdf-methods",
+      "title": "Qualitative Methods in Management Research",
+      "htmlType": "flat",
+      "wordCount": 1426,
+      "file": "pdf-methods.html"
+    },
+    {
+      "id": "pdf-change",
+      "title": "Organizational Transformation Case Studies",
+      "htmlType": "flat",
+      "wordCount": 1645,
+      "file": "pdf-change.html"
+    }
+  ],
+  "totalWordCount": 4589
+}

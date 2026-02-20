@@ -1,0 +1,27 @@
+{
+  "name": "fixture-5-docx-structured",
+  "sources": [
+    {
+      "id": "docx-coaching",
+      "title": "Executive Coaching Best Practices",
+      "htmlType": "structured",
+      "wordCount": 1735,
+      "file": "docx-coaching.html"
+    },
+    {
+      "id": "docx-teams",
+      "title": "Team Effectiveness Research Summary",
+      "htmlType": "structured",
+      "wordCount": 1564,
+      "file": "docx-teams.html"
+    },
+    {
+      "id": "docx-strategy",
+      "title": "Strategic Planning Workbook",
+      "htmlType": "structured",
+      "wordCount": 1440,
+      "file": "docx-strategy.html"
+    }
+  ],
+  "totalWordCount": 4739
+}

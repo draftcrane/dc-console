@@ -1,0 +1,269 @@
+[
+  {
+    "id": "kw-1",
+    "query": "emotional intelligence star performers",
+    "type": "keyword",
+    "expectedSourceIds": [
+      "small-leadership"
+    ],
+    "expectedPhrases": [
+      "emotional intelligence",
+      "star performers"
+    ]
+  },
+  {
+    "id": "kw-2",
+    "query": "grounded theory Glaser and Strauss 1967",
+    "type": "keyword",
+    "expectedSourceIds": [
+      "small-research"
+    ],
+    "expectedPhrases": [
+      "Glaser and Strauss",
+      "1967"
+    ]
+  },
+  {
+    "id": "kw-3",
+    "query": "Kotter eight-step process guiding coalition",
+    "type": "keyword",
+    "expectedSourceIds": [
+      "small-change"
+    ],
+    "expectedPhrases": [
+      "eight-step process",
+      "guiding coalition"
+    ]
+  },
+  {
+    "id": "kw-4",
+    "query": "Cohen's kappa inter-rater agreement",
+    "type": "keyword",
+    "expectedSourceIds": [
+      "small-research"
+    ],
+    "expectedPhrases": [
+      "Cohen's kappa",
+      "inter-rater agreement"
+    ]
+  },
+  {
+    "id": "kw-5",
+    "query": "GROW model Goal Reality Options Will",
+    "type": "keyword",
+    "expectedSourceIds": [
+      "docx-coaching"
+    ],
+    "expectedPhrases": [
+      "GROW model",
+      "Goal, Reality, Options, Will"
+    ]
+  },
+  {
+    "id": "kw-6",
+    "query": "psychological safety Edmondson 1999",
+    "type": "keyword",
+    "expectedSourceIds": [
+      "docx-teams"
+    ],
+    "expectedPhrases": [
+      "psychological safety",
+      "Edmondson"
+    ]
+  },
+  {
+    "id": "para-1",
+    "query": "how does showing weakness make leaders more effective",
+    "type": "paraphrase",
+    "expectedSourceIds": [
+      "small-leadership"
+    ],
+    "expectedPhrases": [
+      "vulnerability",
+      "stronger teams"
+    ]
+  },
+  {
+    "id": "para-2",
+    "query": "when should qualitative researchers stop collecting data",
+    "type": "paraphrase",
+    "expectedSourceIds": [
+      "small-research"
+    ],
+    "expectedPhrases": [
+      "data saturation"
+    ]
+  },
+  {
+    "id": "para-3",
+    "query": "why do employees push back against organizational restructuring",
+    "type": "paraphrase",
+    "expectedSourceIds": [
+      "small-change"
+    ],
+    "expectedPhrases": [
+      "resistance to change",
+      "job security"
+    ]
+  },
+  {
+    "id": "para-4",
+    "query": "using artificial intelligence for repetitive business tasks",
+    "type": "paraphrase",
+    "expectedSourceIds": [
+      "pdf-change"
+    ],
+    "expectedPhrases": [
+      "robotic process automation",
+      "rule-based tasks"
+    ]
+  },
+  {
+    "id": "para-5",
+    "query": "what motivates people at a fundamental level",
+    "type": "paraphrase",
+    "expectedSourceIds": [
+      "docx-coaching"
+    ],
+    "expectedPhrases": [
+      "autonomy",
+      "competence",
+      "relatedness"
+    ]
+  },
+  {
+    "id": "para-6",
+    "query": "how does excessive agreement in groups lead to bad decisions",
+    "type": "paraphrase",
+    "expectedSourceIds": [
+      "docx-teams"
+    ],
+    "expectedPhrases": [
+      "groupthink",
+      "consensus",
+      "poor decisions"
+    ]
+  },
+  {
+    "id": "multi-1",
+    "query": "how do leadership and team dynamics interact",
+    "type": "multi-source",
+    "expectedSourceIds": [
+      "small-leadership",
+      "docx-teams"
+    ],
+    "expectedPhrases": [
+      "leadership",
+      "team",
+      "psychological safety"
+    ]
+  },
+  {
+    "id": "multi-2",
+    "query": "research interview methods and coaching conversations",
+    "type": "multi-source",
+    "expectedSourceIds": [
+      "small-research",
+      "docx-coaching"
+    ],
+    "expectedPhrases": [
+      "interview",
+      "coaching"
+    ]
+  },
+  {
+    "id": "multi-3",
+    "query": "managing resistance during digital transformation",
+    "type": "multi-source",
+    "expectedSourceIds": [
+      "small-change",
+      "pdf-change"
+    ],
+    "expectedPhrases": [
+      "resistance",
+      "digital transformation"
+    ]
+  },
+  {
+    "id": "multi-4",
+    "query": "measuring effectiveness in coaching and team performance",
+    "type": "multi-source",
+    "expectedSourceIds": [
+      "docx-coaching",
+      "docx-teams"
+    ],
+    "expectedPhrases": [
+      "measuring",
+      "outcomes",
+      "performance"
+    ]
+  },
+  {
+    "id": "multi-5",
+    "query": "competitive strategy and organizational change models",
+    "type": "multi-source",
+    "expectedSourceIds": [
+      "docx-strategy",
+      "small-change"
+    ],
+    "expectedPhrases": [
+      "strategy",
+      "change"
+    ]
+  },
+  {
+    "id": "multi-6",
+    "query": "qualitative and quantitative analysis approaches",
+    "type": "multi-source",
+    "expectedSourceIds": [
+      "small-research",
+      "pdf-methods"
+    ],
+    "expectedPhrases": [
+      "qualitative",
+      "quantitative"
+    ]
+  },
+  {
+    "id": "neg-1",
+    "query": "machine learning neural network architectures deep learning",
+    "type": "negative",
+    "expectedSourceIds": [],
+    "expectedPhrases": []
+  },
+  {
+    "id": "neg-2",
+    "query": "quantum computing qubit entanglement error correction",
+    "type": "negative",
+    "expectedSourceIds": [],
+    "expectedPhrases": []
+  },
+  {
+    "id": "neg-3",
+    "query": "marine biology coral reef ecosystem biodiversity",
+    "type": "negative",
+    "expectedSourceIds": [],
+    "expectedPhrases": []
+  },
+  {
+    "id": "neg-4",
+    "query": "Renaissance painting techniques oil canvas fresco",
+    "type": "negative",
+    "expectedSourceIds": [],
+    "expectedPhrases": []
+  },
+  {
+    "id": "neg-5",
+    "query": "cryptocurrency blockchain smart contract ethereum solidity",
+    "type": "negative",
+    "expectedSourceIds": [],
+    "expectedPhrases": []
+  },
+  {
+    "id": "neg-6",
+    "query": "astrophysics black hole event horizon gravitational waves",
+    "type": "negative",
+    "expectedSourceIds": [],
+    "expectedPhrases": []
+  }
+]
