@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useState, type ReactNode } from "react";
 import { useResearchPanel, type ResearchTab } from "./research-panel-provider";
 import { SourcesTab } from "./sources-tab";
+import { AskTab } from "./ask-tab";
 
 // === Tab Definitions ===
 
@@ -225,7 +226,7 @@ function TabContent({ activeTab }: { activeTab: ResearchTab }) {
         <SourcesTab />
       </TabPanel>
       <TabPanel id="ask" activeTab={activeTab}>
-        <ComingSoonPlaceholder tabName="Ask" />
+        <AskTab />
       </TabPanel>
       <TabPanel id="clips" activeTab={activeTab}>
         <ComingSoonPlaceholder tabName="Clips" />
