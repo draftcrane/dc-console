@@ -286,7 +286,7 @@ export class SourceMaterialService {
 
     const result = await this.db
       .prepare(
-        `SELECT psc.id, psc.drive_connection_id, dc.email, psc.created_at,
+        `SELECT psc.id, psc.drive_connection_id, dc.drive_email, psc.created_at,
                 (SELECT COUNT(*) FROM source_materials sm
                  WHERE sm.project_id = ? AND sm.drive_connection_id = psc.drive_connection_id
                    AND sm.status != 'archived') as document_count
@@ -299,7 +299,7 @@ export class SourceMaterialService {
       .all<{
         id: string;
         drive_connection_id: string;
-        email: string;
+        drive_email: string;
         created_at: string;
         document_count: number;
       }>();
@@ -307,7 +307,7 @@ export class SourceMaterialService {
     return (result.results ?? []).map((row) => ({
       id: row.id,
       driveConnectionId: row.drive_connection_id,
-      email: row.email,
+      email: row.drive_email,
       connectedAt: row.created_at,
       documentCount: row.document_count,
     }));
@@ -334,9 +334,9 @@ export class SourceMaterialService {
 
     // Verify connection belongs to user
     const connection = await this.db
-      .prepare(`SELECT id, email FROM drive_connections WHERE id = ? AND user_id = ?`)
+      .prepare(`SELECT id, drive_email FROM drive_connections WHERE id = ? AND user_id = ?`)
       .bind(driveConnectionId, userId)
-      .first<{ id: string; email: string }>();
+      .first<{ id: string; drive_email: string }>();
 
     if (!connection) {
       notFound("Drive connection not found");
@@ -356,18 +356,23 @@ export class SourceMaterialService {
     // Fetch the actual row (may be pre-existing due to OR IGNORE)
     const row = await this.db
       .prepare(
-        `SELECT psc.id, psc.drive_connection_id, dc.email, psc.created_at
+        `SELECT psc.id, psc.drive_connection_id, dc.drive_email, psc.created_at
          FROM project_source_connections psc
          JOIN drive_connections dc ON dc.id = psc.drive_connection_id
          WHERE psc.project_id = ? AND psc.drive_connection_id = ?`,
       )
       .bind(projectId, driveConnectionId)
-      .first<{ id: string; drive_connection_id: string; email: string; created_at: string }>();
+      .first<{
+        id: string;
+        drive_connection_id: string;
+        drive_email: string;
+        created_at: string;
+      }>();
 
     return {
       id: row!.id,
       driveConnectionId: row!.drive_connection_id,
-      email: row!.email,
+      email: row!.drive_email,
       connectedAt: row!.created_at,
       documentCount: 0,
     };
