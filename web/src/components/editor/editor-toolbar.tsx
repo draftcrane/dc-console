@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import type { ProjectData } from "@/types/editor";
 import type { SaveStatus } from "@/hooks/use-auto-save";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
@@ -9,6 +10,7 @@ import { SaveIndicator } from "./save-indicator";
 import { DriveStatusIndicator } from "@/components/drive/drive-status-indicator";
 import { ExportMenu } from "@/components/project/export-menu";
 import { SettingsMenu } from "@/components/project/settings-menu";
+import { FirstUseNudge, PulsingDot, useFirstUseNudge } from "@/components/research/first-use-nudge";
 
 interface EditorToolbarProps {
   projectData: ProjectData;
@@ -39,6 +41,9 @@ interface EditorToolbarProps {
   // Research panel (#182)
   isResearchPanelOpen: boolean;
   onToggleResearchPanel: () => void;
+
+  // First-use nudge (#185)
+  hasAnySources: boolean;
 
   // Settings
   hasDriveFolder: boolean;
@@ -80,6 +85,7 @@ export function EditorToolbar({
   apiUrl,
   isResearchPanelOpen,
   onToggleResearchPanel,
+  hasAnySources,
   hasDriveFolder,
   onViewSources,
   onManageAccounts,
@@ -91,6 +97,13 @@ export function EditorToolbar({
   onSignOut,
   isSigningOut,
 }: EditorToolbarProps) {
+  const researchButtonRef = useRef<HTMLButtonElement>(null);
+  const { showPulsingDot, isActive: nudgeIsActive } = useFirstUseNudge({
+    projectId,
+    hasAnySources,
+    isResearchPanelOpen,
+  });
+
   return (
     <div className="flex items-center justify-between h-12 px-4 border-b border-border bg-background shrink-0">
       <div className="flex items-center gap-2 min-w-0">
@@ -153,35 +166,42 @@ export function EditorToolbar({
         )}
 
         {/* Research panel toggle (#182) */}
-        <button
-          onClick={onToggleResearchPanel}
-          className={`h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
-                     transition-colors ${
-                       isResearchPanelOpen
-                         ? "text-blue-700 bg-blue-50"
-                         : "text-muted-foreground hover:text-foreground hover:bg-gray-100"
-                     }`}
-          aria-label={isResearchPanelOpen ? "Close research panel" : "Open research panel"}
-          aria-expanded={isResearchPanelOpen}
-          aria-controls="research-panel"
-          title="Research (Cmd+Shift+R)"
-        >
-          <svg
-            className="w-4 h-4 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
+        <div className="relative">
+          <button
+            ref={researchButtonRef}
+            onClick={onToggleResearchPanel}
+            className={`h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
+                       transition-colors ${
+                         isResearchPanelOpen
+                           ? "text-blue-700 bg-blue-50"
+                           : "text-muted-foreground hover:text-foreground hover:bg-gray-100"
+                       }`}
+            aria-label={isResearchPanelOpen ? "Close research panel" : "Open research panel"}
+            aria-expanded={isResearchPanelOpen}
+            aria-controls="research-panel"
+            title="Research (Cmd+Shift+R)"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-            />
-          </svg>
-          <span className="hidden sm:inline">Research</span>
-        </button>
+            <svg
+              className="w-4 h-4 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+              />
+            </svg>
+            <span className="hidden sm:inline">Research</span>
+          </button>
+          {showPulsingDot && <PulsingDot />}
+        </div>
+
+        {/* First-use nudge tooltip (#185) */}
+        <FirstUseNudge isActive={nudgeIsActive} targetRef={researchButtonRef} />
 
         <div className="w-px h-5 bg-border" aria-hidden="true" />
 

@@ -44,6 +44,16 @@ vi.mock("@/components/project/settings-menu", () => ({
   SettingsMenu: () => <div data-testid="settings-menu">Settings</div>,
 }));
 
+vi.mock("@/components/research/first-use-nudge", () => ({
+  FirstUseNudge: () => null,
+  PulsingDot: () => <span data-testid="pulsing-dot" />,
+  useFirstUseNudge: () => ({
+    showPulsingDot: false,
+    isActive: false,
+    permanentlyDismiss: () => {},
+  }),
+}));
+
 function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorToolbar>>) {
   return {
     projectData: {
@@ -80,6 +90,7 @@ function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorToolbar
     apiUrl: "https://api.test",
     isResearchPanelOpen: false,
     onToggleResearchPanel: vi.fn(),
+    hasAnySources: false,
     hasDriveFolder: false,
     onViewSources: vi.fn(),
     onManageAccounts: vi.fn(),
