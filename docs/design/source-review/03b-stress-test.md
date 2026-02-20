@@ -8,7 +8,7 @@
 
 ## Part 1: Flow-by-Flow Walkthrough
 
-*All walkthroughs written in first person as Diane Mercer unless otherwise noted.*
+_All walkthroughs written in first person as Diane Mercer unless otherwise noted._
 
 ---
 
@@ -45,9 +45,9 @@ The view transitions back to my source list. I see the two new sources with "Pro
 
 **Rating: GREEN**
 
-This felt natural. The [+ Add] button was obvious. The Drive browser looked like my Drive. The checkboxes were clear. The "Add Selected" button was prominent. I never felt lost. The inline replacement pattern -- where the source list becomes the add flow and then becomes the source list again -- is intuitive. It feels like navigating *within* a panel, not opening new windows on top of each other.
+This felt natural. The [+ Add] button was obvious. The Drive browser looked like my Drive. The checkboxes were clear. The "Add Selected" button was prominent. I never felt lost. The inline replacement pattern -- where the source list becomes the add flow and then becomes the source list again -- is intuitive. It feels like navigating _within_ a panel, not opening new windows on top of each other.
 
-The one minor concern: if I had *no* Google accounts connected, would I know to connect one? The design says it shows a "Connect Google Account" button in that case. Fine. But I'd need to have connected my account during initial setup before any of this makes sense. That's a separate flow I'm trusting works.
+The one minor concern: if I had _no_ Google accounts connected, would I know to connect one? The design says it shows a "Connect Google Account" button in that case. Fine. But I'd need to have connected my account during initial setup before any of this makes sense. That's a separate flow I'm trusting works.
 
 ---
 
@@ -149,7 +149,7 @@ I stare at this. It found the exact quote. From the right document. It's telling
 
 This is the feature that makes DraftCrane worthwhile. The suggested queries give me a starting point. The results are structured with source citations. I can verify. I can save. I can ask follow-ups. The keyboard handling follows a familiar pattern. The loading state tells me what's happening.
 
-The one risk -- and this is a BIG one -- is if the AI gives bad answers in practice. My rating is GREEN for the *interaction design*. The interaction is intuitive and clear. Whether the AI behind it actually works is a quality question, not a design question. If the AI hallucinates, no amount of good design will save it. But the design itself is right.
+The one risk -- and this is a BIG one -- is if the AI gives bad answers in practice. My rating is GREEN for the _interaction design_. The interaction is intuitive and clear. Whether the AI behind it actually works is a quality question, not a design question. If the AI hallucinates, no amount of good design will save it. But the design itself is right.
 
 ---
 
@@ -179,7 +179,7 @@ Above my selection, a toolbar pops up. It shows the standard "Copy" option AND a
 **Step 4: Tap "Save to Clips."**
 I tap it. A toast pops up: "Saved to Clips." The Clips tab badge increments.
 
-**Hesitation point (Path B):** The long-press to select text is fine -- I do this all the time. But will I *discover* the "Save to Clips" option in the floating toolbar? The design says it appears alongside the system "Copy" action. If it's in the standard iOS cut/copy/paste toolbar, I'll see it because I look at that toolbar whenever I select text. If it's a separate custom toolbar, I might miss it.
+**Hesitation point (Path B):** The long-press to select text is fine -- I do this all the time. But will I _discover_ the "Save to Clips" option in the floating toolbar? The design says it appears alongside the system "Copy" action. If it's in the standard iOS cut/copy/paste toolbar, I'll see it because I look at that toolbar whenever I select text. If it's a separate custom toolbar, I might miss it.
 
 **Rating: GREEN (Path A) / YELLOW (Path B)**
 
@@ -302,7 +302,7 @@ Marcus would also rate this YELLOW, but for different reasons. He'd be frustrate
 
 ### Scenario A: First-Time Experience
 
-*"I just signed up for DraftCrane. I created my first project. I connected my Google Drive. Now I see the editor. I've been told there's a way to bring in my existing Google Docs as reference material. What do I do?"*
+_"I just signed up for DraftCrane. I created my first project. I connected my Google Drive. Now I see the editor. I've been told there's a way to bring in my existing Google Docs as reference material. What do I do?"_
 
 **1. Do I see the Research panel? Is it open by default? How do I find it?**
 
@@ -338,13 +338,13 @@ The progressive disclosure works here: I added a source, I can view it, and the 
 
 I'm giving this YELLOW, not GREEN, for one specific reason: **the Research panel is hidden by default.** If someone told me "there's a way to bring in your Google Docs," I'd look for it. But if nobody told me -- if I just signed up and started writing -- I might not discover the Research button in the toolbar for days or weeks. There's no onboarding prompt, no tooltip, no "Hey, want to add your research materials?" nudge.
 
-The flows themselves are GREEN once I'm inside the panel. But *finding* the panel in the first place is the gap. A first-use prompt or a visible empty state in the sidebar ("Add research material") would close this gap.
+The flows themselves are GREEN once I'm inside the panel. But _finding_ the panel in the first place is the gap. A first-use prompt or a visible empty state in the sidebar ("Add research material") would close this gap.
 
 ---
 
 ### Scenario B: Mid-Writing Experience
 
-*"I'm deep in Chapter 6 -- 'Building Psychological Safety.' I just wrote a paragraph claiming that 'teams with high psychological safety are 40% more productive.' I need to verify that stat because I think it came from one of my workshop preparation docs."*
+_"I'm deep in Chapter 6 -- 'Building Psychological Safety.' I just wrote a paragraph claiming that 'teams with high psychological safety are 40% more productive.' I need to verify that stat because I think it came from one of my workshop preparation docs."_
 
 **1. I'm in the editor. The Research panel may or may not be open. What's my first move?**
 
@@ -359,6 +359,7 @@ Either way, I'm 1-2 taps from the Ask tab.
 I type in the Ask input: "What stat do I have about psychological safety and productivity?"
 
 The AI responds. It finds two passages:
+
 - One from Workshop Notes March 2024: "67% of teams reporting measurable improvement"
 - One from Q4-Report.doc: "2.3x faster decision-making"
 
@@ -373,6 +374,7 @@ I scroll through. I find a passage that says "teams with high psychological safe
 **4. If I want to use a specific quote, how do I get it into my chapter?**
 
 I have two options:
+
 - I can long-press to select the corrected passage in the Source Detail View, tap "Save to Clips," then go to Clips and tap "Insert."
 - Or I can go back to the Ask tab, ask a more specific question to get the passage as a result card, and tap "Insert" directly.
 
@@ -390,13 +392,13 @@ DraftCrane compressed a 5-minute research interruption into about a minute. My w
 
 This is the scenario that sells DraftCrane. The Ask tab turns a multi-minute Google Drive scavenger hunt into a 30-second query. The ability to verify by tapping through to the source document addresses my trust concerns. The insertion path exists even if it's a few taps more than ideal.
 
-The only thing that could make this RED: if the AI misattributes the quote or can't find it at all. The design can't control AI quality, but it handles the "no results" case with a helpful message. The *design* is GREEN. The *experience* depends on the AI working correctly.
+The only thing that could make this RED: if the AI misattributes the quote or can't find it at all. The design can't control AI quality, but it handles the "no results" case with a helpful message. The _design_ is GREEN. The _experience_ depends on the AI working correctly.
 
 ---
 
 ### Scenario C: Research Session Experience
 
-*"I'm not writing today. I'm organizing. I want to go through 5 of my Google Docs and pull out the best passages for my book. I'll use them later when I actually write."*
+_"I'm not writing today. I'm organizing. I want to go through 5 of my Google Docs and pull out the best passages for my book. I'll use them later when I actually write."_
 
 **1. Can I do this in DraftCrane, or do I need to use Google Docs directly?**
 
@@ -450,7 +452,7 @@ To make this GREEN: add the ability to tag clips when saving them. Even a simple
 ### Terminology
 
 **"Sources"**
-I know what "sources" means in the abstract -- it's where information comes from. But it has an academic connotation. "Bibliography sources." "Cite your sources." When I see "Sources" as a tab label, my first thought is academic citation management. My *second* thought is "oh, these are my reference files." The second thought is correct, but the first thought creates a moment of "is this for me?"
+I know what "sources" means in the abstract -- it's where information comes from. But it has an academic connotation. "Bibliography sources." "Cite your sources." When I see "Sources" as a tab label, my first thought is academic citation management. My _second_ thought is "oh, these are my reference files." The second thought is correct, but the first thought creates a moment of "is this for me?"
 
 Better alternatives: "My Docs" (too casual?), "Reference Docs" (clearer but longer), "Files" (generic but accurate). Honestly, "Sources" is fine. It's one of those things that feels slightly off on first encounter but becomes invisible after the first session. I wouldn't change it unless user testing shows real confusion. **Verdict: Acceptable.**
 
@@ -470,6 +472,7 @@ Yes, this implies I can ask questions. And I can. The label matches the action. 
 Actually, "Ask" is fine. It's the most direct label for "type a question here." **Verdict: Good.**
 
 **Other terms:**
+
 - "Processing..." on a new source: Clear. It's working on my file.
 - "Cached 2h ago": I don't know what "cached" means. "Updated 2h ago" would be clearer.
 - "Import as Chapter": This one still concerns me from the earlier analysis. Does "import" mean "copy"? Does "as chapter" mean it becomes a chapter? Yes, but the stakes are high -- I might accidentally turn a reference doc into a chapter. The confirmation dialog should be explicit about what happens.
@@ -577,9 +580,9 @@ The bigger "wall" risk is the first-time setup: connecting Google Drive, adding 
 
 **Does Diane trust that her Google Docs are safe?**
 
-My first and deepest concern with any tool that touches my Google Drive: *will it change my files?* Will it edit them? Will it share them? Will it delete them?
+My first and deepest concern with any tool that touches my Google Drive: _will it change my files?_ Will it edit them? Will it share them? Will it delete them?
 
-The detailed design doesn't include explicit reassurance messaging during the add flow. When I browse my Drive and select files, there's no message saying "DraftCrane reads your files but never modifies them." The confirmation dialog for *removing* a source says "The original file in Google Drive is not affected" -- which is reassuring at removal time. But at *addition* time, when I'm first connecting my files, there's no equivalent reassurance.
+The detailed design doesn't include explicit reassurance messaging during the add flow. When I browse my Drive and select files, there's no message saying "DraftCrane reads your files but never modifies them." The confirmation dialog for _removing_ a source says "The original file in Google Drive is not affected" -- which is reassuring at removal time. But at _addition_ time, when I'm first connecting my files, there's no equivalent reassurance.
 
 **What I'd want to see:** During the Source Add Flow, somewhere visible: "DraftCrane reads your files to help you search and reference them. Your original files are never modified." One sentence. Enormous trust impact.
 
@@ -587,7 +590,7 @@ The detailed design doesn't include explicit reassurance messaging during the ad
 
 **Does she trust the AI search results?**
 
-Not initially. I'd trust the results *after* I verify them a few times. The design supports verification: I can tap the source title and see the original document. If the AI says "according to Workshop Notes March 2024" and I can open that document and see the quote in context, trust builds.
+Not initially. I'd trust the results _after_ I verify them a few times. The design supports verification: I can tap the source title and see the original document. If the AI says "according to Workshop Notes March 2024" and I can open that document and see the quote in context, trust builds.
 
 The design does NOT show the AI ever making things up. It quotes passages from my actual documents. That's fundamentally different from ChatGPT, which might paraphrase or hallucinate. If the AI consistently shows me exact quotes from named sources, I'll trust it within a few sessions.
 
@@ -596,6 +599,7 @@ The design does NOT show the AI ever making things up. It quotes passages from m
 **Does she understand what "adding a source" does to her original file?**
 
 Not clearly. "Adding a source" could mean:
+
 - DraftCrane bookmarks my file (correct -- it's more like bookmarking)
 - DraftCrane copies my file into its own storage (partially correct -- it caches the content)
 - DraftCrane modifies my file (incorrect, but plausible fear)
@@ -616,19 +620,19 @@ No -- the removal dialog explicitly says "The original file in Google Drive is n
 
 ### Traffic Light Summary
 
-| # | Flow / Scenario | Rating | Key Factor |
-|---|----------------|--------|------------|
-| 1 | Add source from Google Drive | GREEN | Inline flow, no sheet stacking, clear back navigation |
-| 2 | Add source from local device | GREEN | System file picker is familiar, supported types listed clearly |
-| 3 | View source while writing | GREEN | Side-by-side in landscape is the core value proposition |
-| 4 | Search sources with natural language | GREEN | Intuitive query pattern, structured results with citations |
-| 5 | Save a snippet from search results | GREEN / YELLOW | Path A (from AI result) is trivial; Path B (text selection) depends on floating toolbar discoverability |
-| 6 | Insert a snippet into the editor | YELLOW | Design is excellent but iPad cursor position and viewport behavior are risky |
-| 7 | Remove a source | GREEN | Perfect destructive action pattern with reassurance |
-| 8 | Browse clips on Research Board | YELLOW | Clean display, but cross-tab navigation and lack of organization are concerns |
-| A | First-Time Experience | YELLOW | Panel discoverability and empty-state guidance need work |
-| B | Mid-Writing Experience | GREEN | The killer scenario. Ask tab compresses a 5-minute interruption to 30 seconds |
-| C | Research Session Experience | YELLOW | Good individual steps, but flat clip list doesn't support dedicated research sessions |
+| #   | Flow / Scenario                      | Rating         | Key Factor                                                                                              |
+| --- | ------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------- |
+| 1   | Add source from Google Drive         | GREEN          | Inline flow, no sheet stacking, clear back navigation                                                   |
+| 2   | Add source from local device         | GREEN          | System file picker is familiar, supported types listed clearly                                          |
+| 3   | View source while writing            | GREEN          | Side-by-side in landscape is the core value proposition                                                 |
+| 4   | Search sources with natural language | GREEN          | Intuitive query pattern, structured results with citations                                              |
+| 5   | Save a snippet from search results   | GREEN / YELLOW | Path A (from AI result) is trivial; Path B (text selection) depends on floating toolbar discoverability |
+| 6   | Insert a snippet into the editor     | YELLOW         | Design is excellent but iPad cursor position and viewport behavior are risky                            |
+| 7   | Remove a source                      | GREEN          | Perfect destructive action pattern with reassurance                                                     |
+| 8   | Browse clips on Research Board       | YELLOW         | Clean display, but cross-tab navigation and lack of organization are concerns                           |
+| A   | First-Time Experience                | YELLOW         | Panel discoverability and empty-state guidance need work                                                |
+| B   | Mid-Writing Experience               | GREEN          | The killer scenario. Ask tab compresses a 5-minute interruption to 30 seconds                           |
+| C   | Research Session Experience          | YELLOW         | Good individual steps, but flat clip list doesn't support dedicated research sessions                   |
 
 **Summary: 6 GREEN, 5 YELLOW, 0 RED.**
 
@@ -644,7 +648,7 @@ During Step 2 of Flow 1 (when the Source Add Flow first appears), add a single l
 
 This costs nothing to implement. It addresses the deepest anxiety of anyone connecting their Google Drive to a new application. Every user will read this the first time. Most will only need to read it once. But that one reading prevents a trust barrier that could stop adoption before it starts.
 
-**Why:** Both Diane and Marcus have their professional work in Google Drive. The fear of a tool modifying or mishandling their files is real and justified. The removal dialog says "Drive is not affected" but by then it's too late -- the trust barrier is at the *connection* point, not the *removal* point.
+**Why:** Both Diane and Marcus have their professional work in Google Drive. The fear of a tool modifying or mishandling their files is real and justified. The removal dialog says "Drive is not affected" but by then it's too late -- the trust barrier is at the _connection_ point, not the _removal_ point.
 
 **2. Lower the in-document search threshold from 10,000 words to 2,000 words (or just always show it).**
 
@@ -668,7 +672,7 @@ This can be a tooltip, a pulsing dot, or a one-time banner at the top of the edi
 
 **Would anything in this design make Diane abandon DraftCrane entirely?**
 
-No. Nothing in the *design* is a deal breaker. The design is sound. The flows are intuitive. The complexity is managed.
+No. Nothing in the _design_ is a deal breaker. The design is sound. The flows are intuitive. The complexity is managed.
 
 The deal breaker is **AI quality.** If the Ask tab returns wrong answers, misattributes quotes, or hallucinates information, I will never trust DraftCrane with my research. This is not a design flaw -- it's an implementation risk. But it's worth stating explicitly: the design is building a product whose central value proposition depends on AI reliability. The design handles the "AI fails" case gracefully (error messages, fallback to manual browsing), but graceful degradation doesn't prevent abandonment. If I ask five questions and three give wrong answers, I won't ask a sixth.
 
@@ -686,10 +690,10 @@ Despite my skepticism, here's what excites me about this design:
 The moment when I type a question about my own documents and the AI returns the exact passage from the right file -- with the document name and a citation I can verify -- that is genuinely thrilling. I've been searching through 30 Google Docs manually for three years. If this works, it's the most significant time-saver I've encountered in any writing tool.
 
 **2. Automatic footnotes on insertion.**
-I *hate* doing footnotes. I never know the right format. I forget to add them. I know my book needs them but I dread the work. The fact that tapping "Insert" on a clip or AI result creates a properly formatted footnote automatically -- that's the kind of invisible help that makes a tool feel magical. I'd tell my writing group about this specific feature.
+I _hate_ doing footnotes. I never know the right format. I forget to add them. I know my book needs them but I dread the work. The fact that tapping "Insert" on a clip or AI result creates a properly formatted footnote automatically -- that's the kind of invisible help that makes a tool feel magical. I'd tell my writing group about this specific feature.
 
 **3. Side-by-side source viewing in landscape.**
-After three years of toggling between Safari tabs, having my source document visible *beside* my chapter text feels like the upgrade I didn't know I was waiting for. It's such a simple thing -- split the screen -- but none of my current tools do it seamlessly. DraftCrane in landscape with the Research Panel open is how I imagined writing a book would feel when I first started.
+After three years of toggling between Safari tabs, having my source document visible _beside_ my chapter text feels like the upgrade I didn't know I was waiting for. It's such a simple thing -- split the screen -- but none of my current tools do it seamlessly. DraftCrane in landscape with the Research Panel open is how I imagined writing a book would feel when I first started.
 
 **4. Clips as a running collection.**
 The idea that I'm building a curated collection of useful passages as I research -- and that each passage remembers where it came from -- is powerful. It's better than my Apple Notes system because the attribution is automatic. I've lost track of where quotes came from more times than I can count. If every clip carries its source, that problem disappears.
@@ -704,7 +708,7 @@ That's the pitch. The Research Companion design makes that pitch possible. If th
 
 ## Marcus's Divergent Notes
 
-*Brief perspective from Marcus Chen (34, academic, organized, 100+ documents)*
+_Brief perspective from Marcus Chen (34, academic, organized, 100+ documents)_
 
 Marcus agrees with most of Diane's ratings but diverges on three points:
 

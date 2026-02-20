@@ -41,6 +41,7 @@ Additionally, the API token scope issue discovered during the spike means Vector
 The routing logic is simple: run FTS5 first. If FTS5 returns zero results or all BM25 scores are below threshold, fall back to Vectorize. Based on spike analysis, 50-67% of queries would route to Vectorize, with the remainder served by FTS5 alone.
 
 This gives the best of both worlds:
+
 - Keyword queries: FTS5 at 75ms
 - Paraphrase queries: Vectorize at ~200ms (embed) + ~100ms (search)
 - Negative queries: FTS5 rejects at 75ms (no Vectorize cost)
@@ -49,22 +50,24 @@ This gives the best of both worlds:
 
 Based on spike Phase 1 evaluation (885 chunks, 132/132 checks pass):
 
-| Parameter         | Value         | Rationale                                           |
-| ----------------- | ------------- | --------------------------------------------------- |
-| Target words      | 300           | Conservative for bge-small-en-v1.5 512-token limit  |
-| Max words         | 400           | Hard cap — zero chunks exceeded this in evaluation   |
-| Min words         | 50            | Avoids tiny fragments, merges into previous chunk    |
-| Overlap           | 2 sentences   | ~50 words continuity between adjacent chunks         |
-| Sentence boundary | Always        | 100% compliance across all fixture types             |
+| Parameter         | Value       | Rationale                                          |
+| ----------------- | ----------- | -------------------------------------------------- |
+| Target words      | 300         | Conservative for bge-small-en-v1.5 512-token limit |
+| Max words         | 400         | Hard cap — zero chunks exceeded this in evaluation |
+| Min words         | 50          | Avoids tiny fragments, merges into previous chunk  |
+| Overlap           | 2 sentences | ~50 words continuity between adjacent chunks       |
+| Sentence boundary | Always      | 100% compliance across all fixture types           |
 
 ### Two Chunking Modes
 
 **Mode 1: Structured HTML** (DOCX/MD sources — has `<h1>`-`<h6>`, `<p>`, `<li>`, `<table>`):
+
 - Parse at element boundaries
 - Split within long paragraphs at sentence boundaries
 - Each chunk carries parent heading hierarchy (e.g., `["Chapter 3", "Methodology"]`)
 
 **Mode 2: Flat HTML** (PDF sources — all `<p>` tags):
+
 - Heuristic heading detection: ALL CAPS lines under 10 words, short lines without terminal periods followed by longer content
 - Falls back to positional context: `Section N of M`
 - Same sentence-boundary splitting within paragraphs
@@ -73,14 +76,14 @@ Based on spike Phase 1 evaluation (885 chunks, 132/132 checks pass):
 
 ```typescript
 interface Chunk {
-  id: string;              // sourceId:chunkIndex
+  id: string; // sourceId:chunkIndex
   sourceId: string;
   sourceTitle: string;
-  headingChain: string[];  // ["Chapter 3", "Methodology"] or ["Section 2 of 8"]
-  text: string;            // Plain text (HTML stripped)
-  html: string;            // HTML fragment
+  headingChain: string[]; // ["Chapter 3", "Methodology"] or ["Section 2 of 8"]
+  text: string; // Plain text (HTML stripped)
+  html: string; // HTML fragment
   wordCount: number;
-  startOffset: number;     // Character offset in original
+  startOffset: number; // Character offset in original
   endOffset: number;
 }
 ```
@@ -129,15 +132,16 @@ CREATE INDEX idx_chunks_source ON source_chunks(source_id);
 
 Model: `@cf/baai/bge-small-en-v1.5` via Workers AI binding
 
-| Metric           | Value            |
-| ---------------- | ---------------- |
-| Dimensions       | 384              |
-| Optimal batch    | 25 texts/call    |
-| Per-text latency | 8ms (batch-25)   |
-| 5K word source   | ~200ms           |
-| 50K word corpus  | ~1.2s            |
+| Metric           | Value          |
+| ---------------- | -------------- |
+| Dimensions       | 384            |
+| Optimal batch    | 25 texts/call  |
+| Per-text latency | 8ms (batch-25) |
+| 5K word source   | ~200ms         |
+| 50K word corpus  | ~1.2s          |
 
 Heading chain is prepended to text before embedding for better semantic context:
+
 ```
 "Chapter 3 > Methodology: The grounded theory approach..."
 ```
@@ -167,6 +171,7 @@ Given top-K chunks from either strategy:
 1. **Deduplicate** overlapping chunks (overlap window produces near-duplicates)
 2. **Sort** by source, then by original document order
 3. **Format** with source attribution:
+
    ```
    [Source: "Research Methods Handbook", Section: "Grounded Theory"]
    <chunk text>
@@ -176,6 +181,7 @@ Given top-K chunks from either strategy:
    [Source: "Leadership Fundamentals", Section: "Emotional Intelligence"]
    <chunk text>
    ```
+
 4. **Enforce token budget** — 8K tokens (~6K words) for source context within prompt
 
 ### Integration into AI Rewrite
@@ -201,6 +207,7 @@ export function buildSystemPrompt(input: RewriteInput, sourceContext?: string): 
 ```
 
 The route handler in `ai.ts` retrieves source context before calling `streamRewrite()`:
+
 1. Get chapter's linked source IDs
 2. Run hybrid query with the user's instruction as the search query
 3. Assemble context from top-K chunks
@@ -213,10 +220,12 @@ When source content changes (re-upload, Drive sync refresh), stale chunks must b
 ### Detection
 
 Each chunk row stores:
+
 - `content_hash` — SHA-256 of the source's HTML content at indexing time
 - `indexed_at` — timestamp of last indexing
 
 On source content update (`addLocalSource()`, `fetchAndCache()` in Drive sync):
+
 1. Compute new content hash
 2. Compare with stored `content_hash` on existing chunks
 3. If different: delete old chunks from D1 + FTS5 + Vectorize, re-chunk, re-index

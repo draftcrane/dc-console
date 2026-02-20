@@ -54,7 +54,10 @@ export interface GroundTruthQuery {
 // ---------------------------------------------------------------------------
 
 function countWords(text: string): number {
-  return text.replace(/<[^>]+>/g, "").split(/\s+/).filter(Boolean).length;
+  return text
+    .replace(/<[^>]+>/g, "")
+    .split(/\s+/)
+    .filter(Boolean).length;
 }
 
 /** Wrap plain text as flat <p> HTML (mimics textToHtml from source-local.ts) */
@@ -75,7 +78,7 @@ function generateParagraph(topic: string, targetWords: number): string {
     leadership: [
       "Effective leadership requires a combination of vision, empathy, and decisive action.",
       "Leaders who demonstrate vulnerability often build stronger teams than those who project invincibility.",
-      'According to Goleman (1995), emotional intelligence accounts for nearly 90 percent of what distinguishes star performers from average ones.',
+      "According to Goleman (1995), emotional intelligence accounts for nearly 90 percent of what distinguishes star performers from average ones.",
       "The transformational leadership model emphasizes inspiring followers through a shared vision rather than relying on transactional reward systems.",
       '"I learned more about leadership from my failures than from any textbook," noted General Powell in his 2012 memoir.',
       "Servant leadership, first articulated by Robert K. Greenleaf in 1970, prioritizes the growth and well-being of team members above all else.",
@@ -122,10 +125,10 @@ function generateParagraph(topic: string, targetWords: number): string {
     ],
     interview_techniques: [
       '"Tell me about a time when you faced a significant challenge at work," I began the interview with candidate #14.',
-      "The interviewee paused for several seconds before responding: \"Honestly, the hardest thing was admitting I didn't have the answer.\"",
+      'The interviewee paused for several seconds before responding: "Honestly, the hardest thing was admitting I didn\'t have the answer."',
       "Active listening during interviews requires the researcher to resist the urge to interpret or redirect too quickly.",
-      'Rapport-building techniques include mirroring body language, maintaining appropriate eye contact, and using the participant\'s name.',
-      "Probe questions such as \"Can you tell me more about that?\" and \"What happened next?\" elicit richer narratives than closed-ended questions.",
+      "Rapport-building techniques include mirroring body language, maintaining appropriate eye contact, and using the participant's name.",
+      'Probe questions such as "Can you tell me more about that?" and "What happened next?" elicit richer narratives than closed-ended questions.',
       '"I never expected the conversation to go in that direction," reflected Dr. Maria Santos in her research journal entry from March 2019.',
       "Recording interviews with participant consent allows for accurate transcription and reduces note-taking distraction.",
       "Member checking — sharing transcripts or interpretations with participants for validation — enhances the trustworthiness of qualitative data.",
@@ -148,7 +151,7 @@ function generateParagraph(topic: string, targetWords: number): string {
       "The GROW model (Goal, Reality, Options, Will) provides a structured framework for coaching conversations.",
       "Positive psychology coaching focuses on leveraging client strengths rather than remedying deficits.",
       "Motivational interviewing, originally developed for addiction treatment, has been adapted for executive coaching contexts.",
-      'Self-determination theory (Deci & Ryan, 2000) identifies autonomy, competence, and relatedness as fundamental psychological needs.',
+      "Self-determination theory (Deci & Ryan, 2000) identifies autonomy, competence, and relatedness as fundamental psychological needs.",
       "The coaching alliance — the quality of the relationship between coach and client — is the strongest predictor of coaching outcomes.",
       "360-degree feedback instruments collect performance data from supervisors, peers, direct reports, and the individual being assessed.",
       "Cognitive behavioral coaching applies CBT principles to help clients identify and restructure unhelpful thought patterns.",
@@ -307,7 +310,11 @@ function generateFixture2_Medium(): FixtureSet {
     { id: "med-research-1", title: "Qualitative Data Analysis", topic: "research_methods" },
     { id: "med-research-2", title: "Interview Protocol Design", topic: "interview_techniques" },
     { id: "med-change-1", title: "Leading Change in Healthcare", topic: "organizational_change" },
-    { id: "med-change-2", title: "Digital Transformation Strategy", topic: "digital_transformation" },
+    {
+      id: "med-change-2",
+      title: "Digital Transformation Strategy",
+      topic: "digital_transformation",
+    },
     { id: "med-teams-1", title: "Building High-Performance Teams", topic: "team_dynamics" },
     { id: "med-coach-1", title: "Executive Coaching Frameworks", topic: "coaching_psychology" },
     { id: "med-strategy-1", title: "Competitive Strategy Analysis", topic: "strategic_thinking" },

@@ -25,8 +25,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = resolve(__dirname, "fixtures/chunking-spike");
 
 const WORKER_URL =
-  process.env.SPIKE_WORKER_URL ||
-  "https://dc-chunking-spike.automation-ab6.workers.dev";
+  process.env.SPIKE_WORKER_URL || "https://dc-chunking-spike.automation-ab6.workers.dev";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,11 +91,7 @@ async function workerFetch(path: string, body: unknown): Promise<unknown> {
 }
 
 /** Calculate precision@K: fraction of top-K results from expected sources */
-function precisionAtK(
-  results: SearchResult[],
-  expectedSourceIds: string[],
-  k: number,
-): number {
+function precisionAtK(results: SearchResult[], expectedSourceIds: string[], k: number): number {
   if (expectedSourceIds.length === 0) {
     // Negative query: precision is the fraction of results NOT matching
     // (For negative queries, high precision means results are irrelevant = correct)
@@ -160,12 +155,7 @@ async function main() {
 
     for (const sourceMeta of manifest.sources) {
       const html = await readFile(resolve(FIXTURES_DIR, dir, sourceMeta.file), "utf-8");
-      const chunks = chunkHtml(
-        sourceMeta.id,
-        sourceMeta.title,
-        html,
-        sourceMeta.htmlType,
-      );
+      const chunks = chunkHtml(sourceMeta.id, sourceMeta.title, html, sourceMeta.htmlType);
       for (const chunk of chunks) {
         allChunks.push({ ...chunk, htmlType: sourceMeta.htmlType });
       }
@@ -184,7 +174,7 @@ async function main() {
   console.log("--- Testing worker health ---\n");
   try {
     const health = await fetch(`${WORKER_URL}/health`);
-    const healthData = await health.json() as { status: string };
+    const healthData = (await health.json()) as { status: string };
     console.log(`Worker health: ${healthData.status}\n`);
   } catch (e) {
     console.error(`Worker not reachable: ${e}`);
@@ -194,7 +184,7 @@ async function main() {
   // 3. Set up FTS5 and index chunks
   console.log("--- Strategy A: FTS5 Setup ---\n");
 
-  const setupResult = await workerFetch("/fts5/setup", {}) as { elapsed_ms: number };
+  const setupResult = (await workerFetch("/fts5/setup", {})) as { elapsed_ms: number };
   console.log(`FTS5 tables created: ${setupResult.elapsed_ms}ms\n`);
 
   // Index in batches
@@ -223,15 +213,13 @@ async function main() {
   let embeddingBenchmark: { batchSize: number; elapsed_ms: number; perText_ms: number }[] = [];
 
   try {
-    const benchResult = await workerFetch("/embeddings/benchmark", {
+    const benchResult = (await workerFetch("/embeddings/benchmark", {
       texts: sampleTexts,
-    }) as { results: typeof embeddingBenchmark };
+    })) as { results: typeof embeddingBenchmark };
     embeddingBenchmark = benchResult.results;
 
     for (const r of embeddingBenchmark) {
-      console.log(
-        `  Batch ${r.batchSize}: ${r.elapsed_ms}ms total, ${r.perText_ms}ms per text`,
-      );
+      console.log(`  Batch ${r.batchSize}: ${r.elapsed_ms}ms total, ${r.perText_ms}ms per text`);
     }
   } catch (e) {
     console.log(`  Embedding benchmark failed: ${e}`);
@@ -245,9 +233,9 @@ async function main() {
 
   try {
     const genStart = Date.now();
-    const genResult = await workerFetch("/embeddings/generate", {
+    const genResult = (await workerFetch("/embeddings/generate", {
       chunks: chunkInputs,
-    }) as { chunks_embedded: number; elapsed_ms: number; embeddings: typeof embeddingResults };
+    })) as { chunks_embedded: number; elapsed_ms: number; embeddings: typeof embeddingResults };
     embedGenerateElapsed = Date.now() - genStart;
     embeddingResults = genResult.embeddings;
 
@@ -277,10 +265,10 @@ async function main() {
     let fts5Error: string | undefined;
 
     try {
-      const result = await workerFetch("/fts5/query", {
+      const result = (await workerFetch("/fts5/query", {
         query: q.query,
         limit: 5,
-      }) as { results: SearchResult[]; elapsed_ms: number };
+      })) as { results: SearchResult[]; elapsed_ms: number };
       fts5Results = result.results;
       fts5Elapsed = result.elapsed_ms;
     } catch (e) {
@@ -288,9 +276,21 @@ async function main() {
     }
 
     const isNegative = q.type === "negative";
-    const fts5P1 = isNegative ? (negativeQueryRejection(fts5Results, "fts5") ? 1 : 0) : precisionAtK(fts5Results, q.expectedSourceIds, 1);
-    const fts5P3 = isNegative ? (negativeQueryRejection(fts5Results, "fts5") ? 1 : 0) : precisionAtK(fts5Results, q.expectedSourceIds, 3);
-    const fts5P5 = isNegative ? (negativeQueryRejection(fts5Results, "fts5") ? 1 : 0) : precisionAtK(fts5Results, q.expectedSourceIds, 5);
+    const fts5P1 = isNegative
+      ? negativeQueryRejection(fts5Results, "fts5")
+        ? 1
+        : 0
+      : precisionAtK(fts5Results, q.expectedSourceIds, 1);
+    const fts5P3 = isNegative
+      ? negativeQueryRejection(fts5Results, "fts5")
+        ? 1
+        : 0
+      : precisionAtK(fts5Results, q.expectedSourceIds, 3);
+    const fts5P5 = isNegative
+      ? negativeQueryRejection(fts5Results, "fts5")
+        ? 1
+        : 0
+      : precisionAtK(fts5Results, q.expectedSourceIds, 5);
     const fts5Mrr = isNegative ? 0 : mrr(fts5Results, q.expectedSourceIds);
 
     const evalResult: QueryEvalResult = {
@@ -363,26 +363,66 @@ async function main() {
   const paraphraseResults = byType["paraphrase"] || [];
   const negativeResults = byType["negative"] || [];
 
-  const keywordP3 = keywordResults.reduce((s, r) => s + r.fts5.precision3, 0) / (keywordResults.length || 1);
-  const paraphraseP3 = paraphraseResults.reduce((s, r) => s + r.fts5.precision3, 0) / (paraphraseResults.length || 1);
-  const negativeRejection = negativeResults.filter((r) => r.fts5.precision1 > 0).length / (negativeResults.length || 1);
+  const keywordP3 =
+    keywordResults.reduce((s, r) => s + r.fts5.precision3, 0) / (keywordResults.length || 1);
+  const paraphraseP3 =
+    paraphraseResults.reduce((s, r) => s + r.fts5.precision3, 0) / (paraphraseResults.length || 1);
+  const negativeRejection =
+    negativeResults.filter((r) => r.fts5.precision1 > 0).length / (negativeResults.length || 1);
   const queryLatP50 = percentile(allLatencies, 50);
   const queryLatP95 = percentile(allLatencies, 95);
 
   const criteria = [
-    { name: "FTS5 keyword P@3 (structured)", value: keywordP3, threshold: 0.8, pass: keywordP3 >= 0.8 },
+    {
+      name: "FTS5 keyword P@3 (structured)",
+      value: keywordP3,
+      threshold: 0.8,
+      pass: keywordP3 >= 0.8,
+    },
     { name: "FTS5 paraphrase P@3", value: paraphraseP3, threshold: 0.6, pass: true }, // FTS5 isn't expected to excel at paraphrase
-    { name: "Negative query rejection", value: negativeRejection, threshold: 0.8, pass: negativeRejection >= 0.8 },
-    { name: "Query latency p50 < 500ms", value: queryLatP50, threshold: 500, pass: queryLatP50 < 500 },
-    { name: "Query latency p95 < 1000ms", value: queryLatP95, threshold: 1000, pass: queryLatP95 < 1000 },
-    { name: "FTS5 on remote D1", value: 1, threshold: 1, pass: !evalResults.some((r) => r.fts5.error) },
-    { name: "Index time < 30s", value: indexElapsed / 1000, threshold: 30, pass: indexElapsed < 30000 },
-    { name: "Embedding dims = 384", value: embeddingResults.length > 0 ? embeddingResults[0].values.length : 0, threshold: 384, pass: embeddingResults.length === 0 || embeddingResults[0].values.length === 384 },
+    {
+      name: "Negative query rejection",
+      value: negativeRejection,
+      threshold: 0.8,
+      pass: negativeRejection >= 0.8,
+    },
+    {
+      name: "Query latency p50 < 500ms",
+      value: queryLatP50,
+      threshold: 500,
+      pass: queryLatP50 < 500,
+    },
+    {
+      name: "Query latency p95 < 1000ms",
+      value: queryLatP95,
+      threshold: 1000,
+      pass: queryLatP95 < 1000,
+    },
+    {
+      name: "FTS5 on remote D1",
+      value: 1,
+      threshold: 1,
+      pass: !evalResults.some((r) => r.fts5.error),
+    },
+    {
+      name: "Index time < 30s",
+      value: indexElapsed / 1000,
+      threshold: 30,
+      pass: indexElapsed < 30000,
+    },
+    {
+      name: "Embedding dims = 384",
+      value: embeddingResults.length > 0 ? embeddingResults[0].values.length : 0,
+      threshold: 384,
+      pass: embeddingResults.length === 0 || embeddingResults[0].values.length === 384,
+    },
   ];
 
   for (const c of criteria) {
     const status = c.pass ? "PASS" : "FAIL";
-    console.log(`  [${status}] ${c.name}: ${typeof c.value === "number" ? c.value.toFixed(2) : c.value} (threshold: ${c.threshold})`);
+    console.log(
+      `  [${status}] ${c.name}: ${typeof c.value === "number" ? c.value.toFixed(2) : c.value} (threshold: ${c.threshold})`,
+    );
   }
 
   const overallPass = criteria.every((c) => c.pass);
@@ -396,9 +436,7 @@ async function main() {
   // Test with medium corpus for indexing time
   const mediumDir = resolve(FIXTURES_DIR, "fixture-2-medium");
   try {
-    const medManifest = JSON.parse(
-      await readFile(resolve(mediumDir, "manifest.json"), "utf-8"),
-    );
+    const medManifest = JSON.parse(await readFile(resolve(mediumDir, "manifest.json"), "utf-8"));
     let mediumChunks: Chunk[] = [];
     for (const sourceMeta of medManifest.sources) {
       const html = await readFile(resolve(mediumDir, sourceMeta.file), "utf-8");
@@ -459,7 +497,12 @@ async function main() {
       totalEmbeddings: embeddingResults.length,
       dimensions: embeddingResults.length > 0 ? embeddingResults[0].values.length : 0,
     },
-    criteria: criteria.map((c) => ({ name: c.name, value: c.value, threshold: c.threshold, pass: c.pass })),
+    criteria: criteria.map((c) => ({
+      name: c.name,
+      value: c.value,
+      threshold: c.threshold,
+      pass: c.pass,
+    })),
   };
 
   await writeFile(
