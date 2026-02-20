@@ -20,12 +20,17 @@ interface SourceCitationLinkProps {
   /** Which tab to return to after viewing source */
   returnTo: "ask" | "clips";
   /** Navigate to source detail via provider */
-  onNavigateToSource: (sourceId: string, returnTo: "ask" | "clips") => void;
+  onNavigateToSource: (
+    sourceId: string,
+    returnTo: "ask" | "clips",
+    sourceLocation?: string | null,
+  ) => void;
 }
 
 export function SourceCitationLink({
   sourceTitle,
   sourceId,
+  sourceLocation,
   returnTo,
   onNavigateToSource,
 }: SourceCitationLinkProps) {
@@ -40,7 +45,7 @@ export function SourceCitationLink({
 
   return (
     <button
-      onClick={() => onNavigateToSource(sourceId, returnTo)}
+      onClick={() => onNavigateToSource(sourceId, returnTo, sourceLocation)}
       className="min-h-[44px] min-w-[44px] flex items-center text-left
                  text-sm font-medium text-blue-600 hover:text-blue-700
                  hover:underline transition-colors px-0 py-2"

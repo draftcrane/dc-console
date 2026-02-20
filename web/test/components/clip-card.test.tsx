@@ -41,7 +41,7 @@ describe("ClipCard", () => {
     render(<ClipCard {...defaultProps} onViewSource={onViewSource} />);
 
     fireEvent.click(screen.getByRole("button", { name: /View source:/ }));
-    expect(onViewSource).toHaveBeenCalledWith("src-1", "clips");
+    expect(onViewSource).toHaveBeenCalledWith("src-1", "clips", "Section 3");
   });
 
   it("shows '[Source removed]' when sourceId is null", () => {

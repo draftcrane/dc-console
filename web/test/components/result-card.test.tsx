@@ -49,7 +49,7 @@ describe("ResultCard", () => {
     render(<ResultCard {...makeProps({ onViewSource })} />);
 
     fireEvent.click(screen.getByRole("button", { name: /View source:/ }));
-    expect(onViewSource).toHaveBeenCalledWith("src-1", "ask");
+    expect(onViewSource).toHaveBeenCalledWith("src-1", "ask", "Page 5");
   });
 
   it("shows '[Source removed]' when sourceId is null", () => {

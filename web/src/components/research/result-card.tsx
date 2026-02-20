@@ -10,7 +10,11 @@ export interface ResultCardProps {
   sourceLocation: string | null;
   onSaveToClips: () => Promise<void>;
   onInsert: () => void;
-  onViewSource: (sourceId: string, returnTo: "ask" | "clips") => void;
+  onViewSource: (
+    sourceId: string,
+    returnTo: "ask" | "clips",
+    sourceLocation?: string | null,
+  ) => void;
   isSaved: boolean;
   canInsert: boolean;
 }

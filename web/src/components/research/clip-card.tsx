@@ -33,7 +33,11 @@ export interface ClipCardProps {
   /** Called when "Delete" is tapped */
   onDelete: () => void;
   /** Called to navigate to source detail view */
-  onViewSource: (sourceId: string, returnTo: "ask" | "clips") => void;
+  onViewSource: (
+    sourceId: string,
+    returnTo: "ask" | "clips",
+    sourceLocation?: string | null,
+  ) => void;
   /** Whether insert is available (editor has cursor) */
   canInsert: boolean;
 }

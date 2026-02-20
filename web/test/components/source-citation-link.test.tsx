@@ -32,7 +32,7 @@ describe("SourceCitationLink", () => {
     render(<SourceCitationLink {...defaultProps} onNavigateToSource={onNavigate} />);
 
     fireEvent.click(screen.getByRole("button"));
-    expect(onNavigate).toHaveBeenCalledWith("src-1", "ask");
+    expect(onNavigate).toHaveBeenCalledWith("src-1", "ask", undefined);
   });
 
   it("passes 'clips' as returnTo when specified", () => {
@@ -42,7 +42,21 @@ describe("SourceCitationLink", () => {
     );
 
     fireEvent.click(screen.getByRole("button"));
-    expect(onNavigate).toHaveBeenCalledWith("src-1", "clips");
+    expect(onNavigate).toHaveBeenCalledWith("src-1", "clips", undefined);
+  });
+
+  it("passes sourceLocation through to callback for scroll-to-position", () => {
+    const onNavigate = vi.fn();
+    render(
+      <SourceCitationLink
+        {...defaultProps}
+        sourceLocation="Page 5"
+        onNavigateToSource={onNavigate}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button"));
+    expect(onNavigate).toHaveBeenCalledWith("src-1", "ask", "Page 5");
   });
 
   it("renders '[Source removed]' when sourceId is null", () => {
