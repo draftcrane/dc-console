@@ -15,7 +15,6 @@ export interface SourceSearchResult {
   sourceId: string;
   title: string;
   snippet: string;
-  position: number;
 }
 
 export function useSourceSearch(projectId: string) {

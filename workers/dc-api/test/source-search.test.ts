@@ -280,7 +280,7 @@ describe("Integration: Source Search", () => {
     expect(res.status).toBe(401);
   });
 
-  it("includes snippet and position in response", async () => {
+  it("includes snippet in response", async () => {
     const source = await seedSource(projectId, { title: "History Notes" });
     await seedSourceFts(
       source.id,
@@ -295,10 +295,9 @@ describe("Integration: Source Search", () => {
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
-      results: Array<{ sourceId: string; snippet: string; position: number }>;
+      results: Array<{ sourceId: string; snippet: string }>;
     };
     expect(body.results).toHaveLength(1);
     expect(body.results[0].snippet).toBeTruthy();
-    expect(typeof body.results[0].position).toBe("number");
   });
 });

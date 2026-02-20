@@ -3,8 +3,6 @@
  *
  * Uses D1 FTS5 virtual table `source_content_fts` for keyword search.
  * Falls back to LIKE-based search on `source_materials` if FTS is unavailable.
- *
- * Results include snippets around the match and approximate character position.
  */
 
 import { notFound, validationError } from "../middleware/error-handler.js";
@@ -14,7 +12,6 @@ export interface SourceSearchResult {
   sourceId: string;
   title: string;
   snippet: string;
-  position: number;
 }
 
 /** Response shape for the search endpoint */
@@ -27,9 +24,6 @@ const MAX_RESULTS = 20;
 
 /** Minimum query length */
 const MIN_QUERY_LENGTH = 2;
-
-/** Snippet length for LIKE fallback (characters around match) */
-const SNIPPET_CONTEXT_CHARS = 80;
 
 export class SourceSearchService {
   constructor(private readonly db: D1Database) {}
@@ -59,12 +53,18 @@ export class SourceSearchService {
       notFound("Project not found");
     }
 
-    // Try FTS5 first, fall back to LIKE
+    // Try FTS5 first, fall back to LIKE for FTS-specific failures only
     try {
       return await this.ftsSearch(projectId, trimmedQuery);
-    } catch {
-      // FTS table may not exist or query may be malformed -- fall back
-      return await this.likeSearch(projectId, trimmedQuery);
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message.includes("no such table") || error.message.includes("fts5"))
+      ) {
+        // FTS table missing or FTS syntax issue -- fall back to LIKE search
+        return await this.likeSearch(projectId, trimmedQuery);
+      }
+      throw error; // Unexpected error, don't swallow it
     }
   }
 
@@ -104,7 +104,6 @@ export class SourceSearchService {
       sourceId: row.sourceId,
       title: row.title,
       snippet: this.stripHtmlTags(row.snippet),
-      position: 0, // FTS5 doesn't provide byte offset directly; 0 = beginning
     }));
 
     return { results };
@@ -116,7 +115,9 @@ export class SourceSearchService {
    * when available. If FTS table is unavailable, searches title only.
    */
   private async likeSearch(projectId: string, query: string): Promise<SourceSearchResponse> {
-    const likePattern = `%${query}%`;
+    // Escape SQL LIKE wildcards in user input to prevent pattern injection
+    const escaped = query.replace(/%/g, "\\%").replace(/_/g, "\\_");
+    const likePattern = `%${escaped}%`;
 
     // Search titles from source_materials (always available)
     const result = await this.db
@@ -127,7 +128,7 @@ export class SourceSearchService {
         FROM source_materials sm
         WHERE sm.project_id = ?
           AND sm.status != 'archived'
-          AND sm.title LIKE ?
+          AND sm.title LIKE ? ESCAPE '\\'
         ORDER BY sm.sort_order ASC
         LIMIT ?`,
       )
@@ -138,7 +139,6 @@ export class SourceSearchService {
       sourceId: row.sourceId,
       title: row.title,
       snippet: row.title,
-      position: 0,
     }));
 
     return { results };
