@@ -200,6 +200,14 @@ projects.post("/:projectId/connect-drive", async (c) => {
     .bind(driveFolder.id, resolved.connectionId, project.id)
     .run();
 
+  // Auto-link this connection as a research source for the project
+  await c.env.DB.prepare(
+    `INSERT OR IGNORE INTO project_source_connections (id, project_id, drive_connection_id, created_at)
+     VALUES (lower(hex(randomblob(16))), ?, ?, ?)`,
+  )
+    .bind(project.id, resolved.connectionId, new Date().toISOString())
+    .run();
+
   console.info(
     JSON.stringify({
       level: "info",

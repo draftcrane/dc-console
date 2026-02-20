@@ -64,7 +64,11 @@ export function useSources(projectId: string) {
       const response = await fetch(`${API_URL}/projects/${projectId}/sources`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error("Failed to fetch sources");
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        const msg = (data as { error?: string } | null)?.error;
+        throw new Error(msg || `Failed to fetch sources (${response.status})`);
+      }
       const data = await response.json();
       setSources(data.sources);
     } catch (err) {

@@ -5,14 +5,14 @@ import { createContext, useContext, useReducer, useCallback, useMemo, type React
 // === State Types ===
 
 export type ResearchTab = "sources" | "ask" | "clips";
-export type SourcesView = "list" | "detail" | "add" | "connections";
+export type SourcesView = "list" | "detail" | "link-source" | "add-document";
 
 export interface ResearchPanelState {
   isOpen: boolean;
   activeTab: ResearchTab;
   sourcesView: SourcesView;
   activeSourceId: string | null;
-  /** Active Drive connection ID — used by add flow for pre-selection */
+  /** Active Drive connection ID — used by add-document flow for pre-selection */
   activeConnectionId: string | null;
   returnTab: "ask" | "clips" | null;
   /** Text to scroll to when viewing a source detail (from citation navigation) */
@@ -28,10 +28,10 @@ export type ResearchPanelAction =
   | { type: "VIEW_SOURCE"; sourceId: string; returnTo?: "ask" | "clips"; scrollToText?: string }
   | { type: "BACK_TO_LIST" }
   | { type: "RETURN_TO_TAB" }
-  | { type: "START_ADD_FLOW"; connectionId?: string }
-  | { type: "VIEW_CONNECTIONS" }
+  | { type: "START_ADD_DOCUMENT"; connectionId?: string }
+  | { type: "START_LINK_SOURCE" }
   | { type: "SET_DRIVE_CONNECTION"; connectionId: string }
-  | { type: "FINISH_ADD" };
+  | { type: "FINISH_FLOW" };
 
 // === Initial State ===
 
@@ -52,10 +52,10 @@ const initialState: ResearchPanelState = {
  *
  * Valid states (7):
  *   1. Closed              - panel is not visible
- *   2. Sources-List        - panel open, sources tab, grouped list view
+ *   2. Sources-List        - panel open, sources tab, two-section list view
  *   3. Sources-Detail      - panel open, sources tab, viewing a specific source
- *   4. Sources-Add         - panel open, sources tab, add flow (drive browser / upload)
- *   5. Sources-Connections - panel open, sources tab, managing connections
+ *   4. Sources-AddDocument - panel open, sources tab, add document flow (drive browser / upload)
+ *   5. Sources-LinkSource  - panel open, sources tab, linking a new source connection
  *   6. Ask                 - panel open, ask tab
  *   7. Clips               - panel open, clips tab
  *
@@ -115,12 +115,12 @@ export function researchPanelReducer(
     }
 
     case "BACK_TO_LIST": {
-      // Valid from detail, add, or connections views
+      // Valid from detail, add-document, or link-source views
       if (!state.isOpen || state.activeTab !== "sources") return state;
       if (
         state.sourcesView !== "detail" &&
-        state.sourcesView !== "add" &&
-        state.sourcesView !== "connections"
+        state.sourcesView !== "add-document" &&
+        state.sourcesView !== "link-source"
       )
         return state;
 
@@ -149,27 +149,27 @@ export function researchPanelReducer(
       };
     }
 
-    case "START_ADD_FLOW": {
-      // Can only start add flow when panel is open
+    case "START_ADD_DOCUMENT": {
+      // Can only start add document flow when panel is open
       if (!state.isOpen) return state;
 
       return {
         ...state,
         activeTab: "sources",
-        sourcesView: "add",
+        sourcesView: "add-document",
         activeSourceId: null,
         activeConnectionId: action.connectionId ?? null,
         returnTab: null,
       };
     }
 
-    case "VIEW_CONNECTIONS": {
+    case "START_LINK_SOURCE": {
       if (!state.isOpen) return state;
 
       return {
         ...state,
         activeTab: "sources",
-        sourcesView: "connections",
+        sourcesView: "link-source",
         activeSourceId: null,
         activeConnectionId: null,
         returnTab: null,
@@ -178,8 +178,8 @@ export function researchPanelReducer(
     }
 
     case "SET_DRIVE_CONNECTION": {
-      // Only valid during add flow
-      if (!state.isOpen || state.sourcesView !== "add") return state;
+      // Only valid during add-document flow
+      if (!state.isOpen || state.sourcesView !== "add-document") return state;
 
       return {
         ...state,
@@ -187,9 +187,10 @@ export function researchPanelReducer(
       };
     }
 
-    case "FINISH_ADD": {
-      // Only valid during add flow
-      if (!state.isOpen || state.sourcesView !== "add") return state;
+    case "FINISH_FLOW": {
+      // Valid during add-document or link-source flows
+      if (!state.isOpen) return state;
+      if (state.sourcesView !== "add-document" && state.sourcesView !== "link-source") return state;
 
       return {
         ...state,
@@ -222,10 +223,10 @@ export interface ResearchPanelContextValue {
   viewSource: (sourceId: string, returnTo?: "ask" | "clips", scrollToText?: string) => void;
   backToSourceList: () => void;
   returnToPreviousTab: () => void;
-  startAddFlow: (connectionId?: string) => void;
-  viewConnections: () => void;
+  startAddDocument: (connectionId?: string) => void;
+  startLinkSource: () => void;
   setDriveConnection: (connectionId: string) => void;
-  finishAdd: () => void;
+  finishFlow: () => void;
 
   // Raw dispatch for testing or advanced usage
   dispatch: React.Dispatch<ResearchPanelAction>;
@@ -275,15 +276,15 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
     dispatch({ type: "RETURN_TO_TAB" });
   }, [dispatch]);
 
-  const startAddFlow = useCallback(
+  const startAddDocument = useCallback(
     (connectionId?: string) => {
-      dispatch({ type: "START_ADD_FLOW", connectionId });
+      dispatch({ type: "START_ADD_DOCUMENT", connectionId });
     },
     [dispatch],
   );
 
-  const viewConnections = useCallback(() => {
-    dispatch({ type: "VIEW_CONNECTIONS" });
+  const startLinkSource = useCallback(() => {
+    dispatch({ type: "START_LINK_SOURCE" });
   }, [dispatch]);
 
   const setDriveConnection = useCallback(
@@ -293,8 +294,8 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
     [dispatch],
   );
 
-  const finishAdd = useCallback(() => {
-    dispatch({ type: "FINISH_ADD" });
+  const finishFlow = useCallback(() => {
+    dispatch({ type: "FINISH_FLOW" });
   }, [dispatch]);
 
   const value = useMemo<ResearchPanelContextValue>(
@@ -315,10 +316,10 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       viewSource,
       backToSourceList,
       returnToPreviousTab,
-      startAddFlow,
-      viewConnections,
+      startAddDocument,
+      startLinkSource,
       setDriveConnection,
-      finishAdd,
+      finishFlow,
 
       // Raw dispatch
       dispatch,
@@ -331,10 +332,10 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       viewSource,
       backToSourceList,
       returnToPreviousTab,
-      startAddFlow,
-      viewConnections,
+      startAddDocument,
+      startLinkSource,
       setDriveConnection,
-      finishAdd,
+      finishFlow,
     ],
   );
 

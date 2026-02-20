@@ -173,6 +173,17 @@ export class SourceDriveService {
       sortOrder++;
     }
 
+    // Auto-link: ensure project_source_connections row exists for this connection
+    if (connectionId && created.length > 0) {
+      await this.db
+        .prepare(
+          `INSERT OR IGNORE INTO project_source_connections (id, project_id, drive_connection_id, created_at)
+           VALUES (lower(hex(randomblob(16))), ?, ?, ?)`,
+        )
+        .bind(projectId, connectionId, new Date().toISOString())
+        .run();
+    }
+
     if (selectedFolders.length > 0) {
       console.info(
         JSON.stringify({

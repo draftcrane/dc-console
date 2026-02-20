@@ -33,6 +33,16 @@ import {
   rowToSource,
 } from "./source-types.js";
 
+// ── Project Source Connection types ──
+
+export interface ProjectSourceConnection {
+  id: string;
+  driveConnectionId: string;
+  email: string;
+  connectedAt: string;
+  documentCount: number;
+}
+
 // Re-export public types so existing imports from "./source-material.js" still work
 export type {
   AddSourceInput,
@@ -252,5 +262,169 @@ export class SourceMaterialService {
       projectId: source.projectId,
       r2Key,
     };
+  }
+
+  // ── Project Source Connections ──
+
+  /**
+   * List Drive connections linked to a project for research input.
+   * Includes document count per connection.
+   */
+  async listProjectConnections(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectSourceConnection[]> {
+    // Verify project ownership
+    const project = await this.db
+      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
+      .bind(projectId, userId)
+      .first<{ id: string }>();
+
+    if (!project) {
+      notFound("Project not found");
+    }
+
+    const result = await this.db
+      .prepare(
+        `SELECT psc.id, psc.drive_connection_id, dc.email, psc.created_at,
+                (SELECT COUNT(*) FROM source_materials sm
+                 WHERE sm.project_id = ? AND sm.drive_connection_id = psc.drive_connection_id
+                   AND sm.status != 'archived') as document_count
+         FROM project_source_connections psc
+         JOIN drive_connections dc ON dc.id = psc.drive_connection_id
+         WHERE psc.project_id = ? AND dc.user_id = ?
+         ORDER BY psc.created_at ASC`,
+      )
+      .bind(projectId, projectId, userId)
+      .all<{
+        id: string;
+        drive_connection_id: string;
+        email: string;
+        created_at: string;
+        document_count: number;
+      }>();
+
+    return (result.results ?? []).map((row) => ({
+      id: row.id,
+      driveConnectionId: row.drive_connection_id,
+      email: row.email,
+      connectedAt: row.created_at,
+      documentCount: row.document_count,
+    }));
+  }
+
+  /**
+   * Link a Drive connection to a project for research input.
+   * Validates that the connection belongs to the user.
+   */
+  async linkConnection(
+    userId: string,
+    projectId: string,
+    driveConnectionId: string,
+  ): Promise<ProjectSourceConnection> {
+    // Verify project ownership
+    const project = await this.db
+      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
+      .bind(projectId, userId)
+      .first<{ id: string }>();
+
+    if (!project) {
+      notFound("Project not found");
+    }
+
+    // Verify connection belongs to user
+    const connection = await this.db
+      .prepare(`SELECT id, email FROM drive_connections WHERE id = ? AND user_id = ?`)
+      .bind(driveConnectionId, userId)
+      .first<{ id: string; email: string }>();
+
+    if (!connection) {
+      notFound("Drive connection not found");
+    }
+
+    const id = ulid();
+    const now = new Date().toISOString();
+
+    await this.db
+      .prepare(
+        `INSERT OR IGNORE INTO project_source_connections (id, project_id, drive_connection_id, created_at)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .bind(id, projectId, driveConnectionId, now)
+      .run();
+
+    // Fetch the actual row (may be pre-existing due to OR IGNORE)
+    const row = await this.db
+      .prepare(
+        `SELECT psc.id, psc.drive_connection_id, dc.email, psc.created_at
+         FROM project_source_connections psc
+         JOIN drive_connections dc ON dc.id = psc.drive_connection_id
+         WHERE psc.project_id = ? AND psc.drive_connection_id = ?`,
+      )
+      .bind(projectId, driveConnectionId)
+      .first<{ id: string; drive_connection_id: string; email: string; created_at: string }>();
+
+    return {
+      id: row!.id,
+      driveConnectionId: row!.drive_connection_id,
+      email: row!.email,
+      connectedAt: row!.created_at,
+      documentCount: 0,
+    };
+  }
+
+  /**
+   * Unlink a Drive connection from a project.
+   * Archives all source_materials for that project+connection and removes FTS entries.
+   */
+  async unlinkConnection(
+    userId: string,
+    projectId: string,
+    driveConnectionId: string,
+  ): Promise<void> {
+    // Verify project ownership
+    const project = await this.db
+      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
+      .bind(projectId, userId)
+      .first<{ id: string }>();
+
+    if (!project) {
+      notFound("Project not found");
+    }
+
+    // Delete the project_source_connections row
+    await this.db
+      .prepare(
+        `DELETE FROM project_source_connections
+         WHERE project_id = ? AND drive_connection_id = ?`,
+      )
+      .bind(projectId, driveConnectionId)
+      .run();
+
+    // Archive source_materials for this project+connection
+    const sourcesToArchive = await this.db
+      .prepare(
+        `SELECT id FROM source_materials
+         WHERE project_id = ? AND drive_connection_id = ? AND status != 'archived'`,
+      )
+      .bind(projectId, driveConnectionId)
+      .all<{ id: string }>();
+
+    const now = new Date().toISOString();
+
+    if (sourcesToArchive.results && sourcesToArchive.results.length > 0) {
+      await this.db
+        .prepare(
+          `UPDATE source_materials SET status = 'archived', updated_at = ?
+           WHERE project_id = ? AND drive_connection_id = ? AND status != 'archived'`,
+        )
+        .bind(now, projectId, driveConnectionId)
+        .run();
+
+      // Remove FTS entries for archived sources
+      for (const source of sourcesToArchive.results) {
+        await removeFtsEntry(source.id, this.db);
+      }
+    }
   }
 }

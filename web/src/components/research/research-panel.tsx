@@ -209,19 +209,17 @@ function TabContent({
   activeTab,
   onInsertClip,
   canInsert,
-  protectedConnectionIds,
 }: {
   activeTab: ResearchTab;
   onInsertClip: (text: string, sourceTitle: string) => InsertResult;
   canInsert: boolean;
-  protectedConnectionIds?: string[];
 }) {
   // Render all tabs but only show the active one.
   // This preserves state when switching tabs (acceptance criteria).
   return (
     <div className="flex-1 min-h-0 relative">
       <TabPanel id="sources" activeTab={activeTab}>
-        <SourcesTab protectedConnectionIds={protectedConnectionIds} />
+        <SourcesTab />
       </TabPanel>
       <TabPanel id="ask" activeTab={activeTab}>
         <AskTab />
@@ -261,15 +259,9 @@ function TabPanel({
 export interface ResearchPanelProps {
   onInsertClip?: (text: string, sourceTitle: string) => InsertResult;
   canInsert?: boolean;
-  /** Connection IDs that cannot be disconnected from within the Sources tab (e.g. backup accounts) */
-  protectedConnectionIds?: string[];
 }
 
-export function ResearchPanel({
-  onInsertClip,
-  canInsert = false,
-  protectedConnectionIds,
-}: ResearchPanelProps) {
+export function ResearchPanel({ onInsertClip, canInsert = false }: ResearchPanelProps) {
   const { isOpen, activeTab, setActiveTab, closePanel, openPanel } = useResearchPanel();
   const params = useParams();
   const projectId = params.projectId as string;
@@ -337,12 +329,7 @@ export function ResearchPanel({
       >
         <PanelHeader onClose={closePanel} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} clipCount={clipCount} />
-        <TabContent
-          activeTab={activeTab}
-          onInsertClip={handleInsertClip}
-          canInsert={canInsert}
-          protectedConnectionIds={protectedConnectionIds}
-        />
+        <TabContent activeTab={activeTab} onInsertClip={handleInsertClip} canInsert={canInsert} />
       </div>
     );
   }
@@ -368,12 +355,7 @@ export function ResearchPanel({
       >
         <PanelHeader onClose={closePanel} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} clipCount={clipCount} />
-        <TabContent
-          activeTab={activeTab}
-          onInsertClip={handleInsertClip}
-          canInsert={canInsert}
-          protectedConnectionIds={protectedConnectionIds}
-        />
+        <TabContent activeTab={activeTab} onInsertClip={handleInsertClip} canInsert={canInsert} />
       </div>
     </>
   );

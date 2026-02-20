@@ -17,9 +17,7 @@ interface SourceAddFlowProps {
   driveAccounts: DriveAccount[];
   /** Drive file IDs already in the project (for "Already added" state) */
   existingDriveFileIds: Set<string>;
-  /** Connection IDs that should be labeled as protected (e.g. backup account) */
-  protectedConnectionIds: string[];
-  /** When set, auto-advance to browsing for this account (from "Add More" in provider detail) */
+  /** When set, auto-advance to browsing for this account (from source row tap) */
   preSelectedConnectionId?: string | null;
   onBack: () => void;
   /** Called when Drive files have been selected and should be added as sources */
@@ -28,7 +26,6 @@ interface SourceAddFlowProps {
     connectionId: string,
   ) => Promise<void>;
   onUploadLocal: (file: File) => Promise<void>;
-  onConnectAccount: () => void;
 }
 
 /**
@@ -38,18 +35,15 @@ interface SourceAddFlowProps {
  * 1. Account selection view (with trust message, Drive accounts, local upload)
  * 2. Inline folder browser (when a Drive account is selected)
  *
- * All Drive accounts are shown regardless of project backup binding — research
- * input is intentionally decoupled from backup output.
+ * Only shows Drive accounts that are linked to the current project.
  */
 export function SourceAddFlow({
   driveAccounts,
   existingDriveFileIds,
-  protectedConnectionIds,
   preSelectedConnectionId,
   onBack,
   onAddDriveFiles,
   onUploadLocal,
-  onConnectAccount,
 }: SourceAddFlowProps) {
   const [view, setView] = useState<AddFlowView>("accounts");
   const [activeConnectionId, setActiveConnectionId] = useState<string | null>(null);
@@ -249,7 +243,7 @@ export function SourceAddFlow({
           </svg>
           Sources
         </button>
-        <span className="text-sm font-semibold text-foreground ml-auto">Add Source</span>
+        <span className="text-sm font-semibold text-foreground ml-auto">Add Document</span>
       </div>
 
       {/* Content */}
@@ -296,51 +290,43 @@ export function SourceAddFlow({
               From Google Drive
             </p>
             <div className="space-y-1">
-              {driveAccounts.map((account) => {
-                const isBackup = protectedConnectionIds.includes(account.id);
-                return (
-                  <button
-                    key={account.id}
-                    onClick={() => handleSelectAccount(account.id)}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-gray-50
+              {driveAccounts.map((account) => (
+                <button
+                  key={account.id}
+                  onClick={() => handleSelectAccount(account.id)}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-gray-50
                                transition-colors min-h-[56px] text-left"
+                >
+                  <svg
+                    className="w-5 h-5 text-gray-500 shrink-0"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
                   >
-                    <svg
-                      className="w-5 h-5 text-gray-500 shrink-0"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
-                    </svg>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-foreground truncate">
-                        {account.email}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Browse Google Drive
-                        {isBackup && (
-                          <span className="ml-1.5 text-amber-600 font-medium">Backup account</span>
-                        )}
-                      </div>
+                    <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
+                  </svg>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-foreground truncate">
+                      {account.email}
                     </div>
-                    <svg
-                      className="w-4 h-4 text-gray-400 shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </button>
-                );
-              })}
+                    <div className="text-xs text-muted-foreground">Browse Google Drive</div>
+                  </div>
+                  <svg
+                    className="w-4 h-4 text-gray-400 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+              ))}
             </div>
           </div>
         )}
@@ -411,34 +397,13 @@ export function SourceAddFlow({
           />
         </div>
 
-        {/* Connect another account — always shown when under 3 accounts */}
-        {driveAccounts.length < 3 && (
-          <div>
-            <button
-              onClick={onConnectAccount}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-gray-50
-                         transition-colors min-h-[44px] text-left"
-            >
-              <svg
-                className="w-5 h-5 text-gray-500 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-foreground">
-                  Connect another Google account
-                </div>
-              </div>
-            </button>
+        {/* No linked accounts hint */}
+        {driveAccounts.length === 0 && (
+          <div className="px-1 py-2">
+            <p className="text-xs text-muted-foreground">
+              No Google Drive sources linked. Use &quot;+ Link&quot; in Sources to connect an
+              account.
+            </p>
           </div>
         )}
       </div>

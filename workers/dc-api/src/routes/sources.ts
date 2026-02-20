@@ -202,4 +202,54 @@ sources.post("/sources/:sourceId/import-as-chapter", async (c) => {
   );
 });
 
+/**
+ * GET /projects/:projectId/source-connections
+ * List Drive connections linked to this project for research input.
+ */
+sources.get("/projects/:projectId/source-connections", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const service = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const connections = await service.listProjectConnections(userId, projectId);
+
+  return c.json({ connections });
+});
+
+/**
+ * POST /projects/:projectId/source-connections
+ * Link a Drive connection to this project for research input.
+ */
+sources.post("/projects/:projectId/source-connections", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+  const body = (await c.req.json().catch(() => ({}))) as {
+    driveConnectionId?: string;
+  };
+
+  if (!body.driveConnectionId) {
+    validationError("driveConnectionId is required");
+  }
+
+  const service = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const connection = await service.linkConnection(userId, projectId, body.driveConnectionId);
+
+  return c.json({ connection }, 201);
+});
+
+/**
+ * DELETE /projects/:projectId/source-connections/:connId
+ * Unlink a Drive connection from this project. Archives its source materials.
+ */
+sources.delete("/projects/:projectId/source-connections/:connId", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+  const connId = c.req.param("connId");
+
+  const service = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
+  await service.unlinkConnection(userId, projectId, connId);
+
+  return c.json({ success: true });
+});
+
 export { sources };
