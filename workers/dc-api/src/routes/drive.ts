@@ -159,6 +159,7 @@ driveCallback.get("/callback", async (c) => {
     const redirectUrl = new URL(c.env.FRONTEND_URL);
     redirectUrl.pathname = "/drive/success";
     redirectUrl.searchParams.set("cid", actualConnectionId);
+    redirectUrl.searchParams.set("email", email);
     validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL);
     return c.redirect(redirectUrl.toString());
   } catch (err) {
