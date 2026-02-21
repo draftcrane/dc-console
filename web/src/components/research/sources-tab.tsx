@@ -6,6 +6,7 @@ import { useResearchPanel } from "./research-panel-provider";
 import { SourceAddFlow } from "./source-add-flow";
 import { SourceDetailView } from "./source-detail-view";
 import { useSources, type SourceMaterial } from "@/hooks/use-sources";
+import { useToast } from "@/components/toast";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import {
   useProjectSourceConnections,
@@ -97,32 +98,8 @@ function SourceCard({
                 </span>
               </>
             ) : (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <svg
-                  className="animate-spin h-3 w-3"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                Processing...
-                <span className="text-gray-300 ml-0.5" aria-hidden="true">
-                  &middot;
-                </span>
-                <span className="truncate max-w-[120px]">{sourceBadge}</span>
+              <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                {sourceBadge}
               </span>
             )}
           </div>
@@ -250,6 +227,8 @@ export function SourcesTab() {
     finishFlow,
   } = useResearchPanel();
 
+  const { showToast } = useToast();
+
   const { sources, isLoading, error, fetchSources, addSources, uploadLocalFile, removeSource } =
     useSources(projectId);
 
@@ -361,10 +340,16 @@ export function SourcesTab() {
         title: f.title,
         mimeType: f.mimeType,
       }));
-      await addSources(pickerFiles, connectionId);
+      const result = await addSources(pickerFiles, connectionId);
+      if (result?.expandedCounts) {
+        const { docsInserted, selectedFolders } = result.expandedCounts;
+        showToast(
+          `Added ${docsInserted} doc${docsInserted !== 1 ? "s" : ""} from ${selectedFolders} folder${selectedFolders !== 1 ? "s" : ""}`,
+        );
+      }
       finishFlow();
     },
-    [addSources, finishFlow],
+    [addSources, finishFlow, showToast],
   );
 
   const handleUnlinkConnection = useCallback(

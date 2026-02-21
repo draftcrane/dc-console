@@ -107,15 +107,15 @@ describe("SourceMaterialService", () => {
       );
     });
 
-    it("rejects more than 20 files", async () => {
-      const files = Array.from({ length: 21 }, (_, i) => ({
+    it("rejects more than 50 files", async () => {
+      const files = Array.from({ length: 51 }, (_, i) => ({
         driveFileId: `file-${i}`,
         title: `Doc ${i}`,
         mimeType: "application/vnd.google-apps.document",
       }));
 
       await expect(service.addSources(userId, projectId, files)).rejects.toThrow(
-        "Maximum 20 files per request",
+        "Maximum 50 files per request",
       );
     });
 

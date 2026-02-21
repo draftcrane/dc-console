@@ -25,7 +25,7 @@ import { resolveReadOnlyConnection } from "./drive-connection-resolver.js";
 
 const ALLOWED_MIME_TYPE = "application/vnd.google-apps.document";
 const GOOGLE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
-const MAX_SOURCES_PER_REQUEST = 20;
+const MAX_SOURCES_PER_REQUEST = 50;
 const MAX_EXPANDED_DOCS_PER_REQUEST = 200;
 
 export class SourceDriveService {

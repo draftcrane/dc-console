@@ -123,23 +123,23 @@ export function SourceAddFlow({
   const handleAddSelected = useCallback(async () => {
     if (!activeConnectionId || selectedIds.size === 0) return;
 
-    const selectedDocs = driveItems
-      .filter((item) => driveIsDoc(item) && selectedIds.has(item.id))
+    const selectedItems = driveItems
+      .filter((item) => selectedIds.has(item.id))
       .map((item) => ({
         driveFileId: item.id,
         title: item.name,
         mimeType: item.mimeType,
       }));
 
-    if (selectedDocs.length === 0) return;
+    if (selectedItems.length === 0) return;
 
     setIsAdding(true);
     try {
-      await onAddDriveFiles(selectedDocs, activeConnectionId);
+      await onAddDriveFiles(selectedItems, activeConnectionId);
     } finally {
       setIsAdding(false);
     }
-  }, [activeConnectionId, selectedIds, driveItems, driveIsDoc, onAddDriveFiles]);
+  }, [activeConnectionId, selectedIds, driveItems, onAddDriveFiles]);
 
   const handleFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {

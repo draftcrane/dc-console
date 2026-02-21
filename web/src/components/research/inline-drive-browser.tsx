@@ -130,12 +130,24 @@ export function InlineDriveBrowser({
         {/* File/folder list */}
         {!isLoading && !error && (folders.length > 0 || docs.length > 0) && (
           <ul className="divide-y divide-border" role="list" aria-label="Drive files and folders">
-            {/* Folders */}
+            {/* Folders — two-zone: checkbox to select, button to navigate */}
             {folders.map((folder) => (
-              <li key={folder.id}>
+              <li key={folder.id} className="flex items-center min-h-[44px]">
+                {/* Checkbox: 44x44pt tap zone */}
+                <label className="flex items-center justify-center w-11 h-11 shrink-0 ml-4 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(folder.id)}
+                    onChange={() => onToggleSelect(folder.id)}
+                    className="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    aria-label={`Select all docs in ${folder.name}`}
+                  />
+                </label>
+
+                {/* Navigate zone */}
                 <button
                   onClick={() => onOpenFolder(folder.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50
+                  className="flex-1 flex items-center gap-3 px-3 py-3 hover:bg-gray-50
                              transition-colors min-h-[44px] text-left"
                 >
                   <svg
@@ -194,7 +206,7 @@ export function InlineDriveBrowser({
       </div>
 
       {/* Sticky footer: "Add N Selected" */}
-      {docs.length > 0 && (
+      {(docs.length > 0 || folders.length > 0) && (
         <div
           className="shrink-0 border-t border-border px-4 flex items-center justify-between"
           style={{ height: "48px" }}

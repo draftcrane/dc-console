@@ -50,6 +50,15 @@ export interface SourceMaterial {
   updatedAt: string;
 }
 
+export interface AddSourcesResult {
+  sources: SourceMaterial[];
+  expandedCounts?: {
+    selectedFolders: number;
+    docsDiscovered: number;
+    docsInserted: number;
+  };
+}
+
 export function useSources(projectId: string) {
   const { getToken } = useAuth();
   const [sources, setSources] = useState<SourceMaterial[]>([]);
@@ -80,7 +89,7 @@ export function useSources(projectId: string) {
 
   /** Add Drive sources from Picker selection. Optional connectionId tracks which account. */
   const addSources = useCallback(
-    async (files: PickerFile[], connectionId?: string) => {
+    async (files: PickerFile[], connectionId?: string): Promise<AddSourcesResult | null> => {
       try {
         setError(null);
         const token = await getToken();
@@ -96,10 +105,13 @@ export function useSources(projectId: string) {
           const data = await response.json().catch(() => null);
           throw new Error((data as { error?: string } | null)?.error || "Failed to add sources");
         }
+        const result: AddSourcesResult = await response.json();
         // Refresh list after adding
         await fetchSources();
+        return result;
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to add sources");
+        return null;
       }
     },
     [getToken, projectId, fetchSources],
