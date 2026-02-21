@@ -39,6 +39,9 @@ interface EditorToolbarProps {
   // First-use nudge (#185)
   hasAnySources: boolean;
 
+  // Source Manager
+  onManageSources: () => void;
+
   // Settings
   hasDriveFolder: boolean;
   driveFolderId?: string | null;
@@ -78,6 +81,7 @@ export function EditorToolbar({
   isResearchPanelOpen,
   onToggleResearchPanel,
   hasAnySources,
+  onManageSources,
   hasDriveFolder,
   driveFolderId,
   onSetupDrive,
@@ -202,6 +206,7 @@ export function EditorToolbar({
           onSetupDrive={onSetupDrive}
           onUnlinkDrive={onUnlinkDrive}
           onManageAccounts={onManageAccounts}
+          onManageSources={onManageSources}
           onRenameBook={onRenameBook}
           onDuplicateBook={onDuplicateBook}
           isDuplicating={isDuplicating}

@@ -210,11 +210,13 @@ function TabContent({
   onInsertClip,
   canInsert,
   activeChapterTitle,
+  onOpenSourceManager,
 }: {
   activeTab: ResearchTab;
   onInsertClip: (text: string, sourceTitle: string) => InsertResult;
   canInsert: boolean;
   activeChapterTitle?: string;
+  onOpenSourceManager?: () => void;
 }) {
   // Render all tabs but only show the active one.
   // This preserves state when switching tabs (acceptance criteria).
@@ -225,6 +227,7 @@ function TabContent({
           onInsertContent={onInsertClip}
           canInsert={canInsert}
           activeChapterTitle={activeChapterTitle}
+          onOpenSourceManager={onOpenSourceManager}
         />
       </TabPanel>
       <TabPanel id="ask" activeTab={activeTab}>
@@ -266,12 +269,14 @@ export interface ResearchPanelProps {
   onInsertClip?: (text: string, sourceTitle: string) => InsertResult;
   canInsert?: boolean;
   activeChapterTitle?: string;
+  onOpenSourceManager?: () => void;
 }
 
 export function ResearchPanel({
   onInsertClip,
   canInsert = false,
   activeChapterTitle,
+  onOpenSourceManager,
 }: ResearchPanelProps) {
   const { isOpen, activeTab, setActiveTab, closePanel, openPanel } = useResearchPanel();
   const params = useParams();
@@ -345,6 +350,7 @@ export function ResearchPanel({
           onInsertClip={handleInsertClip}
           canInsert={canInsert}
           activeChapterTitle={activeChapterTitle}
+          onOpenSourceManager={onOpenSourceManager}
         />
       </div>
     );
@@ -376,6 +382,7 @@ export function ResearchPanel({
           onInsertClip={handleInsertClip}
           canInsert={canInsert}
           activeChapterTitle={activeChapterTitle}
+          onOpenSourceManager={onOpenSourceManager}
         />
       </div>
     </>
