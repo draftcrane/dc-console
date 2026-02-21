@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { useDriveStatus } from "@/hooks/use-drive-status";
+import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 
 const STORAGE_KEY = "dc_pending_drive_project";
 const SOURCE_LINK_KEY = "dc_pending_source_link";
@@ -69,6 +69,8 @@ function getServerSnapshot(): string | null {
  *
  * The ?cid= query param (set by the OAuth callback) identifies which
  * Drive connection was just created/updated.
+ * The ?email= query param provides the connected email for immediate display
+ * (avoids a read-after-write race with the API).
  *
  * Per PRD Section 8 (US-005/US-006): Works with iPad Safari redirect flow.
  */
@@ -76,10 +78,18 @@ export default function DriveSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { getToken } = useAuth();
-  const { status, isLoading: isLoadingDrive } = useDriveStatus();
+  const { accounts, isLoading: isLoadingDrive } = useDriveAccounts();
 
-  // Connection ID from OAuth callback redirect
+  // Connection ID and email from OAuth callback redirect
   const connectionId = searchParams.get("cid");
+  const connectedEmail = searchParams.get("email");
+
+  // Derive connection state from accounts array
+  const isConnected = accounts.length > 0;
+
+  // Display email: prefer URL param (immediate), fall back to matching account, then first account
+  const fallbackEmail = accounts.find((a) => a.id === connectionId)?.email ?? accounts[0]?.email;
+  const displayEmail = connectedEmail || fallbackEmail;
 
   // Backup folder flow: project ID from sessionStorage
   const projectId = useSyncExternalStore(subscribeNoop, readPendingProject, getServerSnapshot);
@@ -97,21 +107,32 @@ export default function DriveSuccessPage() {
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [folderId, setFolderId] = useState<string | null>(null);
   const [folderError, setFolderError] = useState<string | null>(null);
+  const [linkComplete, setLinkComplete] = useState(false);
   const createAttempted = useRef(false);
   const linkAttempted = useRef(false);
 
-  // Auto-redirect after successful connection
+  // Determine when we're ready to auto-redirect
+  const readyToRedirect =
+    !isLoadingDrive &&
+    isConnected &&
+    // No pending flow — redirect immediately
+    ((!projectId && !sourceLinkProjectId) ||
+      // Backup flow — wait for folder result
+      (projectId && (folderId || folderError)) ||
+      // Source-link flow — wait for link completion
+      (sourceLinkProjectId && !projectId && linkComplete));
+
+  // Auto-redirect after async flows complete
   useEffect(() => {
-    const shouldRedirect = !isLoadingDrive && status?.connected;
+    if (!readyToRedirect) return;
 
-    if (!shouldRedirect) return;
-
-    // Redirect after a short delay
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       const destination = redirectProjectId ? `/editor/${redirectProjectId}` : "/dashboard";
       router.push(destination);
-    }, 3000); // 3-second delay to show success message
-  }, [isLoadingDrive, status?.connected, redirectProjectId, router]);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [readyToRedirect, redirectProjectId, router]);
 
   const handleContinue = useCallback(() => {
     const destination = redirectProjectId ? `/editor/${redirectProjectId}` : "/dashboard";
@@ -149,17 +170,17 @@ export default function DriveSuccessPage() {
   useEffect(() => {
     if (createAttempted.current) return;
     if (isLoadingDrive) return;
-    if (!status?.connected) return;
+    if (!isConnected) return;
     if (!projectId) return;
     createAttempted.current = true;
     void createFolder();
-  }, [isLoadingDrive, status?.connected, projectId, createFolder]);
+  }, [isLoadingDrive, isConnected, projectId, createFolder]);
 
   // After OAuth success, auto-link the connection as a research source (source-link flow).
   useEffect(() => {
     if (linkAttempted.current) return;
     if (isLoadingDrive) return;
-    if (!status?.connected) return;
+    if (!isConnected) return;
     if (!sourceLinkProjectId || !connectionId) return;
     linkAttempted.current = true;
 
@@ -177,9 +198,11 @@ export default function DriveSuccessPage() {
         // Best-effort — if it fails (e.g. already linked), we still redirect
       } catch {
         // Non-blocking: user can manually link from the editor
+      } finally {
+        setLinkComplete(true);
       }
     })();
-  }, [isLoadingDrive, status?.connected, sourceLinkProjectId, connectionId, getToken]);
+  }, [isLoadingDrive, isConnected, sourceLinkProjectId, connectionId, getToken]);
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-4">
@@ -202,9 +225,9 @@ export default function DriveSuccessPage() {
 
         {isLoadingDrive ? (
           <p className="text-muted-foreground">Verifying connection...</p>
-        ) : status?.connected ? (
+        ) : isConnected ? (
           <p className="text-muted-foreground">
-            Connected as <span className="font-medium text-foreground">{status.email}</span>.
+            Connected as <span className="font-medium text-foreground">{displayEmail}</span>.
           </p>
         ) : (
           <p className="text-muted-foreground">Your Google Drive is now connected.</p>
@@ -245,7 +268,9 @@ export default function DriveSuccessPage() {
         {sourceLinkProjectId && !projectId && (
           <div className="mt-4">
             <p className="text-sm text-muted-foreground">
-              Linked as a research source. Redirecting to editor...
+              {linkComplete
+                ? "Linked as a research source. Redirecting to editor..."
+                : "Linking as a research source..."}
             </p>
           </div>
         )}

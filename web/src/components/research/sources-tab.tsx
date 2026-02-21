@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useMemo, useState } from "react";
+import { useEffect, useCallback, useMemo, useState, type MouseEvent } from "react";
 import { useParams } from "next/navigation";
 import { useResearchPanel } from "./research-panel-provider";
 import { SourceAddFlow } from "./source-add-flow";
@@ -262,6 +262,36 @@ export function SourcesTab() {
   // Drive connect function for "+ Link" button (starts OAuth flow)
   const { connect: connectDrive } = useDriveAccounts();
 
+  // Collapsible SOURCES section
+  const [sourcesCollapsed, setSourcesCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`dc_sources_collapsed:${projectId}`);
+      // Hydration-safe: must read localStorage in effect, not in useState initializer
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from external store (localStorage)
+      if (stored === "true") setSourcesCollapsed(true);
+    } catch {
+      /* private browsing */
+    }
+  }, [projectId]);
+
+  const toggleSourcesCollapsed = useCallback(
+    (e: MouseEvent) => {
+      e.stopPropagation();
+      setSourcesCollapsed((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem(`dc_sources_collapsed:${projectId}`, String(next));
+        } catch {
+          /* private browsing */
+        }
+        return next;
+      });
+    },
+    [projectId],
+  );
+
   // Derive active source from sources list and activeSourceId (no state needed)
   const activeSource = useMemo<SourceMaterial | null>(() => {
     if (!activeSourceId || sources.length === 0) return null;
@@ -439,12 +469,32 @@ export function SourcesTab() {
         {/* Two-section layout — always shown */}
         {!error && !(isLoading && sources.length === 0) && (
           <>
-            {/* SOURCES section */}
+            {/* SOURCES section (collapsible) */}
             <div className="px-4 pt-3 pb-1">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                  Sources
-                </p>
+                <button
+                  onClick={toggleSourcesCollapsed}
+                  className="flex items-center gap-1.5 min-h-[32px] group"
+                  aria-expanded={!sourcesCollapsed}
+                  aria-controls="sources-section"
+                >
+                  <svg
+                    className={`w-3 h-3 text-muted-foreground transition-transform duration-200 ${
+                      sourcesCollapsed ? "rotate-0" : "rotate-90"
+                    }`}
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z" />
+                  </svg>
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors">
+                    Sources
+                    {projectConnections.length > 0 && (
+                      <span className="ml-1 font-normal">({projectConnections.length})</span>
+                    )}
+                  </span>
+                </button>
                 <button
                   onClick={handleLinkSource}
                   className="text-xs font-medium text-blue-600 hover:text-blue-700
@@ -455,23 +505,27 @@ export function SourcesTab() {
               </div>
             </div>
 
-            {projectConnections.length === 0 && !connectionsLoading && (
-              <div className="px-4 py-2">
-                <p className="text-sm text-muted-foreground">No sources linked yet.</p>
-              </div>
-            )}
+            {!sourcesCollapsed && (
+              <div id="sources-section">
+                {projectConnections.length === 0 && !connectionsLoading && (
+                  <div className="px-4 py-2">
+                    <p className="text-sm text-muted-foreground">No sources linked yet.</p>
+                  </div>
+                )}
 
-            {projectConnections.length > 0 && (
-              <ul className="divide-y divide-border" role="list" aria-label="Linked sources">
-                {projectConnections.map((conn) => (
-                  <ConnectionRow
-                    key={conn.id}
-                    connection={conn}
-                    onTap={() => startAddDocument(conn.driveConnectionId)}
-                    onUnlink={() => handleUnlinkConnection(conn.driveConnectionId)}
-                  />
-                ))}
-              </ul>
+                {projectConnections.length > 0 && (
+                  <ul className="divide-y divide-border" role="list" aria-label="Linked sources">
+                    {projectConnections.map((conn) => (
+                      <ConnectionRow
+                        key={conn.id}
+                        connection={conn}
+                        onTap={() => startAddDocument(conn.driveConnectionId)}
+                        onUnlink={() => handleUnlinkConnection(conn.driveConnectionId)}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
 
             {/* Divider between sections */}
