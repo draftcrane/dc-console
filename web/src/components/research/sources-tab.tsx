@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect, useCallback, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useResearchPanel } from "./research-panel-provider";
 import { SourceAddFlow } from "./source-add-flow";
 import { SourceDetailView } from "./source-detail-view";
 import { useSources, type SourceMaterial } from "@/hooks/use-sources";
 import { useToast } from "@/components/toast";
-import { useDriveAccounts } from "@/hooks/use-drive-accounts";
-import {
-  useProjectSourceConnections,
-  type ProjectSourceConnection,
-} from "@/hooks/use-project-source-connections";
+import { useLinkedFolders, type LinkFolderInput } from "@/hooks/use-linked-folders";
+import { useProjectSourceConnections } from "@/hooks/use-project-source-connections";
+import type { InsertResult } from "@/hooks/use-clip-insert";
 
 // === Source Badge Helpers ===
 
@@ -29,6 +27,20 @@ function abbreviateEmail(email: string, singleAccount: boolean): string {
   const [local] = email.split("@");
   if (!local) return email;
   return local.length > 14 ? local.slice(0, 12) + "..." : local;
+}
+
+// === Relative time helper ===
+
+function relativeTime(dateStr: string | null): string {
+  if (!dateStr) return "Never synced";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 // === Source Card ===
@@ -121,15 +133,19 @@ function SourceCard({
   );
 }
 
-// === Connection Row (SOURCES section) ===
+// === Linked Folder Row ===
 
-function ConnectionRow({
-  connection,
-  onTap,
+function LinkedFolderRow({
+  folder,
   onUnlink,
 }: {
-  connection: ProjectSourceConnection;
-  onTap: () => void;
+  folder: {
+    id: string;
+    folderName: string;
+    email: string;
+    documentCount: number;
+    lastSyncedAt: string | null;
+  };
   onUnlink: () => void;
 }) {
   const [confirmUnlink, setConfirmUnlink] = useState(false);
@@ -148,28 +164,45 @@ function ConnectionRow({
   return (
     <li className="px-4 py-2.5 min-h-[48px]">
       <div className="flex items-center gap-3">
-        {/* Drive icon */}
-        <div className="h-8 w-8 flex items-center justify-center rounded-full bg-blue-50 shrink-0">
+        {/* Folder icon */}
+        <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-amber-50 shrink-0">
           <svg
-            className="w-3.5 h-3.5 text-gray-500"
+            className="w-4 h-4 text-amber-500"
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
-            fill="currentColor"
             aria-hidden="true"
           >
-            <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+            />
           </svg>
         </div>
 
-        {/* Info — tappable to browse */}
-        <button
-          onClick={onTap}
-          className="min-w-0 flex-1 text-left hover:bg-gray-50 -mx-1 px-1 rounded transition-colors"
-        >
-          <p className="text-sm font-medium text-foreground truncate">{connection.email}</p>
-          <p className="text-xs text-muted-foreground">
-            {connection.documentCount} document{connection.documentCount !== 1 ? "s" : ""}
-          </p>
-        </button>
+        {/* Info */}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-foreground truncate">{folder.folderName}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-xs text-muted-foreground">
+              {folder.documentCount} doc{folder.documentCount !== 1 ? "s" : ""}
+            </span>
+            <span className="text-xs text-gray-300" aria-hidden="true">
+              &middot;
+            </span>
+            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+              {abbreviateEmail(folder.email, false)}
+            </span>
+            <span className="text-xs text-gray-300" aria-hidden="true">
+              &middot;
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {relativeTime(folder.lastSyncedAt)}
+            </span>
+          </div>
+        </div>
 
         {/* Unlink button */}
         {!confirmUnlink && (
@@ -185,12 +218,12 @@ function ConnectionRow({
 
       {/* Inline unlink confirmation */}
       {confirmUnlink && (
-        <div className="flex items-center gap-2 mt-1.5 py-1 px-2 bg-red-50 rounded ml-11">
-          <span className="text-xs text-red-700">Unlink and archive documents?</span>
+        <div className="flex items-center gap-2 mt-1.5 py-1 px-2 bg-amber-50 rounded ml-11">
+          <span className="text-xs text-amber-700">Unlink folder? Documents will remain.</span>
           <button
             onClick={handleUnlink}
             disabled={isUnlinking}
-            className="text-xs font-medium text-red-600 hover:text-red-700
+            className="text-xs font-medium text-amber-600 hover:text-amber-700
                        min-h-[32px] flex items-center transition-colors disabled:opacity-50"
           >
             {isUnlinking ? "..." : "Yes"}
@@ -211,16 +244,28 @@ function ConnectionRow({
 
 // === Sources Tab ===
 
-export function SourcesTab() {
+export interface SourcesTabProps {
+  onInsertContent?: (text: string, sourceTitle: string) => InsertResult;
+  canInsert?: boolean;
+  activeChapterTitle?: string;
+}
+
+export function SourcesTab({
+  onInsertContent,
+  canInsert = false,
+  activeChapterTitle,
+}: SourcesTabProps) {
   const params = useParams();
   const projectId = params.projectId as string;
   const {
     sourcesView,
     activeSourceId,
     activeConnectionId,
+    addMode,
     returnTab,
     scrollToText,
     startAddDocument,
+    startLinkFolder,
     viewSource,
     backToSourceList,
     returnToPreviousTab,
@@ -232,44 +277,16 @@ export function SourcesTab() {
   const { sources, isLoading, error, fetchSources, addSources, uploadLocalFile, removeSource } =
     useSources(projectId);
 
+  const { connections: projectConnections, isLoading: connectionsLoading } =
+    useProjectSourceConnections(projectId);
+
   const {
-    connections: projectConnections,
-    isLoading: connectionsLoading,
-    unlinkConnection,
-  } = useProjectSourceConnections(projectId);
-
-  // Drive connect function for "+ Link" button (starts OAuth flow)
-  const { connect: connectDrive } = useDriveAccounts();
-
-  // Collapsible SOURCES section
-  const [sourcesCollapsed, setSourcesCollapsed] = useState(false);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(`dc_sources_collapsed:${projectId}`);
-      // Hydration-safe: must read localStorage in effect, not in useState initializer
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing from external store (localStorage)
-      if (stored === "true") setSourcesCollapsed(true);
-    } catch {
-      /* private browsing */
-    }
-  }, [projectId]);
-
-  const toggleSourcesCollapsed = useCallback(
-    (e: MouseEvent) => {
-      e.stopPropagation();
-      setSourcesCollapsed((prev) => {
-        const next = !prev;
-        try {
-          localStorage.setItem(`dc_sources_collapsed:${projectId}`, String(next));
-        } catch {
-          /* private browsing */
-        }
-        return next;
-      });
-    },
-    [projectId],
-  );
+    linkedFolders,
+    isLoading: foldersLoading,
+    isSyncing,
+    linkFolder,
+    unlinkFolder,
+  } = useLinkedFolders(projectId);
 
   // Derive active source from sources list and activeSourceId (no state needed)
   const activeSource = useMemo<SourceMaterial | null>(() => {
@@ -352,24 +369,68 @@ export function SourcesTab() {
     [addSources, finishFlow, showToast],
   );
 
-  const handleUnlinkConnection = useCallback(
-    async (driveConnectionId: string) => {
-      await unlinkConnection(driveConnectionId);
-      // Refresh sources since documents were archived
-      fetchSources();
+  const handleLinkFolder = useCallback(
+    async (folderId: string, folderName: string, connectionId: string) => {
+      const input: LinkFolderInput = {
+        driveConnectionId: connectionId,
+        driveFolderId: folderId,
+        folderName,
+      };
+      const result = await linkFolder(input);
+      if (result) {
+        const newDocs = result.sync?.newDocs ?? 0;
+        showToast(`Linked "${folderName}" — ${newDocs} doc${newDocs !== 1 ? "s" : ""} added`);
+        // Refresh sources since sync added new documents
+        fetchSources();
+      }
+      finishFlow();
     },
-    [unlinkConnection, fetchSources],
+    [linkFolder, finishFlow, showToast, fetchSources],
   );
 
-  /**
-   * "+ Link" handler: sets sessionStorage flag and starts OAuth.
-   * After OAuth completes, the success page auto-links the connection
-   * to this project and redirects back to the editor.
-   */
-  const handleLinkSource = useCallback(() => {
-    sessionStorage.setItem("dc_pending_source_link", projectId);
-    connectDrive();
-  }, [projectId, connectDrive]);
+  const handleUnlinkFolder = useCallback(
+    async (linkedFolderId: string) => {
+      await unlinkFolder(linkedFolderId);
+    },
+    [unlinkFolder],
+  );
+
+  const handleInsertIntoChapter = useCallback(
+    (content: string, sourceTitle: string) => {
+      if (onInsertContent) {
+        const result = onInsertContent(content, sourceTitle);
+        if (result === "inserted") {
+          showToast("Inserted into chapter");
+        } else if (result === "appended") {
+          showToast("Appended to chapter");
+        }
+      }
+    },
+    [onInsertContent, showToast],
+  );
+
+  const handleImportAsChapter = useCallback(
+    async (sourceId: string) => {
+      // Use the import-as-chapter API endpoint
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || ""}/sources/${sourceId}/import-as-chapter`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${await (window as unknown as { Clerk?: { session?: { getToken?: () => Promise<string> } } }).Clerk?.session?.getToken?.()}`,
+            },
+          },
+        );
+        if (response.ok) {
+          showToast("Imported as new chapter");
+        }
+      } catch {
+        showToast("Failed to import as chapter");
+      }
+    },
+    [showToast],
+  );
 
   // Compute back label for source detail view based on returnTab
   const handleDetailBack = useCallback(() => {
@@ -388,12 +449,14 @@ export function SourcesTab() {
   if (sourcesView === "add-document") {
     return (
       <SourceAddFlow
+        mode={addMode === "link-folder" ? "link-folder" : "add-documents"}
         driveAccounts={linkedDriveAccounts}
         existingDriveFileIds={existingDriveFileIds}
         preSelectedConnectionId={activeConnectionId}
         onBack={backToSourceList}
         onAddDriveFiles={handleAddDriveFiles}
         onUploadLocal={handleUploadLocal}
+        onLinkFolder={handleLinkFolder}
       />
     );
   }
@@ -407,18 +470,22 @@ export function SourcesTab() {
         onBack={handleDetailBack}
         backLabel={detailBackLabel}
         scrollToText={scrollToText ?? undefined}
+        onInsertIntoChapter={onInsertContent ? handleInsertIntoChapter : undefined}
+        canInsert={canInsert}
+        activeChapterTitle={activeChapterTitle}
+        onImportAsChapter={handleImportAsChapter}
       />
     );
   }
 
-  // --- Two-Section List View (always visible) ---
+  // --- Two-Section List View ---
 
   return (
     <div className="flex flex-col h-full">
       {/* Content */}
       <div className="flex-1 overflow-auto min-h-0">
         {/* Loading state */}
-        {(isLoading || connectionsLoading) && sources.length === 0 && (
+        {(isLoading || connectionsLoading || foldersLoading) && sources.length === 0 && (
           <div className="flex items-center justify-center py-12">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -454,34 +521,27 @@ export function SourcesTab() {
         {/* Two-section layout — always shown */}
         {!error && !(isLoading && sources.length === 0) && (
           <>
-            {/* SOURCES section (collapsible) */}
+            {/* LINKED FOLDERS section */}
             <div className="px-4 pt-3 pb-1">
               <div className="flex items-center justify-between">
-                <button
-                  onClick={toggleSourcesCollapsed}
-                  className="flex items-center gap-1.5 min-h-[32px] group"
-                  aria-expanded={!sourcesCollapsed}
-                  aria-controls="sources-section"
-                >
-                  <svg
-                    className={`w-3 h-3 text-muted-foreground transition-transform duration-200 ${
-                      sourcesCollapsed ? "rotate-0" : "rotate-90"
-                    }`}
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z" />
-                  </svg>
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors">
-                    Sources
-                    {projectConnections.length > 0 && (
-                      <span className="ml-1 font-normal">({projectConnections.length})</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    Linked Folders
+                    {linkedFolders.length > 0 && (
+                      <span className="ml-1 font-normal">({linkedFolders.length})</span>
                     )}
                   </span>
-                </button>
+                  {/* Sync indicator */}
+                  {isSyncing && (
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"
+                      title="Syncing folders..."
+                      aria-label="Syncing folders"
+                    />
+                  )}
+                </div>
                 <button
-                  onClick={handleLinkSource}
+                  onClick={() => startLinkFolder()}
                   className="text-xs font-medium text-blue-600 hover:text-blue-700
                              min-h-[32px] flex items-center transition-colors"
                 >
@@ -490,27 +550,24 @@ export function SourcesTab() {
               </div>
             </div>
 
-            {!sourcesCollapsed && (
-              <div id="sources-section">
-                {projectConnections.length === 0 && !connectionsLoading && (
-                  <div className="px-4 py-2">
-                    <p className="text-sm text-muted-foreground">No sources linked yet.</p>
-                  </div>
-                )}
-
-                {projectConnections.length > 0 && (
-                  <ul className="divide-y divide-border" role="list" aria-label="Linked sources">
-                    {projectConnections.map((conn) => (
-                      <ConnectionRow
-                        key={conn.id}
-                        connection={conn}
-                        onTap={() => startAddDocument(conn.driveConnectionId)}
-                        onUnlink={() => handleUnlinkConnection(conn.driveConnectionId)}
-                      />
-                    ))}
-                  </ul>
-                )}
+            {linkedFolders.length === 0 && !foldersLoading && (
+              <div className="px-4 py-2">
+                <p className="text-sm text-muted-foreground">
+                  No folders linked yet. Link a Drive folder to auto-sync its documents.
+                </p>
               </div>
+            )}
+
+            {linkedFolders.length > 0 && (
+              <ul className="divide-y divide-border" role="list" aria-label="Linked folders">
+                {linkedFolders.map((folder) => (
+                  <LinkedFolderRow
+                    key={folder.id}
+                    folder={folder}
+                    onUnlink={() => handleUnlinkFolder(folder.id)}
+                  />
+                ))}
+              </ul>
             )}
 
             {/* Divider between sections */}

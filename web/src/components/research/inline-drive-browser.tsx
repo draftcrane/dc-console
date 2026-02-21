@@ -5,6 +5,8 @@ import type { DriveBrowseItem } from "@/hooks/use-drive-browser";
 // === Inline Drive Browser ===
 
 export interface InlineDriveBrowserProps {
+  /** "link-folder" or "add-documents" — controls rendering behavior */
+  mode?: "link-folder" | "add-documents";
   folders: DriveBrowseItem[];
   docs: DriveBrowseItem[];
   isLoading: boolean;
@@ -21,20 +23,24 @@ export interface InlineDriveBrowserProps {
   onToggleSelect: (fileId: string) => void;
   onAddSelected: () => void;
   onRefresh: () => void;
+  /** Called when a folder "Link" button is clicked (link-folder mode) */
+  onLinkFolder?: (folderId: string, folderName: string) => void;
 }
 
 /**
  * Inline folder browser rendered within the Sources tab (no sheet/modal).
  *
+ * Supports two modes:
+ * - "add-documents" (default): Folders navigable + selectable, docs selectable via checkbox
+ * - "link-folder": Folders show "Link" button + are navigable, docs are grayed out
+ *
  * Per design spec Section 5, Flow 1:
- * - Shows folders (navigable via tap) and Google Docs (selectable via checkbox)
- * - Files already in project show "Already added" with disabled checkbox
- * - "Add N Selected" sticky footer: 48pt height, full width
  * - All touch targets minimum 44pt
  * - Checkboxes: 44x44pt tap area (visually 24x24px)
  * - [< Sources] back button for navigation
  */
 export function InlineDriveBrowser({
+  mode = "add-documents",
   folders,
   docs,
   isLoading,
@@ -50,7 +56,10 @@ export function InlineDriveBrowser({
   onToggleSelect,
   onAddSelected,
   onRefresh,
+  onLinkFolder,
 }: InlineDriveBrowserProps) {
+  const isLinkMode = mode === "link-folder";
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -122,7 +131,9 @@ export function InlineDriveBrowser({
         {!isLoading && !error && folders.length === 0 && docs.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
             <p className="text-sm text-muted-foreground">
-              No Google Docs or folders found in this location.
+              {isLinkMode
+                ? "No folders found in this location."
+                : "No Google Docs or folders found in this location."}
             </p>
           </div>
         )}
@@ -130,58 +141,109 @@ export function InlineDriveBrowser({
         {/* File/folder list */}
         {!isLoading && !error && (folders.length > 0 || docs.length > 0) && (
           <ul className="divide-y divide-border" role="list" aria-label="Drive files and folders">
-            {/* Folders — two-zone: checkbox to select, button to navigate */}
+            {/* Folders */}
             {folders.map((folder) => (
               <li key={folder.id} className="flex items-center min-h-[44px]">
-                {/* Checkbox: 44x44pt tap zone */}
-                <label className="flex items-center justify-center w-11 h-11 shrink-0 ml-4 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(folder.id)}
-                    onChange={() => onToggleSelect(folder.id)}
-                    className="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    aria-label={`Select all docs in ${folder.name}`}
-                  />
-                </label>
-
-                {/* Navigate zone */}
-                <button
-                  onClick={() => onOpenFolder(folder.id)}
-                  className="flex-1 flex items-center gap-3 px-3 py-3 hover:bg-gray-50
-                             transition-colors min-h-[44px] text-left"
-                >
-                  <svg
-                    className="w-5 h-5 text-amber-500 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
-                    />
-                  </svg>
-                  <span className="text-sm font-medium text-foreground truncate flex-1">
-                    {folder.name}
-                  </span>
-                  <svg
-                    className="w-4 h-4 text-gray-400 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
+                {isLinkMode ? (
+                  /* Link-folder mode: "Link" button on the left, folder navigable */
+                  <>
+                    <button
+                      onClick={() => onLinkFolder?.(folder.id, folder.name)}
+                      disabled={isAdding}
+                      className="ml-4 h-8 px-2.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md
+                                 hover:bg-blue-100 transition-colors shrink-0 disabled:opacity-50"
+                    >
+                      Link
+                    </button>
+                    <button
+                      onClick={() => onOpenFolder(folder.id)}
+                      className="flex-1 flex items-center gap-3 px-3 py-3 hover:bg-gray-50
+                                 transition-colors min-h-[44px] text-left"
+                    >
+                      <svg
+                        className="w-5 h-5 text-amber-500 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+                        />
+                      </svg>
+                      <span className="text-sm font-medium text-foreground truncate flex-1">
+                        {folder.name}
+                      </span>
+                      <svg
+                        className="w-4 h-4 text-gray-400 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  </>
+                ) : (
+                  /* Add-documents mode: checkbox + navigable */
+                  <>
+                    <label className="flex items-center justify-center w-11 h-11 shrink-0 ml-4 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(folder.id)}
+                        onChange={() => onToggleSelect(folder.id)}
+                        className="h-6 w-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        aria-label={`Select all docs in ${folder.name}`}
+                      />
+                    </label>
+                    <button
+                      onClick={() => onOpenFolder(folder.id)}
+                      className="flex-1 flex items-center gap-3 px-3 py-3 hover:bg-gray-50
+                                 transition-colors min-h-[44px] text-left"
+                    >
+                      <svg
+                        className="w-5 h-5 text-amber-500 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 7a2 2 0 012-2h5l2 2h7a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+                        />
+                      </svg>
+                      <span className="text-sm font-medium text-foreground truncate flex-1">
+                        {folder.name}
+                      </span>
+                      <svg
+                        className="w-4 h-4 text-gray-400 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  </>
+                )}
               </li>
             ))}
 
@@ -192,12 +254,33 @@ export function InlineDriveBrowser({
 
               return (
                 <li key={doc.id}>
-                  <DriveDocRow
-                    doc={doc}
-                    isAlreadyAdded={isAlreadyAdded}
-                    isSelected={isSelected}
-                    onToggle={() => onToggleSelect(doc.id)}
-                  />
+                  {isLinkMode ? (
+                    /* Link-folder mode: docs visible but grayed out, no checkboxes */
+                    <div className="w-full flex items-center gap-3 px-4 py-3 min-h-[44px] opacity-40">
+                      <span className="flex items-center justify-center w-11 h-11 shrink-0" />
+                      <svg
+                        className="w-5 h-5 text-blue-500 shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 3.5L18.5 8H14V3.5zM8 13h8v1.5H8V13zm0 3h8v1.5H8V16zm0-6h3v1.5H8V10z" />
+                      </svg>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-foreground truncate">
+                          {doc.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Google Doc</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <DriveDocRow
+                      doc={doc}
+                      isAlreadyAdded={isAlreadyAdded}
+                      isSelected={isSelected}
+                      onToggle={() => onToggleSelect(doc.id)}
+                    />
+                  )}
                 </li>
               );
             })}
@@ -205,29 +288,35 @@ export function InlineDriveBrowser({
         )}
       </div>
 
-      {/* Sticky footer: "Add N Selected" */}
+      {/* Sticky footer */}
       {(docs.length > 0 || folders.length > 0) && (
         <div
           className="shrink-0 border-t border-border px-4 flex items-center justify-between"
           style={{ height: "48px" }}
         >
-          <span className="text-xs text-muted-foreground">
-            {selectableSelectedCount > 0
-              ? `${selectableSelectedCount} selected`
-              : "Select files to add"}
-          </span>
-          <button
-            onClick={onAddSelected}
-            disabled={selectableSelectedCount === 0 || isAdding}
-            className="h-9 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg
-                       hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isAdding
-              ? "Adding..."
-              : selectableSelectedCount > 0
-                ? `Add ${selectableSelectedCount} Selected`
-                : "Add Selected"}
-          </button>
+          {isLinkMode ? (
+            <span className="text-xs text-muted-foreground">Select a folder to link</span>
+          ) : (
+            <>
+              <span className="text-xs text-muted-foreground">
+                {selectableSelectedCount > 0
+                  ? `${selectableSelectedCount} selected`
+                  : "Select files to add"}
+              </span>
+              <button
+                onClick={onAddSelected}
+                disabled={selectableSelectedCount === 0 || isAdding}
+                className="h-9 px-4 bg-blue-600 text-white text-sm font-medium rounded-lg
+                           hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAdding
+                  ? "Adding..."
+                  : selectableSelectedCount > 0
+                    ? `Add ${selectableSelectedCount} Selected`
+                    : "Add Selected"}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

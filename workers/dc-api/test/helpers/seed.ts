@@ -141,6 +141,65 @@ export async function seedClip(
   return { id, projectId, sourceId, sourceTitle, content };
 }
 
+export async function seedDriveConnection(
+  userId: string,
+  overrides?: {
+    id?: string;
+    email?: string;
+    accessToken?: string;
+    refreshToken?: string;
+  },
+) {
+  const id = overrides?.id ?? `conn-${ulid()}`;
+  const email = overrides?.email ?? `drive-${id}@gmail.com`;
+  const accessToken = overrides?.accessToken ?? "fake-access-token";
+  const refreshToken = overrides?.refreshToken ?? "fake-refresh-token";
+  const ts = now();
+  await env.DB.prepare(
+    `INSERT INTO drive_connections (id, user_id, drive_email, access_token, refresh_token, token_expires_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(id, userId, email, accessToken, refreshToken, ts, ts, ts)
+    .run();
+  return { id, userId, email };
+}
+
+export async function seedLinkedFolder(
+  projectId: string,
+  driveConnectionId: string,
+  overrides?: {
+    id?: string;
+    driveFolderId?: string;
+    folderName?: string;
+    documentCount?: number;
+    lastSyncedAt?: string | null;
+  },
+) {
+  const id = overrides?.id ?? ulid();
+  const driveFolderId = overrides?.driveFolderId ?? `folder-${ulid()}`;
+  const folderName = overrides?.folderName ?? "Test Folder";
+  const documentCount = overrides?.documentCount ?? 0;
+  const lastSyncedAt = overrides?.lastSyncedAt !== undefined ? overrides.lastSyncedAt : null;
+  const ts = now();
+  await env.DB.prepare(
+    `INSERT INTO project_linked_folders (id, project_id, drive_connection_id, drive_folder_id, folder_name, document_count, last_synced_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      id,
+      projectId,
+      driveConnectionId,
+      driveFolderId,
+      folderName,
+      documentCount,
+      lastSyncedAt,
+      ts,
+      ts,
+    )
+    .run();
+  return { id, projectId, driveConnectionId, driveFolderId, folderName };
+}
+
 /**
  * Seed FTS content for a source.
  * Inserts a row into source_content_fts so search tests can find it.
@@ -212,6 +271,8 @@ export async function cleanAll() {
     env.DB.prepare("DELETE FROM ai_interactions"),
     env.DB.prepare("DELETE FROM export_jobs"),
     env.DB.prepare("DELETE FROM research_clips"),
+    env.DB.prepare("DELETE FROM project_linked_folders"),
+    env.DB.prepare("DELETE FROM project_source_connections"),
     env.DB.prepare("DELETE FROM source_materials"),
     env.DB.prepare("DELETE FROM chapters"),
     env.DB.prepare("DELETE FROM projects"),

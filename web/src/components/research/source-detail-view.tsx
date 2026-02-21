@@ -25,6 +25,14 @@ interface SourceDetailViewProps {
   scrollToText?: string;
   /** Chapters available for clip tagging */
   chapters?: Chapter[];
+  /** Insert source content into the active chapter */
+  onInsertIntoChapter?: (content: string, sourceTitle: string) => void;
+  /** Whether insert is available (editor exists and chapter is selected) */
+  canInsert?: boolean;
+  /** Title of the active chapter for button label */
+  activeChapterTitle?: string;
+  /** Import source as a new chapter */
+  onImportAsChapter?: (sourceId: string) => Promise<void>;
 }
 
 // === Hint localStorage key ===
@@ -75,6 +83,10 @@ export function SourceDetailView({
   backLabel,
   scrollToText,
   chapters = [],
+  onInsertIntoChapter,
+  canInsert = false,
+  activeChapterTitle,
+  onImportAsChapter,
 }: SourceDetailViewProps) {
   const { content, wordCount, isLoading, error, fetchContent, reset } = useSourceContent();
   const { saveClip, savedContents, isSaving } = useResearchClips(projectId);
@@ -188,6 +200,33 @@ export function SourceDetailView({
           )}
         </div>
       </div>
+
+      {/* Action bar — Insert into Chapter + Import as New Chapter */}
+      {content && (onInsertIntoChapter || onImportAsChapter) && (
+        <div className="shrink-0 px-4 py-2 border-b border-border flex items-center gap-2">
+          {onInsertIntoChapter && (
+            <button
+              onClick={() => onInsertIntoChapter(content, title)}
+              disabled={!canInsert}
+              className="h-8 px-3 text-xs font-medium rounded-md bg-blue-600 text-white
+                         hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {canInsert
+                ? `Insert into ${activeChapterTitle || "Chapter"}`
+                : "Select a chapter first"}
+            </button>
+          )}
+          {onImportAsChapter && (
+            <button
+              onClick={() => onImportAsChapter(sourceId)}
+              className="h-8 px-3 text-xs font-medium rounded-md border border-border
+                         hover:bg-gray-50 transition-colors text-foreground"
+            >
+              Import as New Chapter
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Hint banner */}
       {showHint && (

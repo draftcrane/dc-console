@@ -9,6 +9,12 @@
  * - DELETE /sources/:sourceId - Remove a source
  * - POST /sources/:sourceId/import-as-chapter - Import source as a new chapter
  *
+ * Linked folder routes:
+ * - POST /projects/:projectId/linked-folders - Link a Drive folder
+ * - GET /projects/:projectId/linked-folders - List linked folders
+ * - DELETE /projects/:projectId/linked-folders/:id - Unlink a folder
+ * - POST /projects/:projectId/linked-folders/sync - Sync stale folders
+ *
  * All routes require authentication and enforce ownership via project JOIN.
  *
  * Note: Chapter-source linking endpoints (GET /chapters/:chapterId/sources,
@@ -21,6 +27,7 @@ import type { Env } from "../types/index.js";
 import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { SourceMaterialService, type AddSourceInput } from "../services/source-material.js";
+import { LinkedFolderService } from "../services/linked-folder.js";
 import { DriveService } from "../services/drive.js";
 import { validateDriveId } from "../utils/drive-query.js";
 import { resolveProjectConnection } from "../services/drive-connection-resolver.js";
@@ -250,6 +257,87 @@ sources.delete("/projects/:projectId/source-connections/:connId", async (c) => {
   await service.unlinkConnection(userId, projectId, connId);
 
   return c.json({ success: true });
+});
+
+// ── Linked Folder Routes ──
+
+/**
+ * POST /projects/:projectId/linked-folders
+ * Link a Drive folder to a project. Performs immediate sync.
+ */
+sources.post("/projects/:projectId/linked-folders", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+  const body = (await c.req.json().catch(() => ({}))) as {
+    driveConnectionId?: string;
+    driveFolderId?: string;
+    folderName?: string;
+  };
+
+  if (!body.driveConnectionId || !body.driveFolderId || !body.folderName) {
+    validationError("driveConnectionId, driveFolderId, and folderName are required");
+  }
+
+  validateDriveId(body.driveFolderId);
+
+  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const driveService = new DriveService(c.env);
+  const result = await service.linkFolder(
+    userId,
+    projectId,
+    {
+      driveConnectionId: body.driveConnectionId,
+      driveFolderId: body.driveFolderId,
+      folderName: body.folderName,
+    },
+    driveService,
+  );
+
+  return c.json(result, 201);
+});
+
+/**
+ * GET /projects/:projectId/linked-folders
+ * List linked folders for a project.
+ */
+sources.get("/projects/:projectId/linked-folders", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const folders = await service.listLinkedFolders(userId, projectId);
+
+  return c.json({ folders });
+});
+
+/**
+ * DELETE /projects/:projectId/linked-folders/:id
+ * Unlink a folder. Documents remain — only removes the auto-sync binding.
+ */
+sources.delete("/projects/:projectId/linked-folders/:id", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+  const linkedFolderId = c.req.param("id");
+
+  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
+  await service.unlinkFolder(userId, projectId, linkedFolderId);
+
+  return c.json({ success: true });
+});
+
+/**
+ * POST /projects/:projectId/linked-folders/sync
+ * Sync all stale linked folders (side effects — POST, not GET).
+ */
+sources.post("/projects/:projectId/linked-folders/sync", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const driveService = new DriveService(c.env);
+  const result = await service.syncAllStale(userId, projectId, driveService);
+
+  return c.json(result);
 });
 
 export { sources };

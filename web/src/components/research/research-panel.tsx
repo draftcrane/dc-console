@@ -209,17 +209,23 @@ function TabContent({
   activeTab,
   onInsertClip,
   canInsert,
+  activeChapterTitle,
 }: {
   activeTab: ResearchTab;
   onInsertClip: (text: string, sourceTitle: string) => InsertResult;
   canInsert: boolean;
+  activeChapterTitle?: string;
 }) {
   // Render all tabs but only show the active one.
   // This preserves state when switching tabs (acceptance criteria).
   return (
     <div className="flex-1 min-h-0 relative">
       <TabPanel id="sources" activeTab={activeTab}>
-        <SourcesTab />
+        <SourcesTab
+          onInsertContent={onInsertClip}
+          canInsert={canInsert}
+          activeChapterTitle={activeChapterTitle}
+        />
       </TabPanel>
       <TabPanel id="ask" activeTab={activeTab}>
         <AskTab />
@@ -259,9 +265,14 @@ function TabPanel({
 export interface ResearchPanelProps {
   onInsertClip?: (text: string, sourceTitle: string) => InsertResult;
   canInsert?: boolean;
+  activeChapterTitle?: string;
 }
 
-export function ResearchPanel({ onInsertClip, canInsert = false }: ResearchPanelProps) {
+export function ResearchPanel({
+  onInsertClip,
+  canInsert = false,
+  activeChapterTitle,
+}: ResearchPanelProps) {
   const { isOpen, activeTab, setActiveTab, closePanel, openPanel } = useResearchPanel();
   const params = useParams();
   const projectId = params.projectId as string;
@@ -329,7 +340,12 @@ export function ResearchPanel({ onInsertClip, canInsert = false }: ResearchPanel
       >
         <PanelHeader onClose={closePanel} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} clipCount={clipCount} />
-        <TabContent activeTab={activeTab} onInsertClip={handleInsertClip} canInsert={canInsert} />
+        <TabContent
+          activeTab={activeTab}
+          onInsertClip={handleInsertClip}
+          canInsert={canInsert}
+          activeChapterTitle={activeChapterTitle}
+        />
       </div>
     );
   }
@@ -355,7 +371,12 @@ export function ResearchPanel({ onInsertClip, canInsert = false }: ResearchPanel
       >
         <PanelHeader onClose={closePanel} />
         <TabBar activeTab={activeTab} onTabChange={setActiveTab} clipCount={clipCount} />
-        <TabContent activeTab={activeTab} onInsertClip={handleInsertClip} canInsert={canInsert} />
+        <TabContent
+          activeTab={activeTab}
+          onInsertClip={handleInsertClip}
+          canInsert={canInsert}
+          activeChapterTitle={activeChapterTitle}
+        />
       </div>
     </>
   );

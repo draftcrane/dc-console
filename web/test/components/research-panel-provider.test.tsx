@@ -22,6 +22,7 @@ describe("researchPanelReducer", () => {
     activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
+    addMode: null,
   };
 
   const sourcesListState: ResearchPanelState = {
@@ -32,6 +33,7 @@ describe("researchPanelReducer", () => {
     activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
+    addMode: null,
   };
 
   const sourcesDetailState: ResearchPanelState = {
@@ -42,6 +44,7 @@ describe("researchPanelReducer", () => {
     activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
+    addMode: null,
   };
 
   const addDocumentState: ResearchPanelState = {
@@ -52,6 +55,7 @@ describe("researchPanelReducer", () => {
     activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
+    addMode: "add-documents",
   };
 
   const askState: ResearchPanelState = {
@@ -62,6 +66,7 @@ describe("researchPanelReducer", () => {
     activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
+    addMode: null,
   };
 
   const clipsState: ResearchPanelState = {
@@ -72,6 +77,7 @@ describe("researchPanelReducer", () => {
     activeConnectionId: null,
     returnTab: null,
     scrollToText: null,
+    addMode: null,
   };
 
   // --- OPEN_PANEL ---

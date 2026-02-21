@@ -12,16 +12,16 @@ interface RateLimitConfig {
 }
 
 /**
- * Rate limiting middleware using Cloudflare KV counters with TTL.
+ * Rate limiting middleware using Cloudflare KV with time-bucketed keys.
  *
- * Phase 0 limits (bumped to avoid false positives with 2s auto-save cadence):
+ * Each window gets its own KV key based on the current time bucket. Old windows
+ * expire naturally regardless of write frequency, eliminating the false-positive
+ * 429s caused by the previous sliding-window approach (where PUT resets TTL).
+ *
+ * Phase 0 limits:
  * - Standard endpoints: 120 req/min
  * - AI endpoints: 10 req/min
  * - Export endpoints: 5 req/min
- *
- * Note: The KV-based sliding window pushes TTL forward on each PUT, causing
- * false positives at lower limits with frequent writes. Fixed-window rate
- * limiting is a post-Phase 0 follow-up.
  *
  * Must be applied after requireAuth so userId is available.
  * Sets X-RateLimit-Remaining header on successful responses.
@@ -35,7 +35,8 @@ export function rateLimit(config: RateLimitConfig): MiddlewareHandler<{ Bindings
       return;
     }
 
-    const key = `ratelimit:${config.prefix}:${auth.userId}`;
+    const windowBucket = Math.floor(Date.now() / (config.windowSeconds * 1000));
+    const key = `ratelimit:${config.prefix}:${auth.userId}:${windowBucket}`;
     const current = await c.env.CACHE.get(key);
     const count = current ? parseInt(current, 10) : 0;
 
@@ -55,7 +56,7 @@ export function rateLimit(config: RateLimitConfig): MiddlewareHandler<{ Bindings
     }
 
     await c.env.CACHE.put(key, String(count + 1), {
-      expirationTtl: config.windowSeconds,
+      expirationTtl: config.windowSeconds * 2, // 2x for safety margin
     });
 
     const remaining = config.maxRequests - count - 1;

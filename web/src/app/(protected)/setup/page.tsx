@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { useDriveStatus } from "@/hooks/use-drive-status";
+import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 
 /**
  * Book Setup Screen
@@ -29,7 +29,7 @@ import { useDriveStatus } from "@/hooks/use-drive-status";
 export default function SetupPage() {
   const router = useRouter();
   const { getToken } = useAuth();
-  const { status: driveStatus, connect: connectDrive } = useDriveStatus();
+  const { connect: connectDrive } = useDriveAccounts();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
