@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import type { ChapterData } from "@/components/layout/sidebar";
@@ -22,7 +22,6 @@ import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { useEditorProject } from "@/hooks/use-editor-project";
 import { useChapterContent } from "@/hooks/use-chapter-content";
-import { useClipInsert } from "@/hooks/use-clip-insert";
 import { useSourcesPanel } from "@/hooks/use-sources-panel";
 import { useContentInserter } from "@/hooks/use-content-inserter";
 
@@ -110,12 +109,6 @@ function EditorPageInner() {
       setContent,
       currentContent,
     });
-
-  // --- Clip insertion (#200) ---
-  const { canInsert, insertClip, trackSelection } = useClipInsert({
-    editorRef,
-    activeChapterId,
-  });
 
   // --- Source Content insertion ---
   const { insertContent } = useContentInserter({ editorRef });

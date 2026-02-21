@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import type { ProjectData } from "@/types/editor";
 import type { SaveStatus } from "@/hooks/use-auto-save";
 import type { SheetState } from "@/hooks/use-ai-rewrite";

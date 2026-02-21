@@ -23,7 +23,7 @@ export const AssistTab = ({ assistItem }: AssistTabProps) => {
   };
 
   if (!assistItem) {
-    return <div className="text-sm text-center text-gray-500">Select a file and 'Send to Assist' to analyze its content.</div>;
+    return <div className="text-sm text-center text-gray-500">Select a file and &apos;Send to Assist&apos; to analyze its content.</div>;
   }
 
   return (
