@@ -423,11 +423,29 @@ drive.get("/browse", standardRateLimit, async (c) => {
       pageToken,
     });
 
-    const files = (result.files || []).filter(
-      (file) =>
+    // Deduplicate by file ID and filter to Docs + Folders only
+    const seen = new Set<string>();
+    const files: typeof result.files = [];
+    for (const file of result.files || []) {
+      if (seen.has(file.id)) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            event: "drive_browse_duplicate",
+            file_id: file.id,
+            folder_id: folderId,
+          }),
+        );
+        continue;
+      }
+      seen.add(file.id);
+      if (
         file.mimeType === "application/vnd.google-apps.document" ||
-        file.mimeType === "application/vnd.google-apps.folder",
-    );
+        file.mimeType === "application/vnd.google-apps.folder"
+      ) {
+        files.push(file);
+      }
+    }
 
     return c.json({ files, nextPageToken: result.nextPageToken });
   } catch (err) {

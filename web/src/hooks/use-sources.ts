@@ -172,6 +172,26 @@ export function useSources(projectId: string) {
     [getToken],
   );
 
+  const restoreSource = useCallback(
+    async (sourceId: string): Promise<boolean> => {
+      try {
+        setError(null);
+        const token = await getToken();
+        const response = await fetch(`${API_URL}/sources/${sourceId}/restore`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) throw new Error("Failed to restore source");
+        await fetchSources();
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to restore source");
+        return false;
+      }
+    },
+    [getToken, fetchSources],
+  );
+
   const importAsChapter = useCallback(
     async (sourceId: string): Promise<{ chapterId: string; title: string } | null> => {
       try {
@@ -199,6 +219,7 @@ export function useSources(projectId: string) {
     addSources,
     uploadLocalFile,
     removeSource,
+    restoreSource,
     importAsChapter,
   };
 }

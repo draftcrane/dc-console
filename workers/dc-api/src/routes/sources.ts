@@ -147,6 +147,20 @@ sources.delete("/sources/:sourceId", async (c) => {
 });
 
 /**
+ * PATCH /sources/:sourceId/restore
+ * Restore a previously removed (archived) source. Used for undo-remove.
+ */
+sources.patch("/sources/:sourceId/restore", async (c) => {
+  const { userId } = c.get("auth");
+  const sourceId = c.req.param("sourceId");
+
+  const service = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const source = await service.restoreSource(userId, sourceId);
+
+  return c.json({ source });
+});
+
+/**
  * POST /sources/:sourceId/import-as-chapter
  * Import source content as a new chapter.
  * Creates chapter in D1/R2, then fire-and-forget Drive file creation.
