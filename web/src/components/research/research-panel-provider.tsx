@@ -6,6 +6,7 @@ import { createContext, useContext, useReducer, useCallback, useMemo, type React
 
 export type ResearchTab = "sources" | "ask" | "clips";
 export type SourcesView = "list" | "detail" | "add-document";
+export type AddMode = "link-folder" | "add-documents" | null;
 
 export interface ResearchPanelState {
   isOpen: boolean;
@@ -17,6 +18,8 @@ export interface ResearchPanelState {
   returnTab: "ask" | "clips" | null;
   /** Text to scroll to when viewing a source detail (from citation navigation) */
   scrollToText: string | null;
+  /** Distinguishes link-folder from add-documents in the add-document flow */
+  addMode: AddMode;
 }
 
 // === Actions ===
@@ -29,6 +32,7 @@ export type ResearchPanelAction =
   | { type: "BACK_TO_LIST" }
   | { type: "RETURN_TO_TAB" }
   | { type: "START_ADD_DOCUMENT"; connectionId?: string }
+  | { type: "START_LINK_FOLDER"; connectionId?: string }
   | { type: "SET_DRIVE_CONNECTION"; connectionId: string }
   | { type: "FINISH_FLOW" };
 
@@ -42,6 +46,7 @@ const initialState: ResearchPanelState = {
   activeConnectionId: null,
   returnTab: null,
   scrollToText: null,
+  addMode: null,
 };
 
 // === Reducer ===
@@ -124,6 +129,7 @@ export function researchPanelReducer(
         activeConnectionId: null,
         returnTab: null,
         scrollToText: null,
+        addMode: null,
       };
     }
 
@@ -153,6 +159,22 @@ export function researchPanelReducer(
         activeSourceId: null,
         activeConnectionId: action.connectionId ?? null,
         returnTab: null,
+        addMode: "add-documents",
+      };
+    }
+
+    case "START_LINK_FOLDER": {
+      // Can only start link folder flow when panel is open
+      if (!state.isOpen) return state;
+
+      return {
+        ...state,
+        activeTab: "sources",
+        sourcesView: "add-document",
+        activeSourceId: null,
+        activeConnectionId: action.connectionId ?? null,
+        returnTab: null,
+        addMode: "link-folder",
       };
     }
 
@@ -175,6 +197,7 @@ export function researchPanelReducer(
         ...state,
         sourcesView: "list",
         activeConnectionId: null,
+        addMode: null,
       };
     }
 
@@ -194,6 +217,7 @@ export interface ResearchPanelContextValue {
   activeConnectionId: string | null;
   returnTab: "ask" | "clips" | null;
   scrollToText: string | null;
+  addMode: AddMode;
 
   // Actions
   openPanel: (tab?: ResearchTab) => void;
@@ -203,6 +227,7 @@ export interface ResearchPanelContextValue {
   backToSourceList: () => void;
   returnToPreviousTab: () => void;
   startAddDocument: (connectionId?: string) => void;
+  startLinkFolder: (connectionId?: string) => void;
   setDriveConnection: (connectionId: string) => void;
   finishFlow: () => void;
 
@@ -261,6 +286,13 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
     [dispatch],
   );
 
+  const startLinkFolder = useCallback(
+    (connectionId?: string) => {
+      dispatch({ type: "START_LINK_FOLDER", connectionId });
+    },
+    [dispatch],
+  );
+
   const setDriveConnection = useCallback(
     (connectionId: string) => {
       dispatch({ type: "SET_DRIVE_CONNECTION", connectionId });
@@ -282,6 +314,7 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       activeConnectionId: state.activeConnectionId,
       returnTab: state.returnTab,
       scrollToText: state.scrollToText,
+      addMode: state.addMode,
 
       // Actions
       openPanel,
@@ -291,6 +324,7 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       backToSourceList,
       returnToPreviousTab,
       startAddDocument,
+      startLinkFolder,
       setDriveConnection,
       finishFlow,
 
@@ -306,6 +340,7 @@ export function ResearchPanelProvider({ children }: ResearchPanelProviderProps) 
       backToSourceList,
       returnToPreviousTab,
       startAddDocument,
+      startLinkFolder,
       setDriveConnection,
       finishFlow,
     ],
