@@ -17,6 +17,11 @@ export interface ChapterEditorHandle {
    * Returns true if the replacement was applied.
    */
   replaceText: (searchText: string, replacementText: string) => boolean;
+  /**
+   * Insert content at the current cursor position.
+   * Returns true if the insertion was applied.
+   */
+  insertContent: (content: string, format: "html" | "text") => boolean;
 }
 
 interface ChapterEditorProps {
@@ -238,6 +243,17 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
             }, 1500);
           });
 
+          return true;
+        },
+        insertContent: (content: string, format: "html" | "text"): boolean => {
+          if (!editor) return false;
+          
+          // For plain text, convert newlines to paragraphs to ensure proper formatting.
+          const contentToInsert = format === 'text' 
+            ? content.split('\n').map(p => `<p>${p}</p>`).join('')
+            : content;
+
+          editor.chain().focus().insertContent(contentToInsert).run();
           return true;
         },
       }),

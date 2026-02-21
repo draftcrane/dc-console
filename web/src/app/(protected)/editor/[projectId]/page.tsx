@@ -11,13 +11,8 @@ import { EditorSidebar } from "@/components/editor/editor-sidebar";
 import { EditorToolbar } from "@/components/editor/editor-toolbar";
 import { EditorWritingArea } from "@/components/editor/editor-writing-area";
 import { EditorDialogs } from "@/components/editor/editor-dialogs";
-import {
-  ResearchPanelProvider,
-  useResearchPanel,
-} from "@/components/research/research-panel-provider";
-import { ResearchPanel } from "@/components/research/research-panel";
+import { SourcesPanel } from "@/components/sources/SourcesPanel";
 import { ToastProvider } from "@/components/toast";
-import { SourceManagerSheet } from "@/components/project/source-manager-sheet";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
@@ -25,42 +20,24 @@ import { useChapterManagement } from "@/hooks/use-chapter-management";
 import { useEditorAI } from "@/hooks/use-editor-ai";
 import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
-import { useSources } from "@/hooks/use-sources";
-import { isNudgeDismissed } from "@/components/research/first-use-nudge";
 import { useEditorProject } from "@/hooks/use-editor-project";
 import { useChapterContent } from "@/hooks/use-chapter-content";
 import { useClipInsert } from "@/hooks/use-clip-insert";
+import { useSourcesPanel } from "@/hooks/use-sources-panel";
+import { useContentInserter } from "@/hooks/use-content-inserter";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 /**
  * Writing Environment Page
  *
- * Per PRD Section 9 (Writing Environment Layout):
- * Three zones:
- * 1. Sidebar with chapter list, word counts, "+" button, total word count
- * 2. Editor with clean writing area, editable chapter title
- * 3. Toolbar with minimal formatting, save status, Export, Settings
- *
- * Per PRD Section 14 (iPad-First Design):
- * - Sidebar responsive: persistent in landscape (240-280pt), hidden in portrait with "Ch X" pill
- * - Touch targets 44x44pt minimum
- * - Uses 100dvh for viewport height
- *
- * Per US-011: Editor content width constrained to ~680-720px.
- * Per US-015: Three-tier auto-save (IndexedDB -> Drive/R2 -> D1 metadata).
- *
  * This component is the orchestrator: it wires together hooks and delegates
  * all UI rendering to focused child components.
- *
- * Source/research panel state is managed by ResearchPanelProvider context (#180).
  */
 export default function EditorPage() {
   return (
     <ToastProvider>
-      <ResearchPanelProvider>
-        <EditorPageInner />
-      </ResearchPanelProvider>
+      <EditorPageInner />
     </ToastProvider>
   );
 }
@@ -71,12 +48,12 @@ function EditorPageInner() {
   const { getToken } = useAuth();
   const projectId = params.projectId as string;
 
-  // Research panel state from context
+  // Sources panel state
   const {
-    isOpen: isResearchPanelOpen,
-    closePanel: closeResearchPanel,
-    openPanel: openResearchPanel,
-  } = useResearchPanel();
+    isOpen: isSourcesPanelOpen,
+    togglePanel: toggleSourcesPanel,
+    closePanel: closeSourcesPanel,
+  } = useSourcesPanel();
 
   // Editor ref for AI rewrite text replacement
   const editorRef = useRef<ChapterEditorHandle>(null);
@@ -139,6 +116,9 @@ function EditorPageInner() {
     editorRef,
     activeChapterId,
   });
+
+  // --- Source Content insertion ---
+  const { insertContent } = useContentInserter({ editorRef });
 
   // --- Sidebar UI state ---
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -240,30 +220,6 @@ function EditorPageInner() {
     onProjectDisconnected: handleProjectDisconnected,
   });
 
-  // --- Source count for first-use nudge (#185) ---
-  const { sources: projectSources, fetchSources: fetchProjectSources } = useSources(projectId);
-
-  // Only fetch sources for the nudge if the nudge hasn't been dismissed yet
-  useEffect(() => {
-    if (!isNudgeDismissed(projectId)) {
-      fetchProjectSources();
-    }
-  }, [fetchProjectSources, projectId]);
-
-  // --- Source Manager sheet state ---
-  const [isSourceManagerOpen, setIsSourceManagerOpen] = useState(false);
-
-  const handleOpenSourceManager = useCallback(() => {
-    closeResearchPanel();
-    setIsSourceManagerOpen(true);
-  }, [closeResearchPanel]);
-
-  const handleCloseSourceManager = useCallback(() => {
-    setIsSourceManagerOpen(false);
-    // Refetch sources so Content Manager shows latest data
-    fetchProjectSources();
-  }, [fetchProjectSources]);
-
   // --- Computed values ---
   const totalWordCount = projectData?.chapters.reduce((sum, ch) => sum + ch.wordCount, 0) ?? 0;
 
@@ -302,10 +258,8 @@ function EditorPageInner() {
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)]">
-      {/* First-time onboarding tooltips (#38) */}
       <OnboardingTooltips />
 
-      {/* Crash recovery dialog */}
       {recoveryPrompt && (
         <CrashRecoveryDialog
           recovery={recoveryPrompt}
@@ -347,15 +301,8 @@ function EditorPageInner() {
             activeChapterId={activeChapterId}
             getToken={getToken as () => Promise<string | null>}
             apiUrl={API_URL}
-            isResearchPanelOpen={isResearchPanelOpen}
-            hasAnySources={projectSources.length > 0}
-            onToggleResearchPanel={() => {
-              if (isResearchPanelOpen) {
-                closeResearchPanel();
-              } else {
-                openResearchPanel();
-              }
-            }}
+            isSourcesPanelOpen={isSourcesPanelOpen}
+            onToggleSourcesPanel={toggleSourcesPanel}
             hasDriveFolder={!!projectData.driveFolderId}
             driveFolderId={projectData.driveFolderId}
             onSetupDrive={connectDriveWithProject}
@@ -368,7 +315,7 @@ function EditorPageInner() {
               }
             }}
             onManageAccounts={() => setIsAccountsSheetOpen(true)}
-            onManageSources={handleOpenSourceManager}
+            onManageSources={() => { /* TODO */ }}
             onRenameBook={openRenameDialog}
             onDuplicateBook={openDuplicateDialog}
             isDuplicating={isDuplicating}
@@ -396,13 +343,15 @@ function EditorPageInner() {
         />
       </div>
 
-      {/* Research Panel (#182) - side-by-side in landscape, overlay in portrait */}
-      <ResearchPanel
-        onInsertClip={insertClip}
-        canInsert={canInsert}
-        activeChapterTitle={activeChapter?.title}
-        onOpenSourceManager={handleOpenSourceManager}
-      />
+      {isSourcesPanelOpen && (
+        <SourcesPanel
+          onClose={closeSourcesPanel}
+          driveAccounts={driveAccounts}
+          onConnectDrive={connectDrive}
+          onDisconnectDrive={disconnectDriveAccount}
+          onInsertContent={insertContent}
+        />
+      )}
 
       <EditorDialogs
         projectData={projectData}
@@ -443,16 +392,6 @@ function EditorPageInner() {
         onDisconnectDriveAccount={disconnectDriveAccount}
         onRefetchDriveAccounts={refetchDriveAccounts}
         driveAccounts={driveAccounts}
-        // Research panel (minimal props)
-        isResearchPanelOpen={isResearchPanelOpen}
-        onCloseResearchPanel={closeResearchPanel}
-      />
-
-      {/* Source Manager sheet — management surface for sources */}
-      <SourceManagerSheet
-        isOpen={isSourceManagerOpen}
-        projectId={projectId}
-        onClose={handleCloseSourceManager}
       />
     </div>
   );

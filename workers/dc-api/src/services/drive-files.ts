@@ -156,6 +156,62 @@ export class DriveFileService {
   }
 
   /**
+   * Lists files and folders for the file browser, filtering for supported types.
+   */
+  async browseFolder(
+    accessToken: string,
+    folderId: string,
+    options: { pageSize?: number; pageToken?: string } = {},
+  ): Promise<{ files: DriveFile[]; nextPageToken?: string }> {
+    const supportedMimeTypes = [
+      "application/vnd.google-apps.folder",
+      "application/vnd.google-apps.document",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/pdf",
+      "text/plain",
+      "text/markdown",
+    ];
+
+    const mimeTypeQuery = supportedMimeTypes.map(type => `mimeType = '${type}'`).join(" or ");
+
+    const query = `'${validateDriveId(folderId)}' in parents and trashed = false and (${mimeTypeQuery})`;
+
+    const params = new URLSearchParams({
+      q: query,
+      fields: "files(id,name,mimeType,iconLink,webViewLink,createdTime,modifiedTime,size)",
+      orderBy: "folder,name",
+    });
+    if (options.pageSize) {
+      params.set("pageSize", String(options.pageSize));
+    }
+    if (options.pageToken) {
+      params.set("pageToken", options.pageToken);
+    }
+
+    const response = await fetch(`${GOOGLE_DRIVE_API}/files?${params.toString()}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error(
+        `Browse folder failed: Status ${response.status} ${response.statusText || ""}, Body: ${errorBody}`,
+      );
+      if (response.status === 403 && errorBody.includes("insufficientPermissions")) {
+        throw new Error("Google Drive permission update required. Reconnect Drive.");
+      }
+      throw new Error(
+        `Failed to browse folder contents: ${response.status} ${response.statusText || ""}`,
+      );
+    }
+
+    const data = (await response.json()) as { files: DriveFile[]; nextPageToken?: string };
+    return { files: data.files || [], nextPageToken: data.nextPageToken };
+  }
+
+  /**
    * Recursively lists Google Docs contained in one or more Drive folders.
    * Includes docs in nested subfolders. Stops at maxDocs to avoid expensive traversals.
    */
@@ -537,5 +593,43 @@ export class DriveFileService {
     }
 
     return response.arrayBuffer();
+  }
+
+  /**
+   * Gets the content of a file, parsing it based on MIME type.
+   * Handles Google Docs, DOCX, PDF, and plain text.
+   */
+  async getFileContent(accessToken: string, fileId: string): Promise<{ content: string; format: "html" | "text" }> {
+    validateDriveId(fileId);
+    const meta = await this.getFileMetadata(accessToken, fileId);
+
+    switch (meta.mimeType) {
+      case GOOGLE_DOC_MIME_TYPE: {
+        const content = await this.exportFile(accessToken, fileId, "text/html");
+        return { content, format: "html" };
+      }
+      
+      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+        const buffer = await this.downloadFile(accessToken, fileId);
+        const result = await mammoth.convertToHtml({ buffer });
+        return { content: result.value, format: "html" };
+      }
+
+      case "application/pdf": {
+        const buffer = await this.downloadFile(accessToken, fileId);
+        const { text } = await extractText(buffer);
+        return { content: text, format: "text" };
+      }
+
+      case "text/plain":
+      case "text/markdown": {
+        const buffer = await this.downloadFile(accessToken, fileId);
+        const content = new TextDecoder().decode(buffer);
+        return { content, format: "text" };
+      }
+
+      default:
+        throw new Error(`Unsupported file type: ${meta.mimeType}`);
+    }
   }
 }
