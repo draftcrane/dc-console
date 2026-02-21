@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import type { ChapterData } from "@/components/layout/sidebar";
@@ -17,6 +17,7 @@ import {
 } from "@/components/research/research-panel-provider";
 import { ResearchPanel } from "@/components/research/research-panel";
 import { ToastProvider } from "@/components/toast";
+import { SourceManagerSheet } from "@/components/project/source-manager-sheet";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
@@ -249,6 +250,20 @@ function EditorPageInner() {
     }
   }, [fetchProjectSources, projectId]);
 
+  // --- Source Manager sheet state ---
+  const [isSourceManagerOpen, setIsSourceManagerOpen] = useState(false);
+
+  const handleOpenSourceManager = useCallback(() => {
+    closeResearchPanel();
+    setIsSourceManagerOpen(true);
+  }, [closeResearchPanel]);
+
+  const handleCloseSourceManager = useCallback(() => {
+    setIsSourceManagerOpen(false);
+    // Refetch sources so Content Manager shows latest data
+    fetchProjectSources();
+  }, [fetchProjectSources]);
+
   // --- Computed values ---
   const totalWordCount = projectData?.chapters.reduce((sum, ch) => sum + ch.wordCount, 0) ?? 0;
 
@@ -353,6 +368,7 @@ function EditorPageInner() {
               }
             }}
             onManageAccounts={() => setIsAccountsSheetOpen(true)}
+            onManageSources={handleOpenSourceManager}
             onRenameBook={openRenameDialog}
             onDuplicateBook={openDuplicateDialog}
             isDuplicating={isDuplicating}
@@ -385,6 +401,7 @@ function EditorPageInner() {
         onInsertClip={insertClip}
         canInsert={canInsert}
         activeChapterTitle={activeChapter?.title}
+        onOpenSourceManager={handleOpenSourceManager}
       />
 
       <EditorDialogs
@@ -429,6 +446,13 @@ function EditorPageInner() {
         // Research panel (minimal props)
         isResearchPanelOpen={isResearchPanelOpen}
         onCloseResearchPanel={closeResearchPanel}
+      />
+
+      {/* Source Manager sheet — management surface for sources */}
+      <SourceManagerSheet
+        isOpen={isSourceManagerOpen}
+        projectId={projectId}
+        onClose={handleCloseSourceManager}
       />
     </div>
   );

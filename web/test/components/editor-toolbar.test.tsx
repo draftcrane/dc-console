@@ -80,6 +80,7 @@ function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorToolbar
     isResearchPanelOpen: false,
     onToggleResearchPanel: vi.fn(),
     hasAnySources: false,
+    onManageSources: vi.fn(),
     hasDriveFolder: false,
     onViewSources: vi.fn(),
     onManageAccounts: vi.fn(),
