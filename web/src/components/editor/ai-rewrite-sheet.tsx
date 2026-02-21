@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
+import { InstructionManager } from "@/components/sources/InstructionManager";
 
 /**
  * Data representing an AI rewrite result, passed in from the parent
@@ -317,37 +318,18 @@ export function AIRewriteSheet({
 
           {/* Editable instruction field */}
           <div>
-            <label
-              htmlFor="ai-instruction"
-              className="text-sm font-medium text-gray-500 mb-2 block"
-            >
-              Instruction
-            </label>
-            <textarea
-              ref={firstFocusableRef}
-              id="ai-instruction"
-              value={editedInstruction}
-              onChange={(e) => {
+            <InstructionManager 
+              type="rewrite"
+              onSelectInstruction={(instruction) => {
+                setEditedInstruction(instruction.instructionText);
                 setHasUserEdited(true);
-                setEditedInstruction(e.target.value);
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !isStreaming) {
-                  e.preventDefault();
-                  handleRetry();
-                }
-              }}
-              className="w-full p-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-900
-                         leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-blue-500
-                         focus:border-transparent min-h-[60px]"
-              placeholder={
-                result.instruction && result.instruction.length > 80
-                  ? result.instruction.slice(0, 80) + "\u2026"
-                  : result.instruction || "Enter instruction..."
-              }
-              rows={2}
-              disabled={isStreaming}
             />
+             {editedInstruction && (
+                <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {editedInstruction}
+                </div>
+             )}
           </div>
         </div>
 

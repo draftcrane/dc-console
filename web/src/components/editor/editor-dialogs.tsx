@@ -54,10 +54,6 @@ interface EditorDialogsProps {
   onDisconnectDriveAccount: (connectionId: string) => Promise<void>;
   onRefetchDriveAccounts: () => Promise<void>;
   driveAccounts: DriveAccount[];
-
-  // Research panel (minimal props -- state managed by ResearchPanelProvider)
-  isResearchPanelOpen: boolean;
-  onCloseResearchPanel: () => void;
 }
 
 /**

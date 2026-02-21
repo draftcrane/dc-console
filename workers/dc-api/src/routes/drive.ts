@@ -455,6 +455,68 @@ drive.get("/browse", standardRateLimit, async (c) => {
 });
 
 /**
+ * GET /drive/connection/:connectionId/files
+ * Browse a specific Drive connection's files and folders, filtered for the app.
+ * Query params:
+ * - folderId (optional, default "root")
+ * - pageToken (optional)
+ */
+drive.get("/connection/:connectionId/files", standardRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const driveService = new DriveService(c.env);
+
+  const connectionId = c.req.param("connectionId");
+  const folderId = c.req.query("folderId") || "root";
+  const pageToken = c.req.query("pageToken") || undefined;
+
+  // Resolve connection, ensuring it belongs to the user
+  const { tokens } = await resolveReadOnlyConnection(
+    driveService.tokenService,
+    userId,
+    connectionId,
+  );
+
+  try {
+    const result = await driveService.browseFolder(tokens.accessToken, folderId, {
+      pageSize: 100,
+      pageToken,
+    });
+
+    return c.json({ files: result.files, nextPageToken: result.nextPageToken });
+  } catch (err) {
+    console.error("Drive file browser failed:", err);
+    driveError("Failed to browse Drive files");
+  }
+});
+
+/**
+ * GET /drive/connection/:connectionId/files/:fileId/content
+ * Gets the parsed content of a specific file.
+ */
+drive.get("/connection/:connectionId/files/:fileId/content", standardRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const driveService = new DriveService(c.env);
+
+  const connectionId = c.req.param("connectionId");
+  const fileId = c.req.param("fileId");
+
+  // Resolve connection, ensuring it belongs to the user
+  const { tokens } = await resolveReadOnlyConnection(
+    driveService.tokenService,
+    userId,
+    connectionId,
+  );
+
+  try {
+    const result = await driveService.getFileContent(tokens.accessToken, fileId);
+    return c.json(result);
+  } catch (err) {
+    console.error("Get file content failed:", err);
+    driveError("Failed to get file content");
+  }
+});
+
+/**
  * DELETE /drive/connection/:connectionId
  * Disconnects a specific Google Drive account.
  * Cascade: archives sources, clears project output drive.

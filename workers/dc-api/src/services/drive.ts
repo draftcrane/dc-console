@@ -114,6 +114,14 @@ export class DriveService {
     return this.files.listFolderChildrenPage(accessToken, folderId, options);
   }
 
+  browseFolder(
+    accessToken: string,
+    folderId: string,
+    options?: { pageSize?: number; pageToken?: string },
+  ) {
+    return this.files.browseFolder(accessToken, folderId, options);
+  }
+
   listDocsInFoldersRecursive(accessToken: string, folderIds: string[], maxDocs: number) {
     return this.files.listDocsInFoldersRecursive(accessToken, folderIds, maxDocs);
   }
@@ -154,5 +162,9 @@ export class DriveService {
 
   downloadFile(accessToken: string, fileId: string) {
     return this.files.downloadFile(accessToken, fileId);
+  }
+
+  getFileContent(accessToken: string, fileId: string) {
+    return this.files.getFileContent(accessToken, fileId);
   }
 }
