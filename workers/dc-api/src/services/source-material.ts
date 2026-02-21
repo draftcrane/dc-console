@@ -264,6 +264,49 @@ export class SourceMaterialService {
     };
   }
 
+  /**
+   * Restore a previously archived source (undo remove).
+   * Sets status back to 'active' and re-indexes FTS from R2 plain text.
+   */
+  async restoreSource(userId: string, sourceId: string): Promise<SourceMaterial> {
+    // Verify ownership — must be archived (not permanently deleted)
+    const row = await this.db
+      .prepare(
+        `SELECT sm.* FROM source_materials sm
+         JOIN projects p ON p.id = sm.project_id
+         WHERE sm.id = ? AND p.user_id = ? AND sm.status = 'archived'`,
+      )
+      .bind(sourceId, userId)
+      .first<SourceRow>();
+
+    if (!row) {
+      notFound("Archived source not found");
+    }
+
+    const now = new Date().toISOString();
+    await this.db
+      .prepare(`UPDATE source_materials SET status = 'active', updated_at = ? WHERE id = ?`)
+      .bind(now, sourceId)
+      .run();
+
+    // Re-index FTS from R2 plain text if content was cached
+    if (row.cached_at) {
+      const txtKey = `sources/${sourceId}/content.txt`;
+      const object = await this.bucket.get(txtKey);
+      if (object) {
+        const plainText = await object.text();
+        await this.db.batch([
+          this.db.prepare(`DELETE FROM source_content_fts WHERE source_id = ?`).bind(sourceId),
+          this.db
+            .prepare(`INSERT INTO source_content_fts (source_id, title, content) VALUES (?, ?, ?)`)
+            .bind(sourceId, row.title, plainText),
+        ]);
+      }
+    }
+
+    return rowToSource({ ...row, status: "active", updated_at: now });
+  }
+
   // ── Project Source Connections ──
 
   /**

@@ -12,16 +12,23 @@ import {
 
 // === Toast Types ===
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: string;
   message: string;
   /** Auto-dismiss duration in ms. Default: 2500 */
   duration: number;
+  /** Optional action button (e.g. "Undo") */
+  action?: ToastAction;
 }
 
 interface ToastContextValue {
   /** Show a toast notification. Returns the toast id. */
-  showToast: (message: string, duration?: number) => string;
+  showToast: (message: string, duration?: number, action?: ToastAction) => string;
 }
 
 // === Context ===
@@ -44,9 +51,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const showToast = useCallback(
-    (message: string, duration = 2500): string => {
+    (message: string, duration = 2500, action?: ToastAction): string => {
       const id = crypto.randomUUID();
-      const toast: Toast = { id, message, duration };
+      const toast: Toast = { id, message, duration, action };
 
       setToasts((prev) => [...prev, toast]);
 
@@ -77,10 +84,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <div
               key={toast.id}
               className="pointer-events-auto px-4 py-2.5 bg-gray-900 text-white text-sm font-medium
-                         rounded-lg shadow-lg toast-fade-in"
+                         rounded-lg shadow-lg toast-fade-in flex items-center gap-3"
               role="status"
             >
               {toast.message}
+              {toast.action && (
+                <button
+                  onClick={() => {
+                    toast.action!.onClick();
+                    removeToast(toast.id);
+                  }}
+                  className="text-blue-300 hover:text-blue-200 font-semibold text-sm underline underline-offset-2 shrink-0"
+                >
+                  {toast.action.label}
+                </button>
+              )}
             </div>
           ))}
         </div>
