@@ -8,6 +8,7 @@ import { ProjectSwitcher } from "@/components/project/project-switcher";
 import { SaveIndicator } from "./save-indicator";
 import { ExportMenu } from "@/components/project/export-menu";
 import { SettingsMenu } from "@/components/project/settings-menu";
+import { useSourcesContext } from "@/contexts/sources-context";
 
 interface EditorToolbarProps {
   projectData: ProjectData;
@@ -73,6 +74,8 @@ export function EditorToolbar({
   onSignOut,
   isSigningOut,
 }: EditorToolbarProps) {
+  const { isPanelOpen, togglePanel } = useSourcesContext();
+
   return (
     <div className="flex items-center justify-between h-12 px-4 border-b border-border bg-background shrink-0">
       <div className="flex items-center gap-2 min-w-0">
@@ -92,6 +95,30 @@ export function EditorToolbar({
 
       <div className="flex items-center gap-2">
         <SaveIndicator status={saveStatus} onRetry={onSaveRetry} />
+
+        <button
+          onClick={togglePanel}
+          className={`h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
+                     transition-colors ${isPanelOpen ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"}`}
+          aria-label={isPanelOpen ? "Close sources panel" : "Open sources panel"}
+          aria-pressed={isPanelOpen}
+        >
+          <svg
+            className="w-4 h-4 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+            />
+          </svg>
+          <span className="hidden sm:inline">Sources</span>
+        </button>
 
         {selectionWordCount > 0 && aiSheetState === "idle" && (
           <>

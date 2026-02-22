@@ -24,6 +24,8 @@ import {
   QueryFailedError,
   type ResearchQueryInput,
 } from "../services/research-query.js";
+import { AIAnalysisService, type AnalysisInput } from "../services/ai-analysis.js";
+import { OpenAIProvider, WorkersAIProvider } from "../services/ai-provider.js";
 
 const research = new Hono<{ Bindings: Env }>();
 
@@ -220,6 +222,69 @@ research.post("/projects/:projectId/research/query", researchQueryRateLimit, asy
     }
     throw error;
   }
+});
+
+/**
+ * POST /projects/:projectId/research/analyze
+ *
+ * AI-powered analysis of a source document with a user instruction.
+ * Streams the response via SSE (same format as /ai/rewrite).
+ *
+ * Request body:
+ * - sourceId: string (required) - Source to analyze
+ * - instruction: string (required) - What to analyze/extract
+ *
+ * Response: SSE stream with events:
+ * - { type: "start" } - Stream started
+ * - { type: "token", text: string } - Each token as it arrives
+ * - { type: "done" } - Stream complete
+ * - { type: "error", message: string } - Error occurred
+ */
+research.post("/projects/:projectId/research/analyze", researchQueryRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const body = (await c.req.json().catch(() => ({}))) as Partial<AnalysisInput>;
+
+  // Verify project ownership
+  const project = await c.env.DB.prepare(
+    `SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`,
+  )
+    .bind(projectId, userId)
+    .first<{ id: string }>();
+
+  if (!project) {
+    throw new AppError(404, "NOT_FOUND", "Project not found");
+  }
+
+  const defaultTier = (c.env.AI_DEFAULT_TIER as "edge" | "frontier") || "frontier";
+
+  const provider =
+    defaultTier === "edge"
+      ? new WorkersAIProvider(c.env.AI)
+      : new OpenAIProvider(c.env.AI_API_KEY, c.env.AI_MODEL);
+
+  const service = new AIAnalysisService(c.env.DB, c.env.EXPORTS_BUCKET, provider);
+
+  const input: AnalysisInput = {
+    sourceId: body.sourceId ?? "",
+    instruction: body.instruction ?? "",
+  };
+
+  const err = service.validateInput(input);
+  if (err) {
+    validationError(err);
+  }
+
+  const { stream } = await service.streamAnalysis(userId, input);
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 });
 
 /**
