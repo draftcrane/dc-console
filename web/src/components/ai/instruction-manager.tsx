@@ -1,23 +1,24 @@
+"use client";
 
-import React, { useState } from 'react';
-import { useAiInstructions, type AIInstruction } from '@/hooks/use-ai-instructions';
+import { useState } from "react";
+import { useAiInstructions, type AIInstruction } from "@/hooks/use-ai-instructions";
 
 interface InstructionManagerProps {
-  type: 'analysis' | 'rewrite';
+  type: "analysis" | "rewrite";
   onSelectInstruction: (instruction: AIInstruction) => void;
 }
 
-export const InstructionManager = ({ type, onSelectInstruction }: InstructionManagerProps) => {
-  const { instructions, createInstruction, deleteInstruction, isLoading } = useAiInstructions({ type });
+export function InstructionManager({ type, onSelectInstruction }: InstructionManagerProps) {
+  const { instructions, createInstruction, isLoading } = useAiInstructions({ type });
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newLabel, setNewLabel] = useState('');
-  const [newInstructionText, setNewInstructionText] = useState('');
+  const [newLabel, setNewLabel] = useState("");
+  const [newInstructionText, setNewInstructionText] = useState("");
 
   const handleAdd = async () => {
     if (!newLabel || !newInstructionText) return;
     await createInstruction({ label: newLabel, instructionText: newInstructionText });
-    setNewLabel('');
-    setNewInstructionText('');
+    setNewLabel("");
+    setNewInstructionText("");
     setShowAddForm(false);
   };
 
@@ -25,9 +26,9 @@ export const InstructionManager = ({ type, onSelectInstruction }: InstructionMan
     <div className="space-y-2">
       <h4 className="text-xs font-semibold text-gray-500 uppercase">Instructions</h4>
       {isLoading && <p className="text-xs text-gray-400">Loading instructions...</p>}
-      
+
       <div className="flex flex-wrap gap-2">
-        {instructions.map(inst => (
+        {instructions.map((inst) => (
           <button
             key={inst.id}
             onClick={() => onSelectInstruction(inst)}
@@ -40,7 +41,7 @@ export const InstructionManager = ({ type, onSelectInstruction }: InstructionMan
           onClick={() => setShowAddForm(!showAddForm)}
           className="px-2 py-1 text-xs border border-dashed rounded-md hover:bg-gray-50"
         >
-          {showAddForm ? 'Cancel' : '+ New'}
+          {showAddForm ? "Cancel" : "+ New"}
         </button>
       </div>
 
@@ -60,7 +61,7 @@ export const InstructionManager = ({ type, onSelectInstruction }: InstructionMan
             className="w-full p-2 text-sm border rounded-md"
             rows={3}
           />
-          <button 
+          <button
             onClick={handleAdd}
             className="w-full p-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
@@ -70,4 +71,4 @@ export const InstructionManager = ({ type, onSelectInstruction }: InstructionMan
       )}
     </div>
   );
-};
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
-import { InstructionManager } from "@/components/sources/InstructionManager";
+import { InstructionManager } from "@/components/ai/instruction-manager";
 
 /**
  * Data representing an AI rewrite result, passed in from the parent
@@ -318,18 +318,18 @@ export function AIRewriteSheet({
 
           {/* Editable instruction field */}
           <div>
-            <InstructionManager 
+            <InstructionManager
               type="rewrite"
               onSelectInstruction={(instruction) => {
                 setEditedInstruction(instruction.instructionText);
                 setHasUserEdited(true);
               }}
             />
-             {editedInstruction && (
-                <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {editedInstruction}
-                </div>
-             )}
+            {editedInstruction && (
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {editedInstruction}
+              </div>
+            )}
           </div>
         </div>
 

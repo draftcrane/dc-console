@@ -6,7 +6,7 @@ import { EditorToolbar } from "@/components/editor/editor-toolbar";
  * Tests for EditorToolbar — the top toolbar for the writing environment.
  *
  * Contains: ProjectSwitcher, SaveIndicator, AI Rewrite button,
- * ExportMenu, SettingsMenu.
+ * Research toggle, ExportMenu, SettingsMenu.
  *
  * Mock strategy: We mock all child components to isolate toolbar behavior.
  * The key behavior to test is the conditional rendering of the AI Rewrite button
@@ -78,10 +78,12 @@ function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorToolbar
     activeChapterId: "ch-1",
     getToken: vi.fn().mockResolvedValue("token"),
     apiUrl: "https://api.test",
-    isSourcesPanelOpen: false,
-    onToggleSourcesPanel: vi.fn(),
+    isResearchPanelOpen: false,
+    onToggleResearchPanel: vi.fn(),
+    hasAnySources: false,
     onManageSources: vi.fn(),
     hasDriveFolder: false,
+    driveFolderId: null,
     onManageAccounts: vi.fn(),
     onRenameBook: vi.fn(),
     onDuplicateBook: vi.fn(),

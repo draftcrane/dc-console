@@ -214,6 +214,8 @@ export function SourcesTab({
         canInsert={canInsert}
         activeChapterTitle={activeChapterTitle}
         onImportAsChapter={handleImportAsChapter}
+        driveConnectionId={activeSource?.driveConnectionId ?? undefined}
+        driveFileId={activeSource?.driveFileId ?? undefined}
       />
     );
   }
