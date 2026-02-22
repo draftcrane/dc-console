@@ -3,7 +3,6 @@ import type { Env } from "../types/index.js";
 import { validationError } from "../middleware/error-handler.js";
 import { aiRateLimit } from "../middleware/rate-limit.js";
 import { AIRewriteService, type RewriteInput } from "../services/ai-rewrite.js";
-import { AIAnalysisService, type AnalysisInput } from "../services/ai-analysis.js";
 import { AIInteractionService } from "../services/ai-interaction.js";
 import { OpenAIProvider, WorkersAIProvider } from "../services/ai-provider.js";
 
@@ -12,7 +11,6 @@ const ai = new Hono<{ Bindings: Env }>();
 // Auth is enforced globally in index.ts
 // Rate limit: 10 req/min for AI endpoints (applied after auth)
 ai.use("/rewrite", aiRateLimit);
-ai.use("/analyze-source", aiRateLimit);
 
 /**
  * POST /ai/rewrite
@@ -68,57 +66,6 @@ ai.post("/rewrite", async (c) => {
   }
 
   const { stream } = await service.streamRewrite(userId, input);
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    },
-  });
-});
-
-/**
- * POST /ai/analyze-source
- *
- * Request body:
- * - connectionId: string (required)
- * - fileId: string (required)
- * - instruction: string (required)
- * - tier: "edge" | "frontier" (optional)
- *
- * Response: SSE stream (same format as /rewrite)
- */
-ai.post("/analyze-source", async (c) => {
-  const { userId } = c.get("auth");
-
-  const body = (await c.req.json().catch(() => ({}))) as Partial<AnalysisInput> & {
-    tier?: "edge" | "frontier";
-  };
-
-  const defaultTier = (c.env.AI_DEFAULT_TIER as "edge" | "frontier") || "frontier";
-  const tier = body.tier === "edge" || body.tier === "frontier" ? body.tier : defaultTier;
-
-  const provider =
-    tier === "edge"
-      ? new WorkersAIProvider(c.env.AI)
-      : new OpenAIProvider(c.env.AI_API_KEY, c.env.AI_MODEL);
-
-  const service = new AIAnalysisService(c.env.DB, provider, c.env);
-
-  const input: AnalysisInput = {
-    connectionId: body.connectionId ?? "",
-    fileId: body.fileId ?? "",
-    instruction: body.instruction ?? "",
-    tier,
-  };
-
-  const validationErr = service.validateInput(input);
-  if (validationErr) {
-    validationError(validationErr);
-  }
-
-  const { stream } = await service.streamAnalysis(userId, input);
 
   return new Response(stream, {
     headers: {
