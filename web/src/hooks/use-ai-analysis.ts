@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
-import { useAuth } from "@clerk/nextjs";
+
+import { useState, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -11,7 +12,7 @@ export interface AiAnalysisParams {
 
 export function useAiAnalysis() {
   const { getToken } = useAuth();
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,21 +20,21 @@ export function useAiAnalysis() {
     async (params: AiAnalysisParams) => {
       setIsLoading(true);
       setError(null);
-      setResult("");
+      setResult('');
 
       try {
         const token = await getToken();
         const response = await fetch(`${API_URL}/ai/analyze-source`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(params),
         });
 
         if (!response.ok || !response.body) {
-          const errorData = await response.json().catch(() => ({ error: "Request failed" }));
+          const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
           throw new Error(errorData.error);
         }
 
@@ -45,16 +46,17 @@ export function useAiAnalysis() {
           if (done) break;
 
           const chunk = decoder.decode(value);
-          const lines = chunk.split("\n");
+          const lines = chunk.split('
+');
 
           for (const line of lines) {
-            if (line.startsWith("data: ")) {
+            if (line.startsWith('data: ')) {
               const eventData = line.substring(6);
               try {
                 const parsed = JSON.parse(eventData);
-                if (parsed.type === "token") {
-                  setResult((prev) => prev + parsed.text);
-                } else if (parsed.type === "error") {
+                if (parsed.type === 'token') {
+                  setResult(prev => prev + parsed.text);
+                } else if (parsed.type === 'error') {
                   throw new Error(parsed.message);
                 }
               } catch (e) {
@@ -64,12 +66,12 @@ export function useAiAnalysis() {
           }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An unknown error occurred");
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
         setIsLoading(false);
       }
     },
-    [getToken],
+    [getToken]
   );
 
   return { result, isLoading, error, startAnalysis };

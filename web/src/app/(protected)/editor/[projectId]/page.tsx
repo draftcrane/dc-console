@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import type { ChapterData } from "@/components/layout/sidebar";
@@ -11,12 +11,7 @@ import { EditorSidebar } from "@/components/editor/editor-sidebar";
 import { EditorToolbar } from "@/components/editor/editor-toolbar";
 import { EditorWritingArea } from "@/components/editor/editor-writing-area";
 import { EditorDialogs } from "@/components/editor/editor-dialogs";
-import {
-  ResearchPanelProvider,
-  useResearchPanel,
-} from "@/components/research/research-panel-provider";
-import { ResearchPanel } from "@/components/research/research-panel";
-import { SourceManagerSheet } from "@/components/project/source-manager-sheet";
+import { SourcesPanel } from "@/components/sources/SourcesPanel";
 import { ToastProvider } from "@/components/toast";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useAutoSave } from "@/hooks/use-auto-save";
@@ -27,8 +22,8 @@ import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { useEditorProject } from "@/hooks/use-editor-project";
 import { useChapterContent } from "@/hooks/use-chapter-content";
-import { useSources } from "@/hooks/use-sources";
-import { useClipInsert } from "@/hooks/use-clip-insert";
+import { useSourcesPanel } from "@/hooks/use-sources-panel";
+import { useContentInserter } from "@/hooks/use-content-inserter";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -41,9 +36,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 export default function EditorPage() {
   return (
     <ToastProvider>
-      <ResearchPanelProvider>
-        <EditorPageInner />
-      </ResearchPanelProvider>
+      <EditorPageInner />
     </ToastProvider>
   );
 }
@@ -54,19 +47,12 @@ function EditorPageInner() {
   const { getToken } = useAuth();
   const projectId = params.projectId as string;
 
-  // Research panel state
-  const { isOpen: isResearchPanelOpen, openPanel, closePanel } = useResearchPanel();
-
-  const toggleResearchPanel = useCallback(() => {
-    if (isResearchPanelOpen) {
-      closePanel();
-    } else {
-      openPanel();
-    }
-  }, [isResearchPanelOpen, openPanel, closePanel]);
-
-  // Source Manager sheet state
-  const [isSourceManagerOpen, setIsSourceManagerOpen] = useState(false);
+  // Sources panel state
+  const {
+    isOpen: isSourcesPanelOpen,
+    togglePanel: toggleSourcesPanel,
+    closePanel: closeSourcesPanel,
+  } = useSourcesPanel();
 
   // Editor ref for AI rewrite text replacement
   const editorRef = useRef<ChapterEditorHandle>(null);
@@ -124,28 +110,8 @@ function EditorPageInner() {
       currentContent,
     });
 
-  // --- Sources (for first-use nudge) ---
-  const { sources, fetchSources } = useSources(projectId);
-  useEffect(() => {
-    if (projectId) fetchSources();
-  }, [projectId, fetchSources]);
-
-  // --- Source Manager open/close ---
-  const handleOpenSourceManager = useCallback(() => {
-    closePanel();
-    setIsSourceManagerOpen(true);
-  }, [closePanel]);
-
-  const handleCloseSourceManager = useCallback(() => {
-    setIsSourceManagerOpen(false);
-    fetchSources();
-  }, [fetchSources]);
-
-  // --- Insert content from research panel ---
-  const { canInsert, insertClip: handleInsertClip } = useClipInsert({
-    editorRef,
-    activeChapterId,
-  });
+  // --- Source Content insertion ---
+  const { insertContent } = useContentInserter({ editorRef });
 
   // --- Sidebar UI state ---
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -328,9 +294,8 @@ function EditorPageInner() {
             activeChapterId={activeChapterId}
             getToken={getToken as () => Promise<string | null>}
             apiUrl={API_URL}
-            isResearchPanelOpen={isResearchPanelOpen}
-            onToggleResearchPanel={toggleResearchPanel}
-            hasAnySources={sources.length > 0}
+            isSourcesPanelOpen={isSourcesPanelOpen}
+            onToggleSourcesPanel={toggleSourcesPanel}
             hasDriveFolder={!!projectData.driveFolderId}
             driveFolderId={projectData.driveFolderId}
             onSetupDrive={connectDriveWithProject}
@@ -343,7 +308,7 @@ function EditorPageInner() {
               }
             }}
             onManageAccounts={() => setIsAccountsSheetOpen(true)}
-            onManageSources={handleOpenSourceManager}
+            onManageSources={() => { /* TODO */ }}
             onRenameBook={openRenameDialog}
             onDuplicateBook={openDuplicateDialog}
             isDuplicating={isDuplicating}
@@ -370,12 +335,15 @@ function EditorPageInner() {
         />
       </div>
 
-      <ResearchPanel
-        onInsertClip={handleInsertClip}
-        canInsert={canInsert}
-        activeChapterTitle={activeChapter?.title}
-        onOpenSourceManager={handleOpenSourceManager}
-      />
+      {isSourcesPanelOpen && (
+        <SourcesPanel
+          onClose={closeSourcesPanel}
+          driveAccounts={driveAccounts}
+          onConnectDrive={connectDrive}
+          onDisconnectDrive={disconnectDriveAccount}
+          onInsertContent={insertContent}
+        />
+      )}
 
       <EditorDialogs
         projectData={projectData}
@@ -416,12 +384,6 @@ function EditorPageInner() {
         onDisconnectDriveAccount={disconnectDriveAccount}
         onRefetchDriveAccounts={refetchDriveAccounts}
         driveAccounts={driveAccounts}
-      />
-
-      <SourceManagerSheet
-        isOpen={isSourceManagerOpen}
-        projectId={projectId}
-        onClose={handleCloseSourceManager}
       />
     </div>
   );

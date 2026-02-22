@@ -6,8 +6,6 @@ import { SourceContentRenderer } from "./source-content-renderer";
 import { SelectionToolbar } from "./selection-toolbar";
 import { useResearchClips, type SaveClipInput } from "@/hooks/use-research-clips";
 import { useToast } from "@/components/toast";
-import { InstructionManager } from "@/components/ai/instruction-manager";
-import { useAiAnalysis } from "@/hooks/use-ai-analysis";
 
 // === Types ===
 
@@ -35,10 +33,6 @@ interface SourceDetailViewProps {
   activeChapterTitle?: string;
   /** Import source as a new chapter */
   onImportAsChapter?: (sourceId: string) => Promise<void>;
-  /** Drive connection ID for AI analysis */
-  driveConnectionId?: string;
-  /** Drive file ID for AI analysis */
-  driveFileId?: string;
 }
 
 // === Hint localStorage key ===
@@ -93,24 +87,11 @@ export function SourceDetailView({
   canInsert = false,
   activeChapterTitle,
   onImportAsChapter,
-  driveConnectionId,
-  driveFileId,
 }: SourceDetailViewProps) {
   const { content, wordCount, isLoading, error, fetchContent, reset } = useSourceContent();
   const { saveClip, savedContents, isSaving } = useResearchClips(projectId);
   const { showToast } = useToast();
   const [selectedText, setSelectedText] = useState("");
-
-  // AI Analysis state
-  const canAnalyze = !!driveConnectionId && !!driveFileId;
-  const [analysisOpen, setAnalysisOpen] = useState(false);
-  const [selectedInstruction, setSelectedInstruction] = useState("");
-  const {
-    result: analysisResult,
-    isLoading: analysisLoading,
-    error: analysisError,
-    startAnalysis,
-  } = useAiAnalysis();
 
   // Show hint on first 3 views -- lazy init from localStorage, then increment
   const [showHint, setShowHint] = useState(() => {
@@ -220,8 +201,8 @@ export function SourceDetailView({
         </div>
       </div>
 
-      {/* Action bar — Insert into Chapter + Import as New Chapter + Analyze */}
-      {content && (onInsertIntoChapter || onImportAsChapter || canAnalyze) && (
+      {/* Action bar — Insert into Chapter + Import as New Chapter */}
+      {content && (onInsertIntoChapter || onImportAsChapter) && (
         <div className="shrink-0 px-4 py-2 border-b border-border flex items-center gap-2">
           {onInsertIntoChapter && (
             <button
@@ -243,86 +224,6 @@ export function SourceDetailView({
             >
               Import as New Chapter
             </button>
-          )}
-          {canAnalyze && (
-            <button
-              onClick={() => setAnalysisOpen((prev) => !prev)}
-              className={`h-8 px-3 text-xs font-medium rounded-md transition-colors ${
-                analysisOpen
-                  ? "bg-purple-50 text-purple-700 border border-purple-200"
-                  : "border border-border hover:bg-gray-50 text-foreground"
-              }`}
-            >
-              {analysisOpen ? "Hide Analysis" : "Analyze with AI"}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* AI Analysis Panel */}
-      {analysisOpen && canAnalyze && (
-        <div className="shrink-0 border-b border-border px-4 py-3 space-y-3 bg-gray-50/50">
-          <InstructionManager
-            type="analysis"
-            onSelectInstruction={(inst) => setSelectedInstruction(inst.instructionText)}
-          />
-
-          {selectedInstruction && (
-            <div className="p-2 bg-white rounded-md border text-xs text-gray-700">
-              {selectedInstruction}
-            </div>
-          )}
-
-          <button
-            onClick={() => {
-              if (!selectedInstruction) return;
-              startAnalysis({
-                connectionId: driveConnectionId!,
-                fileId: driveFileId!,
-                instruction: selectedInstruction,
-              });
-            }}
-            disabled={!selectedInstruction || analysisLoading}
-            className="w-full h-9 text-sm font-medium rounded-md bg-purple-600 text-white
-                       hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
-                       flex items-center justify-center gap-2"
-          >
-            {analysisLoading && (
-              <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
-            )}
-            {analysisLoading ? "Analyzing..." : "Run Analysis"}
-          </button>
-
-          {analysisError && (
-            <div className="p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700">
-              {analysisError}
-            </div>
-          )}
-
-          {analysisResult && (
-            <div className="p-3 bg-white rounded-md border text-sm text-gray-800 leading-relaxed whitespace-pre-wrap max-h-60 overflow-auto">
-              {analysisResult}
-              {analysisLoading && (
-                <span
-                  className="inline-block w-0.5 h-4 bg-purple-600 ml-0.5 align-text-bottom animate-pulse"
-                  aria-hidden="true"
-                />
-              )}
-            </div>
           )}
         </div>
       )}

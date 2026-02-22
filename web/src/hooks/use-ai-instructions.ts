@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@clerk/nextjs";
+
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -7,11 +8,11 @@ export interface AIInstruction {
   id: string;
   label: string;
   instructionText: string;
-  type: "analysis" | "rewrite";
+  type: 'analysis' | 'rewrite';
 }
 
 interface UseAiInstructionsParams {
-  type: "analysis" | "rewrite";
+  type: 'analysis' | 'rewrite';
 }
 
 export function useAiInstructions({ type }: UseAiInstructionsParams) {
@@ -28,11 +29,11 @@ export function useAiInstructions({ type }: UseAiInstructionsParams) {
       const response = await fetch(`${API_URL}/ai/instructions?type=${type}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error("Failed to fetch instructions");
+      if (!response.ok) throw new Error('Failed to fetch instructions');
       const data = await response.json();
       setInstructions(data.instructions);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -46,16 +47,16 @@ export function useAiInstructions({ type }: UseAiInstructionsParams) {
     try {
       const token = await getToken();
       const response = await fetch(`${API_URL}/ai/instructions`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ ...data, type }),
       });
-      if (!response.ok) throw new Error("Failed to create instruction");
+      if (!response.ok) throw new Error('Failed to create instruction');
       const newInstruction = await response.json();
-      setInstructions((prev) => [...prev, newInstruction]);
+      setInstructions(prev => [...prev, newInstruction]);
       return newInstruction;
     } catch (err) {
       // Handle error in UI
@@ -68,11 +69,11 @@ export function useAiInstructions({ type }: UseAiInstructionsParams) {
     try {
       const token = await getToken();
       const response = await fetch(`${API_URL}/ai/instructions/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error("Failed to delete instruction");
-      setInstructions((prev) => prev.filter((inst) => inst.id !== id));
+      if (!response.ok) throw new Error('Failed to delete instruction');
+      setInstructions(prev => prev.filter(inst => inst.id !== id));
       return true;
     } catch (err) {
       console.error(err);
@@ -80,12 +81,5 @@ export function useAiInstructions({ type }: UseAiInstructionsParams) {
     }
   };
 
-  return {
-    instructions,
-    isLoading,
-    error,
-    createInstruction,
-    deleteInstruction,
-    refetch: fetchInstructions,
-  };
+  return { instructions, isLoading, error, createInstruction, deleteInstruction, refetch: fetchInstructions };
 }
