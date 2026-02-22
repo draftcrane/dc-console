@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import type { ProjectData } from "@/types/editor";
 import type { SaveStatus } from "@/hooks/use-auto-save";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
@@ -8,6 +9,7 @@ import { ProjectSwitcher } from "@/components/project/project-switcher";
 import { SaveIndicator } from "./save-indicator";
 import { ExportMenu } from "@/components/project/export-menu";
 import { SettingsMenu } from "@/components/project/settings-menu";
+import { FirstUseNudge, PulsingDot, useFirstUseNudge } from "@/components/research/first-use-nudge";
 
 interface EditorToolbarProps {
   projectData: ProjectData;
@@ -30,9 +32,10 @@ interface EditorToolbarProps {
   getToken: () => Promise<string | null>;
   apiUrl: string;
 
-  // Sources Panel
-  isSourcesPanelOpen: boolean;
-  onToggleSourcesPanel: () => void;
+  // Research Panel
+  isResearchPanelOpen: boolean;
+  onToggleResearchPanel: () => void;
+  hasAnySources: boolean;
 
   // Source Manager
   onManageSources: () => void;
@@ -61,15 +64,16 @@ export function EditorToolbar({
   saveStatus,
   onSaveRetry,
   selectionWordCount,
-aiSheetState,
+  aiSheetState,
   onOpenAiRewrite,
   driveConnected,
   projectId,
   activeChapterId,
   getToken,
   apiUrl,
-  isSourcesPanelOpen,
-  onToggleSourcesPanel,
+  isResearchPanelOpen,
+  onToggleResearchPanel,
+  hasAnySources,
   onManageSources,
   hasDriveFolder,
   driveFolderId,
@@ -83,6 +87,13 @@ aiSheetState,
   onSignOut,
   isSigningOut,
 }: EditorToolbarProps) {
+  const researchButtonRef = useRef<HTMLButtonElement>(null);
+  const { showPulsingDot, isActive: nudgeActive } = useFirstUseNudge({
+    projectId,
+    hasAnySources,
+    isResearchPanelOpen,
+  });
+
   return (
     <div className="flex items-center justify-between h-12 px-4 border-b border-border bg-background shrink-0">
       <div className="flex items-center gap-2 min-w-0">
@@ -131,35 +142,42 @@ aiSheetState,
           </>
         )}
 
-        {/* Sources panel toggle */}
-        <button
-          onClick={onToggleSourcesPanel}
-          className={`h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
-                     transition-colors ${
-                       isSourcesPanelOpen
-                         ? "text-blue-700 bg-blue-50"
-                         : "text-muted-foreground hover:text-foreground hover:bg-gray-100"
-                     }`}
-          aria-label={isSourcesPanelOpen ? "Close sources panel" : "Open sources panel"}
-          aria-expanded={isSourcesPanelOpen}
-          title="Sources (Cmd+Shift+S)"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="w-4 h-4 shrink-0"
+        {/* Research panel toggle */}
+        <div className="relative">
+          <button
+            ref={researchButtonRef}
+            onClick={onToggleResearchPanel}
+            className={`h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
+                       transition-colors ${
+                         isResearchPanelOpen
+                           ? "text-blue-700 bg-blue-50"
+                           : "text-muted-foreground hover:text-foreground hover:bg-gray-100"
+                       }`}
+            aria-label={isResearchPanelOpen ? "Close research panel" : "Open research panel"}
+            aria-controls="research-panel"
+            aria-expanded={isResearchPanelOpen}
+            title="Research (Cmd+Shift+R)"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              d="M3.75 9.776v11.214a1.122 1.122 0 001.122 1.122h14.25a1.122 1.122 0 001.122-1.122V9.776M3.75 9.776l1.353-1.353a4.5 4.5 0 016.364 0l1.353 1.353m-8.07-8.07l.933.933a4.5 4.5 0 016.364 0l.933-.933m-10.233 8.07H21" 
-            />
-          </svg>
-          <span className="hidden sm:inline">Sources</span>
-        </button>
+            <svg
+              className="w-4 h-4 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+              />
+            </svg>
+            <span className="hidden sm:inline">Research</span>
+          </button>
+          {showPulsingDot && <PulsingDot />}
+        </div>
+
+        <FirstUseNudge isActive={nudgeActive} targetRef={researchButtonRef} />
 
         <div className="w-px h-5 bg-border" aria-hidden="true" />
 
@@ -175,7 +193,7 @@ aiSheetState,
           hasDriveFolder={hasDriveFolder}
           driveFolderId={driveFolderId}
           onSetupDrive={onSetupDrive}
-  onUnlinkDrive={onUnlinkDrive}
+          onUnlinkDrive={onUnlinkDrive}
           onManageAccounts={onManageAccounts}
           onManageSources={onManageSources}
           onRenameBook={onRenameBook}

@@ -247,11 +247,15 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
         },
         insertContent: (content: string, format: "html" | "text"): boolean => {
           if (!editor) return false;
-          
+
           // For plain text, convert newlines to paragraphs to ensure proper formatting.
-          const contentToInsert = format === 'text' 
-            ? content.split('\n').map(p => `<p>${p}</p>`).join('')
-            : content;
+          const contentToInsert =
+            format === "text"
+              ? content
+                  .split("\n")
+                  .map((p) => `<p>${p}</p>`)
+                  .join("")
+              : content;
 
           editor.chain().focus().insertContent(contentToInsert).run();
           return true;
