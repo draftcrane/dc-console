@@ -322,13 +322,12 @@ body {
 }
 
 /* ------------------------------------------------------------------
- * Research Panel Animations (#182)
+ * Sources Panel Animations
  *
  * Panel slides in from the right. Backdrop fades in behind overlay.
- * Per design-spec.md Section 6: Animation Specifications.
  * ------------------------------------------------------------------ */
 
-@keyframes research-panel-slide-in {
+@keyframes sources-panel-slide-in {
   from {
     transform: translateX(100%);
   }
@@ -337,7 +336,7 @@ body {
   }
 }
 
-@keyframes research-backdrop-fade-in {
+@keyframes sources-backdrop-fade-in {
   from {
     opacity: 0;
   }
@@ -346,29 +345,29 @@ body {
   }
 }
 
-.research-panel-slide-in {
-  animation: research-panel-slide-in 200ms ease-out;
+.sources-panel-slide-in {
+  animation: sources-panel-slide-in 200ms ease-out;
 }
 
-.research-backdrop-fade-in {
-  animation: research-backdrop-fade-in 200ms ease-out;
+.sources-backdrop-fade-in {
+  animation: sources-backdrop-fade-in 200ms ease-out;
 }
 
-/* Research Panel safe area handling */
-.research-panel {
+/* Sources Panel safe area handling */
+.sources-panel {
   padding-right: env(safe-area-inset-right, 0);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-.research-panel-overlay {
+.sources-panel-overlay {
   height: 100dvh;
   padding-top: env(safe-area-inset-top, 0);
   padding-right: env(safe-area-inset-right, 0);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-/* Research Panel first-use nudge pulsing dot (#185) */
-@keyframes research-nudge-pulse {
+/* Sources Panel first-use nudge pulsing dot */
+@keyframes sources-nudge-pulse {
   0%,
   100% {
     opacity: 1;
@@ -380,8 +379,8 @@ body {
   }
 }
 
-.research-nudge-dot {
-  animation: research-nudge-pulse 2s ease-in-out infinite;
+.sources-nudge-dot {
+  animation: sources-nudge-pulse 2s ease-in-out infinite;
 }
 
 /* ------------------------------------------------------------------
@@ -440,15 +439,15 @@ body {
     animation: none;
   }
 
-  .research-panel-slide-in {
+  .sources-panel-slide-in {
     animation: none;
   }
 
-  .research-backdrop-fade-in {
+  .sources-backdrop-fade-in {
     animation: none;
   }
 
-  .research-nudge-dot {
+  .sources-nudge-dot {
     animation: none;
   }
 

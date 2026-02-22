@@ -13,6 +13,14 @@ import { EditorToolbar } from "@/components/editor/editor-toolbar";
  * based on selectionWordCount and aiSheetState.
  */
 
+// Mock SourcesContext used by toolbar for Sources toggle button
+vi.mock("@/contexts/sources-context", () => ({
+  useSourcesContext: () => ({
+    isPanelOpen: false,
+    togglePanel: vi.fn(),
+  }),
+}));
+
 // Mock child components to avoid their dependencies
 vi.mock("@/components/project/project-switcher", () => ({
   ProjectSwitcher: ({ currentProject }: { currentProject: { id: string; title: string } }) => (

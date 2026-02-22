@@ -261,6 +261,29 @@ export async function seedSourceWithContent(
   return { id, projectId, title, r2Key };
 }
 
+export async function seedAIInstruction(
+  userId: string,
+  overrides?: {
+    id?: string;
+    label?: string;
+    instructionText?: string;
+    type?: "analysis" | "rewrite";
+  },
+) {
+  const id = overrides?.id ?? ulid();
+  const label = overrides?.label ?? "Test Instruction";
+  const instructionText = overrides?.instructionText ?? "Do something with this text.";
+  const type = overrides?.type ?? "analysis";
+  const ts = now();
+  await env.DB.prepare(
+    `INSERT INTO ai_instructions (id, user_id, label, instruction_text, type, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(id, userId, label, instructionText, type, ts, ts)
+    .run();
+  return { id, userId, label, instructionText, type };
+}
+
 /**
  * Remove all rows from test tables in reverse FK order.
  */
@@ -268,6 +291,7 @@ export async function cleanAll() {
   await env.DB.batch([
     env.DB.prepare("DELETE FROM source_content_fts"),
     env.DB.prepare("DELETE FROM research_queries"),
+    env.DB.prepare("DELETE FROM ai_instructions"),
     env.DB.prepare("DELETE FROM ai_interactions"),
     env.DB.prepare("DELETE FROM export_jobs"),
     env.DB.prepare("DELETE FROM research_clips"),

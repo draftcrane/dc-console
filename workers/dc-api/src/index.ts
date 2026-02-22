@@ -12,6 +12,7 @@ import { ai } from "./routes/ai.js";
 import { exportRoutes } from "./routes/export.js";
 import { sources } from "./routes/sources.js";
 import { research } from "./routes/research.js";
+import { aiInstructions } from "./routes/ai-instructions.js";
 import type { ErrorCode } from "./types/index.js";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -86,6 +87,7 @@ app.route("/users", users);
 app.route("/drive", drive);
 app.route("/projects", projects);
 app.route("/ai", ai);
+app.route("/ai", aiInstructions);
 app.route("/", exportRoutes);
 app.route("/", chapters);
 app.route("/", sources);

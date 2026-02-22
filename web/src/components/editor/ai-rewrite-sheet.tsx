@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
+import { useSourcesContext } from "@/contexts/sources-context";
+import { InstructionPicker } from "@/components/sources/instruction-picker";
 
 /**
  * Data representing an AI rewrite result, passed in from the parent
@@ -67,6 +69,8 @@ export function AIRewriteSheet({
   onDiscard,
   onGoDeeper,
 }: AIRewriteSheetProps) {
+  const { rewriteInstructions, createInstruction, updateInstruction, removeInstruction } =
+    useSourcesContext();
   const sheetRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLTextAreaElement>(null);
   const lastFocusableRef = useRef<HTMLButtonElement>(null);
@@ -332,6 +336,21 @@ export function AIRewriteSheet({
               rows={2}
               placeholder="Edit instruction for retry..."
             />
+            <div className="mt-1.5">
+              <InstructionPicker
+                instructions={rewriteInstructions}
+                type="rewrite"
+                onSelect={(text) => {
+                  setEditedInstruction(text);
+                  setHasUserEdited(true);
+                }}
+                onCreate={async (input) => {
+                  await createInstruction(input);
+                }}
+                onUpdate={updateInstruction}
+                onRemove={removeInstruction}
+              />
+            </div>
           </div>
         </div>
 

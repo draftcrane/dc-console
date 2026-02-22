@@ -21,6 +21,9 @@ import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { useEditorProject } from "@/hooks/use-editor-project";
 import { useChapterContent } from "@/hooks/use-chapter-content";
+import { SourcesProvider } from "@/contexts/sources-context";
+import { SourcesPanel } from "@/components/sources/sources-panel";
+import { SourcesPanelOverlay } from "@/components/sources/sources-panel-overlay";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -237,128 +240,134 @@ function EditorPageInner() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)]">
-      <OnboardingTooltips />
+    <SourcesProvider projectId={projectId} editorRef={editorRef}>
+      <div className="flex h-[calc(100dvh-3.5rem)]">
+        <OnboardingTooltips />
 
-      {recoveryPrompt && (
-        <CrashRecoveryDialog
-          recovery={recoveryPrompt}
-          onAccept={acceptRecovery}
-          onDismiss={dismissRecovery}
-        />
-      )}
-
-      <EditorSidebar
-        chapters={sidebarChapters}
-        activeChapterId={activeChapterId ?? undefined}
-        onChapterSelect={handleChapterSelect}
-        onAddChapter={handleAddChapter}
-        onDeleteChapter={handleDeleteChapterRequest}
-        onChapterRename={handleChapterRename}
-        onChapterReorder={handleChapterReorder}
-        totalWordCount={totalWordCount}
-        activeChapterWordCount={currentWordCount}
-        sidebarCollapsed={sidebarCollapsed}
-        onToggleSidebarCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
-        mobileOverlayOpen={mobileOverlayOpen}
-        onOpenMobileOverlay={() => setMobileOverlayOpen(true)}
-        onCloseMobileOverlay={() => setMobileOverlayOpen(false)}
-      />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        {projectData && (
-          <EditorToolbar
-            projectData={projectData}
-            allProjects={allProjects}
-            totalWordCount={totalWordCount}
-            saveStatus={saveStatus}
-            onSaveRetry={saveNow}
-            driveConnected={driveConnected}
-            selectionWordCount={selectionWordCount}
-            aiSheetState={aiSheetState}
-            onOpenAiRewrite={handleOpenAiRewrite}
-            projectId={projectId}
-            activeChapterId={activeChapterId}
-            getToken={getToken as () => Promise<string | null>}
-            apiUrl={API_URL}
-            hasDriveFolder={!!projectData.driveFolderId}
-            driveFolderId={projectData.driveFolderId}
-            onSetupDrive={connectDriveWithProject}
-            onUnlinkDrive={() => {
-              const confirmed = window.confirm(
-                "Unlink this project from its Google Drive folder? Your Drive files will not be deleted.",
-              );
-              if (confirmed) {
-                disconnectProjectFromDrive();
-              }
-            }}
-            onManageAccounts={() => setIsAccountsSheetOpen(true)}
-            onRenameBook={openRenameDialog}
-            onDuplicateBook={openDuplicateDialog}
-            isDuplicating={isDuplicating}
-            onDeleteProject={openDeleteDialog}
-            onSignOut={handleSignOut}
-            isSigningOut={isSigningOut}
+        {recoveryPrompt && (
+          <CrashRecoveryDialog
+            recovery={recoveryPrompt}
+            onAccept={acceptRecovery}
+            onDismiss={dismissRecovery}
           />
         )}
 
-        <EditorWritingArea
-          editorRef={editorRef}
-          currentContent={currentContent}
-          onContentChange={handleContentChange}
-          onSelectionWordCountChange={handleSelectionWordCountChange}
-          activeChapter={activeChapter}
-          editingTitle={editingTitle}
-          titleValue={titleValue}
-          onTitleValueChange={setTitleValue}
-          onTitleEdit={handleTitleEdit}
-          onTitleSave={handleTitleSave}
-          onTitleEditCancel={() => setEditingTitle(false)}
-          currentWordCount={currentWordCount}
-          selectionWordCount={selectionWordCount}
+        <EditorSidebar
+          chapters={sidebarChapters}
+          activeChapterId={activeChapterId ?? undefined}
+          onChapterSelect={handleChapterSelect}
+          onAddChapter={handleAddChapter}
+          onDeleteChapter={handleDeleteChapterRequest}
+          onChapterRename={handleChapterRename}
+          onChapterReorder={handleChapterReorder}
+          totalWordCount={totalWordCount}
+          activeChapterWordCount={currentWordCount}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebarCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
+          mobileOverlayOpen={mobileOverlayOpen}
+          onOpenMobileOverlay={() => setMobileOverlayOpen(true)}
+          onCloseMobileOverlay={() => setMobileOverlayOpen(false)}
         />
-      </div>
 
-      <EditorDialogs
-        projectData={projectData}
-        projectId={projectId}
-        // Delete project
-        deleteDialogOpen={deleteDialogOpen}
-        onDeleteProject={handleDeleteProject}
-        onCloseDeleteDialog={closeDeleteDialog}
-        // Rename project
-        renameDialogOpen={renameDialogOpen}
-        onRenameProject={renameProject}
-        onCloseRenameDialog={closeRenameDialog}
-        setProjectData={setProjectData}
-        // Duplicate project
-        duplicateDialogOpen={duplicateDialogOpen}
-        onDuplicateProject={duplicateProject}
-        onCloseDuplicateDialog={closeDuplicateDialog}
-        // Delete chapter
-        deleteChapterDialogOpen={deleteChapterDialogOpen}
-        chapterToDelete={chapterToDelete}
-        onDeleteChapter={handleDeleteChapter}
-        onCloseDeleteChapterDialog={() => {
-          setDeleteChapterDialogOpen(false);
-          setChapterToDelete(null);
-        }}
-        // AI Rewrite
-        aiSheetState={aiSheetState}
-        aiCurrentResult={aiCurrentResult}
-        aiErrorMessage={aiErrorMessage}
-        onAIAccept={handleAIAccept}
-        onAIRetry={handleAIRetry}
-        onAIDiscard={handleAIDiscard}
-        onGoDeeper={handleGoDeeper}
-        // Accounts sheet
-        isAccountsSheetOpen={isAccountsSheetOpen}
-        onCloseAccountsSheet={() => setIsAccountsSheetOpen(false)}
-        onConnectAccount={() => connectDrive()}
-        onDisconnectDriveAccount={disconnectDriveAccount}
-        onRefetchDriveAccounts={refetchDriveAccounts}
-        driveAccounts={driveAccounts}
-      />
-    </div>
+        <div className="flex-1 flex flex-col min-w-0">
+          {projectData && (
+            <EditorToolbar
+              projectData={projectData}
+              allProjects={allProjects}
+              totalWordCount={totalWordCount}
+              saveStatus={saveStatus}
+              onSaveRetry={saveNow}
+              driveConnected={driveConnected}
+              selectionWordCount={selectionWordCount}
+              aiSheetState={aiSheetState}
+              onOpenAiRewrite={handleOpenAiRewrite}
+              projectId={projectId}
+              activeChapterId={activeChapterId}
+              getToken={getToken as () => Promise<string | null>}
+              apiUrl={API_URL}
+              hasDriveFolder={!!projectData.driveFolderId}
+              driveFolderId={projectData.driveFolderId}
+              onSetupDrive={connectDriveWithProject}
+              onUnlinkDrive={() => {
+                const confirmed = window.confirm(
+                  "Unlink this project from its Google Drive folder? Your Drive files will not be deleted.",
+                );
+                if (confirmed) {
+                  disconnectProjectFromDrive();
+                }
+              }}
+              onManageAccounts={() => setIsAccountsSheetOpen(true)}
+              onRenameBook={openRenameDialog}
+              onDuplicateBook={openDuplicateDialog}
+              isDuplicating={isDuplicating}
+              onDeleteProject={openDeleteDialog}
+              onSignOut={handleSignOut}
+              isSigningOut={isSigningOut}
+            />
+          )}
+
+          <EditorWritingArea
+            editorRef={editorRef}
+            currentContent={currentContent}
+            onContentChange={handleContentChange}
+            onSelectionWordCountChange={handleSelectionWordCountChange}
+            activeChapter={activeChapter}
+            editingTitle={editingTitle}
+            titleValue={titleValue}
+            onTitleValueChange={setTitleValue}
+            onTitleEdit={handleTitleEdit}
+            onTitleSave={handleTitleSave}
+            onTitleEditCancel={() => setEditingTitle(false)}
+            currentWordCount={currentWordCount}
+            selectionWordCount={selectionWordCount}
+          />
+        </div>
+
+        <SourcesPanel />
+
+        <EditorDialogs
+          projectData={projectData}
+          projectId={projectId}
+          // Delete project
+          deleteDialogOpen={deleteDialogOpen}
+          onDeleteProject={handleDeleteProject}
+          onCloseDeleteDialog={closeDeleteDialog}
+          // Rename project
+          renameDialogOpen={renameDialogOpen}
+          onRenameProject={renameProject}
+          onCloseRenameDialog={closeRenameDialog}
+          setProjectData={setProjectData}
+          // Duplicate project
+          duplicateDialogOpen={duplicateDialogOpen}
+          onDuplicateProject={duplicateProject}
+          onCloseDuplicateDialog={closeDuplicateDialog}
+          // Delete chapter
+          deleteChapterDialogOpen={deleteChapterDialogOpen}
+          chapterToDelete={chapterToDelete}
+          onDeleteChapter={handleDeleteChapter}
+          onCloseDeleteChapterDialog={() => {
+            setDeleteChapterDialogOpen(false);
+            setChapterToDelete(null);
+          }}
+          // AI Rewrite
+          aiSheetState={aiSheetState}
+          aiCurrentResult={aiCurrentResult}
+          aiErrorMessage={aiErrorMessage}
+          onAIAccept={handleAIAccept}
+          onAIRetry={handleAIRetry}
+          onAIDiscard={handleAIDiscard}
+          onGoDeeper={handleGoDeeper}
+          // Accounts sheet
+          isAccountsSheetOpen={isAccountsSheetOpen}
+          onCloseAccountsSheet={() => setIsAccountsSheetOpen(false)}
+          onConnectAccount={() => connectDrive()}
+          onDisconnectDriveAccount={disconnectDriveAccount}
+          onRefetchDriveAccounts={refetchDriveAccounts}
+          driveAccounts={driveAccounts}
+        />
+
+        <SourcesPanelOverlay />
+      </div>
+    </SourcesProvider>
   );
 }
