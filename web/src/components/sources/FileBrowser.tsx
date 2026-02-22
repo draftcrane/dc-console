@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { useDriveFiles, type DriveFile } from '@/hooks/use-drive-files';
 import type { ProjectLibraryItem } from './SourcesPanel';
 
@@ -77,7 +76,7 @@ export const FileBrowser = ({ connectionId, libraryItems, setLibraryItems }: Fil
                 checked={isSelected(file)}
                 onChange={(e) => handleSelectionChange(file, e.target.checked)}
               />
-              {file.iconLink && <Image src={file.iconLink} alt="" width={16} height={16} className="w-4 h-4 shrink-0" />}
+              <img src={file.iconLink} alt="" className="w-4 h-4 shrink-0" />
               {isFolder(file) ? (
                 <button onClick={() => handleFolderClick(file)} className="text-sm text-left flex-1 truncate">
                   {file.name}

@@ -21,11 +21,6 @@ export const InstructionManager = ({ type, onSelectInstruction }: InstructionMan
     setShowAddForm(false);
   };
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Prevent onSelectInstruction from firing
-    deleteInstruction(id);
-  };
-
   return (
     <div className="space-y-2">
       <h4 className="text-xs font-semibold text-gray-500 uppercase">Instructions</h4>
@@ -33,21 +28,13 @@ export const InstructionManager = ({ type, onSelectInstruction }: InstructionMan
       
       <div className="flex flex-wrap gap-2">
         {instructions.map(inst => (
-          <div key={inst.id} className="group relative">
-            <button
-              onClick={() => onSelectInstruction(inst)}
-              className="pr-6 pl-2 py-1 text-xs bg-gray-100 rounded-md hover:bg-gray-200"
-            >
-              {inst.label}
-            </button>
-            <button
-              onClick={(e) => handleDelete(e, inst.id)}
-              className="absolute top-0 right-0 h-full px-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-              aria-label={`Delete instruction: ${inst.label}`}
-            >
-              &times;
-            </button>
-          </div>
+          <button
+            key={inst.id}
+            onClick={() => onSelectInstruction(inst)}
+            className="px-2 py-1 text-xs bg-gray-100 rounded-md hover:bg-gray-200"
+          >
+            {inst.label}
+          </button>
         ))}
         <button
           onClick={() => setShowAddForm(!showAddForm)}

@@ -332,7 +332,6 @@ function EditorPageInner() {
           onTitleEditCancel={() => setEditingTitle(false)}
           currentWordCount={currentWordCount}
           selectionWordCount={selectionWordCount}
-          onSelectionUpdate={trackSelection}
         />
       </div>
 
