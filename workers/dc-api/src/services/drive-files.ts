@@ -172,7 +172,7 @@ export class DriveFileService {
       "text/markdown",
     ];
 
-    const mimeTypeQuery = supportedMimeTypes.map(type => `mimeType = '${type}'`).join(" or ");
+    const mimeTypeQuery = supportedMimeTypes.map((type) => `mimeType = '${type}'`).join(" or ");
 
     const query = `'${validateDriveId(folderId)}' in parents and trashed = false and (${mimeTypeQuery})`;
 
@@ -599,7 +599,10 @@ export class DriveFileService {
    * Gets the content of a file, parsing it based on MIME type.
    * Handles Google Docs, DOCX, PDF, and plain text.
    */
-  async getFileContent(accessToken: string, fileId: string): Promise<{ content: string; format: "html" | "text" }> {
+  async getFileContent(
+    accessToken: string,
+    fileId: string,
+  ): Promise<{ content: string; format: "html" | "text" }> {
     validateDriveId(fileId);
     const meta = await this.getFileMetadata(accessToken, fileId);
 
@@ -608,16 +611,19 @@ export class DriveFileService {
         const content = await this.exportFile(accessToken, fileId, "text/html");
         return { content, format: "html" };
       }
-      
+
       case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
         const buffer = await this.downloadFile(accessToken, fileId);
-        const result = await mammoth.convertToHtml({ buffer });
+        const mammoth = await import("mammoth");
+        const result = await mammoth.default.convertToHtml({ arrayBuffer: buffer });
         return { content: result.value, format: "html" };
       }
 
       case "application/pdf": {
         const buffer = await this.downloadFile(accessToken, fileId);
-        const { text } = await extractText(buffer);
+        const { extractText, getDocumentProxy } = await import("unpdf");
+        const doc = await getDocumentProxy(new Uint8Array(buffer));
+        const { text } = await extractText(doc, { mergePages: true });
         return { content: text, format: "text" };
       }
 

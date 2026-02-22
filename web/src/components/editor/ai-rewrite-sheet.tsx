@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
-import { InstructionManager } from "@/components/sources/InstructionManager";
 
 /**
  * Data representing an AI rewrite result, passed in from the parent
@@ -318,18 +317,21 @@ export function AIRewriteSheet({
 
           {/* Editable instruction field */}
           <div>
-            <InstructionManager 
-              type="rewrite"
-              onSelectInstruction={(instruction) => {
-                setEditedInstruction(instruction.instructionText);
+            <label className="text-sm font-medium text-gray-500 mb-2 block">Instruction</label>
+            <textarea
+              ref={firstFocusableRef}
+              value={editedInstruction || result.instruction}
+              onChange={(e) => {
+                setEditedInstruction(e.target.value);
                 setHasUserEdited(true);
               }}
+              disabled={isStreaming}
+              className="w-full p-3 text-sm border border-gray-200 rounded-lg resize-none
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              rows={2}
+              placeholder="Edit instruction for retry..."
             />
-             {editedInstruction && (
-                <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {editedInstruction}
-                </div>
-             )}
           </div>
         </div>
 

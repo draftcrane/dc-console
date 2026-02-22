@@ -17,7 +17,9 @@ const ContentSecurityPolicy = `
   base-uri 'self';
   form-action 'self';
   frame-ancestors 'none';
-`.replace(/\s{2,}/g, " ").trim();
+`
+  .replace(/\s{2,}/g, " ")
+  .trim();
 
 const securityHeaders = [
   {
@@ -50,8 +52,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
       },
     ],
   },

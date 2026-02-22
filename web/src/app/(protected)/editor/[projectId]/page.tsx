@@ -11,7 +11,6 @@ import { EditorSidebar } from "@/components/editor/editor-sidebar";
 import { EditorToolbar } from "@/components/editor/editor-toolbar";
 import { EditorWritingArea } from "@/components/editor/editor-writing-area";
 import { EditorDialogs } from "@/components/editor/editor-dialogs";
-import { SourcesPanel } from "@/components/sources/SourcesPanel";
 import { ToastProvider } from "@/components/toast";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useAutoSave } from "@/hooks/use-auto-save";
@@ -22,8 +21,6 @@ import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { useEditorProject } from "@/hooks/use-editor-project";
 import { useChapterContent } from "@/hooks/use-chapter-content";
-import { useSourcesPanel } from "@/hooks/use-sources-panel";
-import { useContentInserter } from "@/hooks/use-content-inserter";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -46,13 +43,6 @@ function EditorPageInner() {
   const router = useRouter();
   const { getToken } = useAuth();
   const projectId = params.projectId as string;
-
-  // Sources panel state
-  const {
-    isOpen: isSourcesPanelOpen,
-    togglePanel: toggleSourcesPanel,
-    closePanel: closeSourcesPanel,
-  } = useSourcesPanel();
 
   // Editor ref for AI rewrite text replacement
   const editorRef = useRef<ChapterEditorHandle>(null);
@@ -109,9 +99,6 @@ function EditorPageInner() {
       setContent,
       currentContent,
     });
-
-  // --- Source Content insertion ---
-  const { insertContent } = useContentInserter({ editorRef });
 
   // --- Sidebar UI state ---
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -294,8 +281,6 @@ function EditorPageInner() {
             activeChapterId={activeChapterId}
             getToken={getToken as () => Promise<string | null>}
             apiUrl={API_URL}
-            isSourcesPanelOpen={isSourcesPanelOpen}
-            onToggleSourcesPanel={toggleSourcesPanel}
             hasDriveFolder={!!projectData.driveFolderId}
             driveFolderId={projectData.driveFolderId}
             onSetupDrive={connectDriveWithProject}
@@ -308,7 +293,6 @@ function EditorPageInner() {
               }
             }}
             onManageAccounts={() => setIsAccountsSheetOpen(true)}
-            onManageSources={() => { /* TODO */ }}
             onRenameBook={openRenameDialog}
             onDuplicateBook={openDuplicateDialog}
             isDuplicating={isDuplicating}
@@ -334,16 +318,6 @@ function EditorPageInner() {
           selectionWordCount={selectionWordCount}
         />
       </div>
-
-      {isSourcesPanelOpen && (
-        <SourcesPanel
-          onClose={closeSourcesPanel}
-          driveAccounts={driveAccounts}
-          onConnectDrive={connectDrive}
-          onDisconnectDrive={disconnectDriveAccount}
-          onInsertContent={insertContent}
-        />
-      )}
 
       <EditorDialogs
         projectData={projectData}
