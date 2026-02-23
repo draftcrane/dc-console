@@ -41,8 +41,7 @@ interface ExportMenuProps {
  * 2. Export generates server-side
  * 3. On completion:
  *    - If default preference exists & valid → auto-deliver, show confirmation toast
- *    - If no Drive connected → download directly (single destination)
- *    - If Drive connected but no default → show destination picker
+ *    - Otherwise → show destination picker (always; explicit consent required)
  * 4. "Export destination..." menu item opens picker in edit mode
  */
 export function ExportMenu({
@@ -64,8 +63,6 @@ export function ExportMenu({
     save: savePreference,
     clear: clearPreference,
   } = useExportPreferences(projectId);
-
-  const driveConnected = connections.length > 0;
 
   // Close menu on outside click
   useEffect(() => {
@@ -301,20 +298,11 @@ export function ExportMenu({
           if (preference) {
             const applied = await applyDefault(result.fileName, result.downloadUrl, result.jobId);
             if (applied) return;
-            // If failed (stale), fall through to picker/direct download
+            // If failed (stale), fall through to picker
           }
 
-          // No default: if no Drive connected, download directly
-          if (!driveConnected) {
-            const dlToken = await getToken();
-            if (dlToken) {
-              await triggerDownload(result.downloadUrl, result.fileName, dlToken);
-            }
-            setDeliveryPhase("auto-delivered");
-          } else {
-            // Drive connected, no default → show picker
-            setDeliveryPhase("picker-open");
-          }
+          // No default (or stale default) → always show picker for explicit consent
+          setDeliveryPhase("picker-open");
         } else {
           setState({ phase: "error", message: "Export completed but no download available" });
         }
@@ -325,7 +313,7 @@ export function ExportMenu({
         });
       }
     },
-    [projectId, activeChapterId, getToken, apiUrl, preference, applyDefault, driveConnected],
+    [projectId, activeChapterId, getToken, apiUrl, preference, applyDefault],
   );
 
   /**
@@ -680,6 +668,51 @@ export function ExportMenu({
             <button
               onClick={handleDismiss}
               className="text-green-500 hover:text-green-700 min-w-[44px] min-h-[44px] flex items-center justify-center -m-2"
+              aria-label="Dismiss"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Recovery toast: export complete but picker was dismissed */}
+      {state.phase === "complete" && deliveryPhase === "none" && (
+        <div className="fixed bottom-4 right-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 shadow-lg z-50 max-w-sm">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-5 h-5 text-blue-600 shrink-0 mt-0.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-blue-800">Export ready</p>
+              <p className="text-xs text-blue-600 truncate mt-0.5">{state.fileName}</p>
+              <button
+                onClick={() => setDeliveryPhase("picker-open")}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-1 min-h-[32px]"
+              >
+                Choose destination
+              </button>
+            </div>
+            <button
+              onClick={handleDismiss}
+              className="text-blue-400 hover:text-blue-600 min-w-[44px] min-h-[44px] flex items-center justify-center -m-2"
               aria-label="Dismiss"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
