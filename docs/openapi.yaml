@@ -21,7 +21,7 @@ info:
 
     All errors follow a consistent shape with `error` (human-readable message),
     `code` (machine-readable enum), and `requestId` (ULID for tracing).
-  version: 1.0.0
+  version: 2.0.0
   contact:
     name: DraftCrane Engineering
   license:
@@ -39,15 +39,17 @@ tags:
   - name: Users
     description: Current user profile and account data
   - name: Drive
-    description: Google Drive OAuth, connections, and file management
+    description: Google Drive OAuth, connections, browsing, and file access
   - name: Projects
-    description: Project CRUD, Drive connection, backup, and import
+    description: Project CRUD, backup, and import
   - name: Chapters
     description: Chapter CRUD, content storage, and reordering
   - name: Sources
-    description: Source material management
+    description: Source material management and linked folders
+  - name: Research
+    description: Full-text search, clips, and AI-powered research queries
   - name: AI
-    description: AI rewrite (SSE streaming) and interaction tracking
+    description: AI rewrite (SSE streaming), interaction tracking, and custom instructions
   - name: Exports
     description: PDF and EPUB export generation, download, and Drive upload
 
@@ -97,8 +99,6 @@ components:
         - userId
         - title
         - description
-        - driveFolderId
-        - driveConnectionId
         - status
         - createdAt
         - updatedAt
@@ -114,12 +114,6 @@ components:
         description:
           type: string
           maxLength: 1000
-        driveFolderId:
-          type: string
-          nullable: true
-        driveConnectionId:
-          type: string
-          nullable: true
         status:
           type: string
           enum: [active, archived]
@@ -176,7 +170,6 @@ components:
         - projectId
         - title
         - sortOrder
-        - driveFileId
         - r2Key
         - wordCount
         - version
@@ -194,9 +187,6 @@ components:
           maxLength: 200
         sortOrder:
           type: integer
-        driveFileId:
-          type: string
-          nullable: true
         r2Key:
           type: string
           nullable: true
@@ -265,20 +255,6 @@ components:
           type: string
           format: date-time
 
-    DriveStatus:
-      type: object
-      required:
-        - connected
-      properties:
-        connected:
-          type: boolean
-        email:
-          type: string
-          format: email
-        expiresAt:
-          type: string
-          format: date-time
-
     DriveConnection:
       type: object
       required:
@@ -324,15 +300,9 @@ components:
         - id
         - projectId
         - sourceType
-        - driveConnectionId
-        - driveFileId
         - title
         - mimeType
-        - originalFilename
-        - driveModifiedTime
         - wordCount
-        - r2Key
-        - cachedAt
         - status
         - sortOrder
         - createdAt
@@ -395,6 +365,119 @@ components:
         wordCount:
           type: integer
         cachedAt:
+          type: string
+          format: date-time
+
+    SourceConnection:
+      type: object
+      required:
+        - id
+        - driveConnectionId
+        - email
+        - linkedAt
+      properties:
+        id:
+          type: string
+          description: Junction row ID
+        driveConnectionId:
+          type: string
+          description: Drive connection ID
+        email:
+          type: string
+          format: email
+        linkedAt:
+          type: string
+          format: date-time
+
+    LinkedFolder:
+      type: object
+      required:
+        - id
+        - projectId
+        - driveConnectionId
+        - driveFolderId
+        - folderName
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        driveConnectionId:
+          type: string
+        driveFolderId:
+          type: string
+        folderName:
+          type: string
+        status:
+          type: string
+          enum: [active, archived]
+        lastSyncedAt:
+          type: string
+          nullable: true
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    ResearchClip:
+      type: object
+      required:
+        - id
+        - projectId
+        - sourceId
+        - content
+        - createdAt
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        sourceId:
+          type: string
+          nullable: true
+        chapterId:
+          type: string
+          nullable: true
+        content:
+          type: string
+        sourceTitle:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    AIInstruction:
+      type: object
+      required:
+        - id
+        - userId
+        - type
+        - label
+        - prompt
+        - sortOrder
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        type:
+          type: string
+          enum: [rewrite, analysis]
+        label:
+          type: string
+        prompt:
+          type: string
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
           type: string
           format: date-time
 
@@ -737,7 +820,18 @@ paths:
                   user:
                     $ref: "#/components/schemas/UserProfile"
                   drive:
-                    $ref: "#/components/schemas/DriveStatus"
+                    type: object
+                    required:
+                      - connected
+                    properties:
+                      connected:
+                        type: boolean
+                      email:
+                        type: string
+                        format: email
+                      connectedAt:
+                        type: string
+                        format: date-time
                   projects:
                     type: array
                     items:
@@ -756,8 +850,8 @@ paths:
       summary: Get Google OAuth authorization URL
       description: |
         Returns a Google OAuth authorization URL for connecting a Google Drive
-        account. Supports `loginHint` query parameter to pre-select a specific
-        Google account (multi-account support).
+        account. Supports `loginHint` to pre-select a specific Google account
+        and `pid` to auto-link the new connection to a project after OAuth.
       operationId: getDriveAuthorizeUrl
       parameters:
         - name: loginHint
@@ -767,6 +861,12 @@ paths:
             type: string
             format: email
           description: Google email to pre-select in OAuth flow
+        - name: pid
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Project ID to auto-link after OAuth completes
       responses:
         "200":
           description: OAuth authorization URL
@@ -901,9 +1001,8 @@ paths:
       summary: Disconnect a specific Drive account
       description: |
         Disconnects a specific Google Drive connection by ID. Cascades:
-        archives sources, soft-archives chapter-source links, clears project
-        Drive references for this connection, and best-effort revokes the
-        OAuth token. Drive files remain untouched.
+        archives sources, soft-archives chapter-source links, and best-effort
+        revokes the OAuth token. Drive files remain untouched.
       operationId: disconnectDriveConnection
       parameters:
         - name: connectionId
@@ -933,14 +1032,106 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
 
+  /drive/connection/{connectionId}/files:
+    get:
+      tags: [Drive]
+      summary: Browse files for a specific connection
+      description: |
+        Browse Google Drive folders and files for a specific Drive connection.
+        Supports pagination and folder navigation via folderId query param.
+      operationId: browseConnectionFiles
+      parameters:
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: folderId
+          in: query
+          required: false
+          schema:
+            type: string
+            default: root
+          description: Folder to browse (default "root")
+        - name: pageToken
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Files in the specified location
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - files
+                properties:
+                  files:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DriveFile"
+                  nextPageToken:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /drive/connection/{connectionId}/files/{fileId}/content:
+    get:
+      tags: [Drive]
+      summary: Get parsed file content
+      description: |
+        Returns the parsed text content of a Google Drive file. Supports
+        Google Docs (exported as plain text), PDFs (via unpdf), and DOCX
+        (via mammoth.js).
+      operationId: getConnectionFileContent
+      parameters:
+        - name: connectionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Parsed file content
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - content
+                  - wordCount
+                properties:
+                  content:
+                    type: string
+                  wordCount:
+                    type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
   /drive/picker-token/{connectionId}:
     get:
       tags: [Drive]
       summary: Get picker token for a connection
       description: |
         Returns a short-lived OAuth access token for the Google Picker API,
-        scoped to a specific Drive connection. Token is scoped to `drive.file`
-        and lives approximately 1 hour. Rate limited to 10 requests per minute.
+        scoped to a specific Drive connection. Rate limited to 10 requests
+        per minute.
       operationId: getPickerTokenByConnection
       parameters:
         - name: connectionId
@@ -1012,74 +1203,13 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
 
-  /drive/folders:
-    post:
-      tags: [Drive]
-      summary: Create a Book Folder in Google Drive
-      description: |
-        Creates a folder named after the project title in Google Drive.
-        Idempotent: if the project already has a `drive_folder_id`, returns
-        the existing folder info without creating a new one.
-      operationId: createDriveFolder
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - projectId
-              properties:
-                projectId:
-                  type: string
-      responses:
-        "200":
-          description: Folder created or already exists
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - id
-                  - name
-                  - webViewLink
-                  - alreadyExisted
-                properties:
-                  id:
-                    type: string
-                  name:
-                    type: string
-                  webViewLink:
-                    type: string
-                    format: uri
-                  alreadyExisted:
-                    type: boolean
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "422":
-          description: Drive not connected
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "429":
-          $ref: "#/components/responses/RateLimited"
-        "502":
-          description: Google Drive API error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
   /drive/folders/{folderId}/children:
     get:
       tags: [Drive]
-      summary: List files in a Book Folder
+      summary: List files in a Drive folder
       description: |
-        Lists DraftCrane-created files in a Google Drive folder. Returns file
-        metadata including name, MIME type, and links.
+        Lists files in a Google Drive folder. Returns file metadata including
+        name, MIME type, and links.
       operationId: listFolderChildren
       parameters:
         - name: folderId
@@ -1410,86 +1540,6 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
 
-  /projects/{projectId}/connect-drive:
-    post:
-      tags: [Projects]
-      summary: Connect project to Google Drive
-      description: |
-        Connects a project to Google Drive by creating a dedicated folder.
-        Accepts optional `connectionId` to specify which Drive account to use.
-        Falls back to the user's first connection if not specified. Idempotent:
-        if already connected, returns the existing folder ID.
-      operationId: connectProjectToDrive
-      parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                connectionId:
-                  type: string
-                  description: Drive connection ID (for multi-account)
-      responses:
-        "200":
-          description: Project connected to Drive
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - driveFolderId
-                properties:
-                  driveFolderId:
-                    type: string
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
-
-  /projects/{projectId}/disconnect-drive:
-    post:
-      tags: [Projects]
-      summary: Disconnect project from Google Drive
-      description: |
-        Clears the project's `drive_folder_id` and `drive_connection_id`.
-        Does not disconnect the user's Google account or delete Drive files.
-      operationId: disconnectProjectFromDrive
-      parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Project disconnected from Drive
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - success
-                properties:
-                  success:
-                    type: boolean
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
-
   /projects/{projectId}/backup:
     get:
       tags: [Projects]
@@ -1531,9 +1581,8 @@ paths:
       tags: [Chapters]
       summary: Create a chapter
       description: |
-        Creates a new chapter at the end of the chapter list. If Drive is
-        connected and the project has a folder, an empty HTML file is created
-        on Drive (fire-and-forget).
+        Creates a new chapter at the end of the chapter list.
+        Optional title (max 200 chars), defaults to "Chapter N".
       operationId: createChapter
       parameters:
         - name: projectId
@@ -1681,8 +1730,7 @@ paths:
       summary: Update a chapter
       description: |
         Updates a chapter's title and/or status. At least one field must be
-        provided. If the title changes and the chapter has a Drive file, the
-        Drive file is renamed (fire-and-forget).
+        provided.
       operationId: updateChapter
       parameters:
         - name: chapterId
@@ -1724,8 +1772,7 @@ paths:
       summary: Delete a chapter
       description: |
         Hard-deletes a chapter from D1. Rejects if it is the last chapter
-        in the project (LAST_CHAPTER error). If the chapter has a Drive file,
-        it is moved to trash (best-effort).
+        in the project (LAST_CHAPTER error).
       operationId: deleteChapter
       parameters:
         - name: chapterId
@@ -1767,11 +1814,9 @@ paths:
       tags: [Chapters]
       summary: Save chapter content
       description: |
-        Saves chapter content to R2 (Tier 2 auto-save) and updates D1 metadata
-        (word count, version, timestamp). Uses optimistic locking: returns 409
-        CONFLICT if the provided version does not match the stored version.
-        After saving, syncs content to Google Drive (fire-and-forget, 30s
-        coalescing window).
+        Saves chapter content to R2 and updates D1 metadata (word count,
+        version, timestamp). Uses optimistic locking: returns 409 CONFLICT
+        if the provided version does not match the stored version.
       operationId: saveChapterContent
       parameters:
         - name: chapterId
@@ -2062,13 +2107,43 @@ paths:
         "429":
           $ref: "#/components/responses/RateLimited"
 
+  /sources/{sourceId}/restore:
+    patch:
+      tags: [Sources]
+      summary: Restore a removed source
+      description: Restores an archived source (sets status back to "active").
+      operationId: restoreSource
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Source restored
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
   /sources/{sourceId}/import-as-chapter:
     post:
       tags: [Sources]
       summary: Import source as a new chapter
       description: |
-        Creates a new chapter from the source content. Stores content in D1/R2,
-        then creates a Drive file (fire-and-forget) if Drive is connected.
+        Creates a new chapter from the source content. Stores content in D1/R2.
       operationId: importSourceAsChapter
       parameters:
         - name: sourceId
@@ -2094,6 +2169,520 @@ paths:
                     type: string
                   wordCount:
                     type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ─── Source Connections (project-scoped) ──────────────────────────────
+  /projects/{projectId}/source-connections:
+    get:
+      tags: [Sources]
+      summary: List project source connections
+      description: |
+        Returns Drive connections linked to this project for source browsing.
+      operationId: listSourceConnections
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Source connections
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - connections
+                properties:
+                  connections:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SourceConnection"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    post:
+      tags: [Sources]
+      summary: Link a Drive connection to a project
+      description: |
+        Links an existing Drive connection to a project for source browsing.
+        The connection must belong to the authenticated user.
+      operationId: linkSourceConnection
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - driveConnectionId
+              properties:
+                driveConnectionId:
+                  type: string
+      responses:
+        "201":
+          description: Connection linked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceConnection"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/source-connections/{connId}:
+    delete:
+      tags: [Sources]
+      summary: Unlink a Drive connection from a project
+      description: |
+        Removes the link between a Drive connection and a project. Does not
+        revoke the OAuth token or delete sources.
+      operationId: unlinkSourceConnection
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: connId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Connection unlinked
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ─── Linked Folders ──────────────────────────────────────────────────
+  /projects/{projectId}/linked-folders:
+    post:
+      tags: [Sources]
+      summary: Link a Drive folder
+      description: |
+        Links a Google Drive folder to the project. Sources within the folder
+        are synced on demand via the sync endpoint.
+      operationId: linkFolder
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - connectionId
+                - driveFolderId
+                - folderName
+              properties:
+                connectionId:
+                  type: string
+                driveFolderId:
+                  type: string
+                folderName:
+                  type: string
+      responses:
+        "201":
+          description: Folder linked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkedFolder"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    get:
+      tags: [Sources]
+      summary: List linked folders
+      description: Returns all active linked folders for a project.
+      operationId: listLinkedFolders
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Linked folders
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - folders
+                properties:
+                  folders:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LinkedFolder"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/linked-folders/{id}:
+    delete:
+      tags: [Sources]
+      summary: Unlink a folder
+      description: Archives a linked folder. Sources from the folder are preserved.
+      operationId: unlinkFolder
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Folder unlinked
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/linked-folders/sync:
+    post:
+      tags: [Sources]
+      summary: Sync stale linked folders
+      description: |
+        Triggers a sync of all linked folders that are stale (not synced
+        recently). Discovers new files in linked Drive folders and adds
+        them as sources.
+      operationId: syncLinkedFolders
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sync completed
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - synced
+                properties:
+                  synced:
+                    type: integer
+                    description: Number of folders synced
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  # ─── Research ─────────────────────────────────────────────────────────
+  /projects/{projectId}/research/sources/search:
+    get:
+      tags: [Research]
+      summary: Full-text search across sources
+      description: |
+        Searches source content using FTS5 full-text search. Returns matching
+        sources with relevant snippets.
+      operationId: searchSources
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/research/clips:
+    post:
+      tags: [Research]
+      summary: Save a research clip
+      description: |
+        Saves a text clip from a source or AI result. Optionally linked to
+        a specific chapter.
+      operationId: saveClip
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                sourceId:
+                  type: string
+                chapterId:
+                  type: string
+                sourceTitle:
+                  type: string
+      responses:
+        "201":
+          description: Clip saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResearchClip"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    get:
+      tags: [Research]
+      summary: List research clips
+      description: |
+        Returns all clips for a project. Optionally filter by chapter.
+      operationId: listClips
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: chapterId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter clips by chapter
+      responses:
+        "200":
+          description: Clips list
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - clips
+                properties:
+                  clips:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ResearchClip"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /research/clips/{clipId}:
+    delete:
+      tags: [Research]
+      summary: Delete a clip
+      description: Hard-deletes a research clip.
+      operationId: deleteClip
+      parameters:
+        - name: clipId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Clip deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /projects/{projectId}/research/query:
+    post:
+      tags: [Research]
+      summary: AI research query (SSE streaming)
+      description: |
+        Sends a natural language query against the project's source materials.
+        Retrieves relevant chunks via FTS5, then generates an AI response with
+        source-attributed snippets. Streams via SSE. Rate limited to 10
+        requests per minute.
+      operationId: researchQuery
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Natural language research question
+                instructionId:
+                  type: string
+                  description: Custom instruction ID to use
+      responses:
+        "200":
+          description: SSE stream of research results
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/research/analyze:
+    post:
+      tags: [Research]
+      summary: AI source analysis (SSE streaming)
+      description: |
+        Analyzes a specific source document using AI. Streams the analysis
+        via SSE. Rate limited to 10 requests per minute.
+      operationId: analyzeSource
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sourceId
+              properties:
+                sourceId:
+                  type: string
+                instructionId:
+                  type: string
+                  description: Custom instruction ID to use
+      responses:
+        "200":
+          description: SSE stream of analysis
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -2166,12 +2755,6 @@ paths:
             text/event-stream:
               schema:
                 type: string
-                description: |
-                  Server-Sent Events stream. Each event is a JSON object:
-                  - { "type": "start", "interactionId": "...", "attemptNumber": 1 }
-                  - { "type": "token", "text": "..." }
-                  - { "type": "done", "interactionId": "..." }
-                  - { "type": "error", "message": "..." }
         "400":
           $ref: "#/components/responses/ValidationError"
         "401":
@@ -2226,6 +2809,139 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AIInteraction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ─── AI Instructions ─────────────────────────────────────────────────
+  /ai/instructions:
+    get:
+      tags: [AI]
+      summary: List custom AI instructions
+      description: |
+        Returns user's custom AI instructions. Optionally filter by type
+        (rewrite or analysis).
+      operationId: listAiInstructions
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [rewrite, analysis]
+          description: Filter by instruction type
+      responses:
+        "200":
+          description: Instructions list
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - instructions
+                properties:
+                  instructions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AIInstruction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [AI]
+      summary: Create a custom AI instruction
+      description: |
+        Creates a new custom instruction for AI rewrite or source analysis.
+      operationId: createAiInstruction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - label
+                - prompt
+              properties:
+                type:
+                  type: string
+                  enum: [rewrite, analysis]
+                label:
+                  type: string
+                prompt:
+                  type: string
+      responses:
+        "201":
+          description: Instruction created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIInstruction"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /ai/instructions/{id}:
+    patch:
+      tags: [AI]
+      summary: Update a custom AI instruction
+      description: Updates the label and/or prompt of an existing instruction.
+      operationId: updateAiInstruction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                prompt:
+                  type: string
+      responses:
+        "200":
+          description: Instruction updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AIInstruction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [AI]
+      summary: Delete a custom AI instruction
+      description: Hard-deletes a custom instruction.
+      operationId: deleteAiInstruction
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Instruction deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -2407,10 +3123,9 @@ paths:
       tags: [Exports]
       summary: Save export to Google Drive
       description: |
-        Uploads a completed export artifact to the `_exports/` subfolder in
-        the project's Book Folder on Google Drive. Date-stamped file names
-        prevent overwrites. Idempotent: if already saved, returns the existing
-        Drive file info.
+        Uploads a completed export artifact to a DraftCrane folder in the
+        user's Google Drive. Creates the folder on-demand via
+        findOrCreateRootFolder. Date-stamped file names prevent overwrites.
       operationId: saveExportToDrive
       parameters:
         - name: jobId
