@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import {
   useSources,
   type SourceMaterial,
@@ -100,6 +100,35 @@ interface SourcesProviderProps {
 export function SourcesProvider({ projectId, editorRef, children }: SourcesProviderProps) {
   // Compose all hooks
   const panel = useSourcesPanel();
+
+  // Extract stable ref for the effect dependency (useCallback — identity-stable)
+  const { openPanel } = panel;
+
+  // Auto-open panel if returning from OAuth (sessionStorage signal or URL param fallback)
+  useEffect(() => {
+    let shouldOpen = false;
+    try {
+      if (sessionStorage.getItem("dc_open_sources_panel")) {
+        sessionStorage.removeItem("dc_open_sources_panel");
+        shouldOpen = true;
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
+    // URL param fallback for iPad Safari (sessionStorage can be lost on tab suspension)
+    if (!shouldOpen && typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("sources") === "open") {
+        shouldOpen = true;
+        // Clean URL without triggering navigation
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    }
+    if (shouldOpen) {
+      openPanel();
+    }
+  }, [openPanel]);
+
   const sourcesData = useSources(projectId);
   const analysis = useSourceAnalysis();
   const analysisInstructions = useAIInstructions("analysis");

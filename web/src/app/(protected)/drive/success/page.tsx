@@ -8,9 +8,11 @@ import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 const SOURCE_LINK_KEY = "dc_pending_source_link";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+const OPEN_SOURCES_KEY = "dc_open_sources_panel";
+
 /**
  * Module-level snapshot for the pending source link project ID.
- * Used when linking a Drive account as a research source.
+ * Used when linking a Drive account as a source for a project.
  */
 let pendingSourceLinkSnapshot: string | null = null;
 let sourceLinkSnapshotRead = false;
@@ -40,8 +42,8 @@ function getServerSnapshot(): string | null {
  *
  * After the OAuth callback redirects here, we:
  * 1. Confirm the Drive connection succeeded
- * 2. If dc_pending_source_link is in sessionStorage (from "+ Link" in Sources),
- *    auto-link the connection as a research source for the project
+ * 2. If dc_pending_source_link is in sessionStorage (from "+ Connect" in Sources),
+ *    auto-link the connection as a source for the project
  * 3. Show confirmation and auto-redirect to editor or dashboard
  *
  * The ?cid= query param (set by the OAuth callback) identifies which
@@ -89,24 +91,34 @@ export default function DriveSuccessPage() {
       // Source-link flow — wait for link completion
       linkComplete);
 
+  // Shared navigation — used by both auto-redirect timer and Continue button
+  const navigateToDestination = useCallback(() => {
+    const base = sourceLinkProjectId ? `/editor/${sourceLinkProjectId}` : "/dashboard";
+    // Signal the editor to auto-open the Sources panel after OAuth return
+    if (sourceLinkProjectId) {
+      try {
+        sessionStorage.setItem(OPEN_SOURCES_KEY, "true");
+      } catch {
+        // sessionStorage unavailable — URL param fallback below handles this
+      }
+    }
+    // Append URL param as iPad Safari fallback (sessionStorage can be lost on tab suspension)
+    const destination = sourceLinkProjectId ? `${base}?sources=open` : base;
+    router.push(destination);
+  }, [sourceLinkProjectId, router]);
+
   // Auto-redirect after async flows complete
   useEffect(() => {
     if (!readyToRedirect) return;
 
     const timer = setTimeout(() => {
-      const destination = sourceLinkProjectId ? `/editor/${sourceLinkProjectId}` : "/dashboard";
-      router.push(destination);
+      navigateToDestination();
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [readyToRedirect, sourceLinkProjectId, router]);
+  }, [readyToRedirect, navigateToDestination]);
 
-  const handleContinue = useCallback(() => {
-    const destination = sourceLinkProjectId ? `/editor/${sourceLinkProjectId}` : "/dashboard";
-    router.push(destination);
-  }, [sourceLinkProjectId, router]);
-
-  // After OAuth success, auto-link the connection as a research source (source-link flow).
+  // After OAuth success, auto-link the connection as a source for the project (source-link flow).
   useEffect(() => {
     if (linkAttempted.current) return;
     if (isLoadingDrive) return;
@@ -167,15 +179,15 @@ export default function DriveSuccessPage() {
           <div className="mt-4">
             <p className="text-sm text-muted-foreground">
               {linkComplete
-                ? "Linked as a research source. Redirecting to editor..."
-                : "Linking as a research source..."}
+                ? "Source connected. Redirecting to your book..."
+                : "Connecting source..."}
             </p>
           </div>
         )}
 
         <div className="mt-6">
           <button
-            onClick={handleContinue}
+            onClick={navigateToDestination}
             className="inline-flex items-center justify-center rounded-lg bg-gray-900 px-6 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
           >
             Continue
