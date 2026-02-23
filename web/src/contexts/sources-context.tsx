@@ -77,8 +77,7 @@ interface SourcesContextValue {
   ) => Promise<void>;
   removeInstruction: (id: string) => Promise<void>;
 
-  // Drive accounts (user-level — only for connect/disconnect flows)
-  hasUserDriveAccounts: boolean;
+  // Drive accounts (user-level — only for connect/disconnect flows, never surfaced in project UI)
   connectDrive: (loginHint?: string, projectId?: string) => Promise<void>;
   disconnectDrive: (connectionId: string) => Promise<void>;
   refetchDriveAccounts: () => Promise<void>;
@@ -107,7 +106,9 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
   const analysis = useSourceAnalysis();
   const analysisInstructions = useAIInstructions("analysis");
   const rewriteInstructions = useAIInstructions("rewrite");
-  const driveAccountsHook = useDriveAccounts();
+  // Disable auto-fetch: user-level accounts are only fetched inside ConnectSourceSheet.
+  // We only need the connect/disconnect/refetch functions from this hook.
+  const driveAccountsHook = useDriveAccounts({ enabled: false });
 
   const value: SourcesContextValue = {
     // Panel
@@ -166,8 +167,7 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
       await Promise.allSettled([analysisInstructions.remove(id), rewriteInstructions.remove(id)]);
     },
 
-    // Drive (user-level — only for connect/disconnect flows)
-    hasUserDriveAccounts: driveAccountsHook.accounts.length > 0,
+    // Drive (user-level — only for connect/disconnect flows, never surfaced in project UI)
     connectDrive: driveAccountsHook.connect,
     disconnectDrive: driveAccountsHook.disconnect,
     refetchDriveAccounts: driveAccountsHook.refetch,
