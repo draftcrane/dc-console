@@ -284,6 +284,43 @@ export async function seedAIInstruction(
   return { id, userId, label, instructionText, type };
 }
 
+export async function seedExportPreference(
+  projectId: string,
+  userId: string,
+  overrides?: {
+    id?: string;
+    destinationType?: "device" | "drive";
+    driveConnectionId?: string | null;
+    driveFolderId?: string | null;
+    driveFolderPath?: string | null;
+  },
+) {
+  const id = overrides?.id ?? ulid();
+  const destinationType = overrides?.destinationType ?? "device";
+  const driveConnectionId = overrides?.driveConnectionId ?? null;
+  const driveFolderId = overrides?.driveFolderId ?? null;
+  const driveFolderPath = overrides?.driveFolderPath ?? null;
+  const ts = now();
+  await env.DB.prepare(
+    `INSERT INTO export_preferences (id, project_id, user_id, destination_type,
+     drive_connection_id, drive_folder_id, drive_folder_path, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      id,
+      projectId,
+      userId,
+      destinationType,
+      driveConnectionId,
+      driveFolderId,
+      driveFolderPath,
+      ts,
+      ts,
+    )
+    .run();
+  return { id, projectId, userId, destinationType };
+}
+
 /**
  * Remove all rows from test tables in reverse FK order.
  */
@@ -293,6 +330,7 @@ export async function cleanAll() {
     env.DB.prepare("DELETE FROM research_queries"),
     env.DB.prepare("DELETE FROM ai_instructions"),
     env.DB.prepare("DELETE FROM ai_interactions"),
+    env.DB.prepare("DELETE FROM export_preferences"),
     env.DB.prepare("DELETE FROM export_jobs"),
     env.DB.prepare("DELETE FROM research_clips"),
     env.DB.prepare("DELETE FROM project_linked_folders"),

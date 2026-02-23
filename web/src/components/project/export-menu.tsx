@@ -2,14 +2,16 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useBackup } from "@/hooks/use-backup";
+import { useExportPreferences } from "@/hooks/use-export-preferences";
 import type { SourceConnection } from "@/hooks/use-sources";
+import { ExportDestinationPicker, type ExportDestination } from "./export-destination-picker";
 
 type ExportFormat = "pdf" | "epub";
 
 type DriveState =
   | { phase: "idle" }
   | { phase: "saving" }
-  | { phase: "saved"; driveFileId: string; webViewLink: string }
+  | { phase: "saved"; driveFileId: string; webViewLink: string; folderPath?: string }
   | { phase: "error"; message: string };
 
 type ExportState =
@@ -18,8 +20,12 @@ type ExportState =
   | { phase: "complete"; fileName: string; downloadUrl: string; jobId: string }
   | { phase: "error"; message: string };
 
+/** Phase of post-export delivery flow */
+type DeliveryPhase = "none" | "auto-delivered" | "picker-open" | "destination-settings";
+
 interface ExportMenuProps {
   projectId: string;
+  projectTitle?: string;
   activeChapterId: string | null;
   getToken: () => Promise<string | null>;
   apiUrl: string;
@@ -28,19 +34,20 @@ interface ExportMenuProps {
 }
 
 /**
- * ExportMenu - Dropdown menu for PDF and EPUB export.
+ * ExportMenu - Dropdown menu for PDF and EPUB export with destination management.
  *
- * Per US-019, US-020, and US-021:
- * - "Export Book as PDF/EPUB" and "Export This Chapter as PDF/EPUB" options
- * - Progress indicator during generation
- * - On completion, provide download link
- * - "Save to Google Drive" button when Drive is connected (US-021)
- *   - 1 account: auto-selects
- *   - 2+ accounts: shows account picker (flat button list, iPad-friendly)
- * - iPad-first: 44pt touch targets
+ * Flow:
+ * 1. User picks export format from dropdown
+ * 2. Export generates server-side
+ * 3. On completion:
+ *    - If default preference exists & valid → auto-deliver, show confirmation toast
+ *    - If no Drive connected → download directly (single destination)
+ *    - If Drive connected but no default → show destination picker
+ * 4. "Export destination..." menu item opens picker in edit mode
  */
 export function ExportMenu({
   projectId,
+  projectTitle = "Book",
   activeChapterId,
   getToken,
   apiUrl,
@@ -49,8 +56,14 @@ export function ExportMenu({
   const [isOpen, setIsOpen] = useState(false);
   const [state, setState] = useState<ExportState>({ phase: "idle" });
   const [driveState, setDriveState] = useState<DriveState>({ phase: "idle" });
+  const [deliveryPhase, setDeliveryPhase] = useState<DeliveryPhase>("none");
   const menuRef = useRef<HTMLDivElement>(null);
   const { downloadBackup, isDownloading } = useBackup();
+  const {
+    preference,
+    save: savePreference,
+    clear: clearPreference,
+  } = useExportPreferences(projectId);
 
   const driveConnected = connections.length > 0;
 
@@ -82,11 +95,148 @@ export function ExportMenu({
     }
   }, [isOpen]);
 
+  /**
+   * Save the completed export to Google Drive.
+   * Per US-021: POST /exports/:jobId/to-drive
+   */
+  const handleSaveToDrive = useCallback(
+    async (connectionId?: string, folderId?: string) => {
+      if (state.phase !== "complete") return;
+
+      setDriveState({ phase: "saving" });
+
+      try {
+        const token = await getToken();
+        if (!token) {
+          setDriveState({ phase: "error", message: "Authentication required" });
+          return;
+        }
+
+        const response = await fetch(`${apiUrl}/exports/${state.jobId}/to-drive`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ connectionId, folderId }),
+        });
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          const msg =
+            (body as { error?: string } | null)?.error || "Failed to save to Google Drive";
+          setDriveState({ phase: "error", message: msg });
+          return;
+        }
+
+        const result = (await response.json()) as {
+          driveFileId: string;
+          fileName: string;
+          webViewLink: string;
+        };
+
+        setDriveState({
+          phase: "saved",
+          driveFileId: result.driveFileId,
+          webViewLink: result.webViewLink,
+        });
+      } catch (err) {
+        setDriveState({
+          phase: "error",
+          message: err instanceof Error ? err.message : "Failed to save to Google Drive",
+        });
+      }
+    },
+    [state, getToken, apiUrl],
+  );
+
+  /**
+   * Apply a saved default preference after export completes.
+   */
+  const applyDefault = useCallback(
+    async (fileName: string, downloadUrl: string, jobId: string) => {
+      if (!preference) return false;
+
+      // Check for stale Drive default (connection removed)
+      if (preference.destinationType === "drive" && !preference.driveConnectionId) {
+        // Stale — fall back to picker
+        return false;
+      }
+
+      if (preference.destinationType === "device") {
+        const token = await getToken();
+        if (token) {
+          await triggerDownload(downloadUrl, fileName, token);
+        }
+        setDeliveryPhase("auto-delivered");
+        return true;
+      }
+
+      if (preference.destinationType === "drive" && preference.driveConnectionId) {
+        // Verify connection still exists
+        const conn = connections.find((c) => c.driveConnectionId === preference.driveConnectionId);
+        if (!conn) {
+          // Connection removed — stale
+          return false;
+        }
+
+        setDriveState({ phase: "saving" });
+        setDeliveryPhase("auto-delivered");
+
+        try {
+          const token = await getToken();
+          if (!token) return false;
+
+          const response = await fetch(`${apiUrl}/exports/${jobId}/to-drive`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              connectionId: preference.driveConnectionId,
+              folderId: preference.driveFolderId || undefined,
+            }),
+          });
+
+          if (!response.ok) {
+            // Folder might be deleted — fall back to picker
+            setDriveState({ phase: "idle" });
+            setDeliveryPhase("none");
+            return false;
+          }
+
+          const result = (await response.json()) as {
+            driveFileId: string;
+            fileName: string;
+            webViewLink: string;
+          };
+
+          setDriveState({
+            phase: "saved",
+            driveFileId: result.driveFileId,
+            webViewLink: result.webViewLink,
+            folderPath: preference.driveFolderPath || undefined,
+          });
+          return true;
+        } catch {
+          setDriveState({ phase: "idle" });
+          setDeliveryPhase("none");
+          return false;
+        }
+      }
+
+      return false;
+    },
+    [preference, connections, getToken, apiUrl],
+  );
+
   const handleExport = useCallback(
     async (scope: "book" | "chapter", format: ExportFormat = "pdf") => {
       setIsOpen(false);
       setState({ phase: "exporting", scope });
       setDriveState({ phase: "idle" });
+      setDeliveryPhase("none");
 
       try {
         const token = await getToken();
@@ -147,8 +297,24 @@ export function ExportMenu({
             jobId: result.jobId,
           });
 
-          // No auto-download — user must choose a destination explicitly.
-          // The completion toast presents Download and Save to Drive options.
+          // Check for saved default preference
+          if (preference) {
+            const applied = await applyDefault(result.fileName, result.downloadUrl, result.jobId);
+            if (applied) return;
+            // If failed (stale), fall through to picker/direct download
+          }
+
+          // No default: if no Drive connected, download directly
+          if (!driveConnected) {
+            const dlToken = await getToken();
+            if (dlToken) {
+              await triggerDownload(result.downloadUrl, result.fileName, dlToken);
+            }
+            setDeliveryPhase("auto-delivered");
+          } else {
+            // Drive connected, no default → show picker
+            setDeliveryPhase("picker-open");
+          }
         } else {
           setState({ phase: "error", message: "Export completed but no download available" });
         }
@@ -159,70 +325,69 @@ export function ExportMenu({
         });
       }
     },
-    [projectId, activeChapterId, getToken, apiUrl],
+    [projectId, activeChapterId, getToken, apiUrl, preference, applyDefault, driveConnected],
   );
 
   /**
-   * Save the completed export to Google Drive.
-   * Per US-021: POST /exports/:jobId/to-drive
+   * Handle destination selection from the picker.
    */
-  const handleSaveToDrive = useCallback(
-    async (connectionId?: string) => {
-      if (state.phase !== "complete") return;
+  const handleDestinationSave = useCallback(
+    async (destination: ExportDestination, rememberDefault: boolean) => {
+      setDeliveryPhase("none");
 
-      setDriveState({ phase: "saving" });
-
-      try {
-        const token = await getToken();
-        if (!token) {
-          setDriveState({ phase: "error", message: "Authentication required" });
-          return;
-        }
-
-        const response = await fetch(`${apiUrl}/exports/${state.jobId}/to-drive`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ connectionId }),
-        });
-
-        if (!response.ok) {
-          const body = await response.json().catch(() => null);
-          const msg =
-            (body as { error?: string } | null)?.error || "Failed to save to Google Drive";
-          setDriveState({ phase: "error", message: msg });
-          return;
-        }
-
-        const result = (await response.json()) as {
-          driveFileId: string;
-          fileName: string;
-          webViewLink: string;
-        };
-
-        setDriveState({
-          phase: "saved",
-          driveFileId: result.driveFileId,
-          webViewLink: result.webViewLink,
-        });
-      } catch (err) {
-        setDriveState({
-          phase: "error",
-          message: err instanceof Error ? err.message : "Failed to save to Google Drive",
+      if (rememberDefault) {
+        await savePreference({
+          destinationType: destination.type,
+          driveConnectionId: destination.connectionId,
+          driveFolderId: destination.folderId,
+          driveFolderPath: destination.folderPath,
         });
       }
+
+      if (state.phase !== "complete") return;
+
+      if (destination.type === "device") {
+        const token = await getToken();
+        if (token) {
+          await triggerDownload(state.downloadUrl, state.fileName, token);
+        }
+        setDeliveryPhase("auto-delivered");
+      } else if (destination.type === "drive" && destination.connectionId) {
+        await handleSaveToDrive(destination.connectionId, destination.folderId);
+        setDeliveryPhase("auto-delivered");
+      }
     },
-    [state, getToken, apiUrl],
+    [state, getToken, savePreference, handleSaveToDrive],
   );
+
+  /**
+   * Handle destination clear from edit mode.
+   */
+  const handleClearDefault = useCallback(async () => {
+    await clearPreference();
+    setDeliveryPhase("none");
+  }, [clearPreference]);
 
   const handleDismiss = useCallback(() => {
     setState({ phase: "idle" });
     setDriveState({ phase: "idle" });
+    setDeliveryPhase("none");
   }, []);
 
   const isExporting = state.phase === "exporting" || isDownloading;
+
+  // Build current default for edit mode
+  const currentDefault: ExportDestination | null = preference
+    ? {
+        type: preference.destinationType,
+        connectionId: preference.driveConnectionId || undefined,
+        email: preference.driveConnectionId
+          ? connections.find((c) => c.driveConnectionId === preference.driveConnectionId)?.email
+          : undefined,
+        folderId: preference.driveFolderId || undefined,
+        folderPath: preference.driveFolderPath || undefined,
+      }
+    : null;
 
   return (
     <div className="relative" ref={menuRef}>
@@ -367,6 +532,38 @@ export function ExportMenu({
 
           <div className="border-t border-gray-100 my-1" role="separator" />
 
+          {/* Export destination settings */}
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              setDeliveryPhase("destination-settings");
+            }}
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
+                       min-h-[44px] flex items-center gap-2"
+            role="menuitem"
+          >
+            <svg
+              className="w-4 h-4 text-gray-500 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            Export destination...
+          </button>
+
           <button
             onClick={() => {
               setIsOpen(false);
@@ -396,8 +593,47 @@ export function ExportMenu({
         </div>
       )}
 
-      {/* Status toast */}
-      {state.phase === "complete" && (
+      {/* Destination picker (post-export or settings) */}
+      {(deliveryPhase === "picker-open" || deliveryPhase === "destination-settings") &&
+        state.phase === "complete" && (
+          <ExportDestinationPicker
+            fileName={state.fileName}
+            connections={connections}
+            projectTitle={projectTitle}
+            currentDefault={deliveryPhase === "destination-settings" ? currentDefault : null}
+            editMode={deliveryPhase === "destination-settings"}
+            onSave={handleDestinationSave}
+            onClear={handleClearDefault}
+            onDismiss={() => setDeliveryPhase("none")}
+          />
+        )}
+
+      {/* Destination settings (when no export is active) */}
+      {deliveryPhase === "destination-settings" && state.phase !== "complete" && (
+        <ExportDestinationPicker
+          fileName=""
+          connections={connections}
+          projectTitle={projectTitle}
+          currentDefault={currentDefault}
+          editMode
+          onSave={async (destination, rememberDefault) => {
+            if (rememberDefault) {
+              await savePreference({
+                destinationType: destination.type,
+                driveConnectionId: destination.connectionId,
+                driveFolderId: destination.folderId,
+                driveFolderPath: destination.folderPath,
+              });
+            }
+            setDeliveryPhase("none");
+          }}
+          onClear={handleClearDefault}
+          onDismiss={() => setDeliveryPhase("none")}
+        />
+      )}
+
+      {/* Confirmation toast (auto-delivered with default) */}
+      {state.phase === "complete" && deliveryPhase === "auto-delivered" && (
         <div className="fixed bottom-4 right-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3 shadow-lg z-50 max-w-sm">
           <div className="flex items-start gap-3">
             <svg
@@ -414,128 +650,32 @@ export function ExportMenu({
               />
             </svg>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-green-800">Export ready</p>
-              <p className="text-xs text-green-600 truncate mt-0.5">{state.fileName}</p>
-              <p className="text-xs text-gray-500 mt-1">Where would you like to save it?</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button
-                  onClick={async () => {
-                    const token = await getToken();
-                    if (token && state.phase === "complete") {
-                      await triggerDownload(state.downloadUrl, state.fileName, token);
-                    }
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
-                             text-green-700 bg-green-100 hover:bg-green-200 rounded-md
-                             transition-colors min-h-[44px]"
-                  aria-label={`Download ${state.fileName}`}
-                >
-                  <svg
-                    className="w-4 h-4 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                    />
-                  </svg>
-                  Download
-                </button>
-
-                {/* Save to Google Drive - account picker (US-021) */}
-                {driveConnected && driveState.phase === "idle" && (
-                  <>
-                    {connections.length === 1 ? (
-                      <button
-                        onClick={() => handleSaveToDrive(connections[0].driveConnectionId)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
-                                   text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md
-                                   transition-colors min-h-[44px]"
-                        aria-label="Save to Google Drive"
-                      >
-                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
-                        </svg>
-                        Save to Drive
-                      </button>
-                    ) : (
-                      <div className="w-full mt-1">
-                        <p className="text-xs text-gray-500 mb-1">Save to Drive:</p>
-                        {connections.map((connection) => (
-                          <button
-                            key={connection.driveConnectionId}
-                            onClick={() => handleSaveToDrive(connection.driveConnectionId)}
-                            className="w-full text-left inline-flex items-center gap-2 px-3 py-2 text-sm font-medium
-                                       text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md
-                                       transition-colors min-h-[44px] mb-1"
-                            aria-label={`Save to ${connection.email}`}
-                          >
-                            <svg
-                              className="w-4 h-4 shrink-0"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                            >
-                              <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
-                            </svg>
-                            {connection.email}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Saving to Drive indicator */}
-                {driveConnected && driveState.phase === "saving" && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 min-h-[44px]">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                    Saving to Drive...
-                  </span>
-                )}
-
-                {/* Saved to Drive - View in Google Drive link */}
-                {driveState.phase === "saved" && (
-                  <a
-                    href={driveState.webViewLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
-                               text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md
-                               transition-colors min-h-[44px]"
-                    aria-label="View in Google Drive"
-                  >
-                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
-                    </svg>
-                    View in Drive
-                  </a>
-                )}
-
-                {/* Drive save error */}
-                {driveState.phase === "error" && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-600">
-                    {driveState.message}
-                  </span>
-                )}
-              </div>
+              {driveState.phase === "saving" ? (
+                <p className="text-sm font-medium text-green-800">Saving to Google Drive...</p>
+              ) : driveState.phase === "saved" ? (
+                <>
+                  <p className="text-sm font-medium text-green-800">Saved to Google Drive</p>
+                  {driveState.folderPath && (
+                    <p className="text-xs text-green-600 mt-0.5">{driveState.folderPath}</p>
+                  )}
+                </>
+              ) : driveState.phase === "error" ? (
+                <>
+                  <p className="text-sm font-medium text-red-800">Save failed</p>
+                  <p className="text-xs text-red-600 mt-0.5">{driveState.message}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-green-800">Downloaded</p>
+                  <p className="text-xs text-green-600 truncate mt-0.5">{state.fileName}</p>
+                </>
+              )}
+              <button
+                onClick={() => setDeliveryPhase("picker-open")}
+                className="text-xs text-blue-600 hover:text-blue-700 mt-1 min-h-[32px]"
+              >
+                Change
+              </button>
             </div>
             <button
               onClick={handleDismiss}

@@ -18,9 +18,14 @@ export interface DriveFile {
 interface UseDriveFilesParams {
   connectionId: string | null;
   folderId?: string;
+  foldersOnly?: boolean;
 }
 
-export function useDriveFiles({ connectionId, folderId = "root" }: UseDriveFilesParams) {
+export function useDriveFiles({
+  connectionId,
+  folderId = "root",
+  foldersOnly = false,
+}: UseDriveFilesParams) {
   const { getToken } = useAuth();
   const [files, setFiles] = useState<DriveFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,6 +44,9 @@ export function useDriveFiles({ connectionId, folderId = "root" }: UseDriveFiles
 
       try {
         const params = new URLSearchParams({ folderId });
+        if (foldersOnly) {
+          params.set("foldersOnly", "true");
+        }
         if (pageToken) {
           params.set("pageToken", pageToken);
         }
@@ -75,7 +83,7 @@ export function useDriveFiles({ connectionId, folderId = "root" }: UseDriveFiles
         setIsLoading(false);
       }
     },
-    [connectionId, folderId],
+    [connectionId, folderId, foldersOnly],
   );
 
   useEffect(() => {

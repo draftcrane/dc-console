@@ -392,6 +392,7 @@ drive.get("/connection/:connectionId/files", standardRateLimit, async (c) => {
   const connectionId = c.req.param("connectionId");
   const folderId = c.req.query("folderId") || "root";
   const pageToken = c.req.query("pageToken") || undefined;
+  const foldersOnly = c.req.query("foldersOnly") === "true";
 
   // Resolve connection, ensuring it belongs to the user
   const { tokens } = await resolveReadOnlyConnection(
@@ -404,12 +405,65 @@ drive.get("/connection/:connectionId/files", standardRateLimit, async (c) => {
     const result = await driveService.browseFolder(tokens.accessToken, folderId, {
       pageSize: 100,
       pageToken,
+      foldersOnly,
     });
 
     return c.json({ files: result.files, nextPageToken: result.nextPageToken });
   } catch (err) {
     console.error("Drive file browser failed:", err);
     driveError("Failed to browse Drive files");
+  }
+});
+
+/**
+ * POST /drive/connection/:connectionId/folders
+ * Create a new folder within a Drive connection.
+ * Used by the export destination folder picker.
+ *
+ * Request body:
+ * - name: string (required) — folder name
+ * - parentFolderId: string (optional, default "root") — parent folder ID
+ *
+ * Response: { id, name }
+ */
+drive.post("/connection/:connectionId/folders", standardRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const driveService = new DriveService(c.env);
+  const connectionId = c.req.param("connectionId");
+
+  const body = (await c.req.json().catch(() => ({}))) as {
+    name?: string;
+    parentFolderId?: string;
+  };
+
+  if (!body.name?.trim()) {
+    validationError("Folder name is required");
+  }
+
+  const parentFolderId = body.parentFolderId || "root";
+
+  const { tokens } = await resolveReadOnlyConnection(
+    driveService.tokenService,
+    userId,
+    connectionId,
+  );
+
+  try {
+    let folderId: string;
+    if (parentFolderId === "root") {
+      folderId = await driveService.findOrCreateRootFolder(tokens.accessToken, body.name.trim());
+    } else {
+      folderId = await driveService.findOrCreateSubfolder(
+        tokens.accessToken,
+        parentFolderId,
+        body.name.trim(),
+      );
+    }
+
+    return c.json({ id: folderId, name: body.name.trim() }, 201);
+  } catch (err) {
+    console.error("Drive folder creation failed:", err);
+    driveError("Failed to create folder");
   }
 });
 

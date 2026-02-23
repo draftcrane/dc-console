@@ -1743,3 +1743,100 @@ type ResearchPanelAction =
 | 12  | Portrait mode: 15% editor strip may be wasted space             | iPad-specific concern    | YELLOW      | Maintained as visual context cue. Full-screen with "Back to editor" is a future option if testing confirms.              | [Panel Specifications](#portrait-layout-768pt-1023pt-viewport-width) |
 | 13  | Marcus wants "select entire folder" for bulk add                | Flow 1, Marcus YELLOW    | Observation | Deferred to post-Phase A. Current design handles folder-by-folder addition.                                              | [Decisions Log](#decisions-log)                                      |
 | 14  | Blockquote-only insertion; sometimes want plain text + citation | Flow 6, Diane note       | Observation | Deferred. Future: "Insert as quote" vs. "Insert citation only" options.                                                  | [Decision 9](#decision-9-blockquote--footnote-insertion-format)      |
+
+---
+
+## Export Manager
+
+### Overview
+
+The Export Manager handles destination selection, folder browsing within cloud sources, and remembered defaults for export delivery. It ensures no file leaves the server without explicit user consent while reducing friction for repeat exports.
+
+### Destination Picker (Bottom Sheet)
+
+Shown when 2+ destinations exist (at least one Drive connection) and no default is set.
+
+```
+┌─────────────────────────────────────────┐
+│  Save Export                         ✕  │
+│  My Book - 2026-02-23.pdf               │
+│                                         │
+│  ┌─────────────────────────────────────┐│
+│  │ ↓  This Device                     ││
+│  │    Save to your Downloads folder   ││
+│  └─────────────────────────────────────┘│
+│                                         │
+│  ┌─────────────────────────────────────┐│
+│  │ △  Google Drive                    ││
+│  │    scott@gmail.com                 ││
+│  │    My Book / _exports              ││
+│  │    [Change folder...]              ││
+│  └─────────────────────────────────────┘│
+│                                         │
+│  ☐ Always save exports here             │
+│                                         │
+│           [ Save ]                      │
+└─────────────────────────────────────────┘
+```
+
+**States:**
+
+- **Selection** — user picks a destination; "Save" dispatches to parent
+- **Edit mode** — opened from "Export destination..." menu; shows current default with "Clear default" option
+- **Error** — stale default detected ("Your default destination is no longer available.")
+
+### Folder Browser (within Picker)
+
+When user taps "Change folder..." on a Drive destination, a sub-view slides in.
+
+- Shows **only folders** (no documents) — backend filters with `foldersOnly` param
+- Breadcrumb navigation (same pattern as existing DriveBrowser)
+- "Create New Folder" action
+- "Select This Folder" button at any level
+- Returns `{ folderId, folderPath }` to parent picker
+
+### Confirmation Toast (Default Set)
+
+When a remembered default exists, exports auto-deliver and show a compact toast:
+
+```
+┌──────────────────────────────────────┐
+│ ✓ Saved to Google Drive              │
+│   My Book / _exports                 │
+│   [Change]                       ✕   │
+└──────────────────────────────────────┘
+```
+
+- "Change" opens the destination picker to update or clear the default
+
+### Export Menu Addition
+
+```
+Export Book as PDF
+Export Book as EPUB
+─────────────────
+Export This Chapter as PDF
+Export This Chapter as EPUB
+─────────────────
+Export destination...     ← NEW
+Save to Files
+```
+
+"Export destination..." opens the picker in edit mode (shows current default, "Clear default" option).
+
+### Persistence
+
+- One export preference row per project per user
+- `destination_type`: `'device'` or `'drive'`
+- Drive preferences store `drive_connection_id`, `drive_folder_id`, and `drive_folder_path` (display string, cosmetic — folder ID is the functional key)
+- `ON DELETE SET NULL` on drive_connection_id: staleness detected at export time
+
+### Edge Cases
+
+| Scenario                                  | Behavior                                                       |
+| ----------------------------------------- | -------------------------------------------------------------- |
+| No Drive connected, no default            | Download directly — single destination, no picker              |
+| Default Drive but connection disconnected | Detect null `drive_connection_id` → picker with error          |
+| Default Drive but folder deleted          | Drive API 404 on upload → picker with error                    |
+| New source connected                      | Appears as new destination in picker                           |
+| Multiple rapid exports                    | Rate limit (5/min); preference check is fast (single DB query) |

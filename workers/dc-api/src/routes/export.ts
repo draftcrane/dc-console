@@ -5,6 +5,7 @@ import { validationError } from "../middleware/error-handler.js";
 import { ExportService } from "../services/export.js";
 import { safeContentDisposition } from "../utils/file-names.js";
 import { DriveService } from "../services/drive.js";
+import type { ExportPreferenceInput } from "../services/export-delivery.js";
 
 /**
  * Export API routes
@@ -13,6 +14,11 @@ import { DriveService } from "../services/drive.js";
  * - POST /projects/:projectId/export - Full-book export (format: "pdf" | "epub")
  * - POST /projects/:projectId/chapters/:chapterId/export - Single-chapter export
  * - GET /exports/:jobId/download - Download a completed export
+ *
+ * Export preferences:
+ * - GET /projects/:projectId/export-preferences - Get saved preference
+ * - PUT /projects/:projectId/export-preferences - Create/update preference
+ * - DELETE /projects/:projectId/export-preferences - Clear preference
  *
  * Rate limit: 5 req/min per user (exportRateLimit middleware).
  * All routes require authentication (enforced globally in index.ts).
@@ -135,18 +141,90 @@ exportRoutes.get("/exports/:jobId/download", async (c) => {
  * Date-stamped file names prevent overwrites.
  * Idempotent: if already saved, returns the existing Drive file info.
  *
+ * Optional folderId: upload directly to this folder (skip auto-create).
+ * Used when the user has selected a specific folder via the destination picker.
+ *
  * Response: { driveFileId, fileName, webViewLink }
  */
 exportRoutes.post("/exports/:jobId/to-drive", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const jobId = c.req.param("jobId");
-  const body = (await c.req.json().catch(() => ({}))) as { connectionId?: string };
+  const body = (await c.req.json().catch(() => ({}))) as {
+    connectionId?: string;
+    folderId?: string;
+  };
 
   const service = createExportService(c.env);
   const driveService = new DriveService(c.env);
-  const result = await service.saveToDrive(userId, jobId, driveService, body.connectionId);
+  const result = await service.saveToDrive(
+    userId,
+    jobId,
+    driveService,
+    body.connectionId,
+    body.folderId,
+  );
 
   return c.json(result);
+});
+
+/**
+ * GET /projects/:projectId/export-preferences
+ * Get the saved export preference for a project.
+ *
+ * Response: preference object or null
+ */
+exportRoutes.get("/projects/:projectId/export-preferences", standardRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const service = createExportService(c.env);
+  const preference = await service.getExportPreference(userId, projectId);
+
+  return c.json({ preference });
+});
+
+/**
+ * PUT /projects/:projectId/export-preferences
+ * Create or update the export preference for a project.
+ *
+ * Request body:
+ * - destinationType: "device" | "drive" (required)
+ * - driveConnectionId: string (required for drive)
+ * - driveFolderId: string (optional, for drive)
+ * - driveFolderPath: string (optional, for drive)
+ *
+ * Response: preference object
+ */
+exportRoutes.put("/projects/:projectId/export-preferences", standardRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const body = (await c.req.json().catch(() => ({}))) as ExportPreferenceInput;
+
+  if (!body.destinationType) {
+    validationError("destinationType is required");
+  }
+
+  const service = createExportService(c.env);
+  const preference = await service.setExportPreference(userId, projectId, body);
+
+  return c.json({ preference });
+});
+
+/**
+ * DELETE /projects/:projectId/export-preferences
+ * Clear the export preference for a project (reset to picker).
+ *
+ * Response: { success: true }
+ */
+exportRoutes.delete("/projects/:projectId/export-preferences", standardRateLimit, async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const service = createExportService(c.env);
+  await service.clearExportPreference(userId, projectId);
+
+  return c.json({ success: true });
 });
 
 /**

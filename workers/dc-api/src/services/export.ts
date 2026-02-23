@@ -14,13 +14,23 @@
 import { ExportJobService } from "./export-job.js";
 import type { ExportJobResult } from "./export-job.js";
 import { ExportDeliveryService } from "./export-delivery.js";
-import type { ExportJobStatus, ExportToDriveResult } from "./export-delivery.js";
+import type {
+  ExportJobStatus,
+  ExportToDriveResult,
+  ExportPreference,
+  ExportPreferenceInput,
+} from "./export-delivery.js";
 import type { DriveService } from "./drive.js";
 import type { PdfGeneratorConfig } from "./pdf-generator.js";
 
 // Re-export public types so existing imports from "./export.js" still work
 export type { ExportJobResult } from "./export-job.js";
-export type { ExportJobStatus, ExportToDriveResult } from "./export-delivery.js";
+export type {
+  ExportJobStatus,
+  ExportToDriveResult,
+  ExportPreference,
+  ExportPreferenceInput,
+} from "./export-delivery.js";
 
 /**
  * ExportService composes job creation and delivery into a single unified API.
@@ -73,7 +83,26 @@ export class ExportService {
     jobId: string,
     driveService: DriveService,
     connectionId?: string,
+    folderId?: string,
   ): Promise<ExportToDriveResult> {
-    return this.delivery.saveToDrive(userId, jobId, driveService, connectionId);
+    return this.delivery.saveToDrive(userId, jobId, driveService, connectionId, folderId);
+  }
+
+  // ── Export preferences (delegated to ExportDeliveryService) ──
+
+  getExportPreference(userId: string, projectId: string): Promise<ExportPreference | null> {
+    return this.delivery.getExportPreference(userId, projectId);
+  }
+
+  setExportPreference(
+    userId: string,
+    projectId: string,
+    input: ExportPreferenceInput,
+  ): Promise<ExportPreference> {
+    return this.delivery.setExportPreference(userId, projectId, input);
+  }
+
+  clearExportPreference(userId: string, projectId: string): Promise<void> {
+    return this.delivery.clearExportPreference(userId, projectId);
   }
 }

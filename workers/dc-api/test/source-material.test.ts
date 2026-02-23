@@ -414,11 +414,15 @@ describe("SourceMaterialService", () => {
   describe("remediateLocalMarkdownSources", () => {
     it("sanitizes cached markdown HTML and rebuilds text index", async () => {
       const sourceId = "source-md-remediate";
-      await seedSourceWithContent(projectId, "<h1>Title <img src=x onerror=alert(1)></h1><p>Body</p>", {
-        id: sourceId,
-        title: "Legacy Markdown",
-        mimeType: "text/markdown",
-      });
+      await seedSourceWithContent(
+        projectId,
+        "<h1>Title <img src=x onerror=alert(1)></h1><p>Body</p>",
+        {
+          id: sourceId,
+          title: "Legacy Markdown",
+          mimeType: "text/markdown",
+        },
+      );
 
       const result = await service.remediateLocalMarkdownSources(userId, projectId);
       expect(result).toEqual({
@@ -437,13 +441,17 @@ describe("SourceMaterialService", () => {
       expect(txtObject).toBeTruthy();
       expect(await txtObject!.text()).toContain("Title");
 
-      const ftsRow = await env.DB.prepare(`SELECT content FROM source_content_fts WHERE source_id = ?`)
+      const ftsRow = await env.DB.prepare(
+        `SELECT content FROM source_content_fts WHERE source_id = ?`,
+      )
         .bind(sourceId)
         .first<{ content: string }>();
       expect(ftsRow).toBeTruthy();
       expect(ftsRow!.content).toContain("Title");
 
-      const row = await env.DB.prepare(`SELECT cached_at, word_count FROM source_materials WHERE id = ?`)
+      const row = await env.DB.prepare(
+        `SELECT cached_at, word_count FROM source_materials WHERE id = ?`,
+      )
         .bind(sourceId)
         .first<{ cached_at: string | null; word_count: number }>();
       expect(row?.cached_at).toBeTruthy();
