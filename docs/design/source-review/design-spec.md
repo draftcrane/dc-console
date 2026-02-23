@@ -216,19 +216,19 @@ All flows revised based on stress test feedback. YELLOW resolutions are called o
 
 **Precondition:** Research Panel is open with Sources tab active.
 
-| Step | Action                                                                                                                                                                                                                                                                                                | Surface            | Taps           |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | -------------- |
-| 1    | Tap [+ Add] button in Sources tab header (or "Add Source" in empty state)                                                                                                                                                                                                                             | Sources tab        | 1              |
-| 2    | **Source Type Picker** replaces source list. **Trust line visible.** Shows source types: Google Drive, Local Files, plus coming-soon types (iCloud Drive, Dropbox, etc.)                                                                                                                              | Source Type Picker | 0 (transition) |
-| 3    | Tap "Google Drive" row                                                                                                                                                                                                                                                                                | Source Type Picker | 1              |
-| 3a   | **If 0 Google accounts connected:** OAuth flow initiates. On return, Drive browser opens automatically.                                                                                                                                                                                               | OAuth / Browser    | 0 (redirect)   |
-| 3b   | **If 1 Google account connected:** Drive browser opens immediately for that account.                                                                                                                                                                                                                  | Source Add Flow    | 0 (transition) |
-| 3c   | **If 2+ Google accounts connected:** Account picker appears. User taps an account, then Drive browser opens. A "Connect another Google account" option is available.                                                                                                                                 | Source Add Flow    | 1              |
-| 4    | Inline Drive browser appears. Shows root of user's Drive.                                                                                                                                                                                                                                             | Source Add Flow    | 0 (transition) |
-| 5    | Navigate into target folder                                                                                                                                                                                                                                                                           | Source Add Flow    | 1-3 per level  |
-| 6    | Tap checkbox on each Google Doc to select                                                                                                                                                                                                                                                             | Source Add Flow    | 1 per file     |
-| 7    | Tap "Add N Selected" footer button                                                                                                                                                                                                                                                                    | Source Add Flow    | 1              |
-| 8    | View transitions back to source list showing new sources with "Processing..." status                                                                                                                                                                                                                  | Sources tab        | 0 (transition) |
+| Step | Action                                                                                                                                                                   | Surface            | Taps           |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ | -------------- |
+| 1    | Tap [+ Add] button in Sources tab header (or "Add Source" in empty state)                                                                                                | Sources tab        | 1              |
+| 2    | **Source Type Picker** replaces source list. **Trust line visible.** Shows source types: Google Drive, Local Files, plus coming-soon types (iCloud Drive, Dropbox, etc.) | Source Type Picker | 0 (transition) |
+| 3    | Tap "Google Drive" row                                                                                                                                                   | Source Type Picker | 1              |
+| 3a   | **If 0 Google accounts connected:** OAuth flow initiates. On return, Drive browser opens automatically.                                                                  | OAuth / Browser    | 0 (redirect)   |
+| 3b   | **If 1 Google account connected:** Drive browser opens immediately for that account.                                                                                     | Source Add Flow    | 0 (transition) |
+| 3c   | **If 2+ Google accounts connected:** Account picker appears. User taps an account, then Drive browser opens. A "Connect another Google account" option is available.     | Source Add Flow    | 1              |
+| 4    | Inline Drive browser appears. Shows root of user's Drive.                                                                                                                | Source Add Flow    | 0 (transition) |
+| 5    | Navigate into target folder                                                                                                                                              | Source Add Flow    | 1-3 per level  |
+| 6    | Tap checkbox on each Google Doc to select                                                                                                                                | Source Add Flow    | 1 per file     |
+| 7    | Tap "Add N Selected" footer button                                                                                                                                       | Source Add Flow    | 1              |
+| 8    | View transitions back to source list showing new sources with "Processing..." status                                                                                     | Sources tab        | 0 (transition) |
 
 **Total: 5-9 taps across a single surface.**
 
@@ -290,14 +290,14 @@ STEP 2: Source Type Picker with trust messaging
 
 **Precondition:** Research Panel is open with Sources tab active.
 
-| Step | Action                                                           | Surface            | Taps |
-| ---- | ---------------------------------------------------------------- | ------------------ | ---- |
+| Step | Action                                                             | Surface            | Taps |
+| ---- | ------------------------------------------------------------------ | ------------------ | ---- |
 | 1    | Tap [+ Add] in Sources tab header (or "Add Source" in empty state) | Sources tab        | 1    |
-| 2    | Source Type Picker appears with trust line                       | Source Type Picker | 0    |
-| 3    | Tap "Local Files" row                                            | Source Type Picker | 1    |
-| 4    | iOS/iPadOS file picker opens (system UI)                         | System file picker | 0    |
-| 5    | Navigate to and select file(s)                                   | System file picker | 2-4  |
-| 6    | File picker closes. Source appears with "Processing..." spinner. | Sources tab        | 0    |
+| 2    | Source Type Picker appears with trust line                         | Source Type Picker | 0    |
+| 3    | Tap "Local Files" row                                              | Source Type Picker | 1    |
+| 4    | iOS/iPadOS file picker opens (system UI)                           | System file picker | 0    |
+| 5    | Navigate to and select file(s)                                     | System file picker | 2-4  |
+| 6    | File picker closes. Source appears with "Processing..." spinner.   | Sources tab        | 0    |
 
 **Total: 5-8 taps across 2 surfaces (Sources tab + system file picker).**
 
@@ -619,6 +619,7 @@ Additionally, the Sources tab empty state provides clear guidance:
 When the Library tab has no documents, the empty state shows a single **"Add Source"** CTA. This CTA opens the **Source Type Picker** — the first step of the Source Add Flow. The empty state does NOT show "Connect Google Drive" as a hardcoded primary action. It does NOT show individual source types inline. It shows one button: "Add Source."
 
 **Why:** DraftCrane supports multiple source types today (Google Drive, Local Files) and will support more in the future (iCloud Drive, Dropbox, Box, OneDrive). Hardcoding "Connect Google Drive" in the empty state:
+
 1. Creates a Google Drive-centric UX that ignores Local Files as a first-class source type
 2. Makes adding future source types a UI redesign instead of a list addition
 3. Confuses users who don't use Google Drive
@@ -694,9 +695,9 @@ Tapping "Add Source" opens the Source Type Picker:
 
 ```typescript
 interface SourceType {
-  id: string;           // "google-drive" | "local-files" | "icloud" | "dropbox" | "box" | "onedrive"
-  label: string;        // "Google Drive"
-  description: string;  // "Browse and add documents from your Google Drive"
+  id: string; // "google-drive" | "local-files" | "icloud" | "dropbox" | "box" | "onedrive"
+  label: string; // "Google Drive"
+  description: string; // "Browse and add documents from your Google Drive"
   icon: ReactElement;
   status: "available" | "coming_soon";
   onSelect: () => void; // Only for "available" types
