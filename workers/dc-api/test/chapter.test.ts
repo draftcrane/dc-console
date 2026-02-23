@@ -147,5 +147,12 @@ describe("ChapterService", () => {
       const other = await seedUser({ id: "other-user-2" });
       await expect(service.getChapter(other.id, ch.id)).rejects.toThrow("Chapter not found");
     });
+
+    it("throws NOT_FOUND when parent project is archived", async () => {
+      const archivedProject = await seedProject(userId, { status: "archived" });
+      const ch = await seedChapter(archivedProject.id);
+
+      await expect(service.getChapter(userId, ch.id)).rejects.toThrow("Chapter not found");
+    });
   });
 });

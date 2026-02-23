@@ -30,15 +30,24 @@ const MIME_TYPE_MAP: Record<string, string> = {
   ".pdf": "application/pdf",
 };
 
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function formatInlineMarkdown(text: string): string {
+  return escapeHtml(text)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(.+?)__/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/_(.+?)_/g, "<em>$1</em>");
+}
+
 /** Convert plain text to simple HTML paragraphs */
 export function textToHtml(text: string): string {
   return text
     .split(/\n\n+/)
     .filter((p) => p.trim().length > 0)
-    .map(
-      (p) =>
-        `<p>${p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").trim()}</p>`,
-    )
+    .map((p) => `<p>${escapeHtml(p).trim()}</p>`)
     .join("\n");
 }
 
@@ -59,7 +68,7 @@ export function markdownToHtml(md: string): string {
         inList = false;
       }
       const level = headingMatch[1].length;
-      htmlLines.push(`<h${level}>${headingMatch[2]}</h${level}>`);
+      htmlLines.push(`<h${level}>${formatInlineMarkdown(headingMatch[2].trim())}</h${level}>`);
       continue;
     }
 
@@ -70,7 +79,7 @@ export function markdownToHtml(md: string): string {
         htmlLines.push("<ul>");
         inList = true;
       }
-      htmlLines.push(`<li>${listMatch[1]}</li>`);
+      htmlLines.push(`<li>${formatInlineMarkdown(listMatch[1].trim())}</li>`);
       continue;
     }
 
@@ -86,14 +95,7 @@ export function markdownToHtml(md: string): string {
     }
 
     // Regular paragraph - apply inline formatting
-    let formatted = line
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/__(.+?)__/g, "<strong>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      .replace(/_(.+?)_/g, "<em>$1</em>");
+    const formatted = formatInlineMarkdown(line);
     htmlLines.push(`<p>${formatted}</p>`);
   }
 

@@ -226,15 +226,15 @@ drive.get("/picker-token/:connectionId", pickerTokenRateLimit, async (c) => {
   const connectionId = c.req.param("connectionId");
   const driveService = new DriveService(c.env);
 
-  const tokens = await driveService.getValidTokensByConnection(connectionId);
-  if (!tokens) {
-    driveNotConnected();
-  }
-
   // Verify this connection belongs to the user
   const connections = await driveService.getConnectionsForUser(userId);
   if (!connections.some((conn) => conn.id === connectionId)) {
     driveNotConnected("Connection not found for this user");
+  }
+
+  const tokens = await driveService.getValidTokensByConnection(connectionId);
+  if (!tokens) {
+    driveNotConnected();
   }
 
   // Calculate remaining lifetime in seconds

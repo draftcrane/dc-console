@@ -1,7 +1,14 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { env } from "cloudflare:test";
 import { SourceMaterialService } from "../src/services/source-material.js";
-import { seedUser, seedProject, seedSource, seedChapter, cleanAll } from "./helpers/seed.js";
+import {
+  seedUser,
+  seedProject,
+  seedSource,
+  seedSourceWithContent,
+  seedChapter,
+  cleanAll,
+} from "./helpers/seed.js";
 
 describe("SourceMaterialService", () => {
   let service: SourceMaterialService;
@@ -401,6 +408,63 @@ describe("SourceMaterialService", () => {
       expect(r2Object).toBeTruthy();
       const content = await r2Object!.text();
       expect(content).toContain("research content");
+    });
+  });
+
+  describe("remediateLocalMarkdownSources", () => {
+    it("sanitizes cached markdown HTML and rebuilds text index", async () => {
+      const sourceId = "source-md-remediate";
+      await seedSourceWithContent(projectId, "<h1>Title <img src=x onerror=alert(1)></h1><p>Body</p>", {
+        id: sourceId,
+        title: "Legacy Markdown",
+        mimeType: "text/markdown",
+      });
+
+      const result = await service.remediateLocalMarkdownSources(userId, projectId);
+      expect(result).toEqual({
+        candidateCount: 1,
+        processedCount: 1,
+        missingCacheCount: 0,
+      });
+
+      const htmlObject = await env.EXPORTS_BUCKET.get(`sources/${sourceId}/content.html`);
+      expect(htmlObject).toBeTruthy();
+      const html = await htmlObject!.text();
+      expect(html).not.toContain("<img");
+      expect(html).toContain("<h1>Title </h1>");
+
+      const txtObject = await env.EXPORTS_BUCKET.get(`sources/${sourceId}/content.txt`);
+      expect(txtObject).toBeTruthy();
+      expect(await txtObject!.text()).toContain("Title");
+
+      const ftsRow = await env.DB.prepare(`SELECT content FROM source_content_fts WHERE source_id = ?`)
+        .bind(sourceId)
+        .first<{ content: string }>();
+      expect(ftsRow).toBeTruthy();
+      expect(ftsRow!.content).toContain("Title");
+
+      const row = await env.DB.prepare(`SELECT cached_at, word_count FROM source_materials WHERE id = ?`)
+        .bind(sourceId)
+        .first<{ cached_at: string | null; word_count: number }>();
+      expect(row?.cached_at).toBeTruthy();
+      expect((row?.word_count ?? 0) > 0).toBe(true);
+    });
+
+    it("reports markdown sources with missing cache objects", async () => {
+      const sourceId = "source-md-missing-cache";
+      await seedSourceWithContent(projectId, "<h1>Title</h1>", {
+        id: sourceId,
+        title: "Missing Cache Markdown",
+        mimeType: "text/markdown",
+      });
+      await env.EXPORTS_BUCKET.delete(`sources/${sourceId}/content.html`);
+
+      const result = await service.remediateLocalMarkdownSources(userId, projectId);
+      expect(result).toEqual({
+        candidateCount: 1,
+        processedCount: 0,
+        missingCacheCount: 1,
+      });
     });
   });
 });

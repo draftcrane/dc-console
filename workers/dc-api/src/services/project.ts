@@ -193,7 +193,7 @@ export class ProjectService {
       .prepare(
         `SELECT id, user_id, title, description, status, created_at, updated_at
          FROM projects
-         WHERE id = ? AND user_id = ?`,
+         WHERE id = ? AND user_id = ? AND status = 'active'`,
       )
       .bind(projectId, userId)
       .first<ProjectRow>();
@@ -240,7 +240,7 @@ export class ProjectService {
   ): Promise<Project> {
     // Verify ownership
     const existing = await this.db
-      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ?`)
+      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
       .bind(projectId, userId)
       .first();
 
@@ -279,7 +279,9 @@ export class ProjectService {
     bindings.push(projectId, userId);
 
     await this.db
-      .prepare(`UPDATE projects SET ${updates.join(", ")} WHERE id = ? AND user_id = ?`)
+      .prepare(
+        `UPDATE projects SET ${updates.join(", ")} WHERE id = ? AND user_id = ? AND status = 'active'`,
+      )
       .bind(...bindings)
       .run();
 
@@ -288,7 +290,7 @@ export class ProjectService {
       .prepare(
         `SELECT id, user_id, title, description, status, created_at, updated_at
          FROM projects
-         WHERE id = ? AND user_id = ?`,
+         WHERE id = ? AND user_id = ? AND status = 'active'`,
       )
       .bind(projectId, userId)
       .first<ProjectRow>();

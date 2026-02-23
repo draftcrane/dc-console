@@ -61,6 +61,17 @@ export interface ExtractionResult {
 }
 
 /**
+ * Sanitize HTML produced from uploaded/ingested sources.
+ * Shared by DOCX extraction and Markdown cache remediation.
+ */
+export function sanitizeSourceHtml(html: string): string {
+  return sanitizeHtml(html, {
+    allowedTags: MAMMOTH_ALLOWED_TAGS,
+    allowedAttributes: MAMMOTH_ALLOWED_ATTRIBUTES,
+  });
+}
+
+/**
  * Strip HTML tags to produce plain text.
  * Used for FTS indexing and AI queries.
  */
@@ -105,10 +116,7 @@ export function extractFromMarkdown(content: ArrayBuffer): ExtractionResult {
 export async function extractFromDocx(content: ArrayBuffer): Promise<ExtractionResult> {
   const mammoth = await import("mammoth");
   const result = await mammoth.default.convertToHtml({ arrayBuffer: content });
-  const html = sanitizeHtml(result.value, {
-    allowedTags: MAMMOTH_ALLOWED_TAGS,
-    allowedAttributes: MAMMOTH_ALLOWED_ATTRIBUTES,
-  });
+  const html = sanitizeSourceHtml(result.value);
   const plainText = htmlToPlainText(html);
   return { html, plainText, wordCount: countWords(html) };
 }

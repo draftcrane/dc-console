@@ -413,7 +413,7 @@ describe("useAutoSave", () => {
     );
   });
 
-  it("recovery prompt is set when IndexedDB has a draft", async () => {
+  it("recovery prompt is set when IndexedDB draft version matches remote", async () => {
     mockFetchSuccess();
     mockLoadDraft.mockResolvedValue({
       chapterId: "ch-1",
@@ -432,6 +432,24 @@ describe("useAutoSave", () => {
     expect(result.current.recoveryPrompt).not.toBeNull();
     expect(result.current.recoveryPrompt!.localContent).toBe("<p>Recovered content</p>");
     expect(result.current.recoveryPrompt!.remoteVersion).toBe(1);
+  });
+
+  it("no recovery prompt when IndexedDB draft version is older than remote", async () => {
+    mockFetchSuccess();
+    mockLoadDraft.mockResolvedValue({
+      chapterId: "ch-1",
+      content: "<p>Old draft</p>",
+      updatedAt: Date.now(),
+      version: 1,
+    });
+
+    const { result } = renderHook(() => useAutoSave(makeOptions({ version: 2 })));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(result.current.recoveryPrompt).toBeNull();
   });
 
   it("dismissRecovery clears the prompt and deletes draft from IndexedDB", async () => {

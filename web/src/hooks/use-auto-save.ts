@@ -18,7 +18,7 @@ export type SaveStatus =
   | { state: "error"; message: string };
 
 /**
- * Recovery state when IndexedDB content is newer than remote.
+ * Recovery state when IndexedDB content is at least as recent as remote.
  */
 export interface RecoveryPrompt {
   localContent: string;
@@ -300,8 +300,8 @@ export function useAutoSave({
   }, [saveNow]);
 
   /**
-   * Crash recovery check: on mount, compare IndexedDB with remote.
-   * Per US-015: if IndexedDB is newer, prompt user to restore.
+   * Crash recovery check: on mount, compare IndexedDB version with remote.
+   * Per US-015: only prompt when local draft version is not older than remote.
    */
   useEffect(() => {
     if (!chapterId) return;
@@ -312,10 +312,7 @@ export function useAutoSave({
       const draft = await loadDraft(chapterId!);
       if (cancelled) return;
 
-      if (draft && draft.content) {
-        // IndexedDB has content - check if it's newer than remote
-        // If there's a draft with a version matching or greater than the server version,
-        // and it has different content, prompt for recovery
+      if (draft && draft.content && draft.version >= version) {
         setRecoveryPrompt({
           localContent: draft.content,
           localUpdatedAt: draft.updatedAt,

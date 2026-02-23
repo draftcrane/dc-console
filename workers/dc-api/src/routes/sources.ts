@@ -5,6 +5,7 @@
  * - POST /projects/:projectId/sources - Add Drive sources from Google Picker selection
  * - POST /projects/:projectId/sources/upload - Upload local file (.txt, .md)
  * - GET /projects/:projectId/sources - List sources for a project
+ * - POST /projects/:projectId/sources/remediate-markdown - Reprocess cached local Markdown sources
  * - GET /sources/:sourceId/content - Get cached source content (lazy-fetches from Drive)
  * - DELETE /sources/:sourceId - Remove a source
  * - POST /sources/:sourceId/import-as-chapter - Import source as a new chapter
@@ -114,6 +115,20 @@ sources.get("/projects/:projectId/sources", async (c) => {
   const list = await service.listSources(userId, projectId);
 
   return c.json({ sources: list });
+});
+
+/**
+ * POST /projects/:projectId/sources/remediate-markdown
+ * Reprocess cached local Markdown sources to remove unsafe legacy HTML and rebuild FTS.
+ */
+sources.post("/projects/:projectId/sources/remediate-markdown", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const service = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const result = await service.remediateLocalMarkdownSources(userId, projectId);
+
+  return c.json(result);
 });
 
 /**

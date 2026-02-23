@@ -22,7 +22,12 @@ import { countWords } from "../utils/word-count.js";
 import type { DriveService } from "./drive.js";
 import { SourceDriveService } from "./source-drive.js";
 import { SourceLocalService } from "./source-local.js";
-import { removeFtsEntry } from "./text-extraction.js";
+import {
+  htmlToPlainText,
+  removeFtsEntry,
+  sanitizeSourceHtml,
+  storeExtractionResult,
+} from "./text-extraction.js";
 import {
   type AddSourceInput,
   type AddSourcesResult,
@@ -41,6 +46,12 @@ export interface ProjectSourceConnection {
   email: string;
   connectedAt: string;
   documentCount: number;
+}
+
+export interface MarkdownRemediationResult {
+  candidateCount: number;
+  processedCount: number;
+  missingCacheCount: number;
 }
 
 // Re-export public types so existing imports from "./source-material.js" still work
@@ -306,6 +317,81 @@ export class SourceMaterialService {
     }
 
     return rowToSource({ ...row, status: "active", updated_at: now });
+  }
+
+  /**
+   * Reprocess cached local Markdown sources to strip unsafe HTML and rebuild FTS text.
+   * This remediates legacy caches created before Markdown escaping hardening.
+   */
+  async remediateLocalMarkdownSources(
+    userId: string,
+    projectId: string,
+  ): Promise<MarkdownRemediationResult> {
+    // Verify project ownership
+    const project = await this.db
+      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
+      .bind(projectId, userId)
+      .first<{ id: string }>();
+
+    if (!project) {
+      notFound("Project not found");
+    }
+
+    const sourcesResult = await this.db
+      .prepare(
+        `SELECT id, title, r2_key
+         FROM source_materials
+         WHERE project_id = ?
+           AND source_type = 'local'
+           AND mime_type = 'text/markdown'
+           AND status = 'active'
+         ORDER BY sort_order ASC`,
+      )
+      .bind(projectId)
+      .all<{ id: string; title: string; r2_key: string | null }>();
+
+    const sources = sourcesResult.results ?? [];
+    let processedCount = 0;
+    let missingCacheCount = 0;
+
+    for (const source of sources) {
+      const htmlKey = source.r2_key || `sources/${source.id}/content.html`;
+      const object = await this.bucket.get(htmlKey);
+      if (!object) {
+        missingCacheCount++;
+        continue;
+      }
+
+      const html = await object.text();
+      const sanitizedHtml = sanitizeSourceHtml(html);
+      const plainText = htmlToPlainText(sanitizedHtml);
+      const wordCount = countWords(sanitizedHtml);
+
+      const { r2Key, cachedAt } = await storeExtractionResult(
+        source.id,
+        source.title,
+        { html: sanitizedHtml, plainText, wordCount },
+        this.bucket,
+        this.db,
+      );
+
+      await this.db
+        .prepare(
+          `UPDATE source_materials
+           SET r2_key = ?, word_count = ?, cached_at = ?, updated_at = ?
+           WHERE id = ?`,
+        )
+        .bind(r2Key, wordCount, cachedAt, cachedAt, source.id)
+        .run();
+
+      processedCount++;
+    }
+
+    return {
+      candidateCount: sources.length,
+      processedCount,
+      missingCacheCount,
+    };
   }
 
   // ── Project Source Connections ──
