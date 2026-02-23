@@ -4,13 +4,11 @@ import { useRouter } from "next/navigation";
 import type { ProjectData } from "@/types/editor";
 import type { AIRewriteResult } from "./ai-rewrite-sheet";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
-import type { DriveAccount } from "@/hooks/use-drive-accounts";
 import { DeleteProjectDialog } from "@/components/project/delete-project-dialog";
 import { RenameProjectDialog } from "@/components/project/rename-project-dialog";
 import { DuplicateProjectDialog } from "@/components/project/duplicate-project-dialog";
 import { DeleteChapterDialog } from "@/components/project/delete-chapter-dialog";
 import { AIRewriteSheet } from "./ai-rewrite-sheet";
-import { AccountsSheet } from "@/components/project/accounts-sheet";
 
 interface EditorDialogsProps {
   projectData: ProjectData | null;
@@ -46,14 +44,6 @@ interface EditorDialogsProps {
   onAIRetry: (result: AIRewriteResult, instruction: string) => Promise<void>;
   onAIDiscard: (result: AIRewriteResult) => Promise<void>;
   onGoDeeper: (result: AIRewriteResult) => void;
-
-  // Accounts sheet
-  isAccountsSheetOpen: boolean;
-  onCloseAccountsSheet: () => void;
-  onConnectAccount: () => void;
-  onDisconnectDriveAccount: (connectionId: string) => Promise<void>;
-  onRefetchDriveAccounts: () => Promise<void>;
-  driveAccounts: DriveAccount[];
 }
 
 /**
@@ -62,8 +52,9 @@ interface EditorDialogsProps {
  * Extracted to keep the page orchestrator focused on layout and state wiring.
  * Each dialog/sheet is a controlled component receiving open/close state from the parent.
  *
- * Source management is handled by the ResearchPanel via the ResearchPanelProvider context (#180).
+ * Source management is handled by the SourcesPanel via the SourcesProvider context.
  * Drive backup config is handled by the SettingsMenu (2-state: setup vs open/unlink).
+ * Account management is handled by the SourcesSection within the Sources panel.
  */
 export function EditorDialogs({
   projectData,
@@ -89,12 +80,6 @@ export function EditorDialogs({
   onAIRetry,
   onAIDiscard,
   onGoDeeper,
-  isAccountsSheetOpen,
-  onCloseAccountsSheet,
-  onConnectAccount,
-  onDisconnectDriveAccount,
-  onRefetchDriveAccounts,
-  driveAccounts,
 }: EditorDialogsProps) {
   const router = useRouter();
 
@@ -154,18 +139,6 @@ export function EditorDialogs({
         onRetry={onAIRetry}
         onDiscard={onAIDiscard}
         onGoDeeper={onGoDeeper}
-      />
-
-      {/* Google Accounts management sheet */}
-      <AccountsSheet
-        isOpen={isAccountsSheetOpen}
-        accounts={driveAccounts}
-        onClose={onCloseAccountsSheet}
-        onConnectAccount={onConnectAccount}
-        onDisconnectAccount={async (connectionId) => {
-          await onDisconnectDriveAccount(connectionId);
-          await onRefetchDriveAccounts();
-        }}
       />
     </>
   );

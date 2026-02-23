@@ -76,7 +76,7 @@ export function SourcesPanelOverlay() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto flex flex-col">
           {activeTab === "library" && <LibraryTab />}
           {activeTab === "review" && <ReviewTab />}
           {activeTab === "assist" && <AssistTab />}

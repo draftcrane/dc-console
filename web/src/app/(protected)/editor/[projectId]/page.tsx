@@ -107,17 +107,8 @@ function EditorPageInner() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOverlayOpen, setMobileOverlayOpen] = useState(false);
 
-  // --- Accounts management sheet state ---
-  const [isAccountsSheetOpen, setIsAccountsSheetOpen] = useState(false);
-
   // --- Drive connection (multi-account) ---
-  const {
-    accounts: driveAccounts,
-    connected: driveConnected,
-    connect: connectDrive,
-    disconnect: disconnectDriveAccount,
-    refetch: refetchDriveAccounts,
-  } = useDriveAccounts();
+  const { connected: driveConnected, connect: connectDrive } = useDriveAccounts();
 
   // --- Chapter management ---
   const {
@@ -296,7 +287,6 @@ function EditorPageInner() {
                   disconnectProjectFromDrive();
                 }
               }}
-              onManageAccounts={() => setIsAccountsSheetOpen(true)}
               onRenameBook={openRenameDialog}
               onDuplicateBook={openDuplicateDialog}
               isDuplicating={isDuplicating}
@@ -357,13 +347,6 @@ function EditorPageInner() {
           onAIRetry={handleAIRetry}
           onAIDiscard={handleAIDiscard}
           onGoDeeper={handleGoDeeper}
-          // Accounts sheet
-          isAccountsSheetOpen={isAccountsSheetOpen}
-          onCloseAccountsSheet={() => setIsAccountsSheetOpen(false)}
-          onConnectAccount={() => connectDrive()}
-          onDisconnectDriveAccount={disconnectDriveAccount}
-          onRefetchDriveAccounts={refetchDriveAccounts}
-          driveAccounts={driveAccounts}
         />
 
         <SourcesPanelOverlay />
