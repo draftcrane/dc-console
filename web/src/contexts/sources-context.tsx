@@ -77,10 +77,8 @@ interface SourcesContextValue {
   ) => Promise<void>;
   removeInstruction: (id: string) => Promise<void>;
 
-  // Drive accounts (user-level — only for connect/disconnect flows, never surfaced in project UI)
+  // Drive OAuth (initiates Google OAuth — never shows user-level account data)
   connectDrive: (loginHint?: string, projectId?: string) => Promise<void>;
-  disconnectDrive: (connectionId: string) => Promise<void>;
-  refetchDriveAccounts: () => Promise<void>;
 
   // Editor ref (for content insertion)
   editorRef: React.RefObject<ChapterEditorHandle | null>;
@@ -106,8 +104,8 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
   const analysis = useSourceAnalysis();
   const analysisInstructions = useAIInstructions("analysis");
   const rewriteInstructions = useAIInstructions("rewrite");
-  // Disable auto-fetch: user-level accounts are only fetched inside ConnectSourceSheet.
-  // We only need the connect/disconnect/refetch functions from this hook.
+  // Disable auto-fetch: user-level account data is NEVER surfaced in project UI.
+  // We only need the connect function to initiate OAuth.
   const driveAccountsHook = useDriveAccounts({ enabled: false });
 
   const value: SourcesContextValue = {
@@ -167,10 +165,8 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
       await Promise.allSettled([analysisInstructions.remove(id), rewriteInstructions.remove(id)]);
     },
 
-    // Drive (user-level — only for connect/disconnect flows, never surfaced in project UI)
+    // Drive OAuth (initiates Google OAuth — never shows user-level account data)
     connectDrive: driveAccountsHook.connect,
-    disconnectDrive: driveAccountsHook.disconnect,
-    refetchDriveAccounts: driveAccountsHook.refetch,
 
     // Refs
     editorRef,

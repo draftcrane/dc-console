@@ -6,11 +6,12 @@ import { ProjectSourceList } from "./project-source-list";
 import { DriveBrowser } from "./drive-browser";
 import { SourcePicker } from "./source-picker";
 import { SourcesSection } from "./sources-section";
-import { ConnectSourceSheet } from "./connect-source-sheet";
 import { EmptyState } from "./empty-state";
 import type { SourceConnection } from "@/hooks/use-sources";
 
-type ViewMode = "list" | "picker" | "browse" | "connect";
+type ViewMode = "list" | "picker" | "browse";
+
+const SOURCE_LINK_KEY = "dc_pending_source_link";
 
 /**
  * Library tab — three-mode redesign with project-scoped connections.
@@ -18,15 +19,15 @@ type ViewMode = "list" | "picker" | "browse" | "connect";
  * List mode (default): ProjectSourceList + "Add Documents" button + "Your Sources" section
  * Picker mode: SourcePicker fills the panel ("Add documents from")
  * Browse mode: Full-height DriveBrowser fills the panel content area
- * Connect mode: ConnectSourceSheet for linking accounts to this book
  *
  * CRITICAL: Uses project-scoped `connections` (from useSources), NOT user-level
- * `driveAccounts`. User-level accounts are only accessed inside ConnectSourceSheet.
+ * `driveAccounts`. User-level accounts are NEVER fetched or displayed in project UI.
+ * Clicking "Google Drive" initiates OAuth directly — no intermediate account list.
  *
  * Vocabulary: Source = provider, Folder = directory, Document = file.
  */
 export function LibraryTab() {
-  const { sources, isLoadingSources, connections, connectDrive, uploadLocalFile } =
+  const { sources, isLoadingSources, connections, connectDrive, uploadLocalFile, projectId } =
     useSourcesContext();
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -86,6 +87,17 @@ export function LibraryTab() {
     fileInputRef.current?.click();
   }, []);
 
+  // Go straight to OAuth — no intermediate screen showing user-level account emails.
+  // After OAuth return, the account is auto-linked to this project via pid in state.
+  const handleConnectDriveOAuth = useCallback(() => {
+    try {
+      sessionStorage.setItem(SOURCE_LINK_KEY, projectId);
+    } catch {
+      // sessionStorage unavailable — pid fallback in OAuth state handles this
+    }
+    connectDrive(undefined, projectId);
+  }, [connectDrive, projectId]);
+
   // Loading state
   if (isLoadingSources) {
     return (
@@ -106,16 +118,6 @@ export function LibraryTab() {
     />
   );
 
-  // ── CONNECT MODE ──
-  if (viewMode === "connect") {
-    return (
-      <div className="flex flex-col flex-1 min-h-0">
-        {fileInput}
-        <ConnectSourceSheet onClose={() => setViewMode("list")} />
-      </div>
-    );
-  }
-
   // ── PICKER MODE ──
   if (viewMode === "picker") {
     return (
@@ -124,7 +126,7 @@ export function LibraryTab() {
         <SourcePicker
           connections={connections}
           onSelectConnection={handleSelectConnection}
-          onConnectDrive={() => setViewMode("connect")}
+          onConnectDrive={handleConnectDriveOAuth}
           onUploadLocal={handleUploadLocal}
           onCancel={() => setViewMode("list")}
         />
@@ -248,7 +250,7 @@ export function LibraryTab() {
       </div>
 
       {/* Your Sources section at bottom */}
-      <SourcesSection onAddSource={() => setViewMode("connect")} />
+      <SourcesSection onAddSource={handleConnectDriveOAuth} />
     </div>
   );
 }
