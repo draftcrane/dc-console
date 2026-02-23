@@ -7,8 +7,8 @@ interface SourcePickerProps {
   connections: SourceConnection[];
   /** Called when user picks a project-linked connection to browse */
   onSelectConnection: (connection: SourceConnection) => void;
-  /** Called when user wants to connect a source (opens ConnectSourceSheet) */
-  onConnectSource: () => void;
+  /** Called when user wants to connect Google Drive (opens ConnectSourceSheet) */
+  onConnectDrive: () => void;
   /** Called when user wants to upload from this device */
   onUploadLocal: () => void;
   /** Called when user taps Cancel */
@@ -18,8 +18,11 @@ interface SourcePickerProps {
 /**
  * SourcePicker — inline panel for choosing where to add documents from.
  *
- * Shows project-linked Drive connections, "This device" for local upload,
- * and "Connect a source" for linking new accounts.
+ * When project has linked connections: shows each linked account + "This device" + "Connect another source"
+ * When project has NO connections: shows generic "Google Drive" + "This device" (no account emails)
+ *
+ * User-level account details are NEVER shown here. The ConnectSourceSheet
+ * (opened by onConnectDrive) is the only place where account emails appear.
  *
  * 44pt touch targets throughout. iPad-first.
  *
@@ -28,20 +31,41 @@ interface SourcePickerProps {
 export function SourcePicker({
   connections,
   onSelectConnection,
-  onConnectSource,
+  onConnectDrive,
   onUploadLocal,
   onCancel,
 }: SourcePickerProps) {
+  const hasConnections = connections.length > 0;
+
   return (
     <div className="flex flex-col px-4 py-4 flex-1">
       <h3 className="text-sm font-medium text-gray-900 mb-3">Add documents from</h3>
 
       <div className="flex flex-col gap-1">
-        {/* Project-linked Drive connections */}
-        {connections.map((connection) => (
+        {hasConnections ? (
+          <>
+            {/* Project-linked Drive connections (show account emails) */}
+            {connections.map((connection) => (
+              <button
+                key={connection.driveConnectionId}
+                onClick={() => onSelectConnection(connection)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50
+                           transition-colors min-h-[44px] w-full text-left"
+              >
+                <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z"
+                    className="text-blue-500"
+                  />
+                </svg>
+                <span className="text-sm text-gray-900 truncate">{connection.email}</span>
+              </button>
+            ))}
+          </>
+        ) : (
+          /* No project connections — show generic "Google Drive" (no emails, no account details) */
           <button
-            key={connection.driveConnectionId}
-            onClick={() => onSelectConnection(connection)}
+            onClick={onConnectDrive}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50
                        transition-colors min-h-[44px] w-full text-left"
           >
@@ -51,9 +75,9 @@ export function SourcePicker({
                 className="text-blue-500"
               />
             </svg>
-            <span className="text-sm text-gray-900 truncate">{connection.email}</span>
+            <span className="text-sm text-gray-900">Google Drive</span>
           </button>
-        ))}
+        )}
 
         {/* This device */}
         <button
@@ -77,22 +101,29 @@ export function SourcePicker({
           <span className="text-sm text-gray-900">This device</span>
         </button>
 
-        {/* Connect a source */}
-        <button
-          onClick={onConnectSource}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50
-                     transition-colors min-h-[44px] w-full text-left"
-        >
-          <svg
-            className="w-5 h-5 shrink-0 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {/* Connect another source (only when at least one already linked) */}
+        {hasConnections && (
+          <button
+            onClick={onConnectDrive}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50
+                       transition-colors min-h-[44px] w-full text-left"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span className="text-sm text-gray-500">Connect a source</span>
-        </button>
+            <svg
+              className="w-5 h-5 shrink-0 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span className="text-sm text-gray-500">Connect another source</span>
+          </button>
+        )}
       </div>
 
       {/* Cancel */}
