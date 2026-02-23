@@ -12,7 +12,6 @@ import { EditorToolbar } from "@/components/editor/editor-toolbar";
 import { EditorWritingArea } from "@/components/editor/editor-writing-area";
 import { EditorDialogs } from "@/components/editor/editor-dialogs";
 import { ToastProvider } from "@/components/toast";
-import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
 import { useChapterManagement } from "@/hooks/use-chapter-management";
@@ -98,9 +97,6 @@ function EditorPageInner() {
   // --- Sidebar UI state ---
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOverlayOpen, setMobileOverlayOpen] = useState(false);
-
-  // --- Drive accounts (for export) ---
-  const { accounts: driveAccounts } = useDriveAccounts();
 
   // --- Chapter management ---
   const {
@@ -258,7 +254,6 @@ function EditorPageInner() {
               selectionWordCount={selectionWordCount}
               aiSheetState={aiSheetState}
               onOpenAiRewrite={handleOpenAiRewrite}
-              driveAccounts={driveAccounts}
               projectId={projectId}
               activeChapterId={activeChapterId}
               getToken={getToken as () => Promise<string | null>}

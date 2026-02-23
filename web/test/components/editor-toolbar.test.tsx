@@ -18,6 +18,7 @@ vi.mock("@/contexts/sources-context", () => ({
   useSourcesContext: () => ({
     isPanelOpen: false,
     togglePanel: vi.fn(),
+    connections: [],
   }),
 }));
 
@@ -70,7 +71,6 @@ function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorToolbar
     selectionWordCount: 0,
     aiSheetState: "idle" as const,
     onOpenAiRewrite: vi.fn(),
-    driveAccounts: [],
     projectId: "proj-1",
     activeChapterId: "ch-1",
     getToken: vi.fn().mockResolvedValue("token"),

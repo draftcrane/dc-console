@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useBackup } from "@/hooks/use-backup";
-import type { DriveAccount } from "@/hooks/use-drive-accounts";
+import type { SourceConnection } from "@/hooks/use-sources";
 
 type ExportFormat = "pdf" | "epub";
 
@@ -23,8 +23,8 @@ interface ExportMenuProps {
   activeChapterId: string | null;
   getToken: () => Promise<string | null>;
   apiUrl: string;
-  /** Connected Drive accounts. When empty, "Save to Drive" is hidden. */
-  driveAccounts?: DriveAccount[];
+  /** Project-scoped Drive connections. When empty, "Save to Drive" is hidden. */
+  connections?: SourceConnection[];
 }
 
 /**
@@ -44,7 +44,7 @@ export function ExportMenu({
   activeChapterId,
   getToken,
   apiUrl,
-  driveAccounts = [],
+  connections = [],
 }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [state, setState] = useState<ExportState>({ phase: "idle" });
@@ -52,7 +52,7 @@ export function ExportMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const { downloadBackup, isDownloading } = useBackup();
 
-  const driveConnected = driveAccounts.length > 0;
+  const driveConnected = connections.length > 0;
 
   // Close menu on outside click
   useEffect(() => {
@@ -448,9 +448,9 @@ export function ExportMenu({
                 {/* Save to Google Drive - account picker (US-021) */}
                 {driveConnected && driveState.phase === "idle" && (
                   <>
-                    {driveAccounts.length === 1 ? (
+                    {connections.length === 1 ? (
                       <button
-                        onClick={() => handleSaveToDrive(driveAccounts[0].id)}
+                        onClick={() => handleSaveToDrive(connections[0].driveConnectionId)}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
                                    text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md
                                    transition-colors min-h-[44px]"
@@ -464,14 +464,14 @@ export function ExportMenu({
                     ) : (
                       <div className="w-full mt-1">
                         <p className="text-xs text-gray-500 mb-1">Save to Drive:</p>
-                        {driveAccounts.map((account) => (
+                        {connections.map((connection) => (
                           <button
-                            key={account.id}
-                            onClick={() => handleSaveToDrive(account.id)}
+                            key={connection.driveConnectionId}
+                            onClick={() => handleSaveToDrive(connection.driveConnectionId)}
                             className="w-full text-left inline-flex items-center gap-2 px-3 py-2 text-sm font-medium
                                        text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md
                                        transition-colors min-h-[44px] mb-1"
-                            aria-label={`Save to ${account.email}`}
+                            aria-label={`Save to ${connection.email}`}
                           >
                             <svg
                               className="w-4 h-4 shrink-0"
@@ -480,7 +480,7 @@ export function ExportMenu({
                             >
                               <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
                             </svg>
-                            {account.email}
+                            {connection.email}
                           </button>
                         ))}
                       </div>

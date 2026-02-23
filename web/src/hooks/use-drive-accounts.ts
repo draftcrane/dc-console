@@ -61,14 +61,16 @@ export function useDriveAccounts(options: UseDriveAccountsOptions = {}) {
     }
   }, [enabled, fetchAccounts]);
 
-  /** Initiate Google OAuth flow. Optional loginHint pre-selects the account. */
+  /** Initiate Google OAuth flow. Optional loginHint pre-selects the account. Optional projectId for auto-link on return. */
   const connect = useCallback(
-    async (loginHint?: string) => {
+    async (loginHint?: string, projectId?: string) => {
       try {
         const token = await getToken();
-        const url = loginHint
-          ? `${API_URL}/drive/authorize?loginHint=${encodeURIComponent(loginHint)}`
-          : `${API_URL}/drive/authorize`;
+        const params = new URLSearchParams();
+        if (loginHint) params.set("loginHint", loginHint);
+        if (projectId) params.set("projectId", projectId);
+        const qs = params.toString();
+        const url = qs ? `${API_URL}/drive/authorize?${qs}` : `${API_URL}/drive/authorize`;
 
         const response = await fetch(url, {
           headers: {

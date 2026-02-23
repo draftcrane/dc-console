@@ -6,34 +6,46 @@ import { ProjectSourceList } from "./project-source-list";
 import { DriveBrowser } from "./drive-browser";
 import { SourcePicker } from "./source-picker";
 import { SourcesSection } from "./sources-section";
+import { ConnectSourceSheet } from "./connect-source-sheet";
 import { EmptyState } from "./empty-state";
-import type { DriveAccount } from "@/hooks/use-drive-accounts";
+import type { SourceConnection } from "@/hooks/use-sources";
 
-type ViewMode = "list" | "picker" | "browse";
+type ViewMode = "list" | "picker" | "browse" | "connect";
 
 /**
- * Library tab — three-mode redesign.
+ * Library tab — three-mode redesign with project-scoped connections.
  *
  * List mode (default): ProjectSourceList + "Add Documents" button + "Your Sources" section
  * Picker mode: SourcePicker fills the panel ("Add documents from")
  * Browse mode: Full-height DriveBrowser fills the panel content area
+ * Connect mode: ConnectSourceSheet for linking accounts to this book
+ *
+ * CRITICAL: Uses project-scoped `connections` (from useSources), NOT user-level
+ * `driveAccounts`. User-level accounts are only accessed inside ConnectSourceSheet.
  *
  * Vocabulary: Source = provider, Folder = directory, Document = file.
  */
 export function LibraryTab() {
-  const { sources, isLoadingSources, driveAccounts, connectDrive, uploadLocalFile } =
-    useSourcesContext();
+  const {
+    sources,
+    isLoadingSources,
+    connections,
+    hasUserDriveAccounts,
+    connectDrive,
+    uploadLocalFile,
+  } = useSourcesContext();
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [isUploading, setIsUploading] = useState(false);
-  const [selectedAccountIndex, setSelectedAccountIndex] = useState(0);
+  const [selectedConnectionIndex, setSelectedConnectionIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Determine which connection to use for the Drive browser
-  const safeIndex = Math.min(selectedAccountIndex, Math.max(driveAccounts.length - 1, 0));
-  const activeAccount = driveAccounts[safeIndex] ?? null;
-  const activeConnectionId = activeAccount?.id ?? null;
-  const activeAccountEmail = activeAccount?.email ?? null;
+  // Determine which project-scoped connection to use for the Drive browser
+  // CRITICAL: Use driveConnectionId for Drive API, NOT id (junction row)
+  const safeIndex = Math.min(selectedConnectionIndex, Math.max(connections.length - 1, 0));
+  const activeConnection = connections[safeIndex] ?? null;
+  const activeConnectionId = activeConnection?.driveConnectionId ?? null;
+  const activeAccountEmail = activeConnection?.email ?? null;
 
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,28 +67,29 @@ export function LibraryTab() {
   );
 
   const handleAddDocuments = useCallback(() => {
-    // If exactly 1 source connected, skip picker and go straight to browse
-    if (driveAccounts.length === 1) {
-      setSelectedAccountIndex(0);
+    if (connections.length === 0) {
+      // No project connections — go straight to connect flow
+      setViewMode("connect");
+    } else if (connections.length === 1) {
+      // Exactly 1 connection — skip picker, go straight to browse
+      setSelectedConnectionIndex(0);
       setViewMode("browse");
     } else {
-      // 0 or 2+ sources: show picker
+      // 2+ connections — show picker
       setViewMode("picker");
     }
-  }, [driveAccounts.length]);
+  }, [connections.length]);
 
-  const handleSelectAccount = useCallback(
-    (account: DriveAccount) => {
-      const index = driveAccounts.findIndex((a) => a.id === account.id);
-      setSelectedAccountIndex(index >= 0 ? index : 0);
+  const handleSelectConnection = useCallback(
+    (connection: SourceConnection) => {
+      const index = connections.findIndex(
+        (c) => c.driveConnectionId === connection.driveConnectionId,
+      );
+      setSelectedConnectionIndex(index >= 0 ? index : 0);
       setViewMode("browse");
     },
-    [driveAccounts],
+    [connections],
   );
-
-  const handleConnectDrive = useCallback(() => {
-    connectDrive();
-  }, [connectDrive]);
 
   const handleUploadLocal = useCallback(() => {
     fileInputRef.current?.click();
@@ -102,15 +115,25 @@ export function LibraryTab() {
     />
   );
 
+  // ── CONNECT MODE ──
+  if (viewMode === "connect") {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        {fileInput}
+        <ConnectSourceSheet onClose={() => setViewMode("list")} />
+      </div>
+    );
+  }
+
   // ── PICKER MODE ──
   if (viewMode === "picker") {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {fileInput}
         <SourcePicker
-          driveAccounts={driveAccounts}
-          onSelectAccount={handleSelectAccount}
-          onConnectDrive={handleConnectDrive}
+          connections={connections}
+          onSelectConnection={handleSelectConnection}
+          onConnectSource={() => setViewMode("connect")}
           onUploadLocal={handleUploadLocal}
           onCancel={() => setViewMode("list")}
         />
@@ -141,7 +164,7 @@ export function LibraryTab() {
             Back
           </button>
 
-          {driveAccounts.length > 1 && (
+          {connections.length > 1 && (
             <>
               <div className="w-px h-4 bg-gray-200" />
               <label htmlFor="browse-account-picker" className="sr-only">
@@ -150,13 +173,13 @@ export function LibraryTab() {
               <select
                 id="browse-account-picker"
                 value={safeIndex}
-                onChange={(e) => setSelectedAccountIndex(Number(e.target.value))}
+                onChange={(e) => setSelectedConnectionIndex(Number(e.target.value))}
                 className="text-xs text-gray-700 bg-white border border-gray-200 rounded-md
                            px-2 py-1.5 min-h-[32px] max-w-[180px] truncate"
               >
-                {driveAccounts.map((account, i) => (
-                  <option key={account.id} value={i}>
-                    {account.email}
+                {connections.map((connection, i) => (
+                  <option key={connection.driveConnectionId} value={i}>
+                    {connection.email}
                   </option>
                 ))}
               </select>
@@ -176,8 +199,37 @@ export function LibraryTab() {
 
   // ── LIST MODE ──
 
-  // Empty state: no documents in this project (regardless of user-level Drive connections)
+  // Empty state: no documents in this project
   if (sources.length === 0) {
+    // Migration banner: project has no connections but user has user-level accounts
+    const showMigrationBanner = connections.length === 0 && hasUserDriveAccounts;
+
+    if (showMigrationBanner) {
+      return (
+        <div className="flex flex-col flex-1 min-h-0">
+          {fileInput}
+          <EmptyState
+            icon={
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                />
+              </svg>
+            }
+            message="Connect your sources to this book"
+            description="Your Google Drive accounts are now managed per book. Connect your accounts to use Drive with this book."
+            action={{
+              label: "Connect Now",
+              onClick: () => setViewMode("connect"),
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {fileInput}
@@ -234,7 +286,7 @@ export function LibraryTab() {
       </div>
 
       {/* Your Sources section at bottom */}
-      <SourcesSection onAddSource={() => setViewMode("picker")} />
+      <SourcesSection onAddSource={() => setViewMode("connect")} />
     </div>
   );
 }

@@ -12,7 +12,7 @@ import {
 import { useSourceAnalysis } from "@/hooks/use-source-analysis";
 import { useAIInstructions, type AIInstruction } from "@/hooks/use-ai-instructions";
 import { useSourcesPanel, type SourcesTab } from "@/hooks/use-sources-panel";
-import { useDriveAccounts, type DriveAccount } from "@/hooks/use-drive-accounts";
+import { useDriveAccounts } from "@/hooks/use-drive-accounts";
 import type { ChapterEditorHandle } from "@/components/editor/chapter-editor";
 
 // ── Context Value Type ──
@@ -77,10 +77,9 @@ interface SourcesContextValue {
   ) => Promise<void>;
   removeInstruction: (id: string) => Promise<void>;
 
-  // Drive accounts
-  driveAccounts: DriveAccount[];
-  driveConnected: boolean;
-  connectDrive: (loginHint?: string) => Promise<void>;
+  // Drive accounts (user-level — only for connect/disconnect flows)
+  hasUserDriveAccounts: boolean;
+  connectDrive: (loginHint?: string, projectId?: string) => Promise<void>;
   disconnectDrive: (connectionId: string) => Promise<void>;
   refetchDriveAccounts: () => Promise<void>;
 
@@ -167,9 +166,8 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
       await Promise.allSettled([analysisInstructions.remove(id), rewriteInstructions.remove(id)]);
     },
 
-    // Drive
-    driveAccounts: driveAccountsHook.accounts,
-    driveConnected: driveAccountsHook.connected,
+    // Drive (user-level — only for connect/disconnect flows)
+    hasUserDriveAccounts: driveAccountsHook.accounts.length > 0,
     connectDrive: driveAccountsHook.connect,
     disconnectDrive: driveAccountsHook.disconnect,
     refetchDriveAccounts: driveAccountsHook.refetch,

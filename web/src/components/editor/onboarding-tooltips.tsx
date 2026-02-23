@@ -10,7 +10,7 @@ interface OnboardingStep {
   /** Main text shown to the user */
   text: string;
   /** Which region of the editor this step points to */
-  target: "editor" | "sidebar" | "text-selection";
+  target: "editor" | "sidebar" | "text-selection" | "sources";
 }
 
 /**
@@ -29,6 +29,11 @@ const STEPS: OnboardingStep[] = [
     key: "sidebar",
     text: "Use the sidebar to switch between chapters or add new ones.",
     target: "sidebar",
+  },
+  {
+    key: "sources",
+    text: "Import reference documents from Google Drive or your device.",
+    target: "sources",
   },
   {
     key: "ai",
@@ -173,6 +178,9 @@ function getPositionClasses(target: OnboardingStep["target"]): string {
     case "sidebar":
       // Near the left edge where the sidebar lives
       return "top-1/3 left-4 lg:left-[270px]";
+    case "sources":
+      // Near the top-right where the Sources button is in the toolbar
+      return "top-16 right-4 lg:right-[200px]";
     case "text-selection":
       // Center of the content area, slightly below middle
       return "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2";

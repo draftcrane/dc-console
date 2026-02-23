@@ -6,41 +6,42 @@ import { useSourcesContext } from "@/contexts/sources-context";
 /**
  * SourcesSection — collapsible "Your Sources" section at the bottom of Library tab.
  *
- * Shows connected providers with disconnect capability.
- * Replaces AccountsSheet as the primary provider management path.
+ * Shows project-scoped connections with unlink capability.
+ * "Remove" unlinks from this book — it does NOT revoke the OAuth token.
  *
- * - Collapsed by default when sources exist
- * - Expanded when no providers connected (guides first-run)
- * - "+ Add" opens source picker via callback
- * - Inline disconnect confirmation (no window.confirm)
+ * - Collapsed by default when connections exist
+ * - Expanded when no connections linked (guides first-run)
+ * - "+ Add" opens connect source flow via callback
+ * - Inline unlink confirmation (no window.confirm)
  * - 44pt touch targets throughout
+ *
+ * Vocabulary: Source = provider, Document = file.
  */
 interface SourcesSectionProps {
-  /** Called when user taps "+ Add" to open the source picker */
+  /** Called when user taps "+ Add" to open the connect source flow */
   onAddSource: () => void;
 }
 
 export function SourcesSection({ onAddSource }: SourcesSectionProps) {
-  const { driveAccounts, disconnectDrive, refetchDriveAccounts } = useSourcesContext();
+  const { connections, unlinkConnection } = useSourcesContext();
 
-  const [expanded, setExpanded] = useState(driveAccounts.length === 0);
+  const [expanded, setExpanded] = useState(connections.length === 0);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isUnlinking, setIsUnlinking] = useState(false);
 
-  const handleDisconnect = useCallback(
+  const handleUnlink = useCallback(
     async (connectionId: string) => {
-      setIsDisconnecting(true);
+      setIsUnlinking(true);
       try {
-        await disconnectDrive(connectionId);
-        await refetchDriveAccounts();
+        await unlinkConnection(connectionId);
         setConfirmingId(null);
       } catch (err) {
-        console.error("Failed to disconnect:", err);
+        console.error("Failed to remove source:", err);
       } finally {
-        setIsDisconnecting(false);
+        setIsUnlinking(false);
       }
     },
-    [disconnectDrive, refetchDriveAccounts],
+    [unlinkConnection],
   );
 
   return (
@@ -77,11 +78,11 @@ export function SourcesSection({ onAddSource }: SourcesSectionProps) {
       {/* Content */}
       {expanded && (
         <div className="flex flex-col gap-1 pb-2">
-          {driveAccounts.length === 0 ? (
-            <p className="text-xs text-gray-400 py-2 px-1">No sources connected.</p>
+          {connections.length === 0 ? (
+            <p className="text-xs text-gray-400 py-2 px-1">No sources connected to this book.</p>
           ) : (
-            driveAccounts.map((account) => (
-              <div key={account.id}>
+            connections.map((connection) => (
+              <div key={connection.id}>
                 <div className="flex items-center gap-2 px-1 min-h-[44px]">
                   {/* Google Drive icon */}
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -90,37 +91,38 @@ export function SourcesSection({ onAddSource }: SourcesSectionProps) {
                       className="text-blue-500"
                     />
                   </svg>
-                  <span className="text-xs text-gray-700 truncate flex-1">{account.email}</span>
+                  <span className="text-xs text-gray-700 truncate flex-1">{connection.email}</span>
 
-                  {confirmingId === account.id ? null : (
+                  {confirmingId === connection.id ? null : (
                     <button
-                      onClick={() => setConfirmingId(account.id)}
+                      onClick={() => setConfirmingId(connection.id)}
                       className="text-xs text-gray-400 hover:text-red-600 transition-colors
                                  min-h-[44px] flex items-center shrink-0"
                     >
-                      Disconnect
+                      Remove
                     </button>
                   )}
                 </div>
 
                 {/* Inline confirmation */}
-                {confirmingId === account.id && (
+                {confirmingId === connection.id && (
                   <div className="px-1 py-2 bg-gray-50 rounded-lg mx-1 mb-1">
                     <p className="text-xs text-gray-600 mb-2">
-                      Disconnect {account.email}? Documents from this source will be archived.
+                      Remove {connection.email} from this book? Documents from this source will be
+                      archived.
                     </p>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleDisconnect(account.id)}
-                        disabled={isDisconnecting}
+                        onClick={() => handleUnlink(connection.id)}
+                        disabled={isUnlinking}
                         className="text-xs font-medium text-red-600 hover:text-red-700
                                    min-h-[36px] px-2 disabled:opacity-50"
                       >
-                        {isDisconnecting ? "Disconnecting..." : "Confirm"}
+                        {isUnlinking ? "Removing..." : "Confirm"}
                       </button>
                       <button
                         onClick={() => setConfirmingId(null)}
-                        disabled={isDisconnecting}
+                        disabled={isUnlinking}
                         className="text-xs text-gray-500 hover:text-gray-700
                                    min-h-[36px] px-2 disabled:opacity-50"
                       >
