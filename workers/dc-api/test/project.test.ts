@@ -99,6 +99,13 @@ describe("ProjectService", () => {
       const other = await seedUser({ id: "other-user" });
       await expect(service.getProject(other.id, proj.id)).rejects.toThrow("Project not found");
     });
+
+    it("throws NOT_FOUND for archived project", async () => {
+      const archived = await seedProject(userId, { status: "archived" });
+      await seedChapter(archived.id, { sortOrder: 1 });
+
+      await expect(service.getProject(userId, archived.id)).rejects.toThrow("Project not found");
+    });
   });
 
   describe("deleteProject", () => {

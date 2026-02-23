@@ -59,6 +59,15 @@ describe("ContentService", () => {
         service.saveContent(other.id, ch.id, { content: "test", version: 1 }),
       ).rejects.toThrow("Chapter not found");
     });
+
+    it("throws NOT_FOUND when chapter belongs to archived project", async () => {
+      const archivedProject = await seedProject(userId, { status: "archived" });
+      const ch = await seedChapter(archivedProject.id, { version: 1 });
+
+      await expect(
+        service.saveContent(userId, ch.id, { content: "<p>blocked</p>", version: 1 }),
+      ).rejects.toThrow("Chapter not found");
+    });
   });
 
   describe("getContent", () => {

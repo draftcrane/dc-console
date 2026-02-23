@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { SELF, env } from "cloudflare:test";
-import { seedUser, seedProject, seedChapter, cleanAll } from "./helpers/seed.js";
+import {
+  seedUser,
+  seedProject,
+  seedChapter,
+  seedSourceWithContent,
+  seedDriveConnection,
+  cleanAll,
+} from "./helpers/seed.js";
 
 /**
  * Integration tests — exercise authenticated CRUD flows end-to-end through
@@ -470,6 +477,85 @@ describe("Integration: Content", () => {
     });
 
     expect(getRes.status).toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Drive endpoints (authenticated)
+// ---------------------------------------------------------------------------
+describe("Integration: Drive", () => {
+  let userId: string;
+
+  beforeEach(async () => {
+    await cleanAll();
+    const user = await seedUser();
+    userId = user.id;
+  });
+
+  it("GET /drive/picker-token/:connectionId rejects foreign connection before token lookup", async () => {
+    const otherUser = await seedUser({ id: "other-user-drive" });
+    const foreignConnection = await seedDriveConnection(otherUser.id, {
+      id: "conn-foreign",
+      accessToken: "plaintext-access-token",
+      refreshToken: "plaintext-refresh-token",
+    });
+
+    const res = await SELF.fetch(`${BASE}/drive/picker-token/${foreignConnection.id}`, {
+      headers: authHeaders(userId),
+    });
+
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { code: string; error: string };
+    expect(body.code).toBe("DRIVE_NOT_CONNECTED");
+    expect(body.error).toContain("Connection not found");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Source material maintenance (authenticated)
+// ---------------------------------------------------------------------------
+describe("Integration: Sources", () => {
+  let userId: string;
+  let projectId: string;
+
+  beforeEach(async () => {
+    await cleanAll();
+    const user = await seedUser();
+    userId = user.id;
+    const project = await seedProject(userId, { title: "Source Maintenance Project" });
+    projectId = project.id;
+  });
+
+  it("POST /projects/:projectId/sources/remediate-markdown sanitizes legacy markdown cache", async () => {
+    const sourceId = "md-remediate-integration";
+    await seedSourceWithContent(
+      projectId,
+      "<h1>Legacy <img src=x onerror=alert(1)></h1><p>Body</p>",
+      {
+        id: sourceId,
+        title: "Legacy Markdown",
+        mimeType: "text/markdown",
+      },
+    );
+
+    const res = await jsonRequest(
+      "POST",
+      `/projects/${projectId}/sources/remediate-markdown`,
+      userId,
+    );
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as {
+      candidateCount: number;
+      processedCount: number;
+      missingCacheCount: number;
+    };
+    expect(body).toEqual({ candidateCount: 1, processedCount: 1, missingCacheCount: 0 });
+
+    const htmlObject = await env.EXPORTS_BUCKET.get(`sources/${sourceId}/content.html`);
+    expect(htmlObject).toBeTruthy();
+    const html = await htmlObject!.text();
+    expect(html).not.toContain("<img");
   });
 });
 

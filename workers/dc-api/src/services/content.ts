@@ -65,7 +65,7 @@ export class ContentService {
         `SELECT ch.id, ch.project_id, ch.version, ch.r2_key
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ?`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
       )
       .bind(chapterId, userId)
       .first<ChapterOwnershipRow>();
@@ -139,7 +139,7 @@ export class ContentService {
         `SELECT ch.id, ch.version, ch.r2_key
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ?`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
       )
       .bind(chapterId, userId)
       .first<{ id: string; version: number; r2_key: string | null }>();

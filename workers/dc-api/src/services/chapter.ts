@@ -152,7 +152,7 @@ export class ChapterService {
   async listChapters(userId: string, projectId: string): Promise<Chapter[]> {
     // Verify project ownership
     const project = await this.db
-      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ?`)
+      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
       .bind(projectId, userId)
       .first();
 
@@ -188,7 +188,7 @@ export class ChapterService {
         `SELECT ch.id, ch.project_id
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ?`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
       )
       .bind(chapterId, userId)
       .first<{ id: string; project_id: string }>();
@@ -239,11 +239,12 @@ export class ChapterService {
     // Fetch updated chapter
     const updated = await this.db
       .prepare(
-        `SELECT id, project_id, title, sort_order, r2_key, word_count, version, status, created_at, updated_at
-         FROM chapters
-         WHERE id = ?`,
+        `SELECT ch.id, ch.project_id, ch.title, ch.sort_order, ch.r2_key, ch.word_count, ch.version, ch.status, ch.created_at, ch.updated_at
+         FROM chapters ch
+         JOIN projects p ON p.id = ch.project_id
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
       )
-      .bind(chapterId)
+      .bind(chapterId, userId)
       .first<ChapterRow>();
 
     if (!updated) {
@@ -264,7 +265,7 @@ export class ChapterService {
         `SELECT ch.id, ch.project_id
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ?`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
       )
       .bind(chapterId, userId)
       .first<{ id: string; project_id: string }>();
@@ -371,7 +372,7 @@ export class ChapterService {
                 ch.word_count, ch.version, ch.status, ch.created_at, ch.updated_at
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ?`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
       )
       .bind(chapterId, userId)
       .first<ChapterRow>();

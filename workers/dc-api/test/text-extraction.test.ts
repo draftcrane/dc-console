@@ -70,6 +70,17 @@ describe("text-extraction", () => {
       expect(result.plainText).toContain("bold");
       expect(result.wordCount).toBeGreaterThan(0);
     });
+
+    it("escapes HTML in headings and list items", () => {
+      const md = "# <img src=x onerror=alert(1)>\n- <script>alert(1)</script>";
+      const content = new TextEncoder().encode(md);
+      const result = extractFromMarkdown(content.buffer as ArrayBuffer);
+
+      expect(result.html).toContain("<h1>&lt;img src=x onerror=alert(1)&gt;</h1>");
+      expect(result.html).toContain("<li>&lt;script&gt;alert(1)&lt;/script&gt;</li>");
+      expect(result.html).not.toContain("<script>");
+      expect(result.html).not.toContain("<img ");
+    });
   });
 
   describe("extractPlainTextFromHtml", () => {
