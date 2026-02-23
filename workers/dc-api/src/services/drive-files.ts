@@ -161,18 +161,24 @@ export class DriveFileService {
   async browseFolder(
     accessToken: string,
     folderId: string,
-    options: { pageSize?: number; pageToken?: string } = {},
+    options: { pageSize?: number; pageToken?: string; foldersOnly?: boolean } = {},
   ): Promise<{ files: DriveFile[]; nextPageToken?: string }> {
-    const supportedMimeTypes = [
-      "application/vnd.google-apps.folder",
-      "application/vnd.google-apps.document",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/pdf",
-      "text/plain",
-      "text/markdown",
-    ];
+    let mimeTypeQuery: string;
 
-    const mimeTypeQuery = supportedMimeTypes.map((type) => `mimeType = '${type}'`).join(" or ");
+    if (options.foldersOnly) {
+      // Folder picker mode: only return folders
+      mimeTypeQuery = `mimeType = 'application/vnd.google-apps.folder'`;
+    } else {
+      const supportedMimeTypes = [
+        "application/vnd.google-apps.folder",
+        "application/vnd.google-apps.document",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/pdf",
+        "text/plain",
+        "text/markdown",
+      ];
+      mimeTypeQuery = supportedMimeTypes.map((type) => `mimeType = '${type}'`).join(" or ");
+    }
 
     const query = `'${validateDriveId(folderId)}' in parents and trashed = false and (${mimeTypeQuery})`;
 

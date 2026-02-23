@@ -138,6 +138,7 @@ export function EditorToolbar({
 
         <ExportMenu
           projectId={projectId}
+          projectTitle={projectData.title}
           activeChapterId={activeChapterId}
           getToken={getToken}
           apiUrl={apiUrl}

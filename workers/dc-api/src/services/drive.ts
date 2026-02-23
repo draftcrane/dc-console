@@ -117,7 +117,7 @@ export class DriveService {
   browseFolder(
     accessToken: string,
     folderId: string,
-    options?: { pageSize?: number; pageToken?: string },
+    options?: { pageSize?: number; pageToken?: string; foldersOnly?: boolean },
   ) {
     return this.files.browseFolder(accessToken, folderId, options);
   }
