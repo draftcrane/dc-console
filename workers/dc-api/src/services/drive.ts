@@ -126,6 +126,10 @@ export class DriveService {
     return this.files.listDocsInFoldersRecursive(accessToken, folderIds, maxDocs);
   }
 
+  findOrCreateRootFolder(accessToken: string, folderName: string) {
+    return this.files.findOrCreateRootFolder(accessToken, folderName);
+  }
+
   findOrCreateSubfolder(accessToken: string, parentFolderId: string, folderName: string) {
     return this.files.findOrCreateSubfolder(accessToken, parentFolderId, folderName);
   }

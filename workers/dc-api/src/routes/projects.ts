@@ -4,8 +4,6 @@ import { standardRateLimit, exportRateLimit } from "../middleware/rate-limit.js"
 import { validationError } from "../middleware/error-handler.js";
 import { ProjectService } from "../services/project.js";
 import { BackupService } from "../services/backup.js";
-import { DriveService } from "../services/drive.js";
-import { resolveProjectConnection } from "../services/drive-connection-resolver.js";
 import { safeContentDisposition } from "../utils/file-names.js";
 
 /**
@@ -157,97 +155,6 @@ projects.delete("/:projectId", async (c) => {
 
   const service = new ProjectService(c.env.DB);
   await service.deleteProject(userId, projectId);
-
-  return c.json({ success: true });
-});
-
-/**
- * POST /projects/:projectId/connect-drive
- * Connect a project to Google Drive by creating a dedicated folder.
- * Accepts optional { connectionId } to specify which Drive account to use.
- * Falls back to user's first connection if not specified (backward compat).
- */
-projects.post("/:projectId/connect-drive", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-  const body = (await c.req.json().catch(() => ({}))) as { connectionId?: string };
-
-  const projectService = new ProjectService(c.env.DB);
-  const project = await projectService.getProject(userId, projectId); // Includes ownership check
-
-  if (project.driveFolderId) {
-    // Already connected, return existing ID
-    return c.json({ driveFolderId: project.driveFolderId });
-  }
-
-  const driveService = new DriveService(c.env);
-
-  // Resolve Drive connection: request param > single-connection fallback > reject ambiguous
-  const resolved = await resolveProjectConnection(
-    driveService.tokenService,
-    userId,
-    null, // No project binding yet (this is the connect flow)
-    body.connectionId,
-  );
-
-  // Create a folder named after the project title
-  const driveFolder = await driveService.createFolder(resolved.tokens.accessToken, project.title);
-
-  // Store drive_folder_id and drive_connection_id on the project
-  await c.env.DB.prepare(
-    `UPDATE projects SET drive_folder_id = ?, drive_connection_id = ? WHERE id = ?`,
-  )
-    .bind(driveFolder.id, resolved.connectionId, project.id)
-    .run();
-
-  // Auto-link this connection as a research source for the project
-  await c.env.DB.prepare(
-    `INSERT OR IGNORE INTO project_source_connections (id, project_id, drive_connection_id, created_at)
-     VALUES (lower(hex(randomblob(16))), ?, ?, ?)`,
-  )
-    .bind(project.id, resolved.connectionId, new Date().toISOString())
-    .run();
-
-  console.info(
-    JSON.stringify({
-      level: "info",
-      event: "project_drive_connected",
-      user_id: userId,
-      project_id: project.id,
-      drive_folder_id: driveFolder.id,
-      connection_id: resolved.connectionId,
-    }),
-  );
-
-  return c.json({ driveFolderId: driveFolder.id });
-});
-
-/**
- * POST /projects/:projectId/disconnect-drive
- * Disconnect a project from its Drive folder by clearing drive_folder_id and drive_connection_id.
- * This does not disconnect the user's Google account.
- */
-projects.post("/:projectId/disconnect-drive", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-
-  const projectService = new ProjectService(c.env.DB);
-  const project = await projectService.getProject(userId, projectId); // Includes ownership check
-
-  await c.env.DB.prepare(
-    `UPDATE projects SET drive_folder_id = NULL, drive_connection_id = NULL WHERE id = ?`,
-  )
-    .bind(project.id)
-    .run();
-
-  console.info(
-    JSON.stringify({
-      level: "info",
-      event: "project_drive_disconnected",
-      user_id: userId,
-      project_id: project.id,
-    }),
-  );
 
   return c.json({ success: true });
 });

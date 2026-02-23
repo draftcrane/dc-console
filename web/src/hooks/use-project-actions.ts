@@ -16,29 +16,16 @@ export interface ProjectSummary {
 
 interface UseProjectActionsOptions {
   getToken: () => Promise<string | null>;
-  /** Required for delete/Drive features; omit when used on dashboard */
+  /** Required for delete features; omit when used on dashboard */
   projectId?: string;
-  /** Drive status hook's connect fn */
-  connectDrive?: () => void;
-  /** Callback to refetch project data when Drive folder is connected */
-  onProjectConnected?: (driveFolderId: string) => void | Promise<void>;
-  /** Callback to refetch project data when Drive folder is disconnected */
-  onProjectDisconnected?: () => void | Promise<void>;
 }
 
 /**
- * Encapsulates project-level actions: list, rename, duplicate, delete,
- * Drive files sheet, and disconnect Drive dialog state.
+ * Encapsulates project-level actions: list, rename, duplicate, delete.
  *
  * Used by the editor page to centralise state that was previously inline.
  */
-export function useProjectActions({
-  getToken,
-  projectId,
-  connectDrive,
-  onProjectConnected,
-  onProjectDisconnected,
-}: UseProjectActionsOptions) {
+export function useProjectActions({ getToken, projectId }: UseProjectActionsOptions) {
   const router = useRouter();
 
   // Project list
@@ -197,79 +184,6 @@ export function useProjectActions({
     }
   }, [getToken, projectId, router]);
 
-  /**
-   * Connect Drive with project context (US-006).
-   * Stores the project ID in sessionStorage so the Drive success page
-   * can auto-create the book folder after OAuth completes.
-   */
-  const connectDriveWithProject = useCallback(() => {
-    if (!projectId) return;
-    sessionStorage.setItem("dc_pending_drive_project", projectId);
-    connectDrive?.();
-  }, [projectId, connectDrive]);
-
-  // Connect Project to Drive
-  const onConnectProjectToDrive = useCallback(async () => {
-    if (!projectId) return;
-    try {
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/projects/${projectId}/connect-drive`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to connect project to Google Drive");
-      }
-
-      const data = (await response.json()) as { driveFolderId: string };
-
-      console.info(
-        JSON.stringify({
-          event: "project_connect_drive_success",
-          projectId,
-          driveFolderId: data.driveFolderId,
-        }),
-      );
-
-      await onProjectConnected?.(data.driveFolderId);
-    } catch (err) {
-      console.error("Failed to connect project to Drive:", err);
-    }
-  }, [getToken, projectId, onProjectConnected]);
-
-  const disconnectProjectFromDrive = useCallback(async (): Promise<boolean> => {
-    if (!projectId) return false;
-    try {
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/projects/${projectId}/disconnect-drive`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to disconnect project from Google Drive");
-      }
-
-      console.info(
-        JSON.stringify({
-          event: "project_disconnect_drive_success",
-          projectId,
-        }),
-      );
-
-      await onProjectDisconnected?.();
-      return true;
-    } catch (err) {
-      console.error("Failed to disconnect project from Drive:", err);
-      return false;
-    }
-  }, [getToken, projectId, onProjectDisconnected]);
-
   return {
     projects,
     isLoadingProjects,
@@ -291,9 +205,5 @@ export function useProjectActions({
     openDeleteDialog,
     closeDeleteDialog,
     handleDeleteProject,
-
-    connectDriveWithProject,
-    onConnectProjectToDrive,
-    disconnectProjectFromDrive,
   };
 }

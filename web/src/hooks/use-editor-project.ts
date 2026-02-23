@@ -19,12 +19,10 @@ interface UseEditorProjectReturn {
   isLoading: boolean;
   error: string | null;
   fetchProjectData: () => Promise<void>;
-  handleProjectConnected: (driveFolderId: string) => Promise<void>;
-  handleProjectDisconnected: () => Promise<void>;
 }
 
 /**
- * Manages project data fetching, active chapter selection, and Drive connection callbacks.
+ * Manages project data fetching and active chapter selection.
  *
  * Extracted from EditorPage to reduce the orchestrator's responsibility surface.
  */
@@ -81,25 +79,6 @@ export function useEditorProject({
     fetchProjectData();
   }, [fetchProjectData]);
 
-  const handleProjectConnected = useCallback(
-    async (driveFolderId: string) => {
-      // Optimistically reflect connection in the current view.
-      // Note: driveConnectionId is not available from the connect-drive API response,
-      // so it will be populated when fetchProjectData() completes below.
-      setProjectData((prev) => (prev ? { ...prev, driveFolderId } : prev));
-      // Then refresh canonical server state (populates driveConnectionId).
-      await fetchProjectData();
-    },
-    [fetchProjectData],
-  );
-
-  const handleProjectDisconnected = useCallback(async () => {
-    setProjectData((prev) =>
-      prev ? { ...prev, driveFolderId: null, driveConnectionId: null } : prev,
-    );
-    await fetchProjectData();
-  }, [fetchProjectData]);
-
   return {
     projectData,
     setProjectData,
@@ -108,7 +87,5 @@ export function useEditorProject({
     isLoading,
     error,
     fetchProjectData,
-    handleProjectConnected,
-    handleProjectDisconnected,
   };
 }

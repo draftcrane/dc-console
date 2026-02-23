@@ -23,8 +23,6 @@ export interface ProjectData {
   id: string;
   title: string;
   description?: string;
-  driveFolderId?: string | null;
-  driveConnectionId?: string | null;
   status: string;
   createdAt: string;
   updatedAt: string;

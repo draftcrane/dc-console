@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useBackup } from "@/hooks/use-backup";
+import type { DriveAccount } from "@/hooks/use-drive-accounts";
 
 type ExportFormat = "pdf" | "epub";
 
@@ -22,8 +23,8 @@ interface ExportMenuProps {
   activeChapterId: string | null;
   getToken: () => Promise<string | null>;
   apiUrl: string;
-  /** Whether Google Drive is connected. When false, "Save to Drive" button is hidden. */
-  driveConnected?: boolean;
+  /** Connected Drive accounts. When empty, "Save to Drive" is hidden. */
+  driveAccounts?: DriveAccount[];
 }
 
 /**
@@ -34,6 +35,8 @@ interface ExportMenuProps {
  * - Progress indicator during generation
  * - On completion, provide download link
  * - "Save to Google Drive" button when Drive is connected (US-021)
+ *   - 1 account: auto-selects
+ *   - 2+ accounts: shows account picker (flat button list, iPad-friendly)
  * - iPad-first: 44pt touch targets
  */
 export function ExportMenu({
@@ -41,13 +44,15 @@ export function ExportMenu({
   activeChapterId,
   getToken,
   apiUrl,
-  driveConnected = false,
+  driveAccounts = [],
 }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [state, setState] = useState<ExportState>({ phase: "idle" });
   const [driveState, setDriveState] = useState<DriveState>({ phase: "idle" });
   const menuRef = useRef<HTMLDivElement>(null);
   const { downloadBackup, isDownloading } = useBackup();
+
+  const driveConnected = driveAccounts.length > 0;
 
   // Close menu on outside click
   useEffect(() => {
@@ -161,50 +166,56 @@ export function ExportMenu({
    * Save the completed export to Google Drive.
    * Per US-021: POST /exports/:jobId/to-drive
    */
-  const handleSaveToDrive = useCallback(async () => {
-    if (state.phase !== "complete") return;
+  const handleSaveToDrive = useCallback(
+    async (connectionId?: string) => {
+      if (state.phase !== "complete") return;
 
-    setDriveState({ phase: "saving" });
+      setDriveState({ phase: "saving" });
 
-    try {
-      const token = await getToken();
-      if (!token) {
-        setDriveState({ phase: "error", message: "Authentication required" });
-        return;
+      try {
+        const token = await getToken();
+        if (!token) {
+          setDriveState({ phase: "error", message: "Authentication required" });
+          return;
+        }
+
+        const response = await fetch(`${apiUrl}/exports/${state.jobId}/to-drive`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ connectionId }),
+        });
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          const msg =
+            (body as { error?: string } | null)?.error || "Failed to save to Google Drive";
+          setDriveState({ phase: "error", message: msg });
+          return;
+        }
+
+        const result = (await response.json()) as {
+          driveFileId: string;
+          fileName: string;
+          webViewLink: string;
+        };
+
+        setDriveState({
+          phase: "saved",
+          driveFileId: result.driveFileId,
+          webViewLink: result.webViewLink,
+        });
+      } catch (err) {
+        setDriveState({
+          phase: "error",
+          message: err instanceof Error ? err.message : "Failed to save to Google Drive",
+        });
       }
-
-      const response = await fetch(`${apiUrl}/exports/${state.jobId}/to-drive`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        const msg = (body as { error?: string } | null)?.error || "Failed to save to Google Drive";
-        setDriveState({ phase: "error", message: msg });
-        return;
-      }
-
-      const result = (await response.json()) as {
-        driveFileId: string;
-        fileName: string;
-        webViewLink: string;
-      };
-
-      setDriveState({
-        phase: "saved",
-        driveFileId: result.driveFileId,
-        webViewLink: result.webViewLink,
-      });
-    } catch (err) {
-      setDriveState({
-        phase: "error",
-        message: err instanceof Error ? err.message : "Failed to save to Google Drive",
-      });
-    }
-  }, [state, getToken, apiUrl]);
+    },
+    [state, getToken, apiUrl],
+  );
 
   const handleDismiss = useCallback(() => {
     setState({ phase: "idle" });
@@ -434,20 +445,47 @@ export function ExportMenu({
                   Download
                 </button>
 
-                {/* Save to Google Drive button (US-021) - hidden if Drive not connected */}
+                {/* Save to Google Drive - account picker (US-021) */}
                 {driveConnected && driveState.phase === "idle" && (
-                  <button
-                    onClick={handleSaveToDrive}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
-                               text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md
-                               transition-colors min-h-[44px]"
-                    aria-label="Save to Google Drive"
-                  >
-                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
-                    </svg>
-                    Save to Drive
-                  </button>
+                  <>
+                    {driveAccounts.length === 1 ? (
+                      <button
+                        onClick={() => handleSaveToDrive(driveAccounts[0].id)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium
+                                   text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-md
+                                   transition-colors min-h-[44px]"
+                        aria-label="Save to Google Drive"
+                      >
+                        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
+                        </svg>
+                        Save to Drive
+                      </button>
+                    ) : (
+                      <div className="w-full mt-1">
+                        <p className="text-xs text-gray-500 mb-1">Save to Drive:</p>
+                        {driveAccounts.map((account) => (
+                          <button
+                            key={account.id}
+                            onClick={() => handleSaveToDrive(account.id)}
+                            className="w-full text-left inline-flex items-center gap-2 px-3 py-2 text-sm font-medium
+                                       text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md
+                                       transition-colors min-h-[44px] mb-1"
+                            aria-label={`Save to ${account.email}`}
+                          >
+                            <svg
+                              className="w-4 h-4 shrink-0"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
+                            </svg>
+                            {account.email}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Saving to Drive indicator */}

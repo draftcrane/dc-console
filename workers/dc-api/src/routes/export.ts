@@ -140,10 +140,11 @@ exportRoutes.get("/exports/:jobId/download", async (c) => {
 exportRoutes.post("/exports/:jobId/to-drive", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const jobId = c.req.param("jobId");
+  const body = (await c.req.json().catch(() => ({}))) as { connectionId?: string };
 
   const service = createExportService(c.env);
   const driveService = new DriveService(c.env);
-  const result = await service.saveToDrive(userId, jobId, driveService);
+  const result = await service.saveToDrive(userId, jobId, driveService, body.connectionId);
 
   return c.json(result);
 });

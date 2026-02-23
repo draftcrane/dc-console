@@ -289,6 +289,35 @@ export class DriveFileService {
   }
 
   /**
+   * Finds an existing folder by name at the Drive root, or creates it.
+   * Used for on-demand project folder creation at export time.
+   *
+   * @param accessToken - Valid access token
+   * @param folderName - Name for the folder (e.g. project title)
+   * @returns The folder ID
+   */
+  async findOrCreateRootFolder(accessToken: string, folderName: string): Promise<string> {
+    // Search for existing folder at root
+    const searchParams = new URLSearchParams({
+      q: `'root' in parents and name = '${escapeDriveQuery(folderName)}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+      fields: "files(id,name)",
+    });
+
+    const searchResponse = await fetch(`${GOOGLE_DRIVE_API}/files?${searchParams.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (searchResponse.ok) {
+      const data = (await searchResponse.json()) as { files: DriveFile[] };
+      if (data.files?.length > 0) return data.files[0].id;
+    }
+
+    // Create new folder at root
+    const folder = await this.createFolder(accessToken, folderName);
+    return folder.id;
+  }
+
+  /**
    * Finds an existing subfolder by name within a parent folder, or creates it.
    * Per PRD Section 11: _exports/ subfolder in the Book Folder.
    *
