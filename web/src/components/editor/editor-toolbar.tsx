@@ -36,7 +36,6 @@ interface EditorToolbarProps {
   driveFolderId?: string | null;
   onSetupDrive?: () => void;
   onUnlinkDrive?: () => void;
-  onManageAccounts: () => void;
   onRenameBook: () => void;
   onDuplicateBook: () => void;
   isDuplicating: boolean;
@@ -66,7 +65,6 @@ export function EditorToolbar({
   driveFolderId,
   onSetupDrive,
   onUnlinkDrive,
-  onManageAccounts,
   onRenameBook,
   onDuplicateBook,
   isDuplicating,
@@ -161,7 +159,6 @@ export function EditorToolbar({
           driveFolderId={driveFolderId}
           onSetupDrive={onSetupDrive}
           onUnlinkDrive={onUnlinkDrive}
-          onManageAccounts={onManageAccounts}
           onRenameBook={onRenameBook}
           onDuplicateBook={onDuplicateBook}
           isDuplicating={isDuplicating}

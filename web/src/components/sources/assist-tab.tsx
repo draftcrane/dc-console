@@ -111,7 +111,7 @@ export function AssistTab() {
           </svg>
         }
         message="Add sources to use AI analysis"
-        description="Import sources from your Drive or upload files first."
+        description="Add documents to get started."
       />
     );
   }

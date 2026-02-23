@@ -77,7 +77,6 @@ function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorToolbar
     getToken: vi.fn().mockResolvedValue("token"),
     apiUrl: "https://api.test",
     hasDriveFolder: false,
-    onManageAccounts: vi.fn(),
     onRenameBook: vi.fn(),
     onDuplicateBook: vi.fn(),
     isDuplicating: false,

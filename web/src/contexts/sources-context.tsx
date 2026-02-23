@@ -81,6 +81,8 @@ interface SourcesContextValue {
   driveAccounts: DriveAccount[];
   driveConnected: boolean;
   connectDrive: (loginHint?: string) => Promise<void>;
+  disconnectDrive: (connectionId: string) => Promise<void>;
+  refetchDriveAccounts: () => Promise<void>;
 
   // Editor ref (for content insertion)
   editorRef: React.RefObject<ChapterEditorHandle | null>;
@@ -169,6 +171,8 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
     driveAccounts: driveAccountsHook.accounts,
     driveConnected: driveAccountsHook.connected,
     connectDrive: driveAccountsHook.connect,
+    disconnectDrive: driveAccountsHook.disconnect,
+    refetchDriveAccounts: driveAccountsHook.refetch,
 
     // Refs
     editorRef,

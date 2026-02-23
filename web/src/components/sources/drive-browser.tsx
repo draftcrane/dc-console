@@ -10,6 +10,8 @@ interface DriveBrowserProps {
   onClose: () => void;
   /** Called when the user wants to reconnect (re-authorize) the Drive account. */
   onReconnect?: () => void;
+  /** Label for the root breadcrumb (defaults to account email or "My Drive"). */
+  rootLabel?: string;
 }
 
 interface BreadcrumbItem {
@@ -27,17 +29,25 @@ const SUPPORTED_MIMES = new Set([
 ]);
 
 /**
- * Drive folder/file navigation for adding sources.
- * Single-level flat list per folder. Breadcrumb nav.
+ * DriveBrowser — full-height folder/file navigation for adding documents.
+ *
+ * Fills the panel content area via flex layout. Breadcrumbs stick to top,
+ * action bar sticks to bottom, file list fills everything in between.
+ *
+ * Action bar is contextual and mutually exclusive:
+ * - Documents selected: Cancel + "Add N Documents"
+ * - In subfolder, nothing selected: Cancel + "Link This Folder"
+ * - At root, nothing selected: Cancel only
  */
-export function DriveBrowser({ connectionId, onClose, onReconnect }: DriveBrowserProps) {
-  const { addDriveSources, projectId } = useSourcesContext();
+export function DriveBrowser({ connectionId, onClose, onReconnect, rootLabel }: DriveBrowserProps) {
+  const { addDriveSources, projectId, refetchSources } = useSourcesContext();
   const [currentFolder, setCurrentFolder] = useState("root");
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([
-    { id: "root", name: "My Drive" },
+    { id: "root", name: rootLabel || "My Drive" },
   ]);
   const [selectedFiles, setSelectedFiles] = useState<Map<string, DriveFile>>(new Map());
   const [isAdding, setIsAdding] = useState(false);
+  const [isLinking, setIsLinking] = useState(false);
 
   const { files, isLoading, error } = useDriveFiles({ connectionId, folderId: currentFolder });
   const { linkFolder } = useLinkedFolders(projectId);
@@ -45,12 +55,14 @@ export function DriveBrowser({ connectionId, onClose, onReconnect }: DriveBrowse
   const navigateToFolder = useCallback((folderId: string, folderName: string) => {
     setCurrentFolder(folderId);
     setBreadcrumbs((prev) => [...prev, { id: folderId, name: folderName }]);
+    setSelectedFiles(new Map());
   }, []);
 
   const navigateToBreadcrumb = useCallback(
     (index: number) => {
       setBreadcrumbs((prev) => prev.slice(0, index + 1));
       setCurrentFolder(breadcrumbs[index].id);
+      setSelectedFiles(new Map());
     },
     [breadcrumbs],
   );
@@ -71,16 +83,16 @@ export function DriveBrowser({ connectionId, onClose, onReconnect }: DriveBrowse
     if (selectedFiles.size === 0) return;
     setIsAdding(true);
     try {
-      const files = Array.from(selectedFiles.values()).map((f) => ({
+      const filesToAdd = Array.from(selectedFiles.values()).map((f) => ({
         driveFileId: f.id,
         title: f.name,
         mimeType: f.mimeType,
       }));
-      await addDriveSources(files, connectionId);
+      await addDriveSources(filesToAdd, connectionId);
       setSelectedFiles(new Map());
       onClose();
     } catch (err) {
-      console.error("Failed to add sources:", err);
+      console.error("Failed to add documents:", err);
     } finally {
       setIsAdding(false);
     }
@@ -88,23 +100,62 @@ export function DriveBrowser({ connectionId, onClose, onReconnect }: DriveBrowse
 
   const handleLinkFolder = useCallback(async () => {
     const currentFolderName = breadcrumbs[breadcrumbs.length - 1]?.name || "Drive";
-    await linkFolder({
-      driveConnectionId: connectionId,
-      driveFolderId: currentFolder,
-      folderName: currentFolderName,
-    });
-  }, [linkFolder, connectionId, currentFolder, breadcrumbs]);
+    setIsLinking(true);
+    try {
+      await linkFolder({
+        driveConnectionId: connectionId,
+        driveFolderId: currentFolder,
+        folderName: currentFolderName,
+      });
+      await refetchSources();
+      onClose();
+    } catch (err) {
+      console.error("Failed to link folder:", err);
+    } finally {
+      setIsLinking(false);
+    }
+  }, [linkFolder, connectionId, currentFolder, breadcrumbs, refetchSources, onClose]);
 
-  // Separate folders from files
+  // Separate folders from supported documents
   const folders = files.filter((f) => f.mimeType === FOLDER_MIME);
   const documents = files.filter(
     (f) => f.mimeType !== FOLDER_MIME && SUPPORTED_MIMES.has(f.mimeType),
   );
+  // Check for unsupported files (non-folder, non-supported) to differentiate empty states
+  const unsupportedFiles = files.filter(
+    (f) => f.mimeType !== FOLDER_MIME && !SUPPORTED_MIMES.has(f.mimeType),
+  );
+
+  const isAtRoot = currentFolder === "root";
+  const isInSubfolder = !isAtRoot;
+  const hasSelection = selectedFiles.size > 0;
+
+  // Context-aware empty state message
+  const getEmptyMessage = (): { title: string; detail?: string } => {
+    const hasUnsupported = unsupportedFiles.length > 0;
+    if (isAtRoot) {
+      if (hasUnsupported) {
+        return {
+          title: "No supported documents found",
+          detail: "Supported: Google Docs, Word, PDF, and text files.",
+        };
+      }
+      return { title: "No documents found" };
+    }
+    // In subfolder
+    if (hasUnsupported) {
+      return {
+        title: "No supported documents in this folder",
+        detail: "Supported: Google Docs, Word, PDF, and text files.",
+      };
+    }
+    return { title: "This folder is empty" };
+  };
 
   return (
-    <div className="border border-gray-200 rounded-lg bg-white">
-      {/* Breadcrumb */}
-      <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-1 overflow-x-auto">
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Breadcrumbs (sticky header) */}
+      <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-1 overflow-x-auto shrink-0">
         {breadcrumbs.map((crumb, i) => (
           <span key={crumb.id} className="flex items-center gap-1 shrink-0">
             {i > 0 && <span className="text-gray-300 text-xs">/</span>}
@@ -122,8 +173,8 @@ export function DriveBrowser({ connectionId, onClose, onReconnect }: DriveBrowse
         ))}
       </div>
 
-      {/* File list */}
-      <div className="max-h-[300px] overflow-auto">
+      {/* File list (fills available space) */}
+      <div className="flex-1 overflow-auto min-h-0">
         {isLoading ? (
           <p className="px-3 py-6 text-center text-sm text-gray-500">Loading...</p>
         ) : error ? (
@@ -132,7 +183,6 @@ export function DriveBrowser({ connectionId, onClose, onReconnect }: DriveBrowse
             <div className="flex items-center justify-center gap-2">
               <button
                 onClick={() => {
-                  // Re-trigger fetch by toggling folder
                   const f = currentFolder;
                   setCurrentFolder("");
                   requestAnimationFrame(() => setCurrentFolder(f));
@@ -152,9 +202,15 @@ export function DriveBrowser({ connectionId, onClose, onReconnect }: DriveBrowse
             </div>
           </div>
         ) : folders.length === 0 && documents.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-gray-400">
-            No supported files in this folder
-          </p>
+          (() => {
+            const msg = getEmptyMessage();
+            return (
+              <div className="px-3 py-6 text-center">
+                <p className="text-sm text-gray-400">{msg.title}</p>
+                {msg.detail && <p className="text-xs text-gray-400 mt-1">{msg.detail}</p>}
+              </div>
+            );
+          })()
         ) : (
           <>
             {/* Folders */}
@@ -209,18 +265,8 @@ export function DriveBrowser({ connectionId, onClose, onReconnect }: DriveBrowse
         )}
       </div>
 
-      {/* Action bar */}
-      <div className="px-3 py-2 border-t border-gray-200 flex items-center gap-2">
-        {currentFolder !== "root" && (
-          <button
-            onClick={handleLinkFolder}
-            className="text-xs text-blue-600 hover:text-blue-700 min-h-[44px] flex items-center"
-            title="Auto-sync this folder"
-          >
-            Link folder
-          </button>
-        )}
-        <div className="flex-1" />
+      {/* Action bar (sticky footer, contextual, mutually exclusive) */}
+      <div className="px-3 py-2 border-t border-gray-200 flex items-center gap-2 shrink-0">
         <button
           onClick={onClose}
           className="h-8 px-3 text-xs text-gray-600 border border-gray-200 rounded-lg
@@ -228,16 +274,39 @@ export function DriveBrowser({ connectionId, onClose, onReconnect }: DriveBrowse
         >
           Cancel
         </button>
-        <button
-          onClick={handleAddSelected}
-          disabled={selectedFiles.size === 0 || isAdding}
-          className="h-8 px-3 text-xs font-medium text-white bg-blue-600 rounded-lg
-                     hover:bg-blue-700 disabled:opacity-50 min-h-[44px] flex items-center"
-        >
-          {isAdding
-            ? "Adding..."
-            : `Add ${selectedFiles.size > 0 ? selectedFiles.size : ""} Selected`}
-        </button>
+
+        <div className="flex-1" />
+
+        {/* Documents selected: "Add N Documents" */}
+        {hasSelection && (
+          <button
+            onClick={handleAddSelected}
+            disabled={isAdding}
+            className="h-8 px-3 text-xs font-medium text-white bg-blue-600 rounded-lg
+                       hover:bg-blue-700 disabled:opacity-50 min-h-[44px] flex items-center"
+          >
+            {isAdding
+              ? "Adding..."
+              : `Add ${selectedFiles.size} Document${selectedFiles.size !== 1 ? "s" : ""}`}
+          </button>
+        )}
+
+        {/* In subfolder, nothing selected: "Link This Folder" */}
+        {!hasSelection && isInSubfolder && folders.length + documents.length > 0 && (
+          <div className="flex flex-col items-end gap-0.5">
+            <button
+              onClick={handleLinkFolder}
+              disabled={isLinking}
+              className="h-8 px-3 text-xs font-medium text-white bg-blue-600 rounded-lg
+                         hover:bg-blue-700 disabled:opacity-50 min-h-[44px] flex items-center"
+            >
+              {isLinking ? "Linking..." : "Link This Folder"}
+            </button>
+            <span className="text-[10px] text-gray-400 leading-tight max-w-[180px] text-right">
+              All documents in this folder will be added and kept in sync.
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
