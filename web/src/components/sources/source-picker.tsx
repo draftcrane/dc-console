@@ -7,7 +7,7 @@ interface SourcePickerProps {
   connections: SourceConnection[];
   /** Called when user picks a project-linked connection to browse */
   onSelectConnection: (connection: SourceConnection) => void;
-  /** Called when user wants to connect Google Drive (opens ConnectSourceSheet) */
+  /** Called when user wants to connect Google Drive (initiates OAuth directly) */
   onConnectDrive: () => void;
   /** Called when user wants to upload from this device */
   onUploadLocal: () => void;
@@ -21,8 +21,8 @@ interface SourcePickerProps {
  * When project has linked connections: shows each linked account + "This device" + "Connect another source"
  * When project has NO connections: shows generic "Google Drive" + "This device" (no account emails)
  *
- * User-level account details are NEVER shown here. The ConnectSourceSheet
- * (opened by onConnectDrive) is the only place where account emails appear.
+ * User-level account details are NEVER shown here. Clicking "Google Drive"
+ * initiates OAuth directly — no intermediate screen with account emails.
  *
  * 44pt touch targets throughout. iPad-first.
  *
