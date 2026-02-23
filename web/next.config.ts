@@ -3,10 +3,13 @@ import { withSerwist } from "@serwist/turbopack";
 
 /**
  * Security headers applied to all routes.
+ * 'unsafe-eval' is required by Clerk in development but not in production.
  */
+const isDev = process.env.NODE_ENV !== "production";
+
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://apis.google.com;
+  script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://*.clerk.com https://apis.google.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' blob: data: https://*.clerk.com https://img.clerk.com https://lh3.googleusercontent.com;
   font-src 'self';

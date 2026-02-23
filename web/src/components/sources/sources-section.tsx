@@ -47,11 +47,11 @@ export function SourcesSection({ onAddSource }: SourcesSectionProps) {
   return (
     <div className="border-t border-gray-100 px-3 py-2">
       {/* Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between w-full min-h-[44px] text-left"
-      >
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-between w-full min-h-[44px]">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-1.5 text-left min-h-[44px]"
+        >
           <svg
             className={`w-3.5 h-3.5 text-gray-400 transition-transform ${expanded ? "rotate-90" : ""}`}
             fill="none"
@@ -61,7 +61,7 @@ export function SourcesSection({ onAddSource }: SourcesSectionProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
           <span className="text-xs font-medium text-gray-500">Your Sources</span>
-        </div>
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -73,7 +73,7 @@ export function SourcesSection({ onAddSource }: SourcesSectionProps) {
         >
           + Connect
         </button>
-      </button>
+      </div>
 
       {/* Content */}
       {expanded && (
