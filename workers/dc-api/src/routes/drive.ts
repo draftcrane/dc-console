@@ -74,16 +74,18 @@ function validateFrontendUrl(redirectUrl: URL, configuredFrontendUrl: string): v
 drive.get("/authorize", standardRateLimit, async (c) => {
   const { userId } = c.get("auth");
   const loginHint = c.req.query("loginHint");
+  const projectId = c.req.query("projectId");
   const driveService = new DriveService(c.env);
 
   // Generate CSRF state token
-  // Format: userId:timestamp:random to allow validation
+  // Format: userId:timestamp:random:projectId to allow validation + auto-linking
+  // projectId is optional — empty string when not provided
   const timestamp = Date.now();
   const random = crypto.getRandomValues(new Uint8Array(16));
   const randomHex = Array.from(random)
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  const state = `${userId}:${timestamp}:${randomHex}`;
+  const state = `${userId}:${timestamp}:${randomHex}:${projectId || ""}`;
 
   // Store state in KV with 10 minute expiry for CSRF validation
   await c.env.CACHE.put(`oauth_state:${state}`, userId, { expirationTtl: 600 });
@@ -131,8 +133,11 @@ driveCallback.get("/callback", async (c) => {
   // Delete the state to prevent reuse
   await c.env.CACHE.delete(`oauth_state:${state}`);
 
-  // Extract userId from state for verification
-  const [stateUserId] = state.split(":");
+  // Extract userId and optional projectId from state for verification
+  const stateParts = state.split(":");
+  const stateUserId = stateParts[0];
+  // projectId is the 4th part (index 3) — may be empty string
+  const stateProjectId = stateParts[3] || "";
   if (stateUserId !== storedUserId) {
     validationError("State user ID mismatch");
   }
@@ -160,6 +165,10 @@ driveCallback.get("/callback", async (c) => {
     redirectUrl.pathname = "/drive/success";
     redirectUrl.searchParams.set("cid", actualConnectionId);
     redirectUrl.searchParams.set("email", email);
+    // Pass projectId as fallback for iPad Safari sessionStorage loss
+    if (stateProjectId) {
+      redirectUrl.searchParams.set("pid", stateProjectId);
+    }
     validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL);
     return c.redirect(redirectUrl.toString());
   } catch (err) {

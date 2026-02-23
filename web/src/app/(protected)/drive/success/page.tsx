@@ -57,9 +57,10 @@ export default function DriveSuccessPage() {
   const { getToken } = useAuth();
   const { accounts, isLoading: isLoadingDrive } = useDriveAccounts();
 
-  // Connection ID and email from OAuth callback redirect
+  // Connection ID, email, and optional projectId from OAuth callback redirect
   const connectionId = searchParams.get("cid");
   const connectedEmail = searchParams.get("email");
+  const pidFromUrl = searchParams.get("pid");
 
   // Derive connection state from accounts array
   const isConnected = accounts.length > 0;
@@ -68,12 +69,13 @@ export default function DriveSuccessPage() {
   const fallbackEmail = accounts.find((a) => a.id === connectionId)?.email ?? accounts[0]?.email;
   const displayEmail = connectedEmail || fallbackEmail;
 
-  // Source-link flow: project ID from sessionStorage
-  const sourceLinkProjectId = useSyncExternalStore(
+  // Source-link flow: project ID from sessionStorage, with URL pid fallback (iPad Safari)
+  const sessionProjectId = useSyncExternalStore(
     subscribeNoop,
     readPendingSourceLink,
     getServerSnapshot,
   );
+  const sourceLinkProjectId = sessionProjectId || pidFromUrl;
 
   const [linkComplete, setLinkComplete] = useState(false);
   const linkAttempted = useRef(false);

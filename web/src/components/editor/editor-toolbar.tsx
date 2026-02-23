@@ -4,7 +4,6 @@ import type { ProjectData } from "@/types/editor";
 import type { SaveStatus } from "@/hooks/use-auto-save";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
 import type { ProjectSummary } from "@/hooks/use-project-actions";
-import type { DriveAccount } from "@/hooks/use-drive-accounts";
 import { ProjectSwitcher } from "@/components/project/project-switcher";
 import { SaveIndicator } from "./save-indicator";
 import { ExportMenu } from "@/components/project/export-menu";
@@ -26,7 +25,6 @@ interface EditorToolbarProps {
   onOpenAiRewrite: () => void;
 
   // Export
-  driveAccounts: DriveAccount[];
   projectId: string;
   activeChapterId: string | null;
   getToken: () => Promise<string | null>;
@@ -53,7 +51,6 @@ export function EditorToolbar({
   selectionWordCount,
   aiSheetState,
   onOpenAiRewrite,
-  driveAccounts,
   projectId,
   activeChapterId,
   getToken,
@@ -65,7 +62,7 @@ export function EditorToolbar({
   onSignOut,
   isSigningOut,
 }: EditorToolbarProps) {
-  const { isPanelOpen, togglePanel } = useSourcesContext();
+  const { isPanelOpen, togglePanel, connections } = useSourcesContext();
 
   return (
     <div className="flex items-center justify-between h-12 px-4 border-b border-border bg-background shrink-0">
@@ -144,7 +141,7 @@ export function EditorToolbar({
           activeChapterId={activeChapterId}
           getToken={getToken}
           apiUrl={apiUrl}
-          driveAccounts={driveAccounts}
+          connections={connections}
         />
 
         <SettingsMenu
