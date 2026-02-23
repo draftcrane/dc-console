@@ -165,8 +165,9 @@ All originals remain in user Drive.
 - **This Device** — standard browser download; OS controls save location (Downloads on desktop, share sheet on iPad Safari)
 - **Google Drive** — save to a selected folder in the user's connected Drive account; default folder: `{Book Title}/_exports/`
 - Folder browsing within Drive destinations (folders only, breadcrumb navigation, create new folder)
-- When only one destination exists (no Drive connected), export downloads directly — no picker shown
-- When multiple destinations exist (Drive connected), show Export Destination Picker bottom sheet
+- Export Destination Picker shown after every export unless a remembered default is set
+- When no Drive is connected, the picker shows "This Device" as the only destination
+- When Drive is connected, the picker shows both "This Device" and connected Drive accounts
 
 **Remembered Defaults (per-project):**
 

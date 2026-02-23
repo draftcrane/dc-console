@@ -1754,7 +1754,7 @@ The Export Manager handles destination selection, folder browsing within cloud s
 
 ### Destination Picker (Bottom Sheet)
 
-Shown when 2+ destinations exist (at least one Drive connection) and no default is set.
+Shown after every export unless a remembered default is set.
 
 ```
 ┌─────────────────────────────────────────┐
@@ -1835,8 +1835,9 @@ Save to Files
 
 | Scenario                                  | Behavior                                                       |
 | ----------------------------------------- | -------------------------------------------------------------- |
-| No Drive connected, no default            | Download directly — single destination, no picker              |
+| No Drive connected, no default            | Picker shown with "This Device" as the only option             |
 | Default Drive but connection disconnected | Detect null `drive_connection_id` → picker with error          |
 | Default Drive but folder deleted          | Drive API 404 on upload → picker with error                    |
 | New source connected                      | Appears as new destination in picker                           |
 | Multiple rapid exports                    | Rate limit (5/min); preference check is fast (single DB query) |
+| Picker dismissed while export ready       | "Export ready" toast with link to reopen picker                |
