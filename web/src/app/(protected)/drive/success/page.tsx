@@ -9,7 +9,6 @@ const SOURCE_LINK_KEY = "dc_pending_source_link";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 const OPEN_SOURCES_KEY = "dc_open_sources_panel";
-const POST_OAUTH_CONNECTION_KEY = "dc_post_oauth_connection";
 
 /**
  * Module-level snapshot for the pending source link project ID.
@@ -99,9 +98,6 @@ export default function DriveSuccessPage() {
     if (sourceLinkProjectId) {
       try {
         sessionStorage.setItem(OPEN_SOURCES_KEY, "true");
-        if (connectionId) {
-          sessionStorage.setItem(POST_OAUTH_CONNECTION_KEY, connectionId);
-        }
       } catch {
         // sessionStorage unavailable — URL param fallback below handles this
       }
@@ -109,7 +105,7 @@ export default function DriveSuccessPage() {
     // Append URL param as iPad Safari fallback (sessionStorage can be lost on tab suspension)
     const destination = sourceLinkProjectId ? `${base}?sources=open` : base;
     router.push(destination);
-  }, [sourceLinkProjectId, connectionId, router]);
+  }, [sourceLinkProjectId, router]);
 
   // Auto-redirect after async flows complete
   useEffect(() => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useSourcesContext } from "@/contexts/sources-context";
 
 /**
@@ -23,18 +23,11 @@ interface SourcesSectionProps {
 }
 
 export function SourcesSection({ onAddSource }: SourcesSectionProps) {
-  const { connections, unlinkConnection, sources } = useSourcesContext();
+  const { connections, unlinkConnection } = useSourcesContext();
 
-  const [expanded, setExpanded] = useState(connections.length === 0 || sources.length === 0);
+  const [expanded, setExpanded] = useState(connections.length === 0);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [isUnlinking, setIsUnlinking] = useState(false);
-
-  // React to post-OAuth state: expand when connections exist but no documents yet
-  useEffect(() => {
-    if (connections.length > 0 && sources.length === 0) {
-      setExpanded(true);
-    }
-  }, [connections.length, sources.length]);
 
   const handleUnlink = useCallback(
     async (connectionId: string) => {
