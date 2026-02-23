@@ -178,6 +178,7 @@ export class SourceMaterialService {
       source.driveConnectionId,
       driveApi,
       source.title,
+      source.mimeType,
     );
   }
 

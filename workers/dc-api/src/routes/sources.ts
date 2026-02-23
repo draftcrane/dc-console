@@ -30,7 +30,6 @@ import { SourceMaterialService, type AddSourceInput } from "../services/source-m
 import { LinkedFolderService } from "../services/linked-folder.js";
 import { DriveService } from "../services/drive.js";
 import { validateDriveId } from "../utils/drive-query.js";
-import { resolveProjectConnection } from "../services/drive-connection-resolver.js";
 
 const sources = new Hono<{ Bindings: Env }>();
 
@@ -172,46 +171,6 @@ sources.post("/sources/:sourceId/import-as-chapter", async (c) => {
   const service = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
   const driveService = new DriveService(c.env);
   const result = await service.importAsChapter(userId, sourceId, driveService);
-
-  // Fire-and-forget: create Drive file for the new chapter (same pattern as chapter POST).
-  // Uses project.drive_connection_id for multi-account token resolution.
-  // Skips silently if no connection can be resolved (fire-and-forget, non-blocking).
-  (async () => {
-    const project = await c.env.DB.prepare(
-      `SELECT drive_folder_id, drive_connection_id FROM projects WHERE id = ? AND user_id = ?`,
-    )
-      .bind(result.projectId, userId)
-      .first<{ drive_folder_id: string | null; drive_connection_id: string | null }>();
-
-    if (!project?.drive_folder_id) return;
-
-    // Resolve connection via project binding; skip on failure (fire-and-forget)
-    const resolved = await resolveProjectConnection(
-      driveService.tokenService,
-      userId,
-      project.drive_connection_id,
-    ).catch(() => null);
-    if (!resolved) return;
-
-    // Upload the chapter content to Drive
-    const encoder = new TextEncoder();
-    const content = await c.env.EXPORTS_BUCKET.get(result.r2Key);
-    const html = content ? await content.text() : "";
-    const driveFile = await driveService.uploadFile(
-      resolved.tokens.accessToken,
-      project.drive_folder_id,
-      `${result.title}.html`,
-      "text/html",
-      encoder.encode(html).buffer as ArrayBuffer,
-    );
-
-    // Store drive_file_id on the chapter
-    await c.env.DB.prepare(`UPDATE chapters SET drive_file_id = ? WHERE id = ?`)
-      .bind(driveFile.id, result.chapterId)
-      .run();
-  })().catch((err) => {
-    console.error("Drive file creation on source import failed (non-blocking):", err);
-  });
 
   return c.json(
     {

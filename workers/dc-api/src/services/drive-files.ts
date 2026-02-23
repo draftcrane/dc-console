@@ -212,10 +212,11 @@ export class DriveFileService {
   }
 
   /**
-   * Recursively lists Google Docs contained in one or more Drive folders.
-   * Includes docs in nested subfolders. Stops at maxDocs to avoid expensive traversals.
+   * Recursively lists supported files contained in one or more Drive folders.
+   * Includes files in nested subfolders. Stops at maxDocs to avoid expensive traversals.
+   * Discovers Google Docs, DOCX, PDF, TXT, and Markdown files.
    */
-  async listDocsInFoldersRecursive(
+  async listSupportedFilesInFoldersRecursive(
     accessToken: string,
     folderIds: string[],
     maxDocs: number,
@@ -235,7 +236,7 @@ export class DriveFileService {
       let pageToken: string | undefined;
       do {
         const params = new URLSearchParams({
-          q: `'${folderId}' in parents and trashed = false and (mimeType = '${GOOGLE_DOC_MIME_TYPE}' or mimeType = '${GOOGLE_FOLDER_MIME_TYPE}')`,
+          q: `'${folderId}' in parents and trashed = false and (mimeType = '${GOOGLE_DOC_MIME_TYPE}' or mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' or mimeType = 'application/pdf' or mimeType = 'text/plain' or mimeType = 'text/markdown' or mimeType = '${GOOGLE_FOLDER_MIME_TYPE}')`,
           fields: "nextPageToken,files(id,name,mimeType)",
           pageSize: "1000",
         });
@@ -269,7 +270,7 @@ export class DriveFileService {
             continue;
           }
 
-          if (file.mimeType !== GOOGLE_DOC_MIME_TYPE || seenDocs.has(file.id)) {
+          if (seenDocs.has(file.id)) {
             continue;
           }
 
@@ -605,9 +606,15 @@ export class DriveFileService {
    *
    * @param accessToken - Valid access token
    * @param fileId - The Drive file ID
+   * @param maxBytes - Maximum file size in bytes (default 20MB, matching local upload limits)
    * @returns The file content as an ArrayBuffer
+   * @throws Error with message "FILE_TOO_LARGE" if the file exceeds maxBytes
    */
-  async downloadFile(accessToken: string, fileId: string): Promise<ArrayBuffer> {
+  async downloadFile(
+    accessToken: string,
+    fileId: string,
+    maxBytes = 20 * 1024 * 1024,
+  ): Promise<ArrayBuffer> {
     validateDriveId(fileId);
     const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}?alt=media`, {
       headers: {
@@ -621,7 +628,20 @@ export class DriveFileService {
       throw new Error("Failed to download file from Drive");
     }
 
-    return response.arrayBuffer();
+    // Reject files larger than maxBytes to prevent memory issues (Workers have 128MB limit)
+    const contentLength = response.headers.get("Content-Length");
+    if (contentLength && parseInt(contentLength, 10) > maxBytes) {
+      throw new Error("FILE_TOO_LARGE");
+    }
+
+    const buffer = await response.arrayBuffer();
+
+    // Double-check after reading (Content-Length may not always be present)
+    if (buffer.byteLength > maxBytes) {
+      throw new Error("FILE_TOO_LARGE");
+    }
+
+    return buffer;
   }
 
   /**

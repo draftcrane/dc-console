@@ -5,6 +5,33 @@ import { useState, useCallback, useEffect, useRef } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+/** Lightweight hook: only the linkFolder action, no auto-fetch or auto-sync. */
+export function useLinkFolder(projectId: string) {
+  const { getToken } = useAuth();
+
+  const linkFolder = useCallback(
+    async (input: LinkFolderInput) => {
+      const token = await getToken();
+      const response = await fetch(`${API_URL}/projects/${projectId}/linked-folders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error((data as { error?: string } | null)?.error || "Failed to link folder");
+      }
+      return response.json();
+    },
+    [getToken, projectId],
+  );
+
+  return { linkFolder };
+}
+
 export interface LinkedFolder {
   id: string;
   projectId: string;

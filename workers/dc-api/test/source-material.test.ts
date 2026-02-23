@@ -56,6 +56,58 @@ describe("SourceMaterialService", () => {
       expect(created.sources).toHaveLength(0);
     });
 
+    it("accepts DOCX files as sources", async () => {
+      const files = [
+        {
+          driveFileId: "docx-file-1",
+          title: "Research Paper.docx",
+          mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        },
+      ];
+
+      const created = await service.addSources(userId, projectId, files);
+      expect(created.sources).toHaveLength(1);
+      expect(created.sources[0].title).toBe("Research Paper.docx");
+      expect(created.sources[0].mimeType).toBe(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      );
+    });
+
+    it("accepts PDF files as sources", async () => {
+      const files = [
+        {
+          driveFileId: "pdf-file-1",
+          title: "Whitepaper.pdf",
+          mimeType: "application/pdf",
+        },
+      ];
+
+      const created = await service.addSources(userId, projectId, files);
+      expect(created.sources).toHaveLength(1);
+      expect(created.sources[0].title).toBe("Whitepaper.pdf");
+      expect(created.sources[0].mimeType).toBe("application/pdf");
+    });
+
+    it("accepts TXT and Markdown files as sources", async () => {
+      const files = [
+        {
+          driveFileId: "txt-file-1",
+          title: "Notes.txt",
+          mimeType: "text/plain",
+        },
+        {
+          driveFileId: "md-file-1",
+          title: "README.md",
+          mimeType: "text/markdown",
+        },
+      ];
+
+      const created = await service.addSources(userId, projectId, files);
+      expect(created.sources).toHaveLength(2);
+      expect(created.sources[0].mimeType).toBe("text/plain");
+      expect(created.sources[1].mimeType).toBe("text/markdown");
+    });
+
     it("silently deduplicates re-selected files", async () => {
       const files = [
         {
@@ -160,7 +212,7 @@ describe("SourceMaterialService", () => {
           expiresAt: new Date(Date.now() + 3600000),
           wasRefreshed: false,
         }),
-        listDocsInFoldersRecursive: async () => [
+        listSupportedFilesInFoldersRecursive: async () => [
           { id: "doc-1", name: "Doc One", mimeType: "application/vnd.google-apps.document" },
           { id: "doc-2", name: "Doc Two", mimeType: "application/vnd.google-apps.document" },
         ],

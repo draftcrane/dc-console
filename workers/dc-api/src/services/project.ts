@@ -6,7 +6,7 @@ import { type Chapter, type ChapterRow, mapChapterRow } from "./chapter.js";
  * ProjectService - Business logic for projects
  *
  * Per PRD Section 11:
- * - Projects: id (ULID), user_id, title, description, drive_folder_id, status, timestamps
+ * - Projects: id (ULID), user_id, title, description, status, timestamps
  *
  * Per PRD Section 12:
  * - Authorization: All D1 queries include WHERE user_id = ?

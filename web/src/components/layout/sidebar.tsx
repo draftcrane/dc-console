@@ -11,6 +11,7 @@ import {
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
+  type DraggableSyntheticListeners,
   DragOverlay,
 } from "@dnd-kit/core";
 import {
@@ -419,8 +420,7 @@ interface ChapterListItemProps {
   onRenameCancel: () => void;
   onDelete?: () => void;
   isDragOverlay: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  dragListeners?: Record<string, any>;
+  dragListeners?: DraggableSyntheticListeners;
 }
 
 /**

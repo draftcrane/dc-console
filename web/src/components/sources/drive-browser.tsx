@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useDriveFiles, type DriveFile } from "@/hooks/use-drive-files";
-import { useLinkedFolders } from "@/hooks/use-linked-folders";
+import { useLinkFolder } from "@/hooks/use-linked-folders";
 import { useSourcesContext } from "@/contexts/sources-context";
 
 interface DriveBrowserProps {
@@ -49,8 +49,11 @@ export function DriveBrowser({ connectionId, onClose, onReconnect, rootLabel }: 
   const [isAdding, setIsAdding] = useState(false);
   const [isLinking, setIsLinking] = useState(false);
 
-  const { files, isLoading, error } = useDriveFiles({ connectionId, folderId: currentFolder });
-  const { linkFolder } = useLinkedFolders(projectId);
+  const { files, isLoading, error, hasMore, loadMore } = useDriveFiles({
+    connectionId,
+    folderId: currentFolder,
+  });
+  const { linkFolder } = useLinkFolder(projectId);
 
   const navigateToFolder = useCallback((folderId: string, folderName: string) => {
     setCurrentFolder(folderId);
@@ -261,6 +264,18 @@ export function DriveBrowser({ connectionId, onClose, onReconnect, rootLabel }: 
                 <span className="text-sm text-gray-900 truncate flex-1">{doc.name}</span>
               </label>
             ))}
+
+            {/* Pagination */}
+            {hasMore && (
+              <button
+                onClick={loadMore}
+                disabled={isLoading}
+                className="w-full px-3 py-3 text-xs text-blue-600 hover:bg-gray-50
+                           min-h-[44px] border-t border-gray-100"
+              >
+                {isLoading ? "Loading..." : "Load more"}
+              </button>
+            )}
           </>
         )}
       </div>

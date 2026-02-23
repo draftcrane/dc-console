@@ -5,7 +5,7 @@
  * Split from source-material.ts per Single Responsibility Principle.
  * Handles the Google Drive integration side of source materials:
  * - Adding Drive files selected via Picker
- * - Recursive folder expansion to discover Google Docs
+ * - Recursive folder expansion to discover supported documents
  * - Fetching, sanitizing, and caching Google Docs content in R2
  */
 
@@ -20,11 +20,34 @@ import {
   type SourceMaterial,
   type SourceContentResult,
 } from "./source-types.js";
-import { extractPlainTextFromHtml, storeExtractionResult } from "./text-extraction.js";
+import {
+  extractPlainTextFromHtml,
+  extractFromDocx,
+  extractFromPdf,
+  extractFromTxt,
+  extractFromMarkdown,
+  storeExtractionResult,
+} from "./text-extraction.js";
 import { resolveReadOnlyConnection } from "./drive-connection-resolver.js";
 
-const ALLOWED_MIME_TYPE = "application/vnd.google-apps.document";
+const GOOGLE_DOC_MIME_TYPE = "application/vnd.google-apps.document";
 const GOOGLE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
+
+const ALLOWED_MIME_TYPES = new Set([
+  GOOGLE_DOC_MIME_TYPE,
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+]);
+
+/** Map Drive MIME types to file extensions for extraction routing. */
+const MIME_TO_EXTENSION: Record<string, string> = {
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
+  "application/pdf": ".pdf",
+  "text/plain": ".txt",
+  "text/markdown": ".md",
+};
 const MAX_SOURCES_PER_REQUEST = 50;
 const MAX_EXPANDED_DOCS_PER_REQUEST = 200;
 
@@ -36,7 +59,7 @@ export class SourceDriveService {
 
   /**
    * Add source materials from Google Picker selection.
-   * Validates mime types (Google Docs only) and deduplicates silently.
+   * Validates mime types (supported document formats) and deduplicates silently.
    *
    * @param connectionId - The Drive connection to associate these sources with
    */
@@ -65,7 +88,7 @@ export class SourceDriveService {
       validationError(`Maximum ${MAX_SOURCES_PER_REQUEST} files per request`);
     }
 
-    const selectedDocs = files.filter((f) => f.mimeType === ALLOWED_MIME_TYPE);
+    const selectedDocs = files.filter((f) => ALLOWED_MIME_TYPES.has(f.mimeType));
     const selectedFolders = files.filter((f) => f.mimeType === GOOGLE_FOLDER_MIME_TYPE);
 
     // Expand selected folders into Google Docs (recursive).
@@ -83,15 +106,15 @@ export class SourceDriveService {
       }
 
       try {
-        const docs = await driveService.listDocsInFoldersRecursive(
+        const docs = await driveService.listSupportedFilesInFoldersRecursive(
           tokens.accessToken,
           selectedFolders.map((f) => f.driveFileId),
           MAX_EXPANDED_DOCS_PER_REQUEST,
         );
         discoveredFromFolders = docs.map((doc) => ({
           driveFileId: doc.id,
-          title: doc.name || "Untitled Google Doc",
-          mimeType: ALLOWED_MIME_TYPE,
+          title: doc.name || "Untitled",
+          mimeType: doc.mimeType,
         }));
       } catch (err) {
         if (err instanceof Error && err.message === "MAX_DOCS_EXCEEDED") {
@@ -225,6 +248,7 @@ export class SourceDriveService {
     driveConnectionId: string | null,
     driveService: DriveService,
     sourceTitle?: string,
+    mimeType?: string,
   ): Promise<SourceContentResult> {
     // Resolve connection: prefer source-specific binding, reject ambiguous state
     const { tokens } = await resolveReadOnlyConnection(
@@ -234,9 +258,44 @@ export class SourceDriveService {
     );
     const accessToken = tokens.accessToken;
 
-    let rawHtml: string;
+    const effectiveMimeType = mimeType || GOOGLE_DOC_MIME_TYPE;
+    const isGoogleDoc = effectiveMimeType === GOOGLE_DOC_MIME_TYPE;
+
+    let content: string;
+    let extractionResult;
+
     try {
-      rawHtml = await driveService.exportFile(accessToken, driveFileId, "text/html");
+      if (isGoogleDoc) {
+        // Google Docs: export as HTML, sanitize, extract plain text
+        const rawHtml = await driveService.exportFile(accessToken, driveFileId, "text/html");
+        content = sanitizeGoogleDocsHtml(rawHtml);
+        extractionResult = extractPlainTextFromHtml(content);
+      } else {
+        // Binary files (DOCX, PDF, TXT, MD): download and extract
+        const buffer = await driveService.downloadFile(accessToken, driveFileId);
+        const extension = MIME_TO_EXTENSION[effectiveMimeType];
+        if (!extension) {
+          throw new Error(`Unsupported MIME type for extraction: ${effectiveMimeType}`);
+        }
+
+        switch (extension) {
+          case ".docx":
+            extractionResult = await extractFromDocx(buffer);
+            break;
+          case ".pdf":
+            extractionResult = await extractFromPdf(buffer);
+            break;
+          case ".txt":
+            extractionResult = extractFromTxt(buffer);
+            break;
+          case ".md":
+            extractionResult = extractFromMarkdown(buffer);
+            break;
+          default:
+            throw new Error(`Unsupported extension: ${extension}`);
+        }
+        content = extractionResult.html;
+      }
     } catch (err) {
       // Mark source as error state so UI can show appropriate message
       await this.db
@@ -246,8 +305,6 @@ export class SourceDriveService {
       throw err;
     }
 
-    const content = sanitizeGoogleDocsHtml(rawHtml);
-
     // Get Drive file's modifiedTime for staleness tracking
     let driveModifiedTime: string | null = null;
     try {
@@ -256,9 +313,6 @@ export class SourceDriveService {
     } catch {
       // Non-critical -- staleness detection just won't work until next fetch
     }
-
-    // Extract plain text from sanitized HTML and store both versions + FTS
-    const extractionResult = extractPlainTextFromHtml(content);
 
     // Resolve title for FTS indexing
     const title = sourceTitle || "Untitled";

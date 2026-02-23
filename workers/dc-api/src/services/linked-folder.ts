@@ -316,10 +316,10 @@ export class LinkedFolderService {
       row.drive_connection_id,
     );
 
-    // List all Google Docs in the folder (recursive)
-    let docs: Array<{ id: string; name: string }>;
+    // List all supported files in the folder (recursive)
+    let docs: Array<{ id: string; name: string; mimeType: string }>;
     try {
-      docs = await driveService.listDocsInFoldersRecursive(
+      docs = await driveService.listSupportedFilesInFoldersRecursive(
         tokens.accessToken,
         [row.drive_folder_id],
         MAX_DOCS_PER_FOLDER,
@@ -365,14 +365,15 @@ export class LinkedFolderService {
         .prepare(
           `INSERT INTO source_materials
            (id, project_id, source_type, drive_connection_id, drive_file_id, title, mime_type, sort_order, created_at, updated_at)
-           VALUES (?, ?, 'drive', ?, ?, ?, 'application/vnd.google-apps.document', ?, ?, ?)`,
+           VALUES (?, ?, 'drive', ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           sourceId,
           row.project_id,
           row.drive_connection_id,
           doc.id,
-          doc.name || "Untitled Google Doc",
+          doc.name || "Untitled",
+          doc.mimeType,
           sortOrder,
           now,
           now,
