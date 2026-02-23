@@ -147,8 +147,8 @@ export function ExportMenu({
             jobId: result.jobId,
           });
 
-          // Trigger download automatically
-          await triggerDownload(result.downloadUrl, result.fileName, token);
+          // No auto-download — user must choose a destination explicitly.
+          // The completion toast presents Download and Save to Drive options.
         } else {
           setState({ phase: "error", message: "Export completed but no download available" });
         }
@@ -414,8 +414,9 @@ export function ExportMenu({
               />
             </svg>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-green-800">Export complete</p>
+              <p className="text-sm font-medium text-green-800">Export ready</p>
               <p className="text-xs text-green-600 truncate mt-0.5">{state.fileName}</p>
+              <p className="text-xs text-gray-500 mt-1">Where would you like to save it?</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <button
                   onClick={async () => {
