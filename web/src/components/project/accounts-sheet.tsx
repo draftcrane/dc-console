@@ -86,6 +86,12 @@ export function AccountsSheet({
 
         {/* Content */}
         <div className="flex-1 overflow-auto px-4 py-4">
+          {/* Explanation */}
+          <p className="text-xs text-gray-500 mb-4">
+            Connected accounts let you browse Google Drive for source materials and back up your
+            manuscript. You can connect multiple accounts.
+          </p>
+
           {accounts.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-sm text-gray-500 mb-4">No Google accounts connected</p>

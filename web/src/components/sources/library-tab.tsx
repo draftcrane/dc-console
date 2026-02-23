@@ -13,6 +13,9 @@ import { EmptyState } from "./empty-state";
  * 1. No Drive connection: "Connect Google Drive" + Connect button
  * 2. Drive connected, no sources: Drive browser expanded by default
  * 3. Sources exist: source list with "Add from Drive" button
+ *
+ * Multi-account: when multiple Drive accounts are connected, shows an
+ * account picker so the user can choose which account to browse.
  */
 export function LibraryTab() {
   const {
@@ -26,10 +29,13 @@ export function LibraryTab() {
 
   const [showDriveBrowser, setShowDriveBrowser] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedAccountIndex, setSelectedAccountIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Determine which connection to use for the Drive browser
-  const activeConnectionId = driveAccounts[0]?.id ?? null;
+  const safeIndex = Math.min(selectedAccountIndex, Math.max(driveAccounts.length - 1, 0));
+  const activeConnectionId = driveAccounts[safeIndex]?.id ?? null;
+  const activeAccountEmail = driveAccounts[safeIndex]?.email ?? null;
 
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,12 +88,42 @@ export function LibraryTab() {
     );
   }
 
+  // Account picker for multi-account users
+  const accountPicker =
+    driveAccounts.length > 1 ? (
+      <div className="flex items-center gap-2">
+        <label htmlFor="drive-account-picker" className="text-xs text-gray-500 shrink-0">
+          Account:
+        </label>
+        <select
+          id="drive-account-picker"
+          value={safeIndex}
+          onChange={(e) => setSelectedAccountIndex(Number(e.target.value))}
+          className="text-xs text-gray-700 bg-white border border-gray-200 rounded-md
+                     px-2 py-1.5 min-h-[36px] max-w-[200px] truncate"
+        >
+          {driveAccounts.map((account, i) => (
+            <option key={account.id} value={i}>
+              {account.email}
+            </option>
+          ))}
+        </select>
+      </div>
+    ) : activeAccountEmail ? (
+      <p className="text-xs text-gray-500 truncate">Browsing {activeAccountEmail}</p>
+    ) : null;
+
   // Empty state 2: Drive connected, no sources
   if (driveConnected && sources.length === 0 && activeConnectionId) {
     return (
       <div className="flex flex-col gap-3 px-3 pt-2">
         <p className="text-sm text-gray-600">Browse your Drive to add sources to this project.</p>
-        <DriveBrowser connectionId={activeConnectionId} onClose={() => {}} />
+        {accountPicker}
+        <DriveBrowser
+          connectionId={activeConnectionId}
+          onClose={() => {}}
+          onReconnect={() => connectDrive(activeAccountEmail ?? undefined)}
+        />
       </div>
     );
   }
@@ -102,10 +138,12 @@ export function LibraryTab() {
         {driveConnected && activeConnectionId && (
           <>
             {showDriveBrowser ? (
-              <div className="w-full">
+              <div className="w-full flex flex-col gap-2">
+                {accountPicker}
                 <DriveBrowser
                   connectionId={activeConnectionId}
                   onClose={() => setShowDriveBrowser(false)}
+                  onReconnect={() => connectDrive(activeAccountEmail ?? undefined)}
                 />
               </div>
             ) : (

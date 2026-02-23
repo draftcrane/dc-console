@@ -8,6 +8,8 @@ import { useSourcesContext } from "@/contexts/sources-context";
 interface DriveBrowserProps {
   connectionId: string;
   onClose: () => void;
+  /** Called when the user wants to reconnect (re-authorize) the Drive account. */
+  onReconnect?: () => void;
 }
 
 interface BreadcrumbItem {
@@ -18,6 +20,7 @@ interface BreadcrumbItem {
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 const SUPPORTED_MIMES = new Set([
   "application/vnd.google-apps.document",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "text/plain",
   "text/markdown",
   "application/pdf",
@@ -27,7 +30,7 @@ const SUPPORTED_MIMES = new Set([
  * Drive folder/file navigation for adding sources.
  * Single-level flat list per folder. Breadcrumb nav.
  */
-export function DriveBrowser({ connectionId, onClose }: DriveBrowserProps) {
+export function DriveBrowser({ connectionId, onClose, onReconnect }: DriveBrowserProps) {
   const { addDriveSources, projectId } = useSourcesContext();
   const [currentFolder, setCurrentFolder] = useState("root");
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([
@@ -124,9 +127,34 @@ export function DriveBrowser({ connectionId, onClose }: DriveBrowserProps) {
         {isLoading ? (
           <p className="px-3 py-6 text-center text-sm text-gray-500">Loading...</p>
         ) : error ? (
-          <p className="px-3 py-6 text-center text-sm text-red-500">{error}</p>
+          <div className="px-3 py-6 text-center">
+            <p className="text-sm text-red-600 mb-2">{error}</p>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                onClick={() => {
+                  // Re-trigger fetch by toggling folder
+                  const f = currentFolder;
+                  setCurrentFolder("");
+                  requestAnimationFrame(() => setCurrentFolder(f));
+                }}
+                className="text-xs text-blue-600 hover:text-blue-700 underline min-h-[36px]"
+              >
+                Retry
+              </button>
+              {onReconnect && (
+                <button
+                  onClick={onReconnect}
+                  className="text-xs text-blue-600 hover:text-blue-700 underline min-h-[36px]"
+                >
+                  Reconnect account
+                </button>
+              )}
+            </div>
+          </div>
         ) : folders.length === 0 && documents.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-gray-400">No files found</p>
+          <p className="px-3 py-6 text-center text-sm text-gray-400">
+            No supported files in this folder
+          </p>
         ) : (
           <>
             {/* Folders */}

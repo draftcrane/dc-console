@@ -53,8 +53,17 @@ export function useDriveFiles({ connectionId, folderId = "root" }: UseDriveFiles
         );
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to fetch files");
+          const errorData = await response.json().catch(() => null);
+          const msg = (errorData as { error?: string } | null)?.error;
+
+          // Surface actionable messages for common failure modes
+          if (response.status === 422 && msg?.includes("expired")) {
+            throw new Error("Drive connection expired. Reconnect your Google account.");
+          }
+          if (response.status === 409) {
+            throw new Error("Multiple accounts connected. Select an account above.");
+          }
+          throw new Error(msg || `Failed to load files (${response.status})`);
         }
 
         const data = await response.json();
