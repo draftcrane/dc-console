@@ -21,13 +21,8 @@ type ViewMode = "list" | "picker" | "browse";
  * Vocabulary: Source = provider, Folder = directory, Document = file.
  */
 export function LibraryTab() {
-  const {
-    sources,
-    isLoadingSources,
-    driveAccounts,
-    connectDrive,
-    uploadLocalFile,
-  } = useSourcesContext();
+  const { sources, isLoadingSources, driveAccounts, connectDrive, uploadLocalFile } =
+    useSourcesContext();
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [isUploading, setIsUploading] = useState(false);
