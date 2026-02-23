@@ -32,7 +32,7 @@ const STEPS: OnboardingStep[] = [
   },
   {
     key: "sources",
-    text: "Import reference documents from Google Drive or your device.",
+    text: "Add documents from Google Drive or your device.",
     target: "sources",
   },
   {

@@ -121,7 +121,7 @@ export function SourcePicker({
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            <span className="text-sm text-gray-500">Connect another source</span>
+            <span className="text-sm text-gray-500">+ Connect another source</span>
           </button>
         )}
       </div>
