@@ -22,8 +22,6 @@ export interface Project {
   userId: string;
   title: string;
   description: string;
-  driveFolderId: string | null;
-  driveConnectionId: string | null;
   status: "active" | "archived";
   createdAt: string;
   updatedAt: string;
@@ -59,8 +57,6 @@ interface ProjectRow {
   user_id: string;
   title: string;
   description: string;
-  drive_folder_id: string | null;
-  drive_connection_id: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -133,8 +129,6 @@ export class ProjectService {
       userId,
       title: input.title.trim(),
       description: input.description?.trim() || "",
-      driveFolderId: null,
-      driveConnectionId: null,
       status: "active",
       createdAt: now,
       updatedAt: now,
@@ -144,7 +138,6 @@ export class ProjectService {
           projectId,
           title: "Chapter 1",
           sortOrder: 1,
-          driveFileId: null,
           r2Key: null,
           wordCount: 0,
           version: 1,
@@ -198,7 +191,7 @@ export class ProjectService {
     // Fetch project with user_id check for authorization
     const project = await this.db
       .prepare(
-        `SELECT id, user_id, title, description, drive_folder_id, drive_connection_id, status, created_at, updated_at
+        `SELECT id, user_id, title, description, status, created_at, updated_at
          FROM projects
          WHERE id = ? AND user_id = ?`,
       )
@@ -212,7 +205,7 @@ export class ProjectService {
     // Fetch chapters
     const chaptersResult = await this.db
       .prepare(
-        `SELECT id, project_id, title, sort_order, drive_file_id, r2_key, word_count, version, status, created_at, updated_at
+        `SELECT id, project_id, title, sort_order, r2_key, word_count, version, status, created_at, updated_at
          FROM chapters
          WHERE project_id = ?
          ORDER BY sort_order ASC`,
@@ -228,8 +221,6 @@ export class ProjectService {
       userId: project.user_id,
       title: project.title,
       description: project.description,
-      driveFolderId: project.drive_folder_id,
-      driveConnectionId: project.drive_connection_id,
       status: project.status as "active" | "archived",
       createdAt: project.created_at,
       updatedAt: project.updated_at,
@@ -295,7 +286,7 @@ export class ProjectService {
     // Fetch updated project
     const project = await this.db
       .prepare(
-        `SELECT id, user_id, title, description, drive_folder_id, drive_connection_id, status, created_at, updated_at
+        `SELECT id, user_id, title, description, status, created_at, updated_at
          FROM projects
          WHERE id = ? AND user_id = ?`,
       )
@@ -449,7 +440,6 @@ export class ProjectService {
       projectId: newProjectId,
       title: mapping.source.title,
       sortOrder: mapping.source.sort_order,
-      driveFileId: null,
       r2Key: mapping.newR2Key,
       wordCount: mapping.source.word_count,
       version: 1,
@@ -463,8 +453,6 @@ export class ProjectService {
       userId,
       title: `${source.title} (Copy)`,
       description: source.description,
-      driveFolderId: null,
-      driveConnectionId: null,
       status: "active",
       createdAt: now,
       updatedAt: now,
@@ -479,8 +467,6 @@ export class ProjectService {
       userId: row.user_id,
       title: row.title,
       description: row.description,
-      driveFolderId: row.drive_folder_id,
-      driveConnectionId: row.drive_connection_id,
       status: row.status as "active" | "archived",
       createdAt: row.created_at,
       updatedAt: row.updated_at,

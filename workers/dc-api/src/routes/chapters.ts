@@ -4,17 +4,15 @@ import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { ChapterService } from "../services/chapter.js";
 import { ContentService } from "../services/content.js";
-import { DriveService } from "../services/drive.js";
-import { resolveProjectConnection } from "../services/drive-connection-resolver.js";
 
 /**
  * Chapters API routes
  *
  * Per PRD Section 12:
- * - POST /projects/:projectId/chapters - Creates chapter, creates Drive/R2 file
+ * - POST /projects/:projectId/chapters - Creates chapter
  * - GET /projects/:projectId/chapters - Lists chapters (metadata only)
  * - PATCH /chapters/:chapterId - Updates title, status
- * - DELETE /chapters/:chapterId - Deletes from D1, trashes Drive file. Rejects if last chapter.
+ * - DELETE /chapters/:chapterId - Deletes from D1. Rejects if last chapter.
  * - PATCH /projects/:projectId/chapters/reorder - Batch sort_order update
  *
  * Per US-015 (Three-Tier Save Architecture):
@@ -34,7 +32,6 @@ chapters.use("*", standardRateLimit);
  * Create a new chapter at the end of the list
  *
  * Per PRD US-010: "+" button creates chapter at end of list with editable title
- * If Drive is connected and project has a folder, creates an HTML file on Drive.
  */
 chapters.post("/projects/:projectId/chapters", async (c) => {
   const { userId } = c.get("auth");
@@ -44,48 +41,6 @@ chapters.post("/projects/:projectId/chapters", async (c) => {
   const service = new ChapterService(c.env.DB);
   const chapter = await service.createChapter(userId, projectId, {
     title: body.title,
-  });
-
-  // If Drive is connected and project has a folder, create an HTML file on Drive (fire-and-forget)
-  // Uses project.drive_connection_id for multi-account token lookup.
-  // Skips silently if no connection can be resolved (fire-and-forget, non-blocking).
-  const driveService = new DriveService(c.env);
-  (async () => {
-    // Check if project has a Drive folder and connection
-    const project = await c.env.DB.prepare(
-      `SELECT drive_folder_id, drive_connection_id FROM projects WHERE id = ? AND user_id = ?`,
-    )
-      .bind(projectId, userId)
-      .first<{ drive_folder_id: string | null; drive_connection_id: string | null }>();
-
-    if (!project?.drive_folder_id) return;
-
-    // Resolve connection via project binding; skip on failure (fire-and-forget)
-    const resolved = await resolveProjectConnection(
-      driveService.tokenService,
-      userId,
-      project.drive_connection_id,
-    ).catch(() => null);
-    if (!resolved) return;
-
-    // Create empty HTML file on Drive
-    const fileName = `${chapter.title}.html`;
-    const emptyHtml = "";
-    const encoder = new TextEncoder();
-    const driveFile = await driveService.uploadFile(
-      resolved.tokens.accessToken,
-      project.drive_folder_id,
-      fileName,
-      "text/html",
-      encoder.encode(emptyHtml).buffer as ArrayBuffer,
-    );
-
-    // Store drive_file_id on the chapter
-    await c.env.DB.prepare(`UPDATE chapters SET drive_file_id = ? WHERE id = ?`)
-      .bind(driveFile.id, chapter.id)
-      .run();
-  })().catch((err) => {
-    console.error("Drive file creation on chapter create failed (non-blocking):", err);
   });
 
   return c.json(chapter, 201);
@@ -164,37 +119,6 @@ chapters.patch("/chapters/:chapterId", async (c) => {
   const service = new ChapterService(c.env.DB);
   const chapter = await service.updateChapter(userId, chapterId, body);
 
-  // If title was updated and chapter has a Drive file, rename it (fire-and-forget)
-  // Per PRD US-013: If Drive is connected, Drive file renamed to match new chapter title.
-  // Skips silently if no connection can be resolved (fire-and-forget, non-blocking).
-  if (body.title !== undefined && chapter.driveFileId) {
-    const driveService = new DriveService(c.env);
-    (async () => {
-      // Get project's drive_connection_id for token lookup
-      const project = await c.env.DB.prepare(
-        `SELECT drive_connection_id FROM projects WHERE id = (SELECT project_id FROM chapters WHERE id = ?)`,
-      )
-        .bind(chapterId)
-        .first<{ drive_connection_id: string | null }>();
-
-      // Resolve connection via project binding; skip on failure (fire-and-forget)
-      const resolved = await resolveProjectConnection(
-        driveService.tokenService,
-        userId,
-        project?.drive_connection_id ?? null,
-      ).catch(() => null);
-      if (!resolved) return;
-
-      await driveService.renameFile(
-        resolved.tokens.accessToken,
-        chapter.driveFileId!,
-        chapter.title,
-      );
-    })().catch((err) => {
-      console.error("Drive file rename failed (non-blocking):", err);
-    });
-  }
-
   return c.json(chapter);
 });
 
@@ -204,42 +128,13 @@ chapters.patch("/chapters/:chapterId", async (c) => {
  *
  * Per PRD US-014: Confirmation required. Hard delete in D1.
  * Minimum one chapter per project - rejects if last chapter.
- * If Drive is connected and chapter has a Drive file, trash it.
  */
 chapters.delete("/chapters/:chapterId", async (c) => {
   const { userId } = c.get("auth");
   const chapterId = c.req.param("chapterId");
 
   const service = new ChapterService(c.env.DB);
-  const { projectId, driveFileId } = await service.deleteChapter(userId, chapterId);
-
-  // If the chapter had a Drive file, move it to trash (best effort).
-  // Uses the project's drive_connection_id for multi-account token resolution.
-  // Skips silently if no connection can be resolved (D1 record is already gone).
-  if (driveFileId) {
-    try {
-      const driveService = new DriveService(c.env);
-
-      // Look up project's drive_connection_id (project still exists after chapter delete)
-      const project = await c.env.DB.prepare(
-        `SELECT drive_connection_id FROM projects WHERE id = ? AND user_id = ?`,
-      )
-        .bind(projectId, userId)
-        .first<{ drive_connection_id: string | null }>();
-
-      const resolved = await resolveProjectConnection(
-        driveService.tokenService,
-        userId,
-        project?.drive_connection_id ?? null,
-      ).catch(() => null);
-      if (resolved) {
-        await driveService.trashFile(resolved.tokens.accessToken, driveFileId);
-      }
-    } catch (err) {
-      // Log but don't fail the delete - D1 record is already gone
-      console.warn("Failed to trash Drive file for deleted chapter:", err);
-    }
-  }
+  await service.deleteChapter(userId, chapterId);
 
   return c.json({ success: true });
 });
@@ -253,11 +148,6 @@ chapters.delete("/chapters/:chapterId", async (c) => {
  * - Updates D1 metadata: word_count, version, updated_at
  * - Returns 409 CONFLICT on version mismatch
  * - No content stored in D1 (Tier 3 metadata only)
- *
- * Per ADR-005 (Drive write-through):
- * - After R2 save, syncs content to Google Drive (fire-and-forget)
- * - 30s coalescing via KV to avoid hammering Google API (~2s auto-save cadence)
- * - Lazy migration: creates Drive file if drive_file_id is null but Drive is connected
  */
 chapters.put("/chapters/:chapterId/content", async (c) => {
   const { userId } = c.get("auth");
@@ -275,79 +165,10 @@ chapters.put("/chapters/:chapterId/content", async (c) => {
     validationError("version number is required");
   }
 
-  // Capture validated values for use in async closure
-  const content: string = body.content;
-
   const service = new ContentService(c.env.DB, c.env.EXPORTS_BUCKET);
   const result = await service.saveContent(userId, chapterId, {
-    content,
+    content: body.content,
     version: body.version,
-  });
-
-  // Drive write-through (fire-and-forget, follows rename/trash pattern)
-  // Coalesce writes to 30s intervals to avoid hitting Google API rate limits
-  // Uses project.drive_connection_id for token lookup (multi-account aware)
-  const driveWriteThrough = async () => {
-    // Check coalescing: skip if last Drive write was <30s ago
-    const coalesceKey = `drive-sync:${chapterId}`;
-    const lastSync = await c.env.CACHE.get(coalesceKey);
-    if (lastSync) return; // Within 30s window, skip
-
-    const driveService = new DriveService(c.env);
-
-    // Get chapter's drive_file_id and project's drive info
-    const chapter = await c.env.DB.prepare(
-      `SELECT ch.drive_file_id, ch.title, p.drive_folder_id, p.drive_connection_id
-       FROM chapters ch
-       JOIN projects p ON p.id = ch.project_id
-       WHERE ch.id = ? AND p.user_id = ?`,
-    )
-      .bind(chapterId, userId)
-      .first<{
-        drive_file_id: string | null;
-        title: string;
-        drive_folder_id: string | null;
-        drive_connection_id: string | null;
-      }>();
-
-    if (!chapter?.drive_folder_id) return; // No Drive folder on project
-
-    // Resolve connection via project binding; skip on failure (fire-and-forget)
-    const resolved = await resolveProjectConnection(
-      driveService.tokenService,
-      userId,
-      chapter.drive_connection_id,
-    ).catch(() => null);
-    if (!resolved) return;
-    const accessToken = resolved.tokens.accessToken;
-
-    // Mark coalescing window (30s TTL)
-    await c.env.CACHE.put(coalesceKey, String(Date.now()), { expirationTtl: 30 });
-
-    if (chapter.drive_file_id) {
-      // Update existing Drive file
-      await driveService.updateFile(accessToken, chapter.drive_file_id, "text/html", content);
-    } else {
-      // Lazy migration: create Drive file for this chapter
-      const fileName = `${chapter.title}.html`;
-      const encoder = new TextEncoder();
-      const driveFile = await driveService.uploadFile(
-        accessToken,
-        chapter.drive_folder_id,
-        fileName,
-        "text/html",
-        encoder.encode(content).buffer as ArrayBuffer,
-      );
-
-      // Store drive_file_id
-      await c.env.DB.prepare(`UPDATE chapters SET drive_file_id = ? WHERE id = ?`)
-        .bind(driveFile.id, chapterId)
-        .run();
-    }
-  };
-
-  driveWriteThrough().catch((err) => {
-    console.error("Drive write-through failed (non-blocking):", err);
   });
 
   return c.json(result);

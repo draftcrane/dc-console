@@ -103,7 +103,7 @@ export async function resolveProjectConnection(
     throw new AppError(
       409,
       "DRIVE_AMBIGUOUS",
-      "Multiple Google Drive accounts connected. Specify which connection to use or bind the project to a Drive account.",
+      "Multiple Google Drive accounts connected. Specify which connection to use.",
     );
   }
 

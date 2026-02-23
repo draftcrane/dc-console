@@ -51,19 +51,11 @@ function EditorPageInner() {
   const editorRef = useRef<ChapterEditorHandle>(null);
 
   // --- Core project data ---
-  const {
-    projectData,
-    setProjectData,
-    activeChapterId,
-    setActiveChapterId,
-    isLoading,
-    error,
-    handleProjectConnected,
-    handleProjectDisconnected,
-  } = useEditorProject({
-    projectId,
-    getToken: getToken as () => Promise<string | null>,
-  });
+  const { projectData, setProjectData, activeChapterId, setActiveChapterId, isLoading, error } =
+    useEditorProject({
+      projectId,
+      getToken: getToken as () => Promise<string | null>,
+    });
 
   // Get active chapter for version
   const activeChapter = projectData?.chapters.find((ch) => ch.id === activeChapterId);
@@ -107,8 +99,8 @@ function EditorPageInner() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOverlayOpen, setMobileOverlayOpen] = useState(false);
 
-  // --- Drive connection (multi-account) ---
-  const { connected: driveConnected, connect: connectDrive } = useDriveAccounts();
+  // --- Drive accounts (for export) ---
+  const { accounts: driveAccounts } = useDriveAccounts();
 
   // --- Chapter management ---
   const {
@@ -184,14 +176,9 @@ function EditorPageInner() {
     openDeleteDialog,
     closeDeleteDialog,
     handleDeleteProject,
-    connectDriveWithProject,
-    disconnectProjectFromDrive,
   } = useProjectActions({
     getToken: getToken as () => Promise<string | null>,
     projectId,
-    connectDrive,
-    onProjectConnected: handleProjectConnected,
-    onProjectDisconnected: handleProjectDisconnected,
   });
 
   // --- Computed values ---
@@ -268,25 +255,14 @@ function EditorPageInner() {
               totalWordCount={totalWordCount}
               saveStatus={saveStatus}
               onSaveRetry={saveNow}
-              driveConnected={driveConnected}
               selectionWordCount={selectionWordCount}
               aiSheetState={aiSheetState}
               onOpenAiRewrite={handleOpenAiRewrite}
+              driveAccounts={driveAccounts}
               projectId={projectId}
               activeChapterId={activeChapterId}
               getToken={getToken as () => Promise<string | null>}
               apiUrl={API_URL}
-              hasDriveFolder={!!projectData.driveFolderId}
-              driveFolderId={projectData.driveFolderId}
-              onSetupDrive={connectDriveWithProject}
-              onUnlinkDrive={() => {
-                const confirmed = window.confirm(
-                  "Unlink this project from its Google Drive folder? Your Drive files will not be deleted.",
-                );
-                if (confirmed) {
-                  disconnectProjectFromDrive();
-                }
-              }}
               onRenameBook={openRenameDialog}
               onDuplicateBook={openDuplicateDialog}
               isDuplicating={isDuplicating}

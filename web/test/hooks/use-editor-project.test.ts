@@ -2,15 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 
 /**
- * Tests for useEditorProject — the project data fetching and
- * Drive connection callback hook.
+ * Tests for useEditorProject — the project data fetching hook.
  *
  * Responsibilities:
  * - Fetches project data from the API on mount
  * - Auto-selects the first chapter when none is active
  * - Redirects to /dashboard on 404
- * - handleProjectConnected: optimistically sets driveFolderId, then re-fetches
- * - handleProjectDisconnected: optimistically clears driveFolderId, then re-fetches
  *
  * IMPORTANT: getToken must be a stable reference (created once, not per render)
  * because useEditorProject's fetchProjectData is memoised on [getToken, projectId, router].
@@ -42,7 +39,6 @@ function makeProjectResponse(overrides?: Record<string, unknown>) {
     id: "proj-1",
     title: "Test Project",
     status: "active",
-    driveFolderId: null,
     createdAt: "2025-01-01T00:00:00Z",
     updatedAt: "2025-01-01T00:00:00Z",
     chapters: [
@@ -227,90 +223,6 @@ describe("useEditorProject", () => {
     });
 
     expect(result.current.activeChapterId).toBeNull();
-  });
-
-  describe("handleProjectConnected", () => {
-    it("re-fetches project data after being called", async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve(makeProjectResponse()),
-      });
-
-      const { result } = renderHook(() => useEditorProject(makeOptions()));
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      const fetchCallsBefore = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.length;
-
-      await act(async () => {
-        await result.current.handleProjectConnected("new-drive-folder-id");
-      });
-
-      const fetchCallsAfter = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.length;
-      expect(fetchCallsAfter).toBeGreaterThan(fetchCallsBefore);
-    });
-
-    it("updates project data with driveFolderId from the re-fetch", async () => {
-      // Use mockResolvedValueOnce for predictable fetch ordering:
-      // 1st call (mount): no driveFolderId
-      // 2nd call (handleProjectConnected re-fetch): has driveFolderId
-      global.fetch = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(makeProjectResponse({ driveFolderId: null })),
-        })
-        .mockResolvedValue({
-          ok: true,
-          json: () => Promise.resolve(makeProjectResponse({ driveFolderId: "confirmed-drive-id" })),
-        });
-
-      const { result } = renderHook(() => useEditorProject(makeOptions()));
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      await act(async () => {
-        await result.current.handleProjectConnected("new-drive-folder-id");
-      });
-
-      // After re-fetch, the driveFolderId should come from the API response
-      expect(result.current.projectData!.driveFolderId).toBe("confirmed-drive-id");
-    });
-  });
-
-  describe("handleProjectDisconnected", () => {
-    it("clears driveFolderId and re-fetches", async () => {
-      // 1st call (mount): has driveFolderId
-      // 2nd call (disconnect re-fetch): cleared
-      global.fetch = vi
-        .fn()
-        .mockResolvedValueOnce({
-          ok: true,
-          json: () => Promise.resolve(makeProjectResponse({ driveFolderId: "old-drive-folder" })),
-        })
-        .mockResolvedValue({
-          ok: true,
-          json: () => Promise.resolve(makeProjectResponse({ driveFolderId: null })),
-        });
-
-      const { result } = renderHook(() => useEditorProject(makeOptions()));
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      expect(result.current.projectData!.driveFolderId).toBe("old-drive-folder");
-
-      await act(async () => {
-        await result.current.handleProjectDisconnected();
-      });
-
-      expect(result.current.projectData!.driveFolderId).toBeNull();
-    });
   });
 
   it("sends Authorization header with token from getToken", async () => {

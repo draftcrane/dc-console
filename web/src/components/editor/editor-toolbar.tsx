@@ -4,6 +4,7 @@ import type { ProjectData } from "@/types/editor";
 import type { SaveStatus } from "@/hooks/use-auto-save";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
 import type { ProjectSummary } from "@/hooks/use-project-actions";
+import type { DriveAccount } from "@/hooks/use-drive-accounts";
 import { ProjectSwitcher } from "@/components/project/project-switcher";
 import { SaveIndicator } from "./save-indicator";
 import { ExportMenu } from "@/components/project/export-menu";
@@ -25,17 +26,13 @@ interface EditorToolbarProps {
   onOpenAiRewrite: () => void;
 
   // Export
-  driveConnected: boolean;
+  driveAccounts: DriveAccount[];
   projectId: string;
   activeChapterId: string | null;
   getToken: () => Promise<string | null>;
   apiUrl: string;
 
   // Settings
-  hasDriveFolder: boolean;
-  driveFolderId?: string | null;
-  onSetupDrive?: () => void;
-  onUnlinkDrive?: () => void;
   onRenameBook: () => void;
   onDuplicateBook: () => void;
   isDuplicating: boolean;
@@ -56,15 +53,11 @@ export function EditorToolbar({
   selectionWordCount,
   aiSheetState,
   onOpenAiRewrite,
-  driveConnected,
+  driveAccounts,
   projectId,
   activeChapterId,
   getToken,
   apiUrl,
-  hasDriveFolder,
-  driveFolderId,
-  onSetupDrive,
-  onUnlinkDrive,
   onRenameBook,
   onDuplicateBook,
   isDuplicating,
@@ -151,14 +144,10 @@ export function EditorToolbar({
           activeChapterId={activeChapterId}
           getToken={getToken}
           apiUrl={apiUrl}
-          driveConnected={driveConnected}
+          driveAccounts={driveAccounts}
         />
 
         <SettingsMenu
-          hasDriveFolder={hasDriveFolder}
-          driveFolderId={driveFolderId}
-          onSetupDrive={onSetupDrive}
-          onUnlinkDrive={onUnlinkDrive}
           onRenameBook={onRenameBook}
           onDuplicateBook={onDuplicateBook}
           isDuplicating={isDuplicating}

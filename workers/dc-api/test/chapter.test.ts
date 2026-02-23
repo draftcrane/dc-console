@@ -91,14 +91,11 @@ describe("ChapterService", () => {
   });
 
   describe("deleteChapter", () => {
-    it("deletes a chapter and returns metadata", async () => {
+    it("deletes a chapter", async () => {
       await seedChapter(projectId, { sortOrder: 1 });
       const ch2 = await seedChapter(projectId, { sortOrder: 2 });
 
-      const result = await service.deleteChapter(userId, ch2.id);
-
-      expect(result.projectId).toBe(projectId);
-      expect(result.driveFileId).toBeNull();
+      await service.deleteChapter(userId, ch2.id);
 
       const remaining = await service.listChapters(userId, projectId);
       expect(remaining).toHaveLength(1);

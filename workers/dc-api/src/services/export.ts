@@ -72,7 +72,8 @@ export class ExportService {
     userId: string,
     jobId: string,
     driveService: DriveService,
+    connectionId?: string,
   ): Promise<ExportToDriveResult> {
-    return this.delivery.saveToDrive(userId, jobId, driveService);
+    return this.delivery.saveToDrive(userId, jobId, driveService, connectionId);
   }
 }

@@ -143,23 +143,30 @@ export class ExportDeliveryService {
   /**
    * Save a completed export to Google Drive.
    *
-   * Per US-021:
+   * Creates a project folder on-demand (no project-level Drive binding required).
+   * Any user with a connected Drive account can save exports.
+   *
+   * Steps:
    * 1. Verify the export job belongs to the user and is completed
-   * 2. Look up the project's drive_folder_id
-   * 3. Find or create the _exports/ subfolder
-   * 4. Fetch the export artifact from R2
-   * 5. Upload to Drive with date-stamped file name
-   * 6. Update the export_jobs row with drive_file_id
+   * 2. Idempotency: if already saved, return existing info without calling Drive
+   * 3. Look up the project title for folder naming
+   * 4. Resolve Drive connection (user-level, not project-level)
+   * 5. Find or create project folder at Drive root
+   * 6. Find or create _exports/ subfolder
+   * 7. Fetch export artifact from R2, upload to Drive
+   * 8. Update export_jobs row with drive_file_id
    *
    * @param userId - Authenticated user ID
    * @param jobId - Export job ID
    * @param driveService - DriveService instance for Drive API calls
+   * @param connectionId - Optional: which Drive account to use (required if multiple)
    * @returns Drive file metadata (id, fileName, webViewLink)
    */
   async saveToDrive(
     userId: string,
     jobId: string,
     driveService: DriveService,
+    connectionId?: string,
   ): Promise<ExportToDriveResult> {
     // 1. Verify the export job belongs to the user and is completed
     const job = await this.db
@@ -186,9 +193,8 @@ export class ExportDeliveryService {
       validationError("Export is not available for saving to Drive");
     }
 
-    // If already saved to Drive, return the existing info
+    // 2. Idempotency: if already saved, return existing info without calling Drive
     if (job.drive_file_id) {
-      // Fetch the file name from R2 metadata
       const head = await this.bucket.head(job.r2_key);
       const fileName = head?.customMetadata?.fileName || `export-${jobId}.${job.format}`;
       return {
@@ -198,45 +204,38 @@ export class ExportDeliveryService {
       };
     }
 
-    // 2. Look up the project's drive_folder_id and drive_connection_id
+    // 3. Look up the project title for folder naming
     const project = await this.db
-      .prepare(
-        `SELECT id, title, drive_folder_id, drive_connection_id
-         FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`,
-      )
+      .prepare(`SELECT id, title FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
       .bind(job.project_id, userId)
-      .first<{
-        id: string;
-        title: string;
-        drive_folder_id: string | null;
-        drive_connection_id: string | null;
-      }>();
+      .first<{ id: string; title: string }>();
 
     if (!project) {
       notFound("Project not found");
     }
 
-    if (!project.drive_folder_id) {
-      validationError(
-        "Project does not have a Google Drive folder. Connect Drive and create a book folder first.",
-      );
-    }
-
-    // 3. Resolve Drive connection via project binding (fails fast on ambiguous state)
-    const { tokens } = await resolveProjectConnection(
+    // 4. Resolve Drive connection (user-level, not project-level)
+    const resolved = await resolveProjectConnection(
       driveService.tokenService,
       userId,
-      project.drive_connection_id,
+      null, // No project binding
+      connectionId,
     );
 
-    // 4. Find or create the _exports/ subfolder
+    // 5. Find or create project folder at Drive root
+    const projectFolderId = await driveService.findOrCreateRootFolder(
+      resolved.tokens.accessToken,
+      project.title,
+    );
+
+    // 6. Find or create _exports/ subfolder
     const exportsFolderId = await driveService.findOrCreateSubfolder(
-      tokens.accessToken,
-      project.drive_folder_id,
+      resolved.tokens.accessToken,
+      projectFolderId,
       "_exports",
     );
 
-    // 5. Fetch the export artifact from R2
+    // 7. Fetch the export artifact from R2
     const object = await this.bucket.get(job.r2_key);
     if (!object) {
       notFound("Export file not found in storage");
@@ -246,16 +245,16 @@ export class ExportDeliveryService {
     const contentType = job.format === "epub" ? "application/epub+zip" : "application/pdf";
     const fileData = await object.arrayBuffer();
 
-    // 6. Upload to Drive
+    // Upload to Drive
     const driveFile = await driveService.uploadFile(
-      tokens.accessToken,
+      resolved.tokens.accessToken,
       exportsFolderId,
       fileName,
       contentType,
       fileData,
     );
 
-    // 7. Update the export_jobs row with drive_file_id
+    // 8. Update the export_jobs row with drive_file_id
     await this.db
       .prepare(`UPDATE export_jobs SET drive_file_id = ? WHERE id = ?`)
       .bind(driveFile.id, jobId)

@@ -3,14 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 interface SettingsMenuProps {
-  /** Whether the project has a Drive folder linked */
-  hasDriveFolder: boolean;
-  /** Drive folder ID for external link (null = no folder) */
-  driveFolderId?: string | null;
-  /** Set up Google Drive (OAuth + auto-link) */
-  onSetupDrive?: () => void;
-  /** Unlink project from Google Drive folder */
-  onUnlinkDrive?: () => void;
   /** Open rename book dialog */
   onRenameBook: () => void;
   /** Open duplicate book dialog */
@@ -28,17 +20,9 @@ interface SettingsMenuProps {
 /**
  * SettingsMenu - Settings dropdown for the editor toolbar.
  *
- * Two-state Drive UX:
- * - Not fully connected: "Set Up Google Drive" (handles OAuth + folder linking)
- * - Fully connected: "Open in Google Drive" (external link) + "Unlink from Google Drive"
- *
  * iPad-first: 44pt touch targets.
  */
 export function SettingsMenu({
-  hasDriveFolder,
-  driveFolderId,
-  onSetupDrive,
-  onUnlinkDrive,
   onRenameBook,
   onDuplicateBook,
   isDuplicating,
@@ -82,8 +66,6 @@ export function SettingsMenu({
     action();
   }, []);
 
-  const isFullyConnected = hasDriveFolder && !!driveFolderId;
-
   return (
     <div className="relative" ref={menuRef}>
       <button
@@ -120,78 +102,6 @@ export function SettingsMenu({
           role="menu"
           aria-label="Project settings"
         >
-          {/* Drive: 2-state UX */}
-          {!isFullyConnected && onSetupDrive && (
-            <>
-              <button
-                onClick={() => handleMenuItem(onSetupDrive)}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
-                           transition-colors min-h-[44px] flex items-center gap-2"
-                role="menuitem"
-              >
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
-                </svg>
-                Set Up Google Drive
-              </button>
-              <div className="my-1 border-t border-gray-200" role="separator" />
-            </>
-          )}
-
-          {isFullyConnected && (
-            <>
-              <a
-                href={`https://drive.google.com/drive/folders/${driveFolderId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setIsOpen(false)}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
-                           transition-colors min-h-[44px] flex items-center gap-2"
-                role="menuitem"
-              >
-                <svg
-                  className="w-4 h-4 shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-                Open in Google Drive
-              </a>
-
-              {onUnlinkDrive && (
-                <button
-                  onClick={() => handleMenuItem(onUnlinkDrive)}
-                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
-                             transition-colors min-h-[44px] flex items-center gap-2"
-                  role="menuitem"
-                >
-                  <svg
-                    className="w-4 h-4 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18"
-                    />
-                  </svg>
-                  Unlink from Google Drive
-                </button>
-              )}
-              <div className="my-1 border-t border-gray-200" role="separator" />
-            </>
-          )}
-
           {/* Rename Book */}
           <button
             onClick={() => handleMenuItem(onRenameBook)}

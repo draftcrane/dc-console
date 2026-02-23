@@ -7,7 +7,7 @@ import { notFound, validationError, AppError } from "../middleware/error-handler
  * Extracted from ProjectService (#103) to enforce single-responsibility.
  *
  * Per PRD Section 11:
- * - Chapters: id (ULID), project_id, title, sort_order, drive_file_id, r2_key, word_count, version, status, timestamps
+ * - Chapters: id (ULID), project_id, title, sort_order, r2_key, word_count, version, status, timestamps
  *
  * Per PRD Section 12:
  * - Authorization: All D1 queries verify project ownership via WHERE user_id = ?
@@ -19,7 +19,6 @@ export interface Chapter {
   projectId: string;
   title: string;
   sortOrder: number;
-  driveFileId: string | null;
   r2Key: string | null;
   wordCount: number;
   version: number;
@@ -48,7 +47,6 @@ export interface ChapterRow {
   project_id: string;
   title: string;
   sort_order: number;
-  drive_file_id: string | null;
   r2_key: string | null;
   word_count: number;
   version: number;
@@ -69,7 +67,6 @@ export function mapChapterRow(row: ChapterRow): Chapter {
     projectId: row.project_id,
     title: row.title,
     sortOrder: row.sort_order,
-    driveFileId: row.drive_file_id,
     r2Key: row.r2_key,
     wordCount: row.word_count,
     version: row.version,
@@ -139,7 +136,6 @@ export class ChapterService {
       projectId,
       title,
       sortOrder,
-      driveFileId: null,
       r2Key: null,
       wordCount: 0,
       version: 1,
@@ -166,7 +162,7 @@ export class ChapterService {
 
     const result = await this.db
       .prepare(
-        `SELECT id, project_id, title, sort_order, drive_file_id, r2_key, word_count, version, status, created_at, updated_at
+        `SELECT id, project_id, title, sort_order, r2_key, word_count, version, status, created_at, updated_at
          FROM chapters
          WHERE project_id = ?
          ORDER BY sort_order ASC`,
@@ -243,7 +239,7 @@ export class ChapterService {
     // Fetch updated chapter
     const updated = await this.db
       .prepare(
-        `SELECT id, project_id, title, sort_order, drive_file_id, r2_key, word_count, version, status, created_at, updated_at
+        `SELECT id, project_id, title, sort_order, r2_key, word_count, version, status, created_at, updated_at
          FROM chapters
          WHERE id = ?`,
       )
@@ -260,24 +256,18 @@ export class ChapterService {
   /**
    * Delete a chapter (with minimum 1 per project enforcement)
    * Per PRD US-014: Minimum one chapter per project
-   *
-   * Returns the deleted chapter's metadata so the caller can
-   * handle Drive file trashing if applicable.
    */
-  async deleteChapter(
-    userId: string,
-    chapterId: string,
-  ): Promise<{ projectId: string; driveFileId: string | null }> {
-    // Verify ownership and get project_id + drive_file_id
+  async deleteChapter(userId: string, chapterId: string): Promise<void> {
+    // Verify ownership and get project_id
     const chapter = await this.db
       .prepare(
-        `SELECT ch.id, ch.project_id, ch.drive_file_id
+        `SELECT ch.id, ch.project_id
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
          WHERE ch.id = ? AND p.user_id = ?`,
       )
       .bind(chapterId, userId)
-      .first<{ id: string; project_id: string; drive_file_id: string | null }>();
+      .first<{ id: string; project_id: string }>();
 
     if (!chapter) {
       notFound("Chapter not found");
@@ -301,8 +291,6 @@ export class ChapterService {
       .prepare(`UPDATE projects SET updated_at = ? WHERE id = ?`)
       .bind(new Date().toISOString(), chapter.project_id)
       .run();
-
-    return { projectId: chapter.project_id, driveFileId: chapter.drive_file_id };
   }
 
   /**
@@ -379,7 +367,7 @@ export class ChapterService {
   async getChapter(userId: string, chapterId: string): Promise<Chapter> {
     const chapter = await this.db
       .prepare(
-        `SELECT ch.id, ch.project_id, ch.title, ch.sort_order, ch.drive_file_id, ch.r2_key,
+        `SELECT ch.id, ch.project_id, ch.title, ch.sort_order, ch.r2_key,
                 ch.word_count, ch.version, ch.status, ch.created_at, ch.updated_at
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
