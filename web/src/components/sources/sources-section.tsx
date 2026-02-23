@@ -69,9 +69,9 @@ export function SourcesSection({ onAddSource }: SourcesSectionProps) {
           }}
           className="text-xs text-blue-600 hover:text-blue-700 min-h-[44px] min-w-[44px]
                      flex items-center justify-center"
-          aria-label="Connect source"
+          aria-label="Add source"
         >
-          + Connect
+          + Add
         </button>
       </div>
 
