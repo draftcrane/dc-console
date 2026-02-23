@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useSourcesContext } from "@/contexts/sources-context";
 import { ProjectSourceList } from "./project-source-list";
 import { DriveBrowser } from "./drive-browser";
 import { SourcePicker } from "./source-picker";
 import { SourcesSection } from "./sources-section";
 import { EmptyState } from "./empty-state";
+import { useToast } from "@/components/toast";
 import type { SourceConnection } from "@/hooks/use-sources";
 
 type ViewMode = "list" | "picker" | "browse";
 
 const SOURCE_LINK_KEY = "dc_pending_source_link";
+const POST_OAUTH_CONNECTION_KEY = "dc_post_oauth_connection";
 
 /**
  * Library tab — three-mode redesign with project-scoped connections.
@@ -29,11 +31,60 @@ const SOURCE_LINK_KEY = "dc_pending_source_link";
 export function LibraryTab() {
   const { sources, isLoadingSources, connections, connectDrive, uploadLocalFile, projectId } =
     useSourcesContext();
+  const { showToast } = useToast();
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [isUploading, setIsUploading] = useState(false);
   const [selectedConnectionIndex, setSelectedConnectionIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Post-OAuth signal: read connection ID from sessionStorage on mount
+  const [postOAuthConnectionId, setPostOAuthConnectionId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return sessionStorage.getItem(POST_OAUTH_CONNECTION_KEY);
+    } catch {
+      return null;
+    }
+  });
+
+  // Show toast when post-OAuth signal is detected
+  const toastFired = useRef(false);
+  useEffect(() => {
+    if (postOAuthConnectionId && !toastFired.current) {
+      toastFired.current = true;
+      showToast("Google Drive connected");
+    }
+  }, [postOAuthConnectionId, showToast]);
+
+  // Auto-browse: when the post-OAuth connection appears in connections, switch to browse mode
+  useEffect(() => {
+    if (!postOAuthConnectionId) return;
+
+    const matchIndex = connections.findIndex((c) => c.driveConnectionId === postOAuthConnectionId);
+    if (matchIndex >= 0) {
+      setSelectedConnectionIndex(matchIndex);
+      setViewMode("browse");
+      setPostOAuthConnectionId(null);
+      try {
+        sessionStorage.removeItem(POST_OAUTH_CONNECTION_KEY);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    // Safety timeout: clear stale signal after 10s if connection never arrives
+    const timeout = setTimeout(() => {
+      setPostOAuthConnectionId(null);
+      try {
+        sessionStorage.removeItem(POST_OAUTH_CONNECTION_KEY);
+      } catch {
+        // ignore
+      }
+    }, 10_000);
+    return () => clearTimeout(timeout);
+  }, [postOAuthConnectionId, connections]);
 
   // Determine which project-scoped connection to use for the Drive browser
   // CRITICAL: Use driveConnectionId for Drive API, NOT id (junction row)
@@ -187,28 +238,57 @@ export function LibraryTab() {
 
   // Empty state: no documents in this project
   if (sources.length === 0) {
+    const hasConnections = connections.length > 0;
+
+    const emptyIcon = hasConnections ? (
+      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="currentColor">
+        <path
+          d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z"
+          className="text-blue-500"
+        />
+      </svg>
+    ) : (
+      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+        />
+      </svg>
+    );
+
+    const emptyMessage = hasConnections ? "Your Drive is connected" : "Add sources to your library";
+
+    const emptyDescription = hasConnections
+      ? "Browse your files and add documents to reference while you write."
+      : "Bring in documents from Google Drive or this device to reference while you write.";
+
+    const emptyAction = hasConnections
+      ? {
+          label: "Browse Drive",
+          onClick: () => {
+            setSelectedConnectionIndex(0);
+            setViewMode("browse");
+          },
+        }
+      : { label: "Add Source", onClick: () => setViewMode("picker") };
+
+    const emptySecondary = hasConnections
+      ? { label: "Upload from device", onClick: () => fileInputRef.current?.click() }
+      : undefined;
+
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {fileInput}
         <EmptyState
-          icon={
-            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1.5}
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-              />
-            </svg>
-          }
-          message="Add sources to your library"
-          description="Bring in documents from Google Drive or this device to reference while you write."
-          action={{
-            label: "Add Source",
-            onClick: () => setViewMode("picker"),
-          }}
+          icon={emptyIcon}
+          message={emptyMessage}
+          description={emptyDescription}
+          action={emptyAction}
+          secondaryAction={emptySecondary}
         />
-        {connections.length > 0 && <SourcesSection onAddSource={() => setViewMode("picker")} />}
+        {hasConnections && <SourcesSection onAddSource={() => setViewMode("picker")} />}
       </div>
     );
   }
