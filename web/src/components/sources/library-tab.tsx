@@ -43,7 +43,7 @@ export function LibraryTab() {
   const { showToast } = useToast();
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [isUploading, setIsUploading] = useState(false);
+  const [, setIsUploading] = useState(false);
   const [selectedConnectionIndex, setSelectedConnectionIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
