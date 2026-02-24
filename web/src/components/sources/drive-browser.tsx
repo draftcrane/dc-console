@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useDriveFiles, type DriveFile } from "@/hooks/use-drive-files";
+import { useState, useCallback, useMemo } from "react";
+import { useDriveFiles } from "@/hooks/use-drive-files";
 import { useLinkFolder } from "@/hooks/use-linked-folders";
 import { useSourcesContext } from "@/contexts/sources-context";
+import { useSelectionState } from "@/hooks/use-selection-state";
+import { TriStateCheckbox } from "./tri-state-checkbox";
 
 interface DriveBrowserProps {
   connectionId: string;
@@ -12,6 +14,8 @@ interface DriveBrowserProps {
   onReconnect?: () => void;
   /** Label for the root breadcrumb (defaults to account email or "My Drive"). */
   rootLabel?: string;
+  /** Account email for the source-level row. */
+  accountEmail?: string;
 }
 
 interface BreadcrumbItem {
@@ -29,109 +33,135 @@ const SUPPORTED_MIMES = new Set([
 ]);
 
 /**
- * DriveBrowser — full-height folder/file navigation for adding documents.
+ * DriveBrowser — full-height folder/file navigation with tri-state selection.
  *
- * Fills the panel content area via flex layout. Breadcrumbs stick to top,
- * action bar sticks to bottom, file list fills everything in between.
+ * Selection model: tri-state checkboxes on every row (source, folders, documents).
+ * Uses an exclusion model — selecting a folder includes everything; exclusions are exceptions.
+ * Selection persists across navigation (no clearing on folder enter/breadcrumb click).
  *
- * Action bar is contextual and mutually exclusive:
- * - Documents selected: Cancel + "Add N Documents"
- * - In subfolder, nothing selected: Cancel + "Link This Folder"
- * - At root, nothing selected: Cancel only
+ * Commit logic:
+ * - rootSelected → one linked folder with driveFolderId='root' + exclusions
+ * - individual selectedFolders → one linked folder per folder + relevant exclusions
+ * - individual selectedDocuments → addDriveSources path (no linked folder)
  */
-export function DriveBrowser({ connectionId, onClose, onReconnect, rootLabel }: DriveBrowserProps) {
+export function DriveBrowser({
+  connectionId,
+  onClose,
+  onReconnect,
+  rootLabel,
+  accountEmail,
+}: DriveBrowserProps) {
   const { addDriveSources, projectId, refetchSources } = useSourcesContext();
   const [currentFolder, setCurrentFolder] = useState("root");
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([
     { id: "root", name: rootLabel || "My Drive" },
   ]);
-  const [selectedFiles, setSelectedFiles] = useState<Map<string, DriveFile>>(new Map());
-  const [isAdding, setIsAdding] = useState(false);
-  const [isLinking, setIsLinking] = useState(false);
+  const [isCommitting, setIsCommitting] = useState(false);
 
   const { files, isLoading, error, hasMore, loadMore } = useDriveFiles({
     connectionId,
     folderId: currentFolder,
   });
   const { linkFolder } = useLinkFolder(projectId);
+  const selection = useSelectionState();
+
+  // parentChain: the breadcrumb IDs (excluding the first 'root' since that's the source level)
+  const parentChain = useMemo(() => breadcrumbs.slice(1).map((b) => b.id), [breadcrumbs]);
 
   const navigateToFolder = useCallback((folderId: string, folderName: string) => {
     setCurrentFolder(folderId);
     setBreadcrumbs((prev) => [...prev, { id: folderId, name: folderName }]);
-    setSelectedFiles(new Map());
+    // No selection clearing — selections persist across navigation
   }, []);
 
   const navigateToBreadcrumb = useCallback(
     (index: number) => {
       setBreadcrumbs((prev) => prev.slice(0, index + 1));
       setCurrentFolder(breadcrumbs[index].id);
-      setSelectedFiles(new Map());
+      // No selection clearing
     },
     [breadcrumbs],
   );
 
-  const toggleFile = useCallback((file: DriveFile) => {
-    setSelectedFiles((prev) => {
-      const next = new Map(prev);
-      if (next.has(file.id)) {
-        next.delete(file.id);
+  /** Unified commit handler — processes root, folder, and document selections. */
+  const handleCommitSelection = useCallback(async () => {
+    const { rootSelected, selectedFolders, selectedDocuments, exclusions } = selection.state;
+    setIsCommitting(true);
+
+    try {
+      // Build exclusions array for API
+      const buildExclusions = () =>
+        Array.from(exclusions.entries()).map(([driveItemId, { name, type }]) => ({
+          driveItemId,
+          itemType: type,
+          itemName: name,
+        }));
+
+      if (rootSelected) {
+        // Root selected → one linked folder with driveFolderId='root'
+        await linkFolder({
+          driveConnectionId: connectionId,
+          driveFolderId: "root",
+          folderName: accountEmail || rootLabel || "My Drive",
+          exclusions: exclusions.size > 0 ? buildExclusions() : undefined,
+        });
+        await refetchSources();
       } else {
-        next.set(file.id, file);
+        // Link individual folders
+        for (const [folderId, folderName] of selectedFolders) {
+          // Find exclusions that belong to this folder's subtree
+          // For now, include all exclusions — the backend filters by linked_folder_id
+          const folderExclusions = buildExclusions();
+          await linkFolder({
+            driveConnectionId: connectionId,
+            driveFolderId: folderId,
+            folderName,
+            exclusions: folderExclusions.length > 0 ? folderExclusions : undefined,
+          });
+        }
+
+        // Add individual documents (not covered by linked folders)
+        if (selectedDocuments.size > 0) {
+          const filesToAdd = Array.from(selectedDocuments.values()).map((f) => ({
+            driveFileId: f.id,
+            title: f.name,
+            mimeType: f.mimeType,
+          }));
+          await addDriveSources(filesToAdd, connectionId);
+        }
+
+        if (selectedFolders.size > 0) {
+          await refetchSources();
+        }
       }
-      return next;
-    });
-  }, []);
 
-  const handleAddSelected = useCallback(async () => {
-    if (selectedFiles.size === 0) return;
-    setIsAdding(true);
-    try {
-      const filesToAdd = Array.from(selectedFiles.values()).map((f) => ({
-        driveFileId: f.id,
-        title: f.name,
-        mimeType: f.mimeType,
-      }));
-      await addDriveSources(filesToAdd, connectionId);
-      setSelectedFiles(new Map());
       onClose();
     } catch (err) {
-      console.error("Failed to add documents:", err);
+      console.error("Failed to commit selection:", err);
     } finally {
-      setIsAdding(false);
+      setIsCommitting(false);
     }
-  }, [selectedFiles, addDriveSources, connectionId, onClose]);
-
-  const handleLinkFolder = useCallback(async () => {
-    const currentFolderName = breadcrumbs[breadcrumbs.length - 1]?.name || "Drive";
-    setIsLinking(true);
-    try {
-      await linkFolder({
-        driveConnectionId: connectionId,
-        driveFolderId: currentFolder,
-        folderName: currentFolderName,
-      });
-      await refetchSources();
-      onClose();
-    } catch (err) {
-      console.error("Failed to link folder:", err);
-    } finally {
-      setIsLinking(false);
-    }
-  }, [linkFolder, connectionId, currentFolder, breadcrumbs, refetchSources, onClose]);
+  }, [
+    selection.state,
+    linkFolder,
+    connectionId,
+    accountEmail,
+    rootLabel,
+    addDriveSources,
+    refetchSources,
+    onClose,
+  ]);
 
   // Separate folders from supported documents
   const folders = files.filter((f) => f.mimeType === FOLDER_MIME);
   const documents = files.filter(
     (f) => f.mimeType !== FOLDER_MIME && SUPPORTED_MIMES.has(f.mimeType),
   );
-  // Check for unsupported files (non-folder, non-supported) to differentiate empty states
   const unsupportedFiles = files.filter(
     (f) => f.mimeType !== FOLDER_MIME && !SUPPORTED_MIMES.has(f.mimeType),
   );
 
   const isAtRoot = currentFolder === "root";
-  const isInSubfolder = !isAtRoot;
-  const hasSelection = selectedFiles.size > 0;
 
   // Context-aware empty state message
   const getEmptyMessage = (): { title: string; detail?: string } => {
@@ -145,7 +175,6 @@ export function DriveBrowser({ connectionId, onClose, onReconnect, rootLabel }: 
       }
       return { title: "No documents found" };
     }
-    // In subfolder
     if (hasUnsupported) {
       return {
         title: "No supported documents in this folder",
@@ -178,6 +207,29 @@ export function DriveBrowser({ connectionId, onClose, onReconnect, rootLabel }: 
 
       {/* File list (fills available space) */}
       <div className="flex-1 overflow-auto min-h-0">
+        {/* Source-level row (only at root) */}
+        {isAtRoot && (
+          <div className="flex items-center border-b border-gray-100 bg-gray-50/50">
+            <TriStateCheckbox
+              state={selection.getSourceCheckboxState()}
+              onChange={selection.toggleRoot}
+              label={`Select all from ${accountEmail || "this source"}`}
+            />
+            <div className="flex items-center gap-2 flex-1 min-w-0 pr-3">
+              <svg
+                className="w-5 h-5 text-blue-500 shrink-0"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
+              </svg>
+              <span className="text-sm text-gray-900 truncate">
+                {accountEmail || "Google Drive"}
+              </span>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <p className="px-3 py-6 text-center text-sm text-gray-500">Loading...</p>
         ) : error ? (
@@ -216,53 +268,61 @@ export function DriveBrowser({ connectionId, onClose, onReconnect, rootLabel }: 
           })()
         ) : (
           <>
-            {/* Folders */}
+            {/* Folders — two-zone layout: checkbox (left) + navigate button (right) */}
             {folders.map((folder) => (
               <div
                 key={folder.id}
-                onClick={() => navigateToFolder(folder.id, folder.name)}
-                className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50
-                           min-h-[44px] border-b border-gray-50"
+                className="flex items-center border-b border-gray-50 hover:bg-gray-50"
               >
-                <svg
-                  className="w-5 h-5 text-yellow-500 shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
+                <TriStateCheckbox
+                  state={selection.getCheckboxState(folder.id, "folder", parentChain)}
+                  onChange={() => selection.toggleFolder(folder.id, folder.name, parentChain)}
+                  label={`Select ${folder.name}`}
+                />
+                <button
+                  onClick={() => navigateToFolder(folder.id, folder.name)}
+                  className="flex items-center gap-2 flex-1 min-w-0 pr-3 min-h-[44px] cursor-pointer"
                 >
-                  <path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z" />
-                </svg>
-                <span className="text-sm text-gray-900 truncate">{folder.name}</span>
-                <svg
-                  className="w-4 h-4 text-gray-400 shrink-0 ml-auto"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
+                  <svg
+                    className="w-5 h-5 text-yellow-500 shrink-0"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z" />
+                  </svg>
+                  <span className="text-sm text-gray-900 truncate flex-1 text-left">
+                    {folder.name}
+                  </span>
+                  <svg
+                    className="w-4 h-4 text-gray-400 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
               </div>
             ))}
 
             {/* Documents */}
             {documents.map((doc) => (
-              <label
+              <div
                 key={doc.id}
-                className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50
-                           min-h-[44px] border-b border-gray-50"
+                className="flex items-center border-b border-gray-50 hover:bg-gray-50"
               >
-                <input
-                  type="checkbox"
-                  checked={selectedFiles.has(doc.id)}
-                  onChange={() => toggleFile(doc)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                <TriStateCheckbox
+                  state={selection.getCheckboxState(doc.id, "document", parentChain)}
+                  onChange={() => selection.toggleDocument(doc, parentChain)}
+                  label={`Select ${doc.name}`}
                 />
-                <span className="text-sm text-gray-900 truncate flex-1">{doc.name}</span>
-              </label>
+                <span className="text-sm text-gray-900 truncate flex-1 pr-3">{doc.name}</span>
+              </div>
             ))}
 
             {/* Pagination */}
@@ -280,7 +340,7 @@ export function DriveBrowser({ connectionId, onClose, onReconnect, rootLabel }: 
         )}
       </div>
 
-      {/* Action bar (sticky footer, contextual, mutually exclusive) */}
+      {/* Action bar (sticky footer) */}
       <div className="px-3 py-2 border-t border-gray-200 flex items-center gap-2 shrink-0">
         <button
           onClick={onClose}
@@ -292,35 +352,15 @@ export function DriveBrowser({ connectionId, onClose, onReconnect, rootLabel }: 
 
         <div className="flex-1" />
 
-        {/* Documents selected: "Add N Documents" */}
-        {hasSelection && (
+        {!selection.isEmpty && (
           <button
-            onClick={handleAddSelected}
-            disabled={isAdding}
+            onClick={handleCommitSelection}
+            disabled={isCommitting}
             className="h-8 px-3 text-xs font-medium text-white bg-blue-600 rounded-lg
                        hover:bg-blue-700 disabled:opacity-50 min-h-[44px] flex items-center"
           >
-            {isAdding
-              ? "Adding..."
-              : `Add ${selectedFiles.size} Document${selectedFiles.size !== 1 ? "s" : ""}`}
+            {isCommitting ? "Adding..." : selection.getButtonLabel()}
           </button>
-        )}
-
-        {/* In subfolder, nothing selected: "Link This Folder" */}
-        {!hasSelection && isInSubfolder && folders.length + documents.length > 0 && (
-          <div className="flex flex-col items-end gap-0.5">
-            <button
-              onClick={handleLinkFolder}
-              disabled={isLinking}
-              className="h-8 px-3 text-xs font-medium text-white bg-blue-600 rounded-lg
-                         hover:bg-blue-700 disabled:opacity-50 min-h-[44px] flex items-center"
-            >
-              {isLinking ? "Linking..." : "Link This Folder"}
-            </button>
-            <span className="text-[10px] text-gray-400 leading-tight max-w-[180px] text-right">
-              All documents in this folder will be added and kept in sync.
-            </span>
-          </div>
         )}
       </div>
     </div>

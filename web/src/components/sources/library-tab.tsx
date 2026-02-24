@@ -230,6 +230,7 @@ export function LibraryTab() {
           onClose={() => setViewMode("list")}
           onReconnect={() => connectDrive(activeAccountEmail ?? undefined)}
           rootLabel={activeAccountEmail ?? undefined}
+          accountEmail={activeAccountEmail ?? ""}
         />
       </div>
     );

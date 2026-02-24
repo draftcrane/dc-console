@@ -48,6 +48,7 @@ export interface LinkFolderInput {
   driveConnectionId: string;
   driveFolderId: string;
   folderName: string;
+  exclusions?: Array<{ driveItemId: string; itemType: "folder" | "document"; itemName: string }>;
 }
 
 /**

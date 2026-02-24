@@ -200,6 +200,29 @@ export async function seedLinkedFolder(
   return { id, projectId, driveConnectionId, driveFolderId, folderName };
 }
 
+export async function seedLinkedFolderExclusion(
+  linkedFolderId: string,
+  overrides?: {
+    id?: string;
+    driveItemId?: string;
+    itemType?: "folder" | "document";
+    itemName?: string;
+  },
+) {
+  const id = overrides?.id ?? ulid();
+  const driveItemId = overrides?.driveItemId ?? `item-${ulid()}`;
+  const itemType = overrides?.itemType ?? "document";
+  const itemName = overrides?.itemName ?? "Excluded Item";
+  const ts = now();
+  await env.DB.prepare(
+    `INSERT INTO linked_folder_exclusions (id, linked_folder_id, drive_item_id, item_type, item_name, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(id, linkedFolderId, driveItemId, itemType, itemName, ts)
+    .run();
+  return { id, linkedFolderId, driveItemId, itemType, itemName };
+}
+
 /**
  * Seed FTS content for a source.
  * Inserts a row into source_content_fts so search tests can find it.
@@ -333,6 +356,7 @@ export async function cleanAll() {
     env.DB.prepare("DELETE FROM export_preferences"),
     env.DB.prepare("DELETE FROM export_jobs"),
     env.DB.prepare("DELETE FROM research_clips"),
+    env.DB.prepare("DELETE FROM linked_folder_exclusions"),
     env.DB.prepare("DELETE FROM project_linked_folders"),
     env.DB.prepare("DELETE FROM project_source_connections"),
     env.DB.prepare("DELETE FROM source_materials"),

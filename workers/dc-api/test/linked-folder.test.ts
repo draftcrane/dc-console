@@ -6,6 +6,7 @@ import {
   seedProject,
   seedDriveConnection,
   seedLinkedFolder,
+  seedLinkedFolderExclusion,
   seedSource,
   cleanAll,
 } from "./helpers/seed.js";
@@ -103,6 +104,130 @@ describe("LinkedFolderService", () => {
       await expect(service.unlinkFolder(userId, otherProject.id, folder.id)).rejects.toThrow(
         "not found",
       );
+    });
+
+    it("cascades deletes to exclusion rows", async () => {
+      const folder = await seedLinkedFolder(projectId, connectionId);
+      await seedLinkedFolderExclusion(folder.id, {
+        driveItemId: "doc-1",
+        itemType: "document",
+        itemName: "Doc 1",
+      });
+      await seedLinkedFolderExclusion(folder.id, {
+        driveItemId: "folder-1",
+        itemType: "folder",
+        itemName: "Subfolder",
+      });
+
+      await service.unlinkFolder(userId, projectId, folder.id);
+
+      // Exclusions should be gone (CASCADE)
+      const remaining = await env.DB.prepare(
+        `SELECT COUNT(*) as cnt FROM linked_folder_exclusions WHERE linked_folder_id = ?`,
+      )
+        .bind(folder.id)
+        .first<{ cnt: number }>();
+      expect(remaining?.cnt).toBe(0);
+    });
+  });
+
+  describe("listExclusions", () => {
+    it("returns empty array when no exclusions exist", async () => {
+      const folder = await seedLinkedFolder(projectId, connectionId);
+      const exclusions = await service.listExclusions(userId, projectId, folder.id);
+      expect(exclusions).toHaveLength(0);
+    });
+
+    it("returns exclusions with correct fields", async () => {
+      const folder = await seedLinkedFolder(projectId, connectionId);
+      await seedLinkedFolderExclusion(folder.id, {
+        driveItemId: "doc-123",
+        itemType: "document",
+        itemName: "My Doc.gdoc",
+      });
+
+      const exclusions = await service.listExclusions(userId, projectId, folder.id);
+      expect(exclusions).toHaveLength(1);
+      expect(exclusions[0].linkedFolderId).toBe(folder.id);
+      expect(exclusions[0].driveItemId).toBe("doc-123");
+      expect(exclusions[0].itemType).toBe("document");
+      expect(exclusions[0].itemName).toBe("My Doc.gdoc");
+      expect(exclusions[0].id).toBeDefined();
+      expect(exclusions[0].createdAt).toBeDefined();
+    });
+
+    it("throws NOT_FOUND for wrong user", async () => {
+      const folder = await seedLinkedFolder(projectId, connectionId);
+      const otherUser = await seedUser({ id: "other-user-2" });
+      await expect(service.listExclusions(otherUser.id, projectId, folder.id)).rejects.toThrow(
+        "not found",
+      );
+    });
+
+    it("throws NOT_FOUND for non-existent linked folder", async () => {
+      await expect(service.listExclusions(userId, projectId, "nonexistent")).rejects.toThrow(
+        "not found",
+      );
+    });
+  });
+
+  describe("setExclusions", () => {
+    it("creates exclusions from scratch", async () => {
+      const folder = await seedLinkedFolder(projectId, connectionId);
+
+      const result = await service.setExclusions(userId, projectId, folder.id, [
+        { driveItemId: "doc-a", itemType: "document", itemName: "Doc A" },
+        { driveItemId: "folder-b", itemType: "folder", itemName: "Folder B" },
+      ]);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].driveItemId).toBe("doc-a");
+      expect(result[1].driveItemId).toBe("folder-b");
+    });
+
+    it("replaces existing exclusions (PUT semantics)", async () => {
+      const folder = await seedLinkedFolder(projectId, connectionId);
+
+      // Set initial exclusions
+      await service.setExclusions(userId, projectId, folder.id, [
+        { driveItemId: "doc-a", itemType: "document", itemName: "Doc A" },
+        { driveItemId: "doc-b", itemType: "document", itemName: "Doc B" },
+      ]);
+
+      // Replace with a different set
+      const result = await service.setExclusions(userId, projectId, folder.id, [
+        { driveItemId: "doc-c", itemType: "document", itemName: "Doc C" },
+      ]);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].driveItemId).toBe("doc-c");
+
+      // Verify old exclusions are gone
+      const all = await service.listExclusions(userId, projectId, folder.id);
+      expect(all).toHaveLength(1);
+      expect(all[0].driveItemId).toBe("doc-c");
+    });
+
+    it("clears all exclusions when given empty array", async () => {
+      const folder = await seedLinkedFolder(projectId, connectionId);
+
+      await service.setExclusions(userId, projectId, folder.id, [
+        { driveItemId: "doc-a", itemType: "document", itemName: "Doc A" },
+      ]);
+
+      const result = await service.setExclusions(userId, projectId, folder.id, []);
+      expect(result).toHaveLength(0);
+
+      const all = await service.listExclusions(userId, projectId, folder.id);
+      expect(all).toHaveLength(0);
+    });
+
+    it("throws NOT_FOUND for wrong project", async () => {
+      const folder = await seedLinkedFolder(projectId, connectionId);
+      const otherProject = await seedProject(userId, { title: "Other" });
+      await expect(
+        service.setExclusions(otherProject.id, projectId, folder.id, []),
+      ).rejects.toThrow("not found");
     });
   });
 });
