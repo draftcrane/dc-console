@@ -26,6 +26,7 @@ import {
 } from "../services/research-query.js";
 import { AIAnalysisService, type AnalysisInput } from "../services/ai-analysis.js";
 import { OpenAIProvider, WorkersAIProvider } from "../services/ai-provider.js";
+import { DeepAnalysisService } from "../services/deep-analysis.js";
 
 const research = new Hono<{ Bindings: Env }>();
 
@@ -259,6 +260,14 @@ research.post("/projects/:projectId/research/analyze", researchQueryRateLimit, a
     throw new AppError(404, "NOT_FOUND", "Project not found");
   }
 
+  // Accept sourceIds array or legacy sourceId string
+  const sourceIds = body.sourceIds ?? (body.sourceId ? [body.sourceId] : []);
+
+  const input: AnalysisInput = {
+    sourceIds,
+    instruction: body.instruction ?? "",
+  };
+
   const defaultTier = (c.env.AI_DEFAULT_TIER as "edge" | "frontier") || "frontier";
 
   const provider =
@@ -268,19 +277,56 @@ research.post("/projects/:projectId/research/analyze", researchQueryRateLimit, a
 
   const service = new AIAnalysisService(c.env.DB, c.env.EXPORTS_BUCKET, provider);
 
-  // Accept sourceIds array or legacy sourceId string
-  const sourceIds = body.sourceIds ?? (body.sourceId ? [body.sourceId] : []);
-
-  const input: AnalysisInput = {
-    sourceIds,
-    instruction: body.instruction ?? "",
-  };
-
   const err = service.validateInput(input);
   if (err) {
     validationError(err);
   }
 
+  // Token estimation — decide inline vs async
+  const threshold = DeepAnalysisService.getThreshold(c.env);
+  const { total: estimatedTokens, hasUnknown } = await DeepAnalysisService.estimateSourceTokens(
+    c.env.DB,
+    userId,
+    projectId,
+    sourceIds,
+  );
+
+  if (DeepAnalysisService.shouldUseDeepAnalysis(estimatedTokens, hasUnknown, threshold)) {
+    // Async path: create job, process via waitUntil
+    const jobId = await DeepAnalysisService.createJob(
+      c.env.DB,
+      userId,
+      projectId,
+      sourceIds,
+      input.instruction,
+    );
+
+    // Estimate batch count for the response
+    const placeholders = sourceIds.map(() => "?").join(",");
+    const sourceRows = await c.env.DB.prepare(
+      `SELECT id, word_count FROM source_materials WHERE id IN (${placeholders}) AND status = 'active'`,
+    )
+      .bind(...sourceIds)
+      .all<{ id: string; word_count: number }>();
+
+    const sourceInfos = sourceRows.results.map((r) => ({
+      id: r.id,
+      wordCount: r.word_count,
+    }));
+    const totalBatches = DeepAnalysisService.partitionSources(sourceInfos).length;
+
+    // Fire and forget
+    c.executionCtx.waitUntil(DeepAnalysisService.processJob(c.env, jobId));
+
+    return c.json({
+      async: true,
+      jobId,
+      totalBatches,
+      estimatedTokens,
+    });
+  }
+
+  // Inline path: stream SSE with raised budget
   const { stream } = await service.streamAnalysis(userId, input);
 
   return new Response(stream, {
@@ -290,6 +336,37 @@ research.post("/projects/:projectId/research/analyze", researchQueryRateLimit, a
       Connection: "keep-alive",
     },
   });
+});
+
+/**
+ * GET /projects/:projectId/research/jobs/latest
+ * Returns the most recent deep analysis job for a project.
+ * Must be registered before /:jobId to avoid "latest" matching as a param.
+ */
+research.get("/projects/:projectId/research/jobs/latest", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+
+  const job = await DeepAnalysisService.getLatestJob(c.env.DB, userId, projectId);
+
+  return c.json(job);
+});
+
+/**
+ * GET /projects/:projectId/research/jobs/:jobId
+ * Returns status and result for a specific deep analysis job.
+ */
+research.get("/projects/:projectId/research/jobs/:jobId", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+  const jobId = c.req.param("jobId");
+
+  const job = await DeepAnalysisService.getJobStatus(c.env.DB, userId, projectId, jobId);
+  if (!job) {
+    throw new AppError(404, "NOT_FOUND", "Job not found");
+  }
+
+  return c.json(job);
 });
 
 /**
