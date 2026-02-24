@@ -538,6 +538,63 @@ body {
   animation: workspace-view-fade-out 300ms ease-in-out;
 }
 
+/* ------------------------------------------------------------------
+ * Onboarding Tooltip Animations (#337)
+ *
+ * Entrance/exit animations for redesigned tooltips.
+ * ------------------------------------------------------------------ */
+
+@keyframes tooltip-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tooltip-exit {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+.tooltip-enter {
+  animation: tooltip-enter 200ms ease-out;
+}
+
+.tooltip-exit {
+  animation: tooltip-exit 150ms ease-in forwards;
+}
+
+/* ------------------------------------------------------------------
+ * Feedback Sheet Animation (#338)
+ *
+ * Bottom sheet slides up from below viewport.
+ * ------------------------------------------------------------------ */
+
+@keyframes sheet-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.sheet-slide-up {
+  animation: sheet-slide-up 300ms ease-out;
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-up {
@@ -585,6 +642,19 @@ body {
   .workspace-overlay-backdrop {
     animation: none;
   }
+
+  .tooltip-enter {
+    animation: none;
+  }
+
+  .tooltip-exit {
+    animation: none;
+  }
+
+  .sheet-slide-up {
+    animation: none;
+  }
+
 
   .editor-panel-slide-in {
     animation: none;

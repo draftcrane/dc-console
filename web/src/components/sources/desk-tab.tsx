@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useSourcesContext } from "@/contexts/sources-context";
 import { InstructionPicker } from "./instruction-picker";
+import { InstructionSetPicker, DESK_INSTRUCTIONS } from "@/components/instruction-set-picker";
 import { EmptyState } from "./empty-state";
 import { useToast } from "@/components/toast";
 
@@ -36,7 +37,8 @@ export function DeskTab() {
 
   const { showToast } = useToast();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [instruction, setInstruction] = useState("Summarize key points");
+  const [instruction, setInstruction] = useState(DESK_INSTRUCTIONS[0].instructionText);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Merge inline + deep analysis state
   const isDeepProcessing =
@@ -279,17 +281,35 @@ export function DeskTab() {
           {/* Instruction area */}
           <div>
             <label className="text-xs font-medium text-gray-500 mb-1.5 block">Instruction</label>
+
+            {/* Default instruction chips */}
+            <div className="mb-3">
+              <InstructionSetPicker
+                type="desk"
+                selectedInstruction={instruction}
+                onSelect={handleSelectInstruction}
+                onCustom={() => {
+                  textareaRef.current?.focus();
+                }}
+                disabled={isAnyAnalyzing}
+              />
+            </div>
+
+            {/* Freeform instruction textarea */}
             <textarea
+              ref={textareaRef}
               value={instruction}
               onChange={(e) => setInstruction(e.target.value)}
-              disabled={isAnalyzing}
+              disabled={isAnyAnalyzing}
               className="w-full p-3 text-sm border border-gray-200 rounded-lg resize-none
                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                          disabled:opacity-50 disabled:cursor-not-allowed"
               rows={3}
-              placeholder="What would you like to know about these documents?"
+              placeholder="Or type a custom instruction..."
               maxLength={2000}
             />
+
+            {/* Saved instructions picker (for user's custom saved instructions) */}
             <div className="mt-2">
               <InstructionPicker
                 instructions={analysisInstructions}

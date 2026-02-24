@@ -4,6 +4,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import type { SheetState } from "@/hooks/use-ai-rewrite";
 import { useSourcesContext } from "@/contexts/sources-context";
 import { InstructionPicker } from "@/components/sources/instruction-picker";
+import { InstructionSetPicker } from "@/components/instruction-set-picker";
 
 /**
  * Data representing an AI rewrite result, passed in from the parent
@@ -319,9 +320,28 @@ export function AIRewriteSheet({
             )}
           </div>
 
-          {/* Editable instruction field */}
+          {/* Instruction chips and editable field */}
           <div>
             <label className="text-sm font-medium text-gray-500 mb-2 block">Instruction</label>
+
+            {/* Default instruction chips */}
+            <div className="mb-3">
+              <InstructionSetPicker
+                type="chapter"
+                selectedInstruction={editedInstruction || result.instruction}
+                onSelect={(text) => {
+                  setEditedInstruction(text);
+                  setHasUserEdited(true);
+                }}
+                onCustom={() => {
+                  firstFocusableRef.current?.focus();
+                  setHasUserEdited(true);
+                }}
+                disabled={isStreaming}
+              />
+            </div>
+
+            {/* Freeform instruction textarea */}
             <textarea
               ref={firstFocusableRef}
               value={editedInstruction || result.instruction}
@@ -334,8 +354,10 @@ export function AIRewriteSheet({
                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                          disabled:opacity-50 disabled:cursor-not-allowed"
               rows={2}
-              placeholder="Edit instruction for retry..."
+              placeholder="Or type a custom instruction..."
             />
+
+            {/* Saved instructions picker (for user's custom saved instructions) */}
             <div className="mt-1.5">
               <InstructionPicker
                 instructions={rewriteInstructions}

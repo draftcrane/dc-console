@@ -13,6 +13,7 @@ import { exportRoutes } from "./routes/export.js";
 import { sources } from "./routes/sources.js";
 import { research } from "./routes/research.js";
 import { aiInstructions } from "./routes/ai-instructions.js";
+import { feedback } from "./routes/feedback.js";
 import type { ErrorCode } from "./types/index.js";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -109,6 +110,7 @@ app.route("/", exportRoutes);
 app.route("/", chapters);
 app.route("/", sources);
 app.route("/", research);
+app.route("/feedback", feedback);
 
 // 404 fallback
 app.notFound((c) => {
