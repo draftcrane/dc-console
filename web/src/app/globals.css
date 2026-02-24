@@ -496,4 +496,473 @@ body {
   .workspace-view-exit {
     animation: none;
   }
+
+  .workspace-overlay-slide-left,
+  .workspace-overlay-slide-right {
+    animation: none;
+  }
+
+  .workspace-overlay-backdrop {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+ * WorkspaceShell CSS Grid Layout System (#316)
+ *
+ * Responsive workspace layout with four named grid areas:
+ * - sidebar: Chapter navigation (left)
+ * - editor-panel: Source/assist panel (left of center)
+ * - center: Main writing area (never < 400px)
+ * - library-panel: Library/desk panel (right)
+ *
+ * Breakpoints per Design Brief:
+ * - Portrait (768-1023px): sidebar collapsed, panels as overlays
+ * - Landscape (1024-1279px): sidebar persistent, one panel persistent
+ * - Desktop (1280px+): sidebar persistent, both panels can be persistent
+ *
+ * Uses 100dvh for Safari dynamic viewport, env() for safe areas.
+ * ------------------------------------------------------------------ */
+
+/* ---------------------------------------------------------------------
+ * CSS Custom Properties for Layout
+ * --------------------------------------------------------------------- */
+
+:root {
+  /* Sidebar dimensions */
+  --workspace-sidebar-width: 260px;
+  --workspace-sidebar-min-width: 240px;
+  --workspace-sidebar-max-width: 280px;
+
+  /* Panel dimensions */
+  --workspace-panel-width: 320px;
+  --workspace-panel-min-width: 280px;
+  --workspace-panel-max-width: 380px;
+
+  /* Center area constraint - NEVER collapses below this */
+  --workspace-center-min-width: 400px;
+
+  /* Header height (from protected layout) */
+  --workspace-header-height: 3.5rem;
+
+  /* Safe area insets */
+  --workspace-safe-top: env(safe-area-inset-top, 0px);
+  --workspace-safe-right: env(safe-area-inset-right, 0px);
+  --workspace-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --workspace-safe-left: env(safe-area-inset-left, 0px);
+}
+
+/* ---------------------------------------------------------------------
+ * Main Shell Container
+ * --------------------------------------------------------------------- */
+
+.workspace-shell {
+  display: grid;
+  height: calc(100dvh - var(--workspace-header-height));
+  width: 100%;
+  overflow: hidden;
+  background: var(--background);
+
+  /* Safe area padding */
+  padding-left: var(--workspace-safe-left);
+  padding-right: var(--workspace-safe-right);
+  padding-bottom: var(--workspace-safe-bottom);
+
+  /* Enable container queries on this element */
+  container-type: inline-size;
+  container-name: workspace;
+}
+
+/* ---------------------------------------------------------------------
+ * Portrait Breakpoint (768-1023px)
+ *
+ * - Sidebar: collapsed to pill (not in grid)
+ * - Editor Panel: overlay only (not in grid)
+ * - Center: full width
+ * - Library Panel: overlay only (not in grid)
+ * --------------------------------------------------------------------- */
+
+/* Default/Portrait: single column, center takes all space */
+.workspace-shell {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "center";
+}
+
+.workspace-sidebar {
+  /* In portrait, sidebar is not in grid flow - shown as overlay or pill */
+  display: none;
+}
+
+.workspace-editor-panel {
+  /* In portrait, editor panel is overlay only */
+  display: none;
+}
+
+.workspace-center {
+  grid-area: center;
+  min-width: 0; /* Allow shrinking in grid */
+  overflow: hidden;
+
+  /* Container query scope for internal component adaptation */
+  container-type: inline-size;
+  container-name: writing-area;
+}
+
+.workspace-library-panel {
+  /* In portrait, library panel is overlay only */
+  display: none;
+}
+
+/* ---------------------------------------------------------------------
+ * Landscape Breakpoint (1024-1279px)
+ *
+ * - Sidebar: persistent, collapsible
+ * - Editor Panel: can be persistent OR overlay (not both with library)
+ * - Center: min 400px, flexible
+ * - Library Panel: can be persistent OR overlay (not both with editor)
+ * --------------------------------------------------------------------- */
+
+@media (min-width: 1024px) {
+  .workspace-shell {
+    /* Two columns: sidebar + flexible center area */
+    grid-template-columns: var(--workspace-sidebar-width) 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas: "sidebar center";
+  }
+
+  .workspace-sidebar {
+    display: flex;
+    flex-direction: column;
+    grid-area: sidebar;
+    min-width: var(--workspace-sidebar-min-width);
+    max-width: var(--workspace-sidebar-max-width);
+    border-right: 1px solid var(--color-border);
+    background: #f9fafb;
+    overflow: hidden;
+  }
+
+  /* Sidebar collapsed state */
+  .workspace-shell[data-sidebar-collapsed="true"] {
+    grid-template-columns: 0 1fr;
+  }
+
+  .workspace-shell[data-sidebar-collapsed="true"] .workspace-sidebar {
+    display: none;
+  }
+
+  /* Single panel persistent (either editor OR library, not both) */
+  .workspace-shell[data-editor-panel="persistent"] {
+    grid-template-columns: var(--workspace-sidebar-width) var(--workspace-panel-width) 1fr;
+    grid-template-areas: "sidebar editor-panel center";
+  }
+
+  .workspace-shell[data-editor-panel="persistent"] .workspace-editor-panel {
+    display: flex;
+    flex-direction: column;
+    grid-area: editor-panel;
+    min-width: var(--workspace-panel-min-width);
+    max-width: var(--workspace-panel-max-width);
+    border-right: 1px solid var(--color-border);
+    overflow: hidden;
+
+    /* Container query scope */
+    container-type: inline-size;
+    container-name: editor-panel;
+  }
+
+  .workspace-shell[data-library-panel="persistent"] {
+    grid-template-columns: var(--workspace-sidebar-width) 1fr var(--workspace-panel-width);
+    grid-template-areas: "sidebar center library-panel";
+  }
+
+  .workspace-shell[data-library-panel="persistent"] .workspace-library-panel {
+    display: flex;
+    flex-direction: column;
+    grid-area: library-panel;
+    min-width: var(--workspace-panel-min-width);
+    max-width: var(--workspace-panel-max-width);
+    border-left: 1px solid var(--color-border);
+    overflow: hidden;
+
+    /* Container query scope */
+    container-type: inline-size;
+    container-name: library-panel;
+  }
+
+  /* Panel layout algorithm: ensure center never < 400px in landscape */
+  /* When both panels try to be persistent, only one can be */
+  .workspace-shell[data-editor-panel="persistent"][data-library-panel="persistent"] {
+    /* In landscape, if both want to be persistent, library becomes overlay */
+    grid-template-columns: var(--workspace-sidebar-width) var(--workspace-panel-width) 1fr;
+    grid-template-areas: "sidebar editor-panel center";
+  }
+
+  .workspace-shell[data-editor-panel="persistent"][data-library-panel="persistent"]
+    .workspace-library-panel {
+    /* Library panel forced to overlay in landscape when editor is persistent */
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * Desktop Breakpoint (1280px+)
+ *
+ * - Sidebar: always persistent
+ * - Editor Panel: can be persistent alongside library
+ * - Center: flexible, min 400px
+ * - Library Panel: can be persistent alongside editor
+ * --------------------------------------------------------------------- */
+
+@media (min-width: 1280px) {
+  .workspace-shell {
+    /* Sidebar + flexible center */
+    grid-template-columns: var(--workspace-sidebar-width) 1fr;
+    grid-template-areas: "sidebar center";
+  }
+
+  /* Both panels can now be persistent */
+  .workspace-shell[data-editor-panel="persistent"][data-library-panel="persistent"] {
+    grid-template-columns:
+      var(--workspace-sidebar-width)
+      var(--workspace-panel-width)
+      minmax(var(--workspace-center-min-width), 1fr)
+      var(--workspace-panel-width);
+    grid-template-areas: "sidebar editor-panel center library-panel";
+  }
+
+  .workspace-shell[data-editor-panel="persistent"][data-library-panel="persistent"]
+    .workspace-library-panel {
+    /* Library panel now visible in desktop */
+    display: flex;
+    flex-direction: column;
+    grid-area: library-panel;
+    min-width: var(--workspace-panel-min-width);
+    max-width: var(--workspace-panel-max-width);
+    border-left: 1px solid var(--color-border);
+    overflow: hidden;
+    container-type: inline-size;
+    container-name: library-panel;
+  }
+
+  /* Single editor panel */
+  .workspace-shell[data-editor-panel="persistent"]:not([data-library-panel="persistent"]) {
+    grid-template-columns:
+      var(--workspace-sidebar-width)
+      var(--workspace-panel-width)
+      minmax(var(--workspace-center-min-width), 1fr);
+    grid-template-areas: "sidebar editor-panel center";
+  }
+
+  /* Single library panel */
+  .workspace-shell[data-library-panel="persistent"]:not([data-editor-panel="persistent"]) {
+    grid-template-columns:
+      var(--workspace-sidebar-width)
+      minmax(var(--workspace-center-min-width), 1fr)
+      var(--workspace-panel-width);
+    grid-template-areas: "sidebar center library-panel";
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * Overlay Components
+ *
+ * For panels in overlay mode (portrait, or second panel in landscape)
+ * --------------------------------------------------------------------- */
+
+.workspace-overlay-container {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.workspace-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  animation: workspace-backdrop-fade-in 200ms ease-out;
+}
+
+@keyframes workspace-backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.workspace-overlay-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: var(--workspace-panel-max-width);
+  background: var(--background);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  /* Safe area handling */
+  padding-top: var(--workspace-safe-top);
+  padding-bottom: var(--workspace-safe-bottom);
+}
+
+.workspace-overlay-panel.left-0 {
+  padding-left: var(--workspace-safe-left);
+}
+
+.workspace-overlay-panel.right-0 {
+  padding-right: var(--workspace-safe-right);
+}
+
+/* Slide animations */
+@keyframes workspace-slide-from-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes workspace-slide-from-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.workspace-overlay-slide-left {
+  animation: workspace-slide-from-left 200ms ease-out;
+}
+
+.workspace-overlay-slide-right {
+  animation: workspace-slide-from-right 200ms ease-out;
+}
+
+/* ---------------------------------------------------------------------
+ * Sidebar Pill (Collapsed State)
+ *
+ * Shown in portrait mode or when sidebar is manually collapsed
+ * --------------------------------------------------------------------- */
+
+.workspace-sidebar-pill {
+  position: fixed;
+  left: calc(8px + var(--workspace-safe-left));
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+
+  /* Styling */
+  padding: 8px 12px;
+  border-radius: 9999px;
+  background: #2563eb;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1);
+
+  /* Touch target */
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Interaction */
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    transform 150ms ease;
+}
+
+.workspace-sidebar-pill:hover {
+  background: #1d4ed8;
+}
+
+.workspace-sidebar-pill:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.5),
+    0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.workspace-sidebar-pill:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+/* ---------------------------------------------------------------------
+ * Container Query Utilities
+ *
+ * For component-internal adaptation based on container size
+ * Safari 16+ supported
+ * --------------------------------------------------------------------- */
+
+/* Writing area adaptations */
+@container writing-area (max-width: 600px) {
+  /* Narrower center area: reduce padding, adjust typography */
+  .workspace-center-content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+@container writing-area (min-width: 601px) {
+  .workspace-center-content {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+}
+
+@container writing-area (min-width: 800px) {
+  .workspace-center-content {
+    padding-left: 48px;
+    padding-right: 48px;
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Panel adaptations */
+@container editor-panel (max-width: 300px) {
+  .panel-compact-layout {
+    /* Trigger compact mode for narrow panels */
+    --panel-padding: 12px;
+  }
+}
+
+@container library-panel (max-width: 300px) {
+  .panel-compact-layout {
+    --panel-padding: 12px;
+  }
+}
+
+/* ---------------------------------------------------------------------
+ * Utility Classes for Panel Visibility
+ * --------------------------------------------------------------------- */
+
+/* Show/hide based on panel state - for use with data attributes */
+.workspace-shell[data-editor-panel="hidden"] .show-when-editor-open {
+  display: none;
+}
+
+.workspace-shell[data-library-panel="hidden"] .show-when-library-open {
+  display: none;
+}
+
+.workspace-shell:not([data-editor-panel="hidden"]) .hide-when-editor-open {
+  display: none;
+}
+
+.workspace-shell:not([data-library-panel="hidden"]) .hide-when-library-open {
+  display: none;
 }
