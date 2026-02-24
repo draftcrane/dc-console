@@ -14,7 +14,7 @@ interface SourceDetailViewProps {
 /**
  * SourceDetailView - View full parsed source content, select text, insert into chapter.
  *
- * Rendered inline in the Sources tab's "detail" mode. Previously the Review tab.
+ * Rendered inline in the Library tab's "detail" mode (source content viewer).
  *
  * Insert behavior:
  * 1. Insert at cursor position if one exists in the editor
