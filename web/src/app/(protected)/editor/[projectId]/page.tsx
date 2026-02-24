@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import type { ChapterData } from "@/components/layout/sidebar";
@@ -11,6 +11,8 @@ import { EditorSidebar } from "@/components/editor/editor-sidebar";
 import { EditorToolbar } from "@/components/editor/editor-toolbar";
 import { EditorWritingArea } from "@/components/editor/editor-writing-area";
 import { EditorDialogs } from "@/components/editor/editor-dialogs";
+import { EditorPanel, EditorPanelOverlay } from "@/components/editor/editor-panel";
+import { ChapterEditorPanel } from "@/components/editor/chapter-editor-panel";
 import { ToastProvider } from "@/components/toast";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
@@ -101,6 +103,27 @@ function EditorPageInner() {
   // --- Sidebar UI state ---
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileOverlayOpen, setMobileOverlayOpen] = useState(false);
+
+  // --- Editor Panel state (#317) ---
+  const [editorPanelOpen, setEditorPanelOpen] = useState(false);
+  const [editorSelectedText, setEditorSelectedText] = useState("");
+
+  // Read selected text from editor whenever selection changes
+  const handleEditorSelectionUpdate = useCallback(() => {
+    const editor = editorRef.current?.getEditor();
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    if (from === to) {
+      setEditorSelectedText("");
+      return;
+    }
+    const selected = editor.state.doc.textBetween(from, to, "\n");
+    setEditorSelectedText(selected.trim() ? selected : "");
+  }, []);
+
+  const handleToggleEditorPanel = useCallback(() => {
+    setEditorPanelOpen((prev) => !prev);
+  }, []);
 
   // --- Chapter management ---
   const {
@@ -247,6 +270,22 @@ function EditorPageInner() {
           onCloseMobileOverlay={() => setMobileOverlayOpen(false)}
         />
 
+        <EditorPanel isOpen={editorPanelOpen} onClose={() => setEditorPanelOpen(false)}>
+          <ChapterEditorPanel
+            sheetState={aiSheetState}
+            result={aiCurrentResult}
+            errorMessage={aiErrorMessage}
+            selectedText={editorSelectedText}
+            onAccept={handleAIAccept}
+            onRetry={handleAIRetry}
+            onDiscard={handleAIDiscard}
+            onGoDeeper={handleGoDeeper}
+            onRewriteWithInstruction={() => {
+              handleOpenAiRewrite();
+            }}
+          />
+        </EditorPanel>
+
         <div className="flex-1 flex flex-col min-w-0">
           {projectData && (
             <EditorToolbar
@@ -260,6 +299,8 @@ function EditorPageInner() {
               selectionWordCount={selectionWordCount}
               aiSheetState={aiSheetState}
               onOpenAiRewrite={handleOpenAiRewrite}
+              isEditorPanelOpen={editorPanelOpen}
+              onToggleEditorPanel={handleToggleEditorPanel}
               projectId={projectId}
               activeChapterId={activeChapterId}
               getToken={getToken as () => Promise<string | null>}
@@ -278,6 +319,7 @@ function EditorPageInner() {
             currentContent={currentContent}
             onContentChange={handleContentChange}
             onSelectionWordCountChange={handleSelectionWordCountChange}
+            onSelectionUpdate={handleEditorSelectionUpdate}
             activeChapter={activeChapter}
             editingTitle={editingTitle}
             titleValue={titleValue}
@@ -327,6 +369,19 @@ function EditorPageInner() {
         />
 
         <SourcesPanelOverlay />
+
+        <EditorPanelOverlay isOpen={editorPanelOpen} onClose={() => setEditorPanelOpen(false)}>
+          <ChapterEditorPanel
+            sheetState={aiSheetState}
+            result={aiCurrentResult}
+            errorMessage={aiErrorMessage}
+            selectedText={editorSelectedText}
+            onAccept={handleAIAccept}
+            onRetry={handleAIRetry}
+            onDiscard={handleAIDiscard}
+            onGoDeeper={handleGoDeeper}
+          />
+        </EditorPanelOverlay>
       </div>
     </SourcesProvider>
   );

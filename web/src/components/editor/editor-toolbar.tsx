@@ -29,6 +29,10 @@ interface EditorToolbarProps {
   aiSheetState: SheetState;
   onOpenAiRewrite: () => void;
 
+  // Editor Panel (#317)
+  isEditorPanelOpen?: boolean;
+  onToggleEditorPanel?: () => void;
+
   // Export
   projectId: string;
   activeChapterId: string | null;
@@ -61,6 +65,8 @@ export function EditorToolbar({
   selectionWordCount,
   aiSheetState,
   onOpenAiRewrite,
+  isEditorPanelOpen = false,
+  onToggleEditorPanel,
   projectId,
   activeChapterId,
   getToken,
@@ -100,6 +106,33 @@ export function EditorToolbar({
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
         <SaveIndicator status={saveStatus} onRetry={onSaveRetry} />
+
+        {/* Editor Panel toggle (#317) */}
+        {onToggleEditorPanel && (
+          <button
+            onClick={onToggleEditorPanel}
+            className={`h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
+                       transition-colors ${isEditorPanelOpen ? "bg-[var(--dc-color-interactive-escalation-subtle)] text-[var(--dc-color-interactive-escalation)]" : "text-gray-600 hover:bg-gray-50"}`}
+            aria-label={isEditorPanelOpen ? "Close editor panel" : "Open editor panel"}
+            aria-pressed={isEditorPanelOpen}
+          >
+            <svg
+              className="w-4 h-4 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+              />
+            </svg>
+            <span className="hidden sm:inline">Editor</span>
+          </button>
+        )}
 
         <button
           onClick={togglePanel}

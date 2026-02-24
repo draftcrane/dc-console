@@ -3,6 +3,25 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Help & Support semantic tokens (#344) */
+  --dc-color-interactive-primary: #2563eb;
+  --dc-color-interactive-primary-subtle: #eff6ff;
+  --dc-color-status-error: #dc2626;
+  --dc-color-error-bg: #fef2f2;
+  --dc-color-status-success: #059669;
+  --dc-color-success-bg: #ecfdf5;
+  --dc-color-text-secondary: #374151;
+  --dc-color-text-muted: #6b7280;
+  --dc-color-text-placeholder: #9ca3af;
+  --dc-color-border-strong: #d1d5db;
+  --dc-color-surface-secondary: #f9fafb;
+
+  /* Editor Panel — violet accent (#317) */
+  --dc-color-interactive-escalation: #7c3aed;
+  --dc-color-interactive-escalation-subtle: #f5f3ff;
+  --dc-color-interactive-escalation-hover: #6d28d9;
+  --dc-color-interactive-escalation-border: #c4b5fd;
 }
 
 @theme inline {
@@ -384,6 +403,67 @@ body {
 }
 
 /* ------------------------------------------------------------------
+ * Editor Panel (#317)
+ *
+ * Panel slides in from the left. Blinking cursor for streaming.
+ * Violet accent per Design Charter Section 6 color code.
+ * ------------------------------------------------------------------ */
+
+@keyframes editor-panel-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes editor-panel-backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.editor-panel-slide-in {
+  animation: editor-panel-slide-in 200ms ease-out;
+}
+
+.editor-panel-backdrop-fade-in {
+  animation: editor-panel-backdrop-fade-in 200ms ease-out;
+}
+
+/* Editor Panel safe area handling */
+.editor-panel {
+  padding-left: env(safe-area-inset-left, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.editor-panel-overlay {
+  height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Streaming cursor blink */
+@keyframes editor-cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.editor-cursor-blink {
+  animation: editor-cursor-blink 1s step-end infinite;
+}
+
+/* ------------------------------------------------------------------
  * Toast Notification (#197)
  *
  * Fade-in animation for toast messages.
@@ -504,6 +584,20 @@ body {
 
   .workspace-overlay-backdrop {
     animation: none;
+  }
+
+  .editor-panel-slide-in {
+    animation: none;
+  }
+
+  .editor-panel-backdrop-fade-in {
+    animation: none;
+  }
+
+  .editor-cursor-blink {
+    animation: none;
+    /* Keep cursor visible but static */
+    opacity: 1;
   }
 }
 
