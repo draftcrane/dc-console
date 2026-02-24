@@ -49,12 +49,16 @@ export function LibraryTab() {
     }
   });
 
-  // Show toast when post-OAuth signal is detected
-  const toastFired = useRef(false);
+  // Show toast when post-OAuth signal is detected.
+  // Immediately clear sessionStorage to prevent re-fire on remount.
   useEffect(() => {
-    if (postOAuthConnectionId && !toastFired.current) {
-      toastFired.current = true;
+    if (postOAuthConnectionId) {
       showToast("Google Drive connected");
+      try {
+        sessionStorage.removeItem(POST_OAUTH_CONNECTION_KEY);
+      } catch {
+        // ignore
+      }
     }
   }, [postOAuthConnectionId, showToast]);
 
