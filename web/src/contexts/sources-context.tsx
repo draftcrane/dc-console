@@ -23,6 +23,8 @@ interface SourcesContextValue {
   setActiveTab: (tab: SourcesTab) => void;
   selectedSourceId: string | null;
   selectSource: (sourceId: string | null) => void;
+  detailSourceId: string | null;
+  setDetailSourceId: (sourceId: string | null) => void;
   openSourceReview: (sourceId: string) => void;
   openSourceAnalysis: (sourceId: string) => void;
   isPanelOpen: boolean;
@@ -77,7 +79,7 @@ interface SourcesContextValue {
   ) => Promise<void>;
   removeInstruction: (id: string) => Promise<void>;
 
-  // Drive OAuth (initiates Google OAuth — never shows user-level account data)
+  // Drive OAuth (initiates Google OAuth - never shows user-level account data)
   connectDrive: (loginHint?: string, projectId?: string) => Promise<void>;
 
   // Editor ref (for content insertion)
@@ -101,7 +103,7 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
   // Compose all hooks
   const panel = useSourcesPanel();
 
-  // Extract stable ref for the effect dependency (useCallback — identity-stable)
+  // Extract stable ref for the effect dependency (useCallback - identity-stable)
   const { openPanel } = panel;
 
   // Auto-open panel if returning from OAuth (sessionStorage signal or URL param fallback)
@@ -184,7 +186,7 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
       return rewriteInstructions.create(input);
     },
     updateInstruction: async (id, input) => {
-      // Try both — only one will have the ID
+      // Try both - only one will have the ID
       await Promise.allSettled([
         analysisInstructions.update(id, input),
         rewriteInstructions.update(id, input),
@@ -194,7 +196,7 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
       await Promise.allSettled([analysisInstructions.remove(id), rewriteInstructions.remove(id)]);
     },
 
-    // Drive OAuth (initiates Google OAuth — never shows user-level account data)
+    // Drive OAuth (initiates Google OAuth - never shows user-level account data)
     connectDrive: driveAccountsHook.connect,
 
     // Refs

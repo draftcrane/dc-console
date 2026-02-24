@@ -6,8 +6,15 @@ import { EmptyState } from "./empty-state";
 import { useToast } from "@/components/toast";
 import type { SourceContentResult } from "@/hooks/use-sources";
 
+interface SourceDetailViewProps {
+  /** Called when user taps back to return to the source list */
+  onBack: () => void;
+}
+
 /**
- * Review tab — View full parsed source content, select text, insert into chapter.
+ * SourceDetailView - View full parsed source content, select text, insert into chapter.
+ *
+ * Rendered inline in the Sources tab's "detail" mode. Previously the Review tab.
  *
  * Insert behavior:
  * 1. Insert at cursor position if one exists in the editor
@@ -15,13 +22,12 @@ import type { SourceContentResult } from "@/hooks/use-sources";
  * 3. Show toast confirmation
  * 4. On portrait (overlay), close panel after insertion
  */
-export function ReviewTab() {
+export function SourceDetailView({ onBack }: SourceDetailViewProps) {
   const {
     selectedSourceId,
     sources,
     getContent,
     editorRef,
-    setActiveTab,
     closePanel,
     isPanelOpen,
   } = useSourcesContext();
@@ -148,10 +154,10 @@ export function ReviewTab() {
             />
           </svg>
         }
-        message="Select a source from Library to view its content"
+        message="Select a source to view its content"
         action={{
-          label: "Go to Library",
-          onClick: () => setActiveTab("library"),
+          label: "Back to Sources",
+          onClick: onBack,
         }}
       />
     );
@@ -163,9 +169,9 @@ export function ReviewTab() {
       <div className="px-4 py-3 border-b border-gray-100 shrink-0">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setActiveTab("library")}
+            onClick={onBack}
             className="p-1 text-gray-400 hover:text-gray-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Back to Library"
+            aria-label="Back to Sources"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -240,3 +246,4 @@ export function ReviewTab() {
     </div>
   );
 }
+
