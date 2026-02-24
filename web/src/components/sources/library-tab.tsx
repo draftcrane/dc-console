@@ -7,11 +7,13 @@ import { DriveBrowser } from "./drive-browser";
 import { SourcePicker } from "./source-picker";
 import { SourcesSection } from "./sources-section";
 import { SourceDetailView } from "./review-tab";
+import { DocumentPeekView } from "./document-peek-view";
 import { EmptyState } from "./empty-state";
 import { useToast } from "@/components/toast";
 import type { SourceConnection } from "@/hooks/use-sources";
+import type { DriveFile } from "@/hooks/use-drive-files";
 
-type ViewMode = "list" | "browse" | "detail" | "connect";
+type ViewMode = "list" | "browse" | "detail" | "connect" | "peek";
 
 const SOURCE_LINK_KEY = "dc_pending_source_link";
 const POST_OAUTH_CONNECTION_KEY = "dc_post_oauth_connection";
@@ -46,6 +48,12 @@ export function LibraryTab() {
   const [, setIsUploading] = useState(false);
   const [selectedConnectionIndex, setSelectedConnectionIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [peekFile, setPeekFile] = useState<{
+    fileId: string;
+    fileName: string;
+    mimeType: string;
+    connectionId: string;
+  } | null>(null);
 
   // Post-OAuth signal: read connection ID from sessionStorage on mount
   const [postOAuthConnectionId, setPostOAuthConnectionId] = useState<string | null>(() => {
@@ -174,6 +182,25 @@ export function LibraryTab() {
     setDetailSourceId(null);
   }, [setDetailSourceId]);
 
+  const handleDocumentTap = useCallback(
+    (file: DriveFile) => {
+      if (!activeConnectionId) return;
+      setPeekFile({
+        fileId: file.id,
+        fileName: file.name,
+        mimeType: file.mimeType,
+        connectionId: activeConnectionId,
+      });
+      setViewMode("peek");
+    },
+    [activeConnectionId],
+  );
+
+  const handleBackToBrowse = useCallback(() => {
+    setViewMode("browse");
+    setPeekFile(null);
+  }, []);
+
   // Loading state
   if (isLoadingSources) {
     return (
@@ -258,10 +285,26 @@ export function LibraryTab() {
 
         <DriveBrowser
           connectionId={activeConnectionId}
-          onClose={handleBackToList}
           onReconnect={() => connectDrive(activeAccountEmail ?? undefined)}
           rootLabel={activeAccountEmail ?? undefined}
           accountEmail={activeAccountEmail ?? ""}
+          onDocumentTap={handleDocumentTap}
+        />
+      </div>
+    );
+  }
+
+  // ── PEEK MODE (live Drive document preview) ──
+  if (viewMode === "peek" && peekFile) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        {fileInput}
+        <DocumentPeekView
+          fileId={peekFile.fileId}
+          fileName={peekFile.fileName}
+          mimeType={peekFile.mimeType}
+          connectionId={peekFile.connectionId}
+          onBack={handleBackToBrowse}
         />
       </div>
     );

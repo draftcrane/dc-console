@@ -10,17 +10,10 @@
  * - DELETE /sources/:sourceId - Remove a source
  * - POST /sources/:sourceId/import-as-chapter - Import source as a new chapter
  *
- * Linked folder routes:
- * - POST /projects/:projectId/linked-folders - Link a Drive folder
- * - GET /projects/:projectId/linked-folders - List linked folders
- * - DELETE /projects/:projectId/linked-folders/:id - Unlink a folder
- * - POST /projects/:projectId/linked-folders/sync - Sync stale folders
- *
  * All routes require authentication and enforce ownership via project JOIN.
  *
- * Note: Chapter-source linking endpoints (GET /chapters/:chapterId/sources,
- * POST/DELETE /chapters/:chapterId/sources/:sourceId/link) were removed in #181.
- * The chapter_sources table is preserved but deprecated (no writes). See migration 0014.
+ * Note: Linked folder routes (project_linked_folders, linked_folder_exclusions) were
+ * removed in the Library Model v2 migration. Tables are preserved (forward-only migrations).
  */
 
 import { Hono } from "hono";
@@ -28,7 +21,6 @@ import type { Env } from "../types/index.js";
 import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { SourceMaterialService, type AddSourceInput } from "../services/source-material.js";
-import { LinkedFolderService, type ExclusionInput } from "../services/linked-folder.js";
 import { DriveService } from "../services/drive.js";
 import { validateDriveId } from "../utils/drive-query.js";
 
@@ -245,155 +237,6 @@ sources.delete("/projects/:projectId/source-connections/:connId", async (c) => {
   await service.unlinkConnection(userId, projectId, connId);
 
   return c.json({ success: true });
-});
-
-// ── Linked Folder Routes ──
-
-/**
- * POST /projects/:projectId/linked-folders
- * Link a Drive folder to a project. Performs immediate sync.
- */
-sources.post("/projects/:projectId/linked-folders", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-  const body = (await c.req.json().catch(() => ({}))) as {
-    driveConnectionId?: string;
-    driveFolderId?: string;
-    folderName?: string;
-    exclusions?: ExclusionInput[];
-  };
-
-  if (!body.driveConnectionId || !body.driveFolderId || !body.folderName) {
-    validationError("driveConnectionId, driveFolderId, and folderName are required");
-  }
-
-  validateDriveId(body.driveFolderId);
-
-  // Validate exclusions if provided
-  if (body.exclusions) {
-    if (!Array.isArray(body.exclusions)) {
-      validationError("exclusions must be an array");
-    }
-    for (const excl of body.exclusions) {
-      if (!excl.driveItemId || !excl.itemType || !excl.itemName) {
-        validationError("Each exclusion must have driveItemId, itemType, and itemName");
-      }
-      if (excl.itemType !== "folder" && excl.itemType !== "document") {
-        validationError("exclusion itemType must be 'folder' or 'document'");
-      }
-    }
-  }
-
-  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
-  const driveService = new DriveService(c.env);
-  const result = await service.linkFolder(
-    userId,
-    projectId,
-    {
-      driveConnectionId: body.driveConnectionId,
-      driveFolderId: body.driveFolderId,
-      folderName: body.folderName,
-      exclusions: body.exclusions,
-    },
-    driveService,
-  );
-
-  return c.json(result, 201);
-});
-
-/**
- * GET /projects/:projectId/linked-folders
- * List linked folders for a project.
- */
-sources.get("/projects/:projectId/linked-folders", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-
-  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
-  const folders = await service.listLinkedFolders(userId, projectId);
-
-  return c.json({ folders });
-});
-
-/**
- * DELETE /projects/:projectId/linked-folders/:id
- * Unlink a folder. Documents remain — only removes the auto-sync binding.
- */
-sources.delete("/projects/:projectId/linked-folders/:id", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-  const linkedFolderId = c.req.param("id");
-
-  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
-  await service.unlinkFolder(userId, projectId, linkedFolderId);
-
-  return c.json({ success: true });
-});
-
-/**
- * GET /projects/:projectId/linked-folders/:id/exclusions
- * List exclusions for a linked folder.
- */
-sources.get("/projects/:projectId/linked-folders/:id/exclusions", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-  const linkedFolderId = c.req.param("id");
-
-  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
-  const exclusions = await service.listExclusions(userId, projectId, linkedFolderId);
-
-  return c.json({ exclusions });
-});
-
-/**
- * PUT /projects/:projectId/linked-folders/:id/exclusions
- * Replace all exclusions for a linked folder (full replacement).
- */
-sources.put("/projects/:projectId/linked-folders/:id/exclusions", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-  const linkedFolderId = c.req.param("id");
-  const body = (await c.req.json().catch(() => ({}))) as {
-    exclusions?: ExclusionInput[];
-  };
-
-  if (!body.exclusions || !Array.isArray(body.exclusions)) {
-    validationError("exclusions array is required");
-  }
-
-  for (const excl of body.exclusions) {
-    if (!excl.driveItemId || !excl.itemType || !excl.itemName) {
-      validationError("Each exclusion must have driveItemId, itemType, and itemName");
-    }
-    if (excl.itemType !== "folder" && excl.itemType !== "document") {
-      validationError("exclusion itemType must be 'folder' or 'document'");
-    }
-  }
-
-  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
-  const exclusions = await service.setExclusions(
-    userId,
-    projectId,
-    linkedFolderId,
-    body.exclusions,
-  );
-
-  return c.json({ exclusions });
-});
-
-/**
- * POST /projects/:projectId/linked-folders/sync
- * Sync all stale linked folders (side effects — POST, not GET).
- */
-sources.post("/projects/:projectId/linked-folders/sync", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-
-  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
-  const driveService = new DriveService(c.env);
-  const result = await service.syncAllStale(userId, projectId, driveService);
-
-  return c.json(result);
 });
 
 export { sources };
