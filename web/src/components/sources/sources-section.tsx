@@ -5,7 +5,7 @@ import { useSourcesContext } from "@/contexts/sources-context";
 import type { SourceConnection } from "@/hooks/use-sources";
 
 /**
- * SourcesSection - always-visible connections section in the Sources tab.
+ * SourcesSection - always-visible connections section in the Library tab.
  *
  * Shows project-scoped connections with Browse + Remove actions.
  * No collapsible behavior - connections are permanent anchors in the

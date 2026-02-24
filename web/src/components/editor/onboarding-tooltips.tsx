@@ -179,7 +179,7 @@ function getPositionClasses(target: OnboardingStep["target"]): string {
       // Near the left edge where the sidebar lives
       return "top-1/3 left-4 lg:left-[270px]";
     case "sources":
-      // Near the top-right where the Sources button is in the toolbar
+      // Near the top-right where the Library button is in the toolbar
       return "top-16 right-4 lg:right-[200px]";
     case "text-selection":
       // Center of the content area, slightly below middle
