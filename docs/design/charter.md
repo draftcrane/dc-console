@@ -50,16 +50,16 @@ All CSS custom properties use the `--dc-` venture prefix to prevent collisions w
 
 ### Categories
 
-| Category | Prefix | Example |
-|----------|--------|---------|
-| Color | `--dc-color-` | `--dc-color-surface-primary` |
-| Spacing | `--dc-spacing-` | `--dc-spacing-4` |
-| Typography | `--dc-type-` | `--dc-type-size-base` |
-| Border radius | `--dc-radius-` | `--dc-radius-md` |
-| Shadow | `--dc-shadow-` | `--dc-shadow-panel` |
-| Motion | `--dc-motion-` | `--dc-motion-slow` |
-| Z-index | `--dc-z-` | `--dc-z-overlay` |
-| Layout | `--dc-` | `--dc-panel-width` |
+| Category      | Prefix          | Example                      |
+| ------------- | --------------- | ---------------------------- |
+| Color         | `--dc-color-`   | `--dc-color-surface-primary` |
+| Spacing       | `--dc-spacing-` | `--dc-spacing-4`             |
+| Typography    | `--dc-type-`    | `--dc-type-size-base`        |
+| Border radius | `--dc-radius-`  | `--dc-radius-md`             |
+| Shadow        | `--dc-shadow-`  | `--dc-shadow-panel`          |
+| Motion        | `--dc-motion-`  | `--dc-motion-slow`           |
+| Z-index       | `--dc-z-`       | `--dc-z-overlay`             |
+| Layout        | `--dc-`         | `--dc-panel-width`           |
 
 ### Examples
 
@@ -233,21 +233,22 @@ Use `aria-live="polite"` regions for dynamic content updates:
 
 ### Color Code
 
-| Zone | Color | Token Prefix |
-|------|-------|-------------|
-| Library (right) | Blue | `--dc-color-interactive-primary` |
-| Editor (left) | Violet | `--dc-color-interactive-escalation` |
-| Center (writing) | Neutral | `--dc-color-surface-primary` |
+| Zone             | Color   | Token Prefix                        |
+| ---------------- | ------- | ----------------------------------- |
+| Library (right)  | Blue    | `--dc-color-interactive-primary`    |
+| Editor (left)    | Violet  | `--dc-color-interactive-escalation` |
+| Center (writing) | Neutral | `--dc-color-surface-primary`        |
 
 ### Typography
 
-| Role | Font | Usage |
-|------|------|-------|
-| Sans | Geist Sans | UI text, toolbar, sidebar, buttons, panels, editor body |
-| Serif | Lora | Headlines, book titles, chapter titles (displayed prominently), landing page, export |
-| Mono | Geist Mono | Tabular word counts, numeric displays |
+| Role  | Font       | Usage                                                                                |
+| ----- | ---------- | ------------------------------------------------------------------------------------ |
+| Sans  | Geist Sans | UI text, toolbar, sidebar, buttons, panels, editor body                              |
+| Serif | Lora       | Headlines, book titles, chapter titles (displayed prominently), landing page, export |
+| Mono  | Geist Mono | Tabular word counts, numeric displays                                                |
 
 **Rules:**
+
 - Serif for titles and author-facing headings. Sans for interface and editor body.
 - Never mix serif and sans in the same text block.
 - Tabular figures (`font-variant-numeric: tabular-nums`) for all numeric displays.
@@ -262,12 +263,12 @@ Use `aria-live="polite"` regions for dynamic content updates:
 
 ### Animation Timing
 
-| Category | Duration | Usage |
-|----------|----------|-------|
-| Micro-interactions | 100-150ms | Button press, checkbox, tooltip |
-| Panel slide | 200ms ease-out | Editor/Library panel open/close |
-| Workspace transition | 300ms ease-in-out | Chapter/Book mode crossfade |
-| Maximum | 300ms | Nothing in the product exceeds 300ms |
+| Category             | Duration          | Usage                                |
+| -------------------- | ----------------- | ------------------------------------ |
+| Micro-interactions   | 100-150ms         | Button press, checkbox, tooltip      |
+| Panel slide          | 200ms ease-out    | Editor/Library panel open/close      |
+| Workspace transition | 300ms ease-in-out | Chapter/Book mode crossfade          |
+| Maximum              | 300ms             | Nothing in the product exceeds 300ms |
 
 Entrances decelerate (`ease-out`). Exits accelerate (`ease-in`). State changes use symmetric easing (`ease-in-out`).
 
@@ -277,25 +278,25 @@ Entrances decelerate (`ease-out`). Exits accelerate (`ease-in`). State changes u
 
 Things we do not do. If you find yourself reaching for one of these, stop and reconsider.
 
-| Anti-Pattern | Reason |
-|-------------|--------|
-| Hover-dependent interactions | iPad-first. Every hover state must have a touch equivalent. |
-| "AI" in user-facing labels | Invisible Technology principle. Say "Rewrite," "Editor," "Summarize." |
-| Jargon in the interface | No "workflow," "pipeline," "sync," "model," "tier." The author does not care about the mechanism. |
-| Confirmation dialogs for non-destructive actions | Nothing Precious principle. Use undo instead. Only confirm chapter deletion and project deletion. |
-| Animations over 300ms | Animations communicate spatial relationships, not delight. Keep them fast. |
-| `100vh` | Use `100dvh`. The `vh` unit does not account for mobile browser chrome or virtual keyboards. |
-| Center area below 400px | The writing surface must remain usable. If panels would compress it below 400px, the second panel renders as an overlay instead. |
-| Hardcoded hex values | Use `--dc-*` tokens. Hardcoded values drift from the system and block dark mode. |
-| `!important` in CSS | Never. Restructure the selector instead. |
-| Decorative animation | Every animation must communicate a spatial relationship or state change. No animation for its own sake. |
-| "Generate" buttons or template libraries | The author writes. The product assists. Never position the AI as the author. |
-| Desktop-first patterns ported to iPad | Design for touch first. Desktop gets progressive enhancements (resize handles, keyboard shortcuts, dual panels). |
-| Floating help widgets | No Intercom-style chat bubbles. Help lives in header icon and settings menu, not floating over content. |
-| Category dropdowns on feedback forms | Users do not know if their problem is a "UI Bug" or "Performance Issue." Simple toggle: "Something broke" / "I have an idea." |
-| Help page in a new tab | Never navigate away from the app for help. Help page is an in-app route (`/help`). |
-| Community forums as support | No "Ask the community" deflection. Feedback goes to the team. |
-| Playful or cute tooltip copy | Onboarding tooltips are professional and calm. No mascots, no gamification, no Duolingo energy. |
+| Anti-Pattern                                     | Reason                                                                                                                           |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Hover-dependent interactions                     | iPad-first. Every hover state must have a touch equivalent.                                                                      |
+| "AI" in user-facing labels                       | Invisible Technology principle. Say "Rewrite," "Editor," "Summarize."                                                            |
+| Jargon in the interface                          | No "workflow," "pipeline," "sync," "model," "tier." The author does not care about the mechanism.                                |
+| Confirmation dialogs for non-destructive actions | Nothing Precious principle. Use undo instead. Only confirm chapter deletion and project deletion.                                |
+| Animations over 300ms                            | Animations communicate spatial relationships, not delight. Keep them fast.                                                       |
+| `100vh`                                          | Use `100dvh`. The `vh` unit does not account for mobile browser chrome or virtual keyboards.                                     |
+| Center area below 400px                          | The writing surface must remain usable. If panels would compress it below 400px, the second panel renders as an overlay instead. |
+| Hardcoded hex values                             | Use `--dc-*` tokens. Hardcoded values drift from the system and block dark mode.                                                 |
+| `!important` in CSS                              | Never. Restructure the selector instead.                                                                                         |
+| Decorative animation                             | Every animation must communicate a spatial relationship or state change. No animation for its own sake.                          |
+| "Generate" buttons or template libraries         | The author writes. The product assists. Never position the AI as the author.                                                     |
+| Desktop-first patterns ported to iPad            | Design for touch first. Desktop gets progressive enhancements (resize handles, keyboard shortcuts, dual panels).                 |
+| Floating help widgets                            | No Intercom-style chat bubbles. Help lives in header icon and settings menu, not floating over content.                          |
+| Category dropdowns on feedback forms             | Users do not know if their problem is a "UI Bug" or "Performance Issue." Simple toggle: "Something broke" / "I have an idea."    |
+| Help page in a new tab                           | Never navigate away from the app for help. Help page is an in-app route (`/help`).                                               |
+| Community forums as support                      | No "Ask the community" deflection. Feedback goes to the team.                                                                    |
+| Playful or cute tooltip copy                     | Onboarding tooltips are professional and calm. No mascots, no gamification, no Duolingo energy.                                  |
 
 ---
 
@@ -305,40 +306,40 @@ Standards specific to the Help & Support system (feedback, onboarding tooltips, 
 
 ### Voice & Tone
 
-| Surface | Register | Example | Anti-Example |
-|---------|----------|---------|-------------|
-| Tooltip copy | Brief, spatial, instructional | "This is your chapter. Start writing here." | "Welcome to DraftCrane's powerful editor!" |
-| Feedback form | Calm, reassuring | "Describe what happened." | "Provide a detailed description of the issue." |
-| FAQ answers | Direct, one sentence | "Tap Export in the toolbar to download a PDF." | "DraftCrane supports exporting via our PDF pipeline." |
-| Confirmations | Honest, brief | "Sent. We read every report." | "Your feedback is important to us!" |
-| Error messages | Calm, actionable | "Something went wrong. Please try again." | "Error: Request failed with status 500." |
+| Surface        | Register                      | Example                                        | Anti-Example                                          |
+| -------------- | ----------------------------- | ---------------------------------------------- | ----------------------------------------------------- |
+| Tooltip copy   | Brief, spatial, instructional | "This is your chapter. Start writing here."    | "Welcome to DraftCrane's powerful editor!"            |
+| Feedback form  | Calm, reassuring              | "Describe what happened."                      | "Provide a detailed description of the issue."        |
+| FAQ answers    | Direct, one sentence          | "Tap Export in the toolbar to download a PDF." | "DraftCrane supports exporting via our PDF pipeline." |
+| Confirmations  | Honest, brief                 | "Sent. We read every report."                  | "Your feedback is important to us!"                   |
+| Error messages | Calm, actionable              | "Something went wrong. Please try again."      | "Error: Request failed with status 500."              |
 
 ### Vocabulary
 
-| Use | Do Not Use |
-|-----|-----------|
-| Your chapter | The document |
+| Use              | Do Not Use      |
+| ---------------- | --------------- |
+| Your chapter     | The document    |
 | Report a problem | Submit a ticket |
-| Editing help | AI features |
-| Your book | Your project |
-| Save | Sync |
+| Editing help     | AI features     |
+| Your book        | Your project    |
+| Save             | Sync            |
 
 ### Component Architecture
 
-| Component Group | Location | Notes |
-|----------------|----------|-------|
-| Feedback components | `web/src/components/feedback/` | Sheet, form, type selector, success state |
-| Help page components | `web/src/components/help/` | Page, accordion group, accordion item |
+| Component Group       | Location                                            | Notes                                       |
+| --------------------- | --------------------------------------------------- | ------------------------------------------- |
+| Feedback components   | `web/src/components/feedback/`                      | Sheet, form, type selector, success state   |
+| Help page components  | `web/src/components/help/`                          | Page, accordion group, accordion item       |
 | Onboarding (existing) | `web/src/components/editor/onboarding-tooltips.tsx` | Visual redesign, expose `resetOnboarding()` |
-| Context hook | `web/src/hooks/use-feedback-context.ts` | Auto-captures 14 diagnostic fields |
-| Error store | `web/src/lib/error-store.ts` | Ring buffer of last 5 client errors |
+| Context hook          | `web/src/hooks/use-feedback-context.ts`             | Auto-captures 14 diagnostic fields          |
+| Error store           | `web/src/lib/error-store.ts`                        | Ring buffer of last 5 client errors         |
 
 ### Navigation Contract
 
-| Entry Point | Location | Taps from Editor |
-|-------------|----------|-----------------|
-| Header `?` icon | Protected layout header | 1 tap to `/help` |
-| Settings menu | "Help & Support" item | 2 taps to `/help` |
-| Dashboard footer | "Help" text link | 1 tap to `/help` |
+| Entry Point      | Location                | Taps from Editor  |
+| ---------------- | ----------------------- | ----------------- |
+| Header `?` icon  | Protected layout header | 1 tap to `/help`  |
+| Settings menu    | "Help & Support" item   | 2 taps to `/help` |
+| Dashboard footer | "Help" text link        | 1 tap to `/help`  |
 
 No floating help button. No chat widget. No third-party support tools.

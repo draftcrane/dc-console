@@ -83,58 +83,58 @@ The established color system applies without modification to the help and suppor
 
 #### Onboarding Tooltips
 
-| Element | Token | Hex | Contrast | Notes |
-|---------|-------|-----|----------|-------|
-| Tooltip background | `--dc-color-surface-primary` | `#FFFFFF` | -- | White card on semi-transparent backdrop |
-| Tooltip text | `--dc-color-text-secondary` | `#374151` | 10.7:1 vs white | Body text in tooltip. Not foreground (#171717) -- slightly softer for a coaching tone |
-| Step indicator (active) | `--dc-color-interactive-primary` | `#2563EB` | 4.6:1 vs white | Active dot/bar |
-| Step indicator (inactive) | `--dc-color-border` | `#E5E7EB` | -- | Inactive dots |
-| "Next" button background | `--dc-color-foreground` | `#171717` | 17.4:1 vs white text | Primary action. Matches existing dark button pattern in empty-state and crash-recovery-dialog |
-| "Next" button text | `--dc-color-surface-primary` | `#FFFFFF` | 17.4:1 vs #171717 | White on dark |
-| "Skip" text | `--dc-color-text-muted` | `#6B7280` | 5.0:1 vs white | De-emphasized secondary action |
-| Backdrop | -- | `rgba(0, 0, 0, 0.2)` | -- | Semi-transparent overlay. Same value as existing onboarding implementation |
-| Tooltip border/ring | `--dc-color-border` | `#E5E7EB` | -- | Subtle ring for definition against white backgrounds |
-| Tooltip shadow | `--dc-shadow-panel` | See charter | -- | Elevated card shadow matching panel convention |
+| Element                   | Token                            | Hex                  | Contrast             | Notes                                                                                         |
+| ------------------------- | -------------------------------- | -------------------- | -------------------- | --------------------------------------------------------------------------------------------- |
+| Tooltip background        | `--dc-color-surface-primary`     | `#FFFFFF`            | --                   | White card on semi-transparent backdrop                                                       |
+| Tooltip text              | `--dc-color-text-secondary`      | `#374151`            | 10.7:1 vs white      | Body text in tooltip. Not foreground (#171717) -- slightly softer for a coaching tone         |
+| Step indicator (active)   | `--dc-color-interactive-primary` | `#2563EB`            | 4.6:1 vs white       | Active dot/bar                                                                                |
+| Step indicator (inactive) | `--dc-color-border`              | `#E5E7EB`            | --                   | Inactive dots                                                                                 |
+| "Next" button background  | `--dc-color-foreground`          | `#171717`            | 17.4:1 vs white text | Primary action. Matches existing dark button pattern in empty-state and crash-recovery-dialog |
+| "Next" button text        | `--dc-color-surface-primary`     | `#FFFFFF`            | 17.4:1 vs #171717    | White on dark                                                                                 |
+| "Skip" text               | `--dc-color-text-muted`          | `#6B7280`            | 5.0:1 vs white       | De-emphasized secondary action                                                                |
+| Backdrop                  | --                               | `rgba(0, 0, 0, 0.2)` | --                   | Semi-transparent overlay. Same value as existing onboarding implementation                    |
+| Tooltip border/ring       | `--dc-color-border`              | `#E5E7EB`            | --                   | Subtle ring for definition against white backgrounds                                          |
+| Tooltip shadow            | `--dc-shadow-panel`              | See charter          | --                   | Elevated card shadow matching panel convention                                                |
 
 **Design note:** The current onboarding tooltips use `bg-gray-900` for the Next button and `text-gray-700` for body text. These map directly to the token system. The visual problem is not color -- it is spacing, radius, animation, and typographic hierarchy. The color choices are already correct.
 
 #### Feedback/Issue Reporting Form
 
-| Element | Token | Hex | Contrast | Notes |
-|---------|-------|-----|----------|-------|
-| Form background | `--dc-color-surface-primary` | `#FFFFFF` | -- | Clean white surface |
-| Form heading | `--dc-color-foreground` | `#171717` | 17.4:1 vs white | "Report a Problem" or "Share an Idea" |
-| Body/instruction text | `--dc-color-text-secondary` | `#374151` | 10.7:1 vs white | Descriptive text below heading |
-| Input field background | `--dc-color-surface-primary` | `#FFFFFF` | -- | White input |
-| Input field border (default) | `--dc-color-border-strong` | `#D1D5DB` | -- | Gray-300 for visible border |
-| Input field border (focus) | `--dc-color-interactive-primary` | `#2563EB` | -- | Blue focus ring, consistent with editor inputs |
-| Input placeholder | `--dc-color-text-placeholder` | `#9CA3AF` | 2.9:1 vs white | Below AA for normal text, acceptable for placeholder |
-| Input text | `--dc-color-foreground` | `#171717` | 17.4:1 vs white | User-entered text |
-| Type toggle: "Something broke" (active) | `--dc-color-status-error` | `#DC2626` | 4.5:1 vs white | Red tint when bug report is selected |
-| Type toggle: "Something broke" (active bg) | `--dc-color-error-bg` | `#FEF2F2` | -- | Light red background |
-| Type toggle: "I have an idea" (active) | `--dc-color-interactive-primary` | `#2563EB` | 4.6:1 vs white | Blue tint for feature request |
-| Type toggle: "I have an idea" (active bg) | `--dc-color-interactive-primary-subtle` | `#EFF6FF` | -- | Light blue background |
-| Submit button | `--dc-color-foreground` | `#171717` | 17.4:1 vs white text | Dark primary button |
-| Submit button text | `--dc-color-surface-primary` | `#FFFFFF` | 17.4:1 vs #171717 | White on dark |
-| Cancel/close | `--dc-color-text-muted` | `#6B7280` | 5.0:1 vs white | Secondary dismiss action |
-| Success confirmation text | `--dc-color-status-success` | `#059669` | 4.6:1 vs white | "Sent. We read every report." |
-| Success confirmation bg | `--dc-color-success-bg` | `#ECFDF5` | -- | Light green background |
-| Auto-captured context label | `--dc-color-text-muted` | `#6B7280` | 5.0:1 vs white | "Browser, chapter, and recent activity included" |
+| Element                                    | Token                                   | Hex       | Contrast             | Notes                                                |
+| ------------------------------------------ | --------------------------------------- | --------- | -------------------- | ---------------------------------------------------- |
+| Form background                            | `--dc-color-surface-primary`            | `#FFFFFF` | --                   | Clean white surface                                  |
+| Form heading                               | `--dc-color-foreground`                 | `#171717` | 17.4:1 vs white      | "Report a Problem" or "Share an Idea"                |
+| Body/instruction text                      | `--dc-color-text-secondary`             | `#374151` | 10.7:1 vs white      | Descriptive text below heading                       |
+| Input field background                     | `--dc-color-surface-primary`            | `#FFFFFF` | --                   | White input                                          |
+| Input field border (default)               | `--dc-color-border-strong`              | `#D1D5DB` | --                   | Gray-300 for visible border                          |
+| Input field border (focus)                 | `--dc-color-interactive-primary`        | `#2563EB` | --                   | Blue focus ring, consistent with editor inputs       |
+| Input placeholder                          | `--dc-color-text-placeholder`           | `#9CA3AF` | 2.9:1 vs white       | Below AA for normal text, acceptable for placeholder |
+| Input text                                 | `--dc-color-foreground`                 | `#171717` | 17.4:1 vs white      | User-entered text                                    |
+| Type toggle: "Something broke" (active)    | `--dc-color-status-error`               | `#DC2626` | 4.5:1 vs white       | Red tint when bug report is selected                 |
+| Type toggle: "Something broke" (active bg) | `--dc-color-error-bg`                   | `#FEF2F2` | --                   | Light red background                                 |
+| Type toggle: "I have an idea" (active)     | `--dc-color-interactive-primary`        | `#2563EB` | 4.6:1 vs white       | Blue tint for feature request                        |
+| Type toggle: "I have an idea" (active bg)  | `--dc-color-interactive-primary-subtle` | `#EFF6FF` | --                   | Light blue background                                |
+| Submit button                              | `--dc-color-foreground`                 | `#171717` | 17.4:1 vs white text | Dark primary button                                  |
+| Submit button text                         | `--dc-color-surface-primary`            | `#FFFFFF` | 17.4:1 vs #171717    | White on dark                                        |
+| Cancel/close                               | `--dc-color-text-muted`                 | `#6B7280` | 5.0:1 vs white       | Secondary dismiss action                             |
+| Success confirmation text                  | `--dc-color-status-success`             | `#059669` | 4.6:1 vs white       | "Sent. We read every report."                        |
+| Success confirmation bg                    | `--dc-color-success-bg`                 | `#ECFDF5` | --                   | Light green background                               |
+| Auto-captured context label                | `--dc-color-text-muted`                 | `#6B7280` | 5.0:1 vs white       | "Browser, chapter, and recent activity included"     |
 
 #### Help Page (/help)
 
-| Element | Token | Hex | Contrast | Notes |
-|---------|-------|-----|----------|-------|
-| Page background | `--dc-color-surface-primary` | `#FFFFFF` | -- | Clean white |
-| Page heading | `--dc-color-foreground` | `#171717` | 17.4:1 vs white | "Help" in Lora, large |
-| Section heading | `--dc-color-foreground` | `#171717` | 17.4:1 vs white | FAQ section titles |
-| FAQ question text | `--dc-color-text-secondary` | `#374151` | 10.7:1 vs white | Collapsible row label |
-| FAQ answer text | `--dc-color-text-secondary` | `#374151` | 10.7:1 vs white | Expanded content |
-| FAQ section border | `--dc-color-border` | `#E5E7EB` | -- | Dividers between questions |
-| FAQ chevron icon | `--dc-color-text-muted` | `#6B7280` | 5.0:1 vs white | Expand/collapse indicator |
-| "Report a problem" link | `--dc-color-interactive-primary` | `#2563EB` | 4.6:1 vs white | Standalone link at bottom |
-| "Replay tour" link | `--dc-color-interactive-primary` | `#2563EB` | 4.6:1 vs white | Resets localStorage and triggers tour |
-| Section background (alternating) | `--dc-color-surface-secondary` | `#F9FAFB` | -- | Optional subtle alternation for section grouping |
+| Element                          | Token                            | Hex       | Contrast        | Notes                                            |
+| -------------------------------- | -------------------------------- | --------- | --------------- | ------------------------------------------------ |
+| Page background                  | `--dc-color-surface-primary`     | `#FFFFFF` | --              | Clean white                                      |
+| Page heading                     | `--dc-color-foreground`          | `#171717` | 17.4:1 vs white | "Help" in Lora, large                            |
+| Section heading                  | `--dc-color-foreground`          | `#171717` | 17.4:1 vs white | FAQ section titles                               |
+| FAQ question text                | `--dc-color-text-secondary`      | `#374151` | 10.7:1 vs white | Collapsible row label                            |
+| FAQ answer text                  | `--dc-color-text-secondary`      | `#374151` | 10.7:1 vs white | Expanded content                                 |
+| FAQ section border               | `--dc-color-border`              | `#E5E7EB` | --              | Dividers between questions                       |
+| FAQ chevron icon                 | `--dc-color-text-muted`          | `#6B7280` | 5.0:1 vs white  | Expand/collapse indicator                        |
+| "Report a problem" link          | `--dc-color-interactive-primary` | `#2563EB` | 4.6:1 vs white  | Standalone link at bottom                        |
+| "Replay tour" link               | `--dc-color-interactive-primary` | `#2563EB` | 4.6:1 vs white  | Resets localStorage and triggers tour            |
+| Section background (alternating) | `--dc-color-surface-secondary`   | `#F9FAFB` | --              | Optional subtle alternation for section grouping |
 
 ---
 
@@ -144,38 +144,38 @@ The established type system applies directly. No new type styles are introduced.
 
 ### Onboarding Tooltips
 
-| Element | Size | Weight | Line Height | Font | Token Reference |
-|---------|------|--------|-------------|------|-----------------|
-| Step text | 14px (Small) | 400 | 1.5 | Geist Sans | `--dc-type-size-sm` |
-| Step indicator label (e.g., "2 of 4") | 12px (Caption) | 500 | 1.5 | Geist Sans | `--dc-type-size-caption` |
-| "Next" / "Done" button | 14px (Small) | 500 | 1.5 | Geist Sans | `--dc-type-size-sm` |
-| "Skip" link | 14px (Small) | 400 | 1.5 | Geist Sans | `--dc-type-size-sm` |
+| Element                               | Size           | Weight | Line Height | Font       | Token Reference          |
+| ------------------------------------- | -------------- | ------ | ----------- | ---------- | ------------------------ |
+| Step text                             | 14px (Small)   | 400    | 1.5         | Geist Sans | `--dc-type-size-sm`      |
+| Step indicator label (e.g., "2 of 4") | 12px (Caption) | 500    | 1.5         | Geist Sans | `--dc-type-size-caption` |
+| "Next" / "Done" button                | 14px (Small)   | 500    | 1.5         | Geist Sans | `--dc-type-size-sm`      |
+| "Skip" link                           | 14px (Small)   | 400    | 1.5         | Geist Sans | `--dc-type-size-sm`      |
 
 **Design note:** The current implementation uses `text-sm` (14px) for body and buttons, which is correct. The text should not be smaller -- this is iPad-first, and 14px is already the practical minimum for comfortable reading on a held device. The "amateur" feel comes from spacing and shadow, not font sizing.
 
 ### Feedback Form
 
-| Element | Size | Weight | Line Height | Font | Token Reference |
-|---------|------|--------|-------------|------|-----------------|
-| Form heading ("Report a Problem") | 20px (H3) | 600 | 1.4 | Geist Sans | `--dc-type-size-h3` |
-| Instruction text | 14px (Small) | 400 | 1.5 | Geist Sans | `--dc-type-size-sm` |
-| Type toggle labels | 14px (Small) | 500 | 1.5 | Geist Sans | `--dc-type-size-sm` |
-| Textarea input | 16px (Body) | 400 | 1.6 | Geist Sans | `--dc-type-size-base` |
-| Auto-context label | 12px (Caption) | 500 | 1.5 | Geist Sans | `--dc-type-size-caption` |
-| Submit button | 14px (Small) | 500 | 1.5 | Geist Sans | `--dc-type-size-sm` |
-| Success message | 14px (Small) | 500 | 1.5 | Geist Sans | `--dc-type-size-sm` |
+| Element                           | Size           | Weight | Line Height | Font       | Token Reference          |
+| --------------------------------- | -------------- | ------ | ----------- | ---------- | ------------------------ |
+| Form heading ("Report a Problem") | 20px (H3)      | 600    | 1.4         | Geist Sans | `--dc-type-size-h3`      |
+| Instruction text                  | 14px (Small)   | 400    | 1.5         | Geist Sans | `--dc-type-size-sm`      |
+| Type toggle labels                | 14px (Small)   | 500    | 1.5         | Geist Sans | `--dc-type-size-sm`      |
+| Textarea input                    | 16px (Body)    | 400    | 1.6         | Geist Sans | `--dc-type-size-base`    |
+| Auto-context label                | 12px (Caption) | 500    | 1.5         | Geist Sans | `--dc-type-size-caption` |
+| Submit button                     | 14px (Small)   | 500    | 1.5         | Geist Sans | `--dc-type-size-sm`      |
+| Success message                   | 14px (Small)   | 500    | 1.5         | Geist Sans | `--dc-type-size-sm`      |
 
 **Why Geist Sans, not Lora, for the form heading:** The feedback form is a functional UI surface, not an author-facing content heading. Lora is reserved for book titles, chapter titles, and the landing page -- contexts where the author is engaging with their manuscript or the product's identity. A bug report form is chrome. Geist Sans keeps it in the UI register.
 
 ### Help Page
 
-| Element | Size | Weight | Line Height | Font | Token Reference |
-|---------|------|--------|-------------|------|-----------------|
-| Page heading ("Help") | 30px (H1) | 600 | 1.3 | Lora | `--dc-type-size-h1` |
-| Section heading ("Getting Started") | 20px (H3) | 600 | 1.4 | Lora | `--dc-type-size-h3` |
-| FAQ question | 16px (Body) | 500 | 1.6 | Geist Sans | `--dc-type-size-base` |
-| FAQ answer | 16px (Body) | 400 | 1.6 | Geist Sans | `--dc-type-size-base` |
-| "Report a problem" / "Replay tour" links | 14px (Small) | 500 | 1.5 | Geist Sans | `--dc-type-size-sm` |
+| Element                                  | Size         | Weight | Line Height | Font       | Token Reference       |
+| ---------------------------------------- | ------------ | ------ | ----------- | ---------- | --------------------- |
+| Page heading ("Help")                    | 30px (H1)    | 600    | 1.3         | Lora       | `--dc-type-size-h1`   |
+| Section heading ("Getting Started")      | 20px (H3)    | 600    | 1.4         | Lora       | `--dc-type-size-h3`   |
+| FAQ question                             | 16px (Body)  | 500    | 1.6         | Geist Sans | `--dc-type-size-base` |
+| FAQ answer                               | 16px (Body)  | 400    | 1.6         | Geist Sans | `--dc-type-size-base` |
+| "Report a problem" / "Replay tour" links | 14px (Small) | 500    | 1.5         | Geist Sans | `--dc-type-size-sm`   |
 
 **Why Lora for the help page heading and section titles:** The help page is a standalone page, not a panel within the editor. It functions more like a content page (similar to the landing page) than a UI surface. Using Lora for the page title and section headings gives it the same weight and seriousness as other top-level pages while keeping the FAQ body content in the functional Geist Sans register.
 
@@ -187,46 +187,46 @@ The 4px base unit and existing spacing scale apply without modification. Here is
 
 ### Onboarding Tooltip Card
 
-| Property | Value | Token |
-|----------|-------|-------|
-| Card padding | 20px (5 * 4px) | `--dc-spacing-5` |
-| Card border radius | 12px | `--dc-radius-lg` |
-| Step indicator dot gap | 6px (1.5 * 4px) | -- |
-| Step indicator to text | 12px | `--dc-spacing-3` |
-| Text to buttons | 16px | `--dc-spacing-4` |
-| Button height (minimum) | 44px | Touch target minimum |
-| Card width | 288px (72 * 4px, currently `w-72`) | -- |
-| Card max-width | 320px | Constrained on small viewports |
+| Property                | Value                               | Token                          |
+| ----------------------- | ----------------------------------- | ------------------------------ |
+| Card padding            | 20px (5 \* 4px)                     | `--dc-spacing-5`               |
+| Card border radius      | 12px                                | `--dc-radius-lg`               |
+| Step indicator dot gap  | 6px (1.5 \* 4px)                    | --                             |
+| Step indicator to text  | 12px                                | `--dc-spacing-3`               |
+| Text to buttons         | 16px                                | `--dc-spacing-4`               |
+| Button height (minimum) | 44px                                | Touch target minimum           |
+| Card width              | 288px (72 \* 4px, currently `w-72`) | --                             |
+| Card max-width          | 320px                               | Constrained on small viewports |
 
 ### Feedback Form (Sheet/Dialog)
 
-| Property | Value | Token |
-|----------|-------|-------|
-| Form padding | 24px | `--dc-spacing-6` |
-| Heading to instruction text | 8px | `--dc-spacing-2` |
-| Instruction text to type toggle | 16px | `--dc-spacing-4` |
-| Type toggle to textarea | 16px | `--dc-spacing-4` |
-| Textarea height (minimum) | 120px | Enough for 3-4 lines at 16px |
-| Textarea to context summary | 12px | `--dc-spacing-3` |
-| Context summary to submit button | 24px | `--dc-spacing-6` |
-| Button height | 44px | Touch target minimum |
-| Form max-width | 480px | Comfortable reading width for form content |
-| Form border radius | 12px | `--dc-radius-lg` |
+| Property                         | Value | Token                                      |
+| -------------------------------- | ----- | ------------------------------------------ |
+| Form padding                     | 24px  | `--dc-spacing-6`                           |
+| Heading to instruction text      | 8px   | `--dc-spacing-2`                           |
+| Instruction text to type toggle  | 16px  | `--dc-spacing-4`                           |
+| Type toggle to textarea          | 16px  | `--dc-spacing-4`                           |
+| Textarea height (minimum)        | 120px | Enough for 3-4 lines at 16px               |
+| Textarea to context summary      | 12px  | `--dc-spacing-3`                           |
+| Context summary to submit button | 24px  | `--dc-spacing-6`                           |
+| Button height                    | 44px  | Touch target minimum                       |
+| Form max-width                   | 480px | Comfortable reading width for form content |
+| Form border radius               | 12px  | `--dc-radius-lg`                           |
 
 ### Help Page
 
-| Property | Value | Token |
-|----------|-------|-------|
-| Page horizontal padding | 24px (mobile), 48px (desktop) | `--dc-spacing-6` / `--dc-spacing-12` |
-| Page max-width | 680px | Matches editor content width for reading rhythm |
-| Heading to first section | 32px | `--dc-spacing-8` |
-| Between FAQ sections | 32px | `--dc-spacing-8` |
-| Section heading to first question | 16px | `--dc-spacing-4` |
-| FAQ question row height | 48px minimum | Touch target |
-| FAQ question row padding | 16px horizontal | `--dc-spacing-4` |
-| FAQ answer padding | 16px horizontal, 12px vertical | `--dc-spacing-4` / `--dc-spacing-3` |
-| Between FAQ items (border) | 1px | `--dc-color-border` |
-| Footer links section top margin | 48px | `--dc-spacing-12` |
+| Property                          | Value                          | Token                                           |
+| --------------------------------- | ------------------------------ | ----------------------------------------------- |
+| Page horizontal padding           | 24px (mobile), 48px (desktop)  | `--dc-spacing-6` / `--dc-spacing-12`            |
+| Page max-width                    | 680px                          | Matches editor content width for reading rhythm |
+| Heading to first section          | 32px                           | `--dc-spacing-8`                                |
+| Between FAQ sections              | 32px                           | `--dc-spacing-8`                                |
+| Section heading to first question | 16px                           | `--dc-spacing-4`                                |
+| FAQ question row height           | 48px minimum                   | Touch target                                    |
+| FAQ question row padding          | 16px horizontal                | `--dc-spacing-4`                                |
+| FAQ answer padding                | 16px horizontal, 12px vertical | `--dc-spacing-4` / `--dc-spacing-3`             |
+| Between FAQ items (border)        | 1px                            | `--dc-color-border`                             |
+| Footer links section top margin   | 48px                           | `--dc-spacing-12`                               |
 
 ---
 
@@ -236,23 +236,23 @@ The 4px base unit and existing spacing scale apply without modification. Here is
 
 All icons from Lucide, consistent with the established 24px grid, 2px stroke weight, outline style.
 
-| Action | Icon | Size | Notes |
-|--------|------|------|-------|
-| Help page link (in settings menu) | `HelpCircle` | 16px (in menu), 20px (standalone) | Standard help icon. Outline circle with question mark. |
-| Report a problem (link/button) | `MessageSquare` | 16px (in menu), 20px (standalone) | Conversational, not ticket-like. Not `Bug` -- too technical. |
-| Feature request indicator | `Lightbulb` | 16px | Paired with "I have an idea" toggle state |
-| Bug report indicator | `AlertTriangle` | 16px | Paired with "Something broke" toggle state |
-| FAQ expand/collapse | `ChevronDown` / `ChevronUp` | 20px | Standard disclosure chevron |
-| FAQ section: Getting Started | `Rocket` | 20px | Forward momentum, not a tutorial icon |
-| FAQ section: Writing & Editing | `PenLine` | 20px | Consistent with Chapter View icon |
-| FAQ section: AI Features | `Sparkles` | 20px | Consistent with existing rewrite icon |
-| FAQ section: Exporting | `FileDown` | 20px | Consistent with existing export icon |
-| FAQ section: Google Drive | `HardDrive` | 20px | Storage, not the Google logo |
-| FAQ section: Account | `User` | 20px | Standard account/profile icon |
-| Onboarding tooltip close/skip | None (text only) | -- | "Skip" as text, not an X icon. Less abrupt. |
-| Tour replay trigger | `RotateCcw` | 16px | Replay/redo metaphor |
-| Success checkmark (after submit) | `Check` | 20px | Paired with success color. Same as save indicator. |
-| Auto-context indicator | `Info` | 14px | Small, beside the context disclosure |
+| Action                            | Icon                        | Size                              | Notes                                                        |
+| --------------------------------- | --------------------------- | --------------------------------- | ------------------------------------------------------------ |
+| Help page link (in settings menu) | `HelpCircle`                | 16px (in menu), 20px (standalone) | Standard help icon. Outline circle with question mark.       |
+| Report a problem (link/button)    | `MessageSquare`             | 16px (in menu), 20px (standalone) | Conversational, not ticket-like. Not `Bug` -- too technical. |
+| Feature request indicator         | `Lightbulb`                 | 16px                              | Paired with "I have an idea" toggle state                    |
+| Bug report indicator              | `AlertTriangle`             | 16px                              | Paired with "Something broke" toggle state                   |
+| FAQ expand/collapse               | `ChevronDown` / `ChevronUp` | 20px                              | Standard disclosure chevron                                  |
+| FAQ section: Getting Started      | `Rocket`                    | 20px                              | Forward momentum, not a tutorial icon                        |
+| FAQ section: Writing & Editing    | `PenLine`                   | 20px                              | Consistent with Chapter View icon                            |
+| FAQ section: AI Features          | `Sparkles`                  | 20px                              | Consistent with existing rewrite icon                        |
+| FAQ section: Exporting            | `FileDown`                  | 20px                              | Consistent with existing export icon                         |
+| FAQ section: Google Drive         | `HardDrive`                 | 20px                              | Storage, not the Google logo                                 |
+| FAQ section: Account              | `User`                      | 20px                              | Standard account/profile icon                                |
+| Onboarding tooltip close/skip     | None (text only)            | --                                | "Skip" as text, not an X icon. Less abrupt.                  |
+| Tour replay trigger               | `RotateCcw`                 | 16px                              | Replay/redo metaphor                                         |
+| Success checkmark (after submit)  | `Check`                     | 20px                              | Paired with success color. Same as save indicator.           |
+| Auto-context indicator            | `Info`                      | 14px                              | Small, beside the context disclosure                         |
 
 ### No Illustrations
 
@@ -342,39 +342,39 @@ This section provides the specific tonal register for all copy that appears in t
 
 **Tone:** Warm, brief, orienting. The author just created their first project. They are excited and possibly nervous. The tooltips should feel like a colleague pointing things out on a quick tour, not a tutorial.
 
-| Guideline | Example | Anti-Example |
-|-----------|---------|--------------|
-| One sentence per step | "Add documents from Google Drive or your device." | "The Library panel lets you import documents from Google Drive or upload files from your device. You can use these as reference material while writing." |
-| Active voice, second person | "Start writing here." | "This is the area where text can be entered." |
-| No feature names in isolation | "Select any text to get suggestions." | "Use the AI Rewrite feature to improve your text." |
-| No exclamation marks | "Your chapters are listed here." | "Welcome to your sidebar! This is where all your chapters live!" |
+| Guideline                     | Example                                           | Anti-Example                                                                                                                                             |
+| ----------------------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One sentence per step         | "Add documents from Google Drive or your device." | "The Library panel lets you import documents from Google Drive or upload files from your device. You can use these as reference material while writing." |
+| Active voice, second person   | "Start writing here."                             | "This is the area where text can be entered."                                                                                                            |
+| No feature names in isolation | "Select any text to get suggestions."             | "Use the AI Rewrite feature to improve your text."                                                                                                       |
+| No exclamation marks          | "Your chapters are listed here."                  | "Welcome to your sidebar! This is where all your chapters live!"                                                                                         |
 
 ### Feedback Form
 
 **Tone:** Calm, efficient, grateful without being performative. The author might be frustrated (bug) or enthusiastic (idea). Meet both states with steady professionalism.
 
-| Element | Copy Direction |
-|---------|---------------|
-| Form heading (bug) | "Report a Problem" |
-| Form heading (idea) | "Share an Idea" |
-| Instruction text (bug) | "Describe what happened. We automatically include your browser info and recent activity." |
-| Instruction text (idea) | "What would make DraftCrane better for your writing?" |
-| Placeholder text | "What happened?" (bug) / "I wish DraftCrane could..." (idea) |
-| Submit button | "Send" |
-| Success state (bug) | "Sent. We read every report." |
-| Success state (idea) | "Sent. We read every suggestion." |
-| Context disclosure | "Includes: browser, device, current chapter, recent errors" |
+| Element                 | Copy Direction                                                                            |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
+| Form heading (bug)      | "Report a Problem"                                                                        |
+| Form heading (idea)     | "Share an Idea"                                                                           |
+| Instruction text (bug)  | "Describe what happened. We automatically include your browser info and recent activity." |
+| Instruction text (idea) | "What would make DraftCrane better for your writing?"                                     |
+| Placeholder text        | "What happened?" (bug) / "I wish DraftCrane could..." (idea)                              |
+| Submit button           | "Send"                                                                                    |
+| Success state (bug)     | "Sent. We read every report."                                                             |
+| Success state (idea)    | "Sent. We read every suggestion."                                                         |
+| Context disclosure      | "Includes: browser, device, current chapter, recent errors"                               |
 
 ### Help Page / FAQ
 
 **Tone:** Direct, confident, precise. The author has a question and wants an answer, not a paragraph. Answers should be scannable -- lead with the direct answer, then provide detail if needed.
 
-| Guideline | Example | Anti-Example |
-|-----------|---------|--------------|
-| Lead with the answer | "Yes. Your chapters save automatically to Google Drive." | "Great question! DraftCrane provides automatic saving functionality that seamlessly syncs your work to Google Drive." |
-| Use the author's language | "How do I start a new chapter?" | "How do I create a new chapter entity?" |
-| Keep answers under 3 sentences | Most questions need 1-2 sentences. | Multi-paragraph explanations with screenshots and step numbers. |
-| Link to the action, not a docs page | "Go to Settings > Export." | "Please refer to our comprehensive export documentation at docs.draftcrane.com/export." |
+| Guideline                           | Example                                                  | Anti-Example                                                                                                          |
+| ----------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Lead with the answer                | "Yes. Your chapters save automatically to Google Drive." | "Great question! DraftCrane provides automatic saving functionality that seamlessly syncs your work to Google Drive." |
+| Use the author's language           | "How do I start a new chapter?"                          | "How do I create a new chapter entity?"                                                                               |
+| Keep answers under 3 sentences      | Most questions need 1-2 sentences.                       | Multi-paragraph explanations with screenshots and step numbers.                                                       |
+| Link to the action, not a docs page | "Go to Settings > Export."                               | "Please refer to our comprehensive export documentation at docs.draftcrane.com/export."                               |
 
 ---
 
@@ -481,36 +481,36 @@ All animations within the established 150-300ms range. All respect `prefers-redu
 
 ### Onboarding Tooltips
 
-| Animation | Duration | Easing | Trigger |
-|-----------|----------|--------|---------|
-| Tooltip entrance | 200ms | `ease-out` | Step appears |
-| Tooltip exit | 150ms | `ease-in` | Step dismissed, moving to next |
-| Step transition | 200ms crossfade | `ease-in-out` | Next button tapped |
-| Backdrop fade in | 200ms | `ease-out` | First step appears |
-| Backdrop fade out | 150ms | `ease-in` | Tour complete or skipped |
+| Animation         | Duration        | Easing        | Trigger                        |
+| ----------------- | --------------- | ------------- | ------------------------------ |
+| Tooltip entrance  | 200ms           | `ease-out`    | Step appears                   |
+| Tooltip exit      | 150ms           | `ease-in`     | Step dismissed, moving to next |
+| Step transition   | 200ms crossfade | `ease-in-out` | Next button tapped             |
+| Backdrop fade in  | 200ms           | `ease-out`    | First step appears             |
+| Backdrop fade out | 150ms           | `ease-in`     | Tour complete or skipped       |
 
 **Key change from current implementation:** The current tooltips appear instantly (`setTimeout` delay only). Adding the 200ms entrance animation with a subtle `translateY(4px)` to `translateY(0)` movement (matching the existing `toast-fade-in` pattern) will make the tooltip feel considered rather than stamped on.
 
 ### Feedback Form
 
-| Animation | Duration | Easing | Trigger |
-|-----------|----------|--------|---------|
-| Sheet slide up (if bottom sheet) | 300ms | `ease-out` (decelerate) | Form opened |
-| Dialog scale in (if centered dialog) | 200ms | `ease-out` | Form opened |
-| Backdrop fade in | 200ms | `ease-out` | Form opened |
-| Success state transition | 200ms | `ease-in-out` | Report submitted |
-| Form dismiss | 150ms | `ease-in` (accelerate) | Close or after success |
+| Animation                            | Duration | Easing                  | Trigger                |
+| ------------------------------------ | -------- | ----------------------- | ---------------------- |
+| Sheet slide up (if bottom sheet)     | 300ms    | `ease-out` (decelerate) | Form opened            |
+| Dialog scale in (if centered dialog) | 200ms    | `ease-out`              | Form opened            |
+| Backdrop fade in                     | 200ms    | `ease-out`              | Form opened            |
+| Success state transition             | 200ms    | `ease-in-out`           | Report submitted       |
+| Form dismiss                         | 150ms    | `ease-in` (accelerate)  | Close or after success |
 
 ### Help Page FAQ
 
-| Animation | Duration | Easing | Trigger |
-|-----------|----------|--------|---------|
-| FAQ expand | 200ms | `ease-out` | Question tapped |
-| FAQ collapse | 150ms | `ease-in` | Question tapped again |
-| Chevron rotation | 150ms | `ease-out` | Expand/collapse |
+| Animation        | Duration | Easing     | Trigger               |
+| ---------------- | -------- | ---------- | --------------------- |
+| FAQ expand       | 200ms    | `ease-out` | Question tapped       |
+| FAQ collapse     | 150ms    | `ease-in`  | Question tapped again |
+| Chevron rotation | 150ms    | `ease-out` | Expand/collapse       |
 
 **Implementation note:** FAQ expand/collapse should animate `max-height` (or use CSS `grid-template-rows: 0fr` to `1fr` for smoother performance). Avoid `height: auto` transitions -- they do not animate. The `grid-template-rows` approach is preferable because it avoids the need to set a max-height value and animates smoothly.
 
 ---
 
-*This contribution provides brand strategy guidance scoped to the Help & Support system. It builds on the established DraftCrane brand personality, design tokens, and visual language from the workspace design brief. The full token architecture is defined in the design technologist contribution. The interaction patterns are defined in the interaction designer contribution. All three contributions should be read together for a complete picture.*
+_This contribution provides brand strategy guidance scoped to the Help & Support system. It builds on the established DraftCrane brand personality, design tokens, and visual language from the workspace design brief. The full token architecture is defined in the design technologist contribution. The interaction patterns are defined in the interaction designer contribution. All three contributions should be read together for a complete picture._
