@@ -14,36 +14,36 @@ Every screen and surface in the Help & Support system, mapped 1:1 to the three s
 
 ### Component 1: In-App Feedback / Issue Reporting
 
-| # | Surface | URL Pattern | Type | Purpose | Primary Action |
-|---|---------|-------------|------|---------|----------------|
-| 1 | Feedback Sheet | N/A (overlay, triggered from settings menu or help page) | Bottom sheet (iPad portrait) / side sheet (landscape/desktop) | Collect bug reports and feature suggestions with auto-attached context | Submit feedback |
+| #   | Surface        | URL Pattern                                              | Type                                                          | Purpose                                                                | Primary Action  |
+| --- | -------------- | -------------------------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------- |
+| 1   | Feedback Sheet | N/A (overlay, triggered from settings menu or help page) | Bottom sheet (iPad portrait) / side sheet (landscape/desktop) | Collect bug reports and feature suggestions with auto-attached context | Submit feedback |
 
 This is a single surface. It does not have its own route. It renders as an overlay above the current screen (writing environment or dashboard) and writes to D1 on submit. It optionally creates a GitHub issue via the API worker.
 
 ### Component 2: Onboarding Tooltips Redesign
 
-| # | Surface | URL Pattern | Type | Purpose | Primary Action |
-|---|---------|-------------|------|---------|----------------|
-| 2 | Onboarding Tooltip (step 1-4) | N/A (overlay within `/editor/[projectId]`) | Fixed-position tooltip card | Guide first-time user through writing environment features | Next / Done |
+| #   | Surface                       | URL Pattern                                | Type                        | Purpose                                                    | Primary Action |
+| --- | ----------------------------- | ------------------------------------------ | --------------------------- | ---------------------------------------------------------- | -------------- |
+| 2   | Onboarding Tooltip (step 1-4) | N/A (overlay within `/editor/[projectId]`) | Fixed-position tooltip card | Guide first-time user through writing environment features | Next / Done    |
 
 This is an overlay sequence within the editor page. No new route. The existing `onboarding-tooltips.tsx` component is redesigned in place. Tooltip content and step count remain the same (4 steps). Visual styling, animation, and positioning are the scope of change.
 
 ### Component 3: Help Page
 
-| # | Surface | URL Pattern | Type | Purpose | Primary Action |
-|---|---------|-------------|------|---------|----------------|
-| 3 | Help Page | `/help` | Full page (within protected layout) | FAQ with collapsible sections, links to feedback and tour replay | Find an answer / Report a problem |
+| #   | Surface   | URL Pattern | Type                                | Purpose                                                          | Primary Action                    |
+| --- | --------- | ----------- | ----------------------------------- | ---------------------------------------------------------------- | --------------------------------- |
+| 3   | Help Page | `/help`     | Full page (within protected layout) | FAQ with collapsible sections, links to feedback and tour replay | Find an answer / Report a problem |
 
 This is a new protected route. It uses the existing `(protected)/layout.tsx` wrapper (DraftCrane header with user button). The page is lightweight -- static FAQ content with collapsible accordion sections, a "Report a problem" link that opens the Feedback Sheet, and a "Replay tour" trigger that resets onboarding state and navigates to the editor.
 
 ### Surface Count Summary
 
-| Component | Surface Count | Route Required |
-|-----------|--------------|----------------|
-| Feedback Sheet | 1 | No (overlay) |
-| Onboarding Tooltips | 1 (4 steps) | No (overlay) |
-| Help Page | 1 | Yes (`/help`) |
-| **Total** | **3** | **1 new route** |
+| Component           | Surface Count | Route Required  |
+| ------------------- | ------------- | --------------- |
+| Feedback Sheet      | 1             | No (overlay)    |
+| Onboarding Tooltips | 1 (4 steps)   | No (overlay)    |
+| Help Page           | 1             | Yes (`/help`)   |
+| **Total**           | **3**         | **1 new route** |
 
 ---
 
@@ -125,6 +125,7 @@ The form opens in its initial state with the type selector unselected. Descripti
 #### Loading State
 
 After tapping Submit:
+
 - Button text changes to "Sending..." with a subtle inline spinner (16px, to the left of text).
 - Button becomes disabled.
 - Form fields become read-only (not visually hidden -- the user can still see what they submitted).
@@ -133,6 +134,7 @@ After tapping Submit:
 #### Error State
 
 If submission fails (network error, API error):
+
 - A red inline error message appears above the Submit button: "Something went wrong. Please try again." (14px, `--dc-color-status-error`).
 - The Submit button re-enables with its original label.
 - Form content is preserved -- the user does not lose their input.
@@ -141,6 +143,7 @@ If submission fails (network error, API error):
 #### Success State
 
 On successful submission:
+
 - Sheet closes automatically with the same animation (reverse slide).
 - A toast appears at bottom center: "Thanks for your feedback" (uses existing toast system, 2500ms auto-dismiss).
 - If user re-opens the sheet, it resets to the initial empty state.
@@ -171,6 +174,7 @@ Tooltip Card (redesigned):
 ```
 
 Key visual changes from current implementation:
+
 - **Step label** replaces dot indicator as primary progress signal. "Step 1 of 4" in 12px caption text, `--color-muted-foreground`. The dots remain as a secondary visual indicator below the text.
 - **Card width** increases from `w-72` (288px) to `w-80` (320px) for better text wrapping on iPad.
 - **Card padding** increases from `p-5` to `p-6` for more breathing room.
@@ -299,13 +303,14 @@ The user must reach any help feature in 2 taps or fewer from the writing environ
 The existing `SettingsMenu` component (`web/src/components/project/settings-menu.tsx`) gains a new menu item: "Help & Support". It is placed above the separator that precedes "Delete Project", establishing it as a non-destructive utility action.
 
 **Revised Settings Menu order:**
+
 1. Rename Book
 2. Duplicate Book
-3. *separator*
+3. _separator_
 4. **Help & Support** (new -- navigates to `/help`)
-5. *separator*
+5. _separator_
 6. Delete Project
-7. *separator*
+7. _separator_
 8. Sign Out
 
 **Tap count from writing environment:** 2 taps (Settings icon, then "Help & Support").
@@ -329,6 +334,7 @@ Icon: `HelpCircle` (Lucide), 20x20px, inside a 44x44pt touch target. Style: `tex
 #### Why Not a Floating Button?
 
 A floating action button (FAB) was considered and rejected:
+
 - It competes with the existing floating action bar (text selection toolbar) for screen space.
 - It would be the only FAB in the application, violating the "no orphan patterns" rule.
 - On iPad, floating buttons risk overlapping the system home indicator zone.
@@ -337,6 +343,7 @@ A floating action button (FAB) was considered and rejected:
 ### Feedback Sheet Trigger Points
 
 The Feedback Sheet can be opened from:
+
 1. `/help` page -- "Report a problem" button.
 2. Settings Menu -- a future iteration could add a direct "Send Feedback" option, but for v1 we route through the Help page to avoid adding multiple new items to the Settings menu at once.
 
@@ -450,28 +457,28 @@ This flow is identical to Flow 1 except for the type selection at step 4, which 
 
 ### Form Fields
 
-| Field | Type | Required | Validation | Notes |
-|-------|------|----------|------------|-------|
-| Feedback type | Radio group (2 options) | Yes | Must select one before submit | "Something isn't working" / "I have a suggestion" |
-| Description | Textarea | Yes | Min 10 characters, max 2000 characters | Label and placeholder change based on type selection |
-| Screenshot | File input (image/*) | No | Max 1 file, max 5MB, image/* only | Optional attachment |
+| Field         | Type                    | Required | Validation                             | Notes                                                |
+| ------------- | ----------------------- | -------- | -------------------------------------- | ---------------------------------------------------- |
+| Feedback type | Radio group (2 options) | Yes      | Must select one before submit          | "Something isn't working" / "I have a suggestion"    |
+| Description   | Textarea                | Yes      | Min 10 characters, max 2000 characters | Label and placeholder change based on type selection |
+| Screenshot    | File input (image/\*)   | No       | Max 1 file, max 5MB, image/\* only     | Optional attachment                                  |
 
 ### Auto-Attached Context (Not User-Editable)
 
 The following context is collected automatically and included in the submission payload. The user is informed via the disclosure text at the bottom of the form. None of this data is hidden -- it is described transparently.
 
-| Field | Source | Purpose |
-|-------|--------|---------|
-| `userAgent` | `navigator.userAgent` | Browser/device identification |
-| `viewport` | `window.innerWidth` x `window.innerHeight` | Screen size context |
-| `currentUrl` | `window.location.href` | Which page the user was on |
-| `referrerUrl` | `document.referrer` or session-tracked previous URL | Where they came from before `/help` |
-| `projectId` | Session state (if in editor context) | Which project they were working on |
-| `chapterId` | Session state (if in editor context) | Which chapter was active |
-| `timestamp` | `new Date().toISOString()` | When the report was filed |
-| `appVersion` | Build-time constant or `package.json` version | Which version they are running |
+| Field          | Source                                                                                          | Purpose                                 |
+| -------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `userAgent`    | `navigator.userAgent`                                                                           | Browser/device identification           |
+| `viewport`     | `window.innerWidth` x `window.innerHeight`                                                      | Screen size context                     |
+| `currentUrl`   | `window.location.href`                                                                          | Which page the user was on              |
+| `referrerUrl`  | `document.referrer` or session-tracked previous URL                                             | Where they came from before `/help`     |
+| `projectId`    | Session state (if in editor context)                                                            | Which project they were working on      |
+| `chapterId`    | Session state (if in editor context)                                                            | Which chapter was active                |
+| `timestamp`    | `new Date().toISOString()`                                                                      | When the report was filed               |
+| `appVersion`   | Build-time constant or `package.json` version                                                   | Which version they are running          |
 | `recentErrors` | Captured from `window.onerror` / `console.error` override (last 5, truncated to 500 chars each) | Automatic error context for bug reports |
-| `feedbackType` | Radio selection value ("bug" or "suggestion") | Routing and triage |
+| `feedbackType` | Radio selection value ("bug" or "suggestion")                                                   | Routing and triage                      |
 
 ### Validation Rules
 
@@ -504,6 +511,7 @@ interface FeedbackPayload {
 ### D1 Schema Direction
 
 The feedback is written to a D1 table. The API worker handles:
+
 1. Write the feedback record to D1.
 2. If `type === "bug"`, optionally create a GitHub issue with the `bug` label via the GitHub App.
 3. If `type === "suggestion"`, optionally create a GitHub issue with the `enhancement` label.
@@ -516,33 +524,34 @@ The "optionally create GitHub issue" behavior can be toggled by an environment v
 
 ### Step Sequence
 
-| Step | Key | Target Region | Tooltip Position | Text |
-|------|-----|---------------|-----------------|------|
-| 1 | `chapter` | Center writing area | `top-1/3 left-1/2 -translate-x-1/2` | "This is your chapter. Start writing here, or paste what you already have." |
-| 2 | `sidebar` | Left sidebar | `top-1/3 left-4 lg:left-[270px]` | "Use the sidebar to switch between chapters or add new ones." |
-| 3 | `sources` | Library button (top-right toolbar) | `top-16 right-4 lg:right-[200px]` | "Add documents from Google Drive or your device." |
-| 4 | `ai` | Center writing area | `top-1/2 left-1/2 -translate-x-1/2` | "Select any text to get AI suggestions for rewriting." |
+| Step | Key       | Target Region                      | Tooltip Position                    | Text                                                                        |
+| ---- | --------- | ---------------------------------- | ----------------------------------- | --------------------------------------------------------------------------- |
+| 1    | `chapter` | Center writing area                | `top-1/3 left-1/2 -translate-x-1/2` | "This is your chapter. Start writing here, or paste what you already have." |
+| 2    | `sidebar` | Left sidebar                       | `top-1/3 left-4 lg:left-[270px]`    | "Use the sidebar to switch between chapters or add new ones."               |
+| 3    | `sources` | Library button (top-right toolbar) | `top-16 right-4 lg:right-[200px]`   | "Add documents from Google Drive or your device."                           |
+| 4    | `ai`      | Center writing area                | `top-1/2 left-1/2 -translate-x-1/2` | "Select any text to get AI suggestions for rewriting."                      |
 
 Step content and positioning remain unchanged from the current implementation. The redesign scope is visual polish and animation, not content or positioning logic.
 
 ### Animation Specification
 
-| Transition | Duration | Easing | Description |
-|------------|----------|--------|-------------|
-| Backdrop appear | 200ms | `ease-out` | Opacity 0 to 0.2 (bg-black/20) |
-| Backdrop disappear | 200ms | `ease-in` | Opacity 0.2 to 0 |
-| Tooltip enter (first step) | 200ms | `ease-out` | Opacity 0 to 1, translateY(8px) to translateY(0) |
-| Tooltip exit (step transition) | 150ms | `ease-in` | Opacity 1 to 0, translateY(0) to translateY(-4px) |
-| Tooltip enter (step transition) | 150ms | `ease-out` | Opacity 0 to 1, translateY(8px) to translateY(0). Starts after exit completes (total step transition: 300ms). |
-| Tooltip exit (final dismiss) | 200ms | `ease-in` | Opacity 1 to 0, concurrent with backdrop disappear |
-| Progress dot expand | 150ms | `ease-out` | Width transition from 6px to 24px, color transition from gray-300 to blue-600 |
-| Progress dot contract | 150ms | `ease-out` | Width transition from 24px to 6px, color transition from blue-600 to gray-300 |
+| Transition                      | Duration | Easing     | Description                                                                                                   |
+| ------------------------------- | -------- | ---------- | ------------------------------------------------------------------------------------------------------------- |
+| Backdrop appear                 | 200ms    | `ease-out` | Opacity 0 to 0.2 (bg-black/20)                                                                                |
+| Backdrop disappear              | 200ms    | `ease-in`  | Opacity 0.2 to 0                                                                                              |
+| Tooltip enter (first step)      | 200ms    | `ease-out` | Opacity 0 to 1, translateY(8px) to translateY(0)                                                              |
+| Tooltip exit (step transition)  | 150ms    | `ease-in`  | Opacity 1 to 0, translateY(0) to translateY(-4px)                                                             |
+| Tooltip enter (step transition) | 150ms    | `ease-out` | Opacity 0 to 1, translateY(8px) to translateY(0). Starts after exit completes (total step transition: 300ms). |
+| Tooltip exit (final dismiss)    | 200ms    | `ease-in`  | Opacity 1 to 0, concurrent with backdrop disappear                                                            |
+| Progress dot expand             | 150ms    | `ease-out` | Width transition from 6px to 24px, color transition from gray-300 to blue-600                                 |
+| Progress dot contract           | 150ms    | `ease-out` | Width transition from 24px to 6px, color transition from blue-600 to gray-300                                 |
 
 All animations must have `prefers-reduced-motion: reduce` overrides that remove the motion (opacity-only cross-fade, no translateY).
 
 ### Positioning Strategy
 
 The current layout-based positioning strategy is maintained. No DOM measurement, no `getBoundingClientRect`. The positioning classes target spatial regions of the editor layout, not specific DOM elements. This is the correct approach for iPad Safari where:
+
 - The Tiptap editor can shift layout during initialization.
 - Fixed positioning interacts unpredictably with the virtual keyboard.
 - DOM-measuring approaches create timing dependencies with lazy-loaded content.
@@ -551,25 +560,27 @@ If future work adds DOM-measuring (e.g., for a pointer arrow from tooltip to tar
 
 ### Dismissal Behavior
 
-| Trigger | Action | Saves Completion? |
-|---------|--------|-------------------|
-| "Next" button | Advance to next step | No (only on final "Done") |
-| "Done" button (last step) | Close sequence | Yes |
-| "Skip" button | Close sequence | Yes |
-| Backdrop tap | Close sequence | Yes |
-| Escape key | Close sequence | Yes |
-| Browser navigation away | Close sequence (component unmounts) | No (user may return, re-trigger) |
+| Trigger                   | Action                              | Saves Completion?                |
+| ------------------------- | ----------------------------------- | -------------------------------- |
+| "Next" button             | Advance to next step                | No (only on final "Done")        |
+| "Done" button (last step) | Close sequence                      | Yes                              |
+| "Skip" button             | Close sequence                      | Yes                              |
+| Backdrop tap              | Close sequence                      | Yes                              |
+| Escape key                | Close sequence                      | Yes                              |
+| Browser navigation away   | Close sequence (component unmounts) | No (user may return, re-trigger) |
 
 "Saves completion" means `localStorage.setItem("dc_onboarding_completed", "true")`. The browser navigation case intentionally does NOT save completion, so if the user navigates away mid-tour (e.g., accidental back gesture), they get another chance on return.
 
 ### iPadOS Text Selection Non-Interference
 
 The existing implementation correctly handles this:
+
 - The tooltip container is `pointer-events-none`.
 - Only the card and backdrop are `pointer-events-auto`.
 - The gap between the backdrop and the card (around the card edges) passes through to the editor.
 
 However, the backdrop itself covers the full viewport, which means:
+
 - Native text selection CANNOT start while the backdrop is visible.
 - This is acceptable because the onboarding sequence is brief (4 steps, ~15 seconds) and the user is not expected to write during it.
 - Tapping the backdrop dismisses the sequence, immediately restoring full editor interactivity.
@@ -607,20 +618,21 @@ No search on the Help page. The FAQ content is small (6 sections, ~20 Q&A pairs)
 ### Deep Linking
 
 Each section supports deep linking via URL hash:
+
 - `/help#getting-started`, `/help#writing-editing`, `/help#ai-features`, `/help#exporting`, `/help#google-drive`, `/help#account`.
 - On page load, if a hash is present, the corresponding section auto-expands and the page scrolls to it.
 - This enables linking to specific sections from external sources (support emails, documentation).
 
 Section IDs for hash targets:
 
-| Section | Hash | ID |
-|---------|------|----|
-| Getting Started | `#getting-started` | `faq-section-getting-started` |
+| Section           | Hash               | ID                            |
+| ----------------- | ------------------ | ----------------------------- |
+| Getting Started   | `#getting-started` | `faq-section-getting-started` |
 | Writing & Editing | `#writing-editing` | `faq-section-writing-editing` |
-| AI Features | `#ai-features` | `faq-section-ai-features` |
-| Exporting | `#exporting` | `faq-section-exporting` |
-| Google Drive | `#google-drive` | `faq-section-google-drive` |
-| Account | `#account` | `faq-section-account` |
+| AI Features       | `#ai-features`     | `faq-section-ai-features`     |
+| Exporting         | `#exporting`       | `faq-section-exporting`       |
+| Google Drive      | `#google-drive`    | `faq-section-google-drive`    |
+| Account           | `#account`         | `faq-section-account`         |
 
 ### FAQ Content Structure
 
@@ -629,31 +641,37 @@ Each section contains 2-5 Q&A pairs. Content is defined as a static data structu
 Placeholder content structure (final copy is deferred):
 
 **Getting Started:**
+
 - How do I create my first book?
 - How do I add chapters?
 - How do I rearrange chapters?
 
 **Writing & Editing:**
+
 - How do I rename a chapter?
 - Can I paste content from Google Docs?
 - Where is my work saved?
 
 **AI Features:**
+
 - How do I use the rewrite feature?
 - Can the AI write for me?
 - How do I control the AI's tone?
 
 **Exporting:**
+
 - How do I export my book?
 - What formats are supported?
 - Can I export a single chapter?
 
 **Google Drive:**
+
 - How do I connect Google Drive?
 - Where are my files stored?
 - Can I disconnect Drive?
 
 **Account:**
+
 - How do I change my email?
 - How do I delete my account?
 - How do I sign out?
@@ -664,11 +682,11 @@ Placeholder content structure (final copy is deferred):
 
 ### Feedback Sheet
 
-| Breakpoint | Layout | Dimensions | Behavior |
-|------------|--------|------------|----------|
-| **Portrait** (768-1023px) | Bottom sheet | 100% width, ~60% height, rounded-t-xl | Slides up from bottom. Drag handle visible. Sheet is scrollable if content exceeds visible area (critical for virtual keyboard). |
-| **Landscape** (1024-1279px) | Side sheet (right) | 320px wide, full height | Slides in from right edge, matching Library panel pattern. No drag handle. Close button (X) top-right. |
-| **Desktop** (1280px+) | Side sheet (right) | 400px wide, full height | Same as landscape but wider for comfortable form completion. |
+| Breakpoint                  | Layout             | Dimensions                            | Behavior                                                                                                                         |
+| --------------------------- | ------------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Portrait** (768-1023px)   | Bottom sheet       | 100% width, ~60% height, rounded-t-xl | Slides up from bottom. Drag handle visible. Sheet is scrollable if content exceeds visible area (critical for virtual keyboard). |
+| **Landscape** (1024-1279px) | Side sheet (right) | 320px wide, full height               | Slides in from right edge, matching Library panel pattern. No drag handle. Close button (X) top-right.                           |
+| **Desktop** (1280px+)       | Side sheet (right) | 400px wide, full height               | Same as landscape but wider for comfortable form completion.                                                                     |
 
 **Virtual keyboard handling (portrait bottom sheet):** When the keyboard rises, the sheet's content area scrolls to keep the focused input visible. The Submit button may scroll below the fold, which is acceptable -- the user scrolls down to reach it after typing. The sheet does NOT shrink to fit above the keyboard (this would make the description field unusably small). Instead, the sheet maintains its height and the content scrolls.
 
@@ -676,11 +694,11 @@ Implementation: use `visualViewport.height` to detect keyboard presence. When ke
 
 ### Onboarding Tooltips
 
-| Breakpoint | Card Width | Positioning | Backdrop |
-|------------|-----------|-------------|----------|
-| **Portrait** (768-1023px) | 320px (`w-80`) | Center-biased. All steps use center positioning since the sidebar is collapsed in portrait. | Full viewport `bg-black/20` |
+| Breakpoint                  | Card Width     | Positioning                                                                                                                             | Backdrop                    |
+| --------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| **Portrait** (768-1023px)   | 320px (`w-80`) | Center-biased. All steps use center positioning since the sidebar is collapsed in portrait.                                             | Full viewport `bg-black/20` |
 | **Landscape** (1024-1279px) | 320px (`w-80`) | Per-step positioning (same as current implementation). Sidebar step positioned near left edge. Sources step positioned near right edge. | Full viewport `bg-black/20` |
-| **Desktop** (1280px+) | 320px (`w-80`) | Same as landscape. | Full viewport `bg-black/20` |
+| **Desktop** (1280px+)       | 320px (`w-80`) | Same as landscape.                                                                                                                      | Full viewport `bg-black/20` |
 
 **Portrait adaptation:** In portrait mode, the sidebar is collapsed (shown as a "Ch X" pill). The "Use the sidebar" step (Step 2) should position its tooltip near the collapsed pill indicator (left edge, vertically centered) rather than next to a visible sidebar. The positioning class for the `sidebar` target in portrait should be `top-1/2 left-4` rather than `left-[270px]`.
 
@@ -694,11 +712,11 @@ sidebar target:
 
 ### Help Page
 
-| Breakpoint | Content Width | Padding | Layout |
-|------------|-------------|---------|--------|
-| **Portrait** (768-1023px) | 100%, `max-w-2xl`, `px-4` | 16px horizontal | Single column, full width. FAQ sections stack vertically. |
-| **Landscape** (1024-1279px) | `max-w-2xl`, centered | 24px horizontal | Same single column, narrower and centered. More whitespace on sides. |
-| **Desktop** (1280px+) | `max-w-2xl`, centered | 24px horizontal | Same as landscape. The content does not need to expand further -- it is a focused, short-form page. |
+| Breakpoint                  | Content Width             | Padding         | Layout                                                                                              |
+| --------------------------- | ------------------------- | --------------- | --------------------------------------------------------------------------------------------------- |
+| **Portrait** (768-1023px)   | 100%, `max-w-2xl`, `px-4` | 16px horizontal | Single column, full width. FAQ sections stack vertically.                                           |
+| **Landscape** (1024-1279px) | `max-w-2xl`, centered     | 24px horizontal | Same single column, narrower and centered. More whitespace on sides.                                |
+| **Desktop** (1280px+)       | `max-w-2xl`, centered     | 24px horizontal | Same as landscape. The content does not need to expand further -- it is a focused, short-form page. |
 
 The Help page does not adapt its layout structure across breakpoints. It is always a single centered column. The only responsive change is the horizontal padding (tighter on portrait, looser on landscape/desktop). This matches the simplicity principle -- the page is lightweight and does not warrant a multi-column layout.
 
@@ -708,14 +726,14 @@ The Help page does not adapt its layout structure across breakpoints. It is alwa
 
 ### Component Architecture
 
-| Component | File Location | New/Existing |
-|-----------|--------------|-------------|
-| `FeedbackSheet` | `web/src/components/feedback/feedback-sheet.tsx` | New |
-| `FeedbackTypeSelector` | `web/src/components/feedback/feedback-type-selector.tsx` | New |
-| `OnboardingTooltips` | `web/src/components/editor/onboarding-tooltips.tsx` | Existing (restyled) |
-| `HelpPage` | `web/src/app/(protected)/help/page.tsx` | New |
-| `FaqAccordion` | `web/src/components/help/faq-accordion.tsx` | New |
-| `FaqSection` | `web/src/components/help/faq-section.tsx` | New |
+| Component              | File Location                                            | New/Existing        |
+| ---------------------- | -------------------------------------------------------- | ------------------- |
+| `FeedbackSheet`        | `web/src/components/feedback/feedback-sheet.tsx`         | New                 |
+| `FeedbackTypeSelector` | `web/src/components/feedback/feedback-type-selector.tsx` | New                 |
+| `OnboardingTooltips`   | `web/src/components/editor/onboarding-tooltips.tsx`      | Existing (restyled) |
+| `HelpPage`             | `web/src/app/(protected)/help/page.tsx`                  | New                 |
+| `FaqAccordion`         | `web/src/components/help/faq-accordion.tsx`              | New                 |
+| `FaqSection`           | `web/src/components/help/faq-section.tsx`                | New                 |
 
 ### State Management
 

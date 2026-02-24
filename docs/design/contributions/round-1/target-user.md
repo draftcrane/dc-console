@@ -131,10 +131,12 @@ I look for the word "Help." Not a question mark icon floating in the corner that
 I would go to the help page. And I would appreciate the "Replay tour" option being right there at the top, not buried at the bottom of a long list of sections. Because "I forgot how this works" is one of the most common reasons I would visit the help page, and the tour covers most of it.
 
 **One tap away:**
+
 - The feedback/report form. Whether it is in the settings menu or behind a persistent "?" icon, it should be one tap from any screen.
 - The help page. Same -- one tap from the settings menu.
 
 **Two taps away:**
+
 - Replaying the onboarding tour (open help page, tap "Replay tour").
 - The specific help article I need (open help page, tap the right section).
 

@@ -12,29 +12,29 @@
 
 ### Existing Components (Audit)
 
-| Name | Purpose | Status | ARIA Role/Pattern | Notes |
-|------|---------|--------|-------------------|-------|
-| `OnboardingTooltips` | First-time user tooltip tour (4 steps) | Exists (needs update) | `role="dialog"`, `aria-label`, `aria-live="polite"` | Functional but visually amateur; needs animation, pointer arrow, polish. Card styling is plain white box with minimal visual hierarchy. Step dots lack animation. No entrance/exit transitions. |
-| `Toast` / `ToastProvider` | Toast notification system | Exists | `aria-live="polite"`, `role="status"` | Reuse for feedback submission confirmation. Already positioned at bottom center with `z-[9999]`. |
-| `CrashRecoveryDialog` | Modal dialog pattern with backdrop | Exists | `role="dialog"`, `aria-modal="true"` | Reference pattern for modal overlay implementation. Uses `bg-black/50` backdrop, `rounded-xl shadow-2xl` card. |
-| `AIRewriteSheet` | Bottom sheet pattern with focus trap | Exists | `role="dialog"`, `aria-modal="true"`, focus trap, Escape handler | Reference pattern for bottom sheet. Has drag handle, safe area padding, body scroll lock. |
-| `SettingsMenu` | Dropdown menu with outside-click dismiss | Exists | `role="menu"`, `aria-expanded`, `aria-haspopup` | Pattern for adding "Help" menu item or "Report a problem" link to settings. |
+| Name                      | Purpose                                  | Status                | ARIA Role/Pattern                                                | Notes                                                                                                                                                                                           |
+| ------------------------- | ---------------------------------------- | --------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OnboardingTooltips`      | First-time user tooltip tour (4 steps)   | Exists (needs update) | `role="dialog"`, `aria-label`, `aria-live="polite"`              | Functional but visually amateur; needs animation, pointer arrow, polish. Card styling is plain white box with minimal visual hierarchy. Step dots lack animation. No entrance/exit transitions. |
+| `Toast` / `ToastProvider` | Toast notification system                | Exists                | `aria-live="polite"`, `role="status"`                            | Reuse for feedback submission confirmation. Already positioned at bottom center with `z-[9999]`.                                                                                                |
+| `CrashRecoveryDialog`     | Modal dialog pattern with backdrop       | Exists                | `role="dialog"`, `aria-modal="true"`                             | Reference pattern for modal overlay implementation. Uses `bg-black/50` backdrop, `rounded-xl shadow-2xl` card.                                                                                  |
+| `AIRewriteSheet`          | Bottom sheet pattern with focus trap     | Exists                | `role="dialog"`, `aria-modal="true"`, focus trap, Escape handler | Reference pattern for bottom sheet. Has drag handle, safe area padding, body scroll lock.                                                                                                       |
+| `SettingsMenu`            | Dropdown menu with outside-click dismiss | Exists                | `role="menu"`, `aria-expanded`, `aria-haspopup`                  | Pattern for adding "Help" menu item or "Report a problem" link to settings.                                                                                                                     |
 
 ### New Components Required
 
-| Name | Purpose | Variants | Status | ARIA Role/Pattern |
-|------|---------|----------|--------|-------------------|
-| `FeedbackSheet` | Bottom sheet for bug reports and feature requests | -- | New | `role="dialog"`, `aria-modal="true"`, focus trap |
-| `FeedbackTypeSelector` | Toggle between "Report a problem" and "Suggest an improvement" | -- | New | `role="radiogroup"` with `role="radio"` options |
-| `FeedbackForm` | Form fields: description textarea, optional screenshot, category | -- | New | Native `<form>` with `aria-describedby` for field hints |
-| `FeedbackSuccessState` | Confirmation state shown after successful submission | -- | New | `role="status"`, `aria-live="polite"` |
-| `HelpPage` | `/help` page with FAQ sections and support links | -- | New | `role="main"`, landmark regions |
-| `AccordionGroup` | Collapsible FAQ container managing exclusive-open behavior | -- | New | Managed collection, no specific role (delegates to items) |
-| `AccordionItem` | Single collapsible FAQ section with header and content | -- | New | `<button>` with `aria-expanded`, `aria-controls`; content region with `role="region"`, `aria-labelledby` |
-| `OnboardingTooltipCard` | Redesigned tooltip card with pointer arrow and entrance animation | -- | New | `role="dialog"`, `aria-label`, `aria-live="polite"` |
-| `OnboardingBackdrop` | Semi-transparent backdrop with spotlight cutout for target region | -- | New | `aria-hidden="true"` (decorative) |
-| `OnboardingStepDots` | Animated step indicator dots | -- | New | `aria-hidden="true"` (decorative; step count announced via dialog label) |
-| `ContextCollector` | Headless utility component that gathers browser/app context for feedback | -- | New | No DOM output (headless hook) |
+| Name                    | Purpose                                                                  | Variants | Status | ARIA Role/Pattern                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------ | -------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| `FeedbackSheet`         | Bottom sheet for bug reports and feature requests                        | --       | New    | `role="dialog"`, `aria-modal="true"`, focus trap                                                         |
+| `FeedbackTypeSelector`  | Toggle between "Report a problem" and "Suggest an improvement"           | --       | New    | `role="radiogroup"` with `role="radio"` options                                                          |
+| `FeedbackForm`          | Form fields: description textarea, optional screenshot, category         | --       | New    | Native `<form>` with `aria-describedby` for field hints                                                  |
+| `FeedbackSuccessState`  | Confirmation state shown after successful submission                     | --       | New    | `role="status"`, `aria-live="polite"`                                                                    |
+| `HelpPage`              | `/help` page with FAQ sections and support links                         | --       | New    | `role="main"`, landmark regions                                                                          |
+| `AccordionGroup`        | Collapsible FAQ container managing exclusive-open behavior               | --       | New    | Managed collection, no specific role (delegates to items)                                                |
+| `AccordionItem`         | Single collapsible FAQ section with header and content                   | --       | New    | `<button>` with `aria-expanded`, `aria-controls`; content region with `role="region"`, `aria-labelledby` |
+| `OnboardingTooltipCard` | Redesigned tooltip card with pointer arrow and entrance animation        | --       | New    | `role="dialog"`, `aria-label`, `aria-live="polite"`                                                      |
+| `OnboardingBackdrop`    | Semi-transparent backdrop with spotlight cutout for target region        | --       | New    | `aria-hidden="true"` (decorative)                                                                        |
+| `OnboardingStepDots`    | Animated step indicator dots                                             | --       | New    | `aria-hidden="true"` (decorative; step count announced via dialog label)                                 |
+| `ContextCollector`      | Headless utility component that gathers browser/app context for feedback | --       | New    | No DOM output (headless hook)                                                                            |
 
 ### New Component Props Interfaces
 
@@ -170,11 +170,11 @@ interface FeedbackContext {
 
 ### Components Needing Updates
 
-| Component | Update Required |
-|-----------|----------------|
-| `OnboardingTooltips` | Full visual redesign. Replace plain card with `OnboardingTooltipCard`. Add entrance/exit animations. Add pointer arrows. Add spotlight backdrop via `OnboardingBackdrop`. Expose `resetOnboarding()` function for "Replay tour" trigger from Help page. Extract `ONBOARDING_KEY` constant to shared location. |
-| `SettingsMenu` | Add "Help & Support" menu item linking to `/help` page. Position before Sign Out, after separator. |
-| `Toast` / `ToastProvider` | No code changes needed. Reuse for feedback submission confirmation: "Thanks for your feedback" / "Report submitted". |
+| Component                 | Update Required                                                                                                                                                                                                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OnboardingTooltips`      | Full visual redesign. Replace plain card with `OnboardingTooltipCard`. Add entrance/exit animations. Add pointer arrows. Add spotlight backdrop via `OnboardingBackdrop`. Expose `resetOnboarding()` function for "Replay tour" trigger from Help page. Extract `ONBOARDING_KEY` constant to shared location. |
+| `SettingsMenu`            | Add "Help & Support" menu item linking to `/help` page. Position before Sign Out, after separator.                                                                                                                                                                                                            |
+| `Toast` / `ToastProvider` | No code changes needed. Reuse for feedback submission confirmation: "Thanks for your feedback" / "Report submitted".                                                                                                                                                                                          |
 
 ---
 
@@ -262,6 +262,7 @@ Usage in Tailwind classes: `bg-dc-feedback-active`, `bg-dc-success-subtle`, `tex
 ### Proposed `feedback` Table
 
 The schema follows existing DraftCrane D1 patterns:
+
 - ULID primary keys (via `ulidx` library, consistent with all other tables)
 - TEXT dates in ISO 8601 format with SQLite `strftime`
 - `user_id` foreign key referencing `users(id)`
@@ -361,7 +362,7 @@ feedback.post("/", feedbackRateLimit, async (c) => {
 
   await c.env.DB.prepare(
     `INSERT INTO feedback (id, user_id, type, description, context_json)
-     VALUES (?, ?, ?, ?, ?)`
+     VALUES (?, ?, ?, ?, ?)`,
   )
     .bind(id, userId, body.type, body.description.trim(), contextJson)
     .run();
@@ -373,7 +374,7 @@ feedback.post("/", feedbackRateLimit, async (c) => {
       status: "new",
       createdAt: new Date().toISOString(),
     },
-    201
+    201,
   );
 });
 
@@ -406,7 +407,9 @@ feedback.get("/", async (c) => {
   query += ` ORDER BY id DESC LIMIT ?`;
   params.push(String(limit + 1));
 
-  const rows = await c.env.DB.prepare(query).bind(...params).all();
+  const rows = await c.env.DB.prepare(query)
+    .bind(...params)
+    .all();
   const data = rows.results.slice(0, limit);
   const hasMore = rows.results.length > limit;
 
@@ -480,15 +483,15 @@ The feedback sheet is a modal bottom sheet (same pattern as `AIRewriteSheet`). F
 
 The accordion follows the WAI-ARIA Accordion Pattern:
 
-| Key | Action |
-|-----|--------|
-| Enter or Space | Toggle the focused accordion section |
-| Tab | Move focus to next focusable element (accordion header or other) |
-| Shift+Tab | Move focus to previous focusable element |
-| Arrow Down | Move focus to next accordion header (when focus is on a header) |
-| Arrow Up | Move focus to previous accordion header (when focus is on a header) |
-| Home | Move focus to first accordion header |
-| End | Move focus to last accordion header |
+| Key            | Action                                                              |
+| -------------- | ------------------------------------------------------------------- |
+| Enter or Space | Toggle the focused accordion section                                |
+| Tab            | Move focus to next focusable element (accordion header or other)    |
+| Shift+Tab      | Move focus to previous focusable element                            |
+| Arrow Down     | Move focus to next accordion header (when focus is on a header)     |
+| Arrow Up       | Move focus to previous accordion header (when focus is on a header) |
+| Home           | Move focus to first accordion header                                |
+| End            | Move focus to last accordion header                                 |
 
 Implementation:
 
@@ -547,9 +550,7 @@ The onboarding tour is a sequenced dialog pattern. Each step is an independent d
   </div>
 
   <!-- Step text -->
-  <p id="onboarding-step-text">
-    Use the sidebar to switch between chapters or add new ones.
-  </p>
+  <p id="onboarding-step-text">Use the sidebar to switch between chapters or add new ones.</p>
 
   <!-- Actions -->
   <div role="toolbar" aria-label="Tour navigation">
@@ -562,6 +563,7 @@ The onboarding tour is a sequenced dialog pattern. Each step is an independent d
 ```
 
 Key ARIA decisions:
+
 - **`role="dialog"`** (not `alertdialog`) because this is informational, not urgent.
 - **`aria-label` includes step position** ("step 2 of 4") so screen reader users know their progress without seeing the visual dots.
 - **`aria-live="polite"`** on the dialog so step transitions are announced.
@@ -570,30 +572,30 @@ Key ARIA decisions:
 
 ### Screen Reader Announcements for Feedback Submission
 
-| Event | Announcement | Implementation |
-|-------|-------------|----------------|
-| Feedback sheet opens | "Report a problem. Describe what happened." or "Suggest an improvement. Tell us your idea." | `aria-label` on dialog, initial focus on textarea with `aria-describedby` hint |
-| Type selector changes | "Bug report selected" or "Suggestion selected" | `aria-live="polite"` region near the selector |
-| Validation error | "Description must be at least 10 characters" | `aria-invalid="true"` on textarea, `aria-describedby` pointing to error message element |
-| Submission in progress | "Submitting your feedback..." | `aria-busy="true"` on the form, submit button text changes to "Submitting..." |
-| Submission success | "Thanks for your feedback. We'll review it shortly." | Success state component with `role="status"`, `aria-live="polite"` |
-| Submission error | "Something went wrong. Please try again." | Error message with `role="alert"` (assertive) |
-| Sheet closes | (silent - focus restoration handles context) | Focus returns to triggering element |
+| Event                  | Announcement                                                                                | Implementation                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Feedback sheet opens   | "Report a problem. Describe what happened." or "Suggest an improvement. Tell us your idea." | `aria-label` on dialog, initial focus on textarea with `aria-describedby` hint          |
+| Type selector changes  | "Bug report selected" or "Suggestion selected"                                              | `aria-live="polite"` region near the selector                                           |
+| Validation error       | "Description must be at least 10 characters"                                                | `aria-invalid="true"` on textarea, `aria-describedby` pointing to error message element |
+| Submission in progress | "Submitting your feedback..."                                                               | `aria-busy="true"` on the form, submit button text changes to "Submitting..."           |
+| Submission success     | "Thanks for your feedback. We'll review it shortly."                                        | Success state component with `role="status"`, `aria-live="polite"`                      |
+| Submission error       | "Something went wrong. Please try again."                                                   | Error message with `role="alert"` (assertive)                                           |
+| Sheet closes           | (silent - focus restoration handles context)                                                | Focus returns to triggering element                                                     |
 
 ### Reduced Motion: What Animations to Replace
 
-| Animation | Normal Behavior | Reduced Motion Behavior |
-|-----------|----------------|------------------------|
-| Feedback sheet slide-up | `translateY(100%)` to `translateY(0)`, 300ms | Instant appearance (no animation) |
-| Feedback sheet backdrop fade | Opacity 0 to 1, 200ms | Instant appearance |
-| Feedback success checkmark | Scale + opacity entrance, 200ms | Instant appearance at final state |
-| Onboarding tooltip entrance | Scale from 0.95 + opacity, 200ms | Instant appearance at final state |
-| Onboarding tooltip exit | Scale to 0.95 + opacity out, 150ms | Instant disappearance |
-| Onboarding backdrop transition | Opacity crossfade between spotlight positions, 200ms | Instant transition |
-| Onboarding step dot animation | Width transition on active dot, 200ms | Instant width change |
-| Accordion expand | Max-height transition, 200ms | Instant expand (no transition) |
-| Accordion collapse | Max-height transition, 150ms | Instant collapse |
-| Accordion chevron rotation | Transform rotate, 200ms | Instant rotation |
+| Animation                      | Normal Behavior                                      | Reduced Motion Behavior           |
+| ------------------------------ | ---------------------------------------------------- | --------------------------------- |
+| Feedback sheet slide-up        | `translateY(100%)` to `translateY(0)`, 300ms         | Instant appearance (no animation) |
+| Feedback sheet backdrop fade   | Opacity 0 to 1, 200ms                                | Instant appearance                |
+| Feedback success checkmark     | Scale + opacity entrance, 200ms                      | Instant appearance at final state |
+| Onboarding tooltip entrance    | Scale from 0.95 + opacity, 200ms                     | Instant appearance at final state |
+| Onboarding tooltip exit        | Scale to 0.95 + opacity out, 150ms                   | Instant disappearance             |
+| Onboarding backdrop transition | Opacity crossfade between spotlight positions, 200ms | Instant transition                |
+| Onboarding step dot animation  | Width transition on active dot, 200ms                | Instant width change              |
+| Accordion expand               | Max-height transition, 200ms                         | Instant expand (no transition)    |
+| Accordion collapse             | Max-height transition, 150ms                         | Instant collapse                  |
+| Accordion chevron rotation     | Transform rotate, 200ms                              | Instant rotation                  |
 
 ---
 
@@ -601,13 +603,13 @@ Key ARIA decisions:
 
 ### Bundle Size Impact
 
-| Component | Estimated Size (gzipped) | Loading Strategy |
-|-----------|-------------------------|------------------|
-| `FeedbackSheet` + `FeedbackForm` + `FeedbackTypeSelector` + `FeedbackSuccessState` | ~4-5 KB | Lazy (`React.lazy`) |
-| `HelpPage` + `AccordionGroup` + `AccordionItem` | ~3-4 KB | Route-level split (Next.js automatic) |
-| `OnboardingTooltips` (redesigned) | ~3-4 KB | Already in editor bundle; no change to loading |
-| `useFeedbackContext` hook (context collector) | ~1 KB | Bundled with FeedbackSheet chunk |
-| **Total new JS** | **~11-14 KB** | -- |
+| Component                                                                          | Estimated Size (gzipped) | Loading Strategy                               |
+| ---------------------------------------------------------------------------------- | ------------------------ | ---------------------------------------------- |
+| `FeedbackSheet` + `FeedbackForm` + `FeedbackTypeSelector` + `FeedbackSuccessState` | ~4-5 KB                  | Lazy (`React.lazy`)                            |
+| `HelpPage` + `AccordionGroup` + `AccordionItem`                                    | ~3-4 KB                  | Route-level split (Next.js automatic)          |
+| `OnboardingTooltips` (redesigned)                                                  | ~3-4 KB                  | Already in editor bundle; no change to loading |
+| `useFeedbackContext` hook (context collector)                                      | ~1 KB                    | Bundled with FeedbackSheet chunk               |
+| **Total new JS**                                                                   | **~11-14 KB**            | --                                             |
 
 These components are well within the 300 KB initial bundle constraint because none of them are in the critical path.
 
@@ -624,6 +626,7 @@ These components are well within the 300 KB initial bundle constraint because no
 ### Font Loading
 
 No new fonts required. All components use the existing font stack:
+
 - Geist Sans (UI text, form labels, FAQ content)
 - Geist Mono (not used in help/support components)
 - Lora (help page heading only, already loaded)
@@ -631,6 +634,7 @@ No new fonts required. All components use the existing font stack:
 ### No New Dependencies
 
 The help/support system requires no new npm dependencies. It uses:
+
 - React (existing)
 - `ulidx` (existing, for ID generation in the API)
 - Hono (existing, for route definition)
@@ -728,8 +732,12 @@ Add to `globals.css`:
 }
 
 @keyframes onboarding-backdrop-enter {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .onboarding-tooltip-enter {
@@ -781,8 +789,9 @@ Add to `globals.css`:
  * ---------------------------------------------------------------- */
 
 .onboarding-dot {
-  transition: width var(--dc-motion-slow) var(--dc-motion-ease-out),
-              background-color var(--dc-motion-slow) var(--dc-motion-ease-out);
+  transition:
+    width var(--dc-motion-slow) var(--dc-motion-ease-out),
+    background-color var(--dc-motion-slow) var(--dc-motion-ease-out);
 }
 
 /* ----------------------------------------------------------------
@@ -815,18 +824,18 @@ Add to `globals.css`:
 
 ### Animation Timing Summary
 
-| Animation | Duration Token | Easing Token | Direction |
-|-----------|---------------|-------------|-----------|
-| Feedback sheet entrance | `--dc-motion-slower` (300ms) | `--dc-motion-ease-out` | Entrance (decelerate) |
-| Feedback sheet exit | `--dc-motion-slow` (200ms) | `--dc-motion-ease-in` | Exit (accelerate) |
-| Feedback backdrop fade | `--dc-motion-slow` (200ms) | `--dc-motion-ease-out` | Entrance |
-| Feedback success checkmark | `--dc-motion-slow` (200ms) | `--dc-motion-ease-out` | Entrance |
-| Onboarding tooltip entrance | `--dc-motion-slow` (200ms) | `--dc-motion-ease-out` | Entrance |
-| Onboarding tooltip exit | `--dc-motion-normal` (150ms) | `--dc-motion-ease-in` | Exit |
-| Onboarding backdrop | `--dc-motion-slow` (200ms) | `--dc-motion-ease-out` | Entrance |
-| Accordion expand/collapse | `--dc-motion-slow` (200ms) | `--dc-motion-ease-out` | State change |
-| Accordion chevron | `--dc-motion-slow` (200ms) | `--dc-motion-ease-out` | State change |
-| Onboarding step dots | `--dc-motion-slow` (200ms) | `--dc-motion-ease-out` | State change |
+| Animation                   | Duration Token               | Easing Token           | Direction             |
+| --------------------------- | ---------------------------- | ---------------------- | --------------------- |
+| Feedback sheet entrance     | `--dc-motion-slower` (300ms) | `--dc-motion-ease-out` | Entrance (decelerate) |
+| Feedback sheet exit         | `--dc-motion-slow` (200ms)   | `--dc-motion-ease-in`  | Exit (accelerate)     |
+| Feedback backdrop fade      | `--dc-motion-slow` (200ms)   | `--dc-motion-ease-out` | Entrance              |
+| Feedback success checkmark  | `--dc-motion-slow` (200ms)   | `--dc-motion-ease-out` | Entrance              |
+| Onboarding tooltip entrance | `--dc-motion-slow` (200ms)   | `--dc-motion-ease-out` | Entrance              |
+| Onboarding tooltip exit     | `--dc-motion-normal` (150ms) | `--dc-motion-ease-in`  | Exit                  |
+| Onboarding backdrop         | `--dc-motion-slow` (200ms)   | `--dc-motion-ease-out` | Entrance              |
+| Accordion expand/collapse   | `--dc-motion-slow` (200ms)   | `--dc-motion-ease-out` | State change          |
+| Accordion chevron           | `--dc-motion-slow` (200ms)   | `--dc-motion-ease-out` | State change          |
+| Onboarding step dots        | `--dc-motion-slow` (200ms)   | `--dc-motion-ease-out` | State change          |
 
 ---
 
@@ -869,21 +878,21 @@ interface FeedbackContext {
 
 ### Collection Sources
 
-| Field | Source | Implementation |
-|-------|--------|----------------|
-| `userAgent` | `navigator.userAgent` | Read on sheet open |
-| `viewport` | `{ width: window.innerWidth, height: window.innerHeight }` | Read on sheet open |
-| `devicePixelRatio` | `window.devicePixelRatio` | Read on sheet open |
-| `keyboardActive` | Compare `window.visualViewport.height` to `window.innerHeight`. If viewport height is significantly smaller (>100px difference), keyboard is likely active. | Read on sheet open |
-| `touchSupported` | `'ontouchstart' in window` | Read on sheet open |
-| `onlineStatus` | `navigator.onLine` | Read on submit |
-| `currentRoute` | `window.location.pathname` | Read on sheet open |
-| `projectId` | From `FeedbackSheet` props (passed from editor context) | Prop passthrough |
-| `chapterId` | From `FeedbackSheet` props (passed from editor context) | Prop passthrough |
-| `driveConnected` | From app state (check if any drive connection exists for user) | Read from existing user data |
-| `appVersion` | `process.env.NEXT_PUBLIC_APP_VERSION` or build-time git hash | Read from env |
-| `recentErrors` | From a global error store (see below) | Read on sheet open |
-| `submittedAt` | `new Date().toISOString()` | Set on submit |
+| Field              | Source                                                                                                                                                      | Implementation               |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `userAgent`        | `navigator.userAgent`                                                                                                                                       | Read on sheet open           |
+| `viewport`         | `{ width: window.innerWidth, height: window.innerHeight }`                                                                                                  | Read on sheet open           |
+| `devicePixelRatio` | `window.devicePixelRatio`                                                                                                                                   | Read on sheet open           |
+| `keyboardActive`   | Compare `window.visualViewport.height` to `window.innerHeight`. If viewport height is significantly smaller (>100px difference), keyboard is likely active. | Read on sheet open           |
+| `touchSupported`   | `'ontouchstart' in window`                                                                                                                                  | Read on sheet open           |
+| `onlineStatus`     | `navigator.onLine`                                                                                                                                          | Read on submit               |
+| `currentRoute`     | `window.location.pathname`                                                                                                                                  | Read on sheet open           |
+| `projectId`        | From `FeedbackSheet` props (passed from editor context)                                                                                                     | Prop passthrough             |
+| `chapterId`        | From `FeedbackSheet` props (passed from editor context)                                                                                                     | Prop passthrough             |
+| `driveConnected`   | From app state (check if any drive connection exists for user)                                                                                              | Read from existing user data |
+| `appVersion`       | `process.env.NEXT_PUBLIC_APP_VERSION` or build-time git hash                                                                                                | Read from env                |
+| `recentErrors`     | From a global error store (see below)                                                                                                                       | Read on sheet open           |
+| `submittedAt`      | `new Date().toISOString()`                                                                                                                                  | Set on submit                |
 
 ### Global Error Store
 
@@ -927,6 +936,7 @@ export function getRecentErrors(): CapturedError[] {
 ```
 
 Integration points:
+
 - Call `captureError` from the existing `error.tsx` error boundary (`useEffect` that currently only logs to console).
 - Add a `window.addEventListener("unhandledrejection", ...)` handler in the app root.
 - Add a `window.addEventListener("error", ...)` handler in the app root.
@@ -949,19 +959,19 @@ The current `OnboardingTooltips` component works but looks amateur. The redesign
 
 ### What Changes
 
-| Aspect | Current | Redesigned |
-|--------|---------|-----------|
-| Card shadow | `shadow-xl ring-1 ring-gray-200` | `--dc-shadow-onboarding-card` (deeper, softer) |
-| Card width | `w-72` (288px) | `--dc-onboarding-card-width` (300px), max `calc(100vw - 32px)` |
-| Backdrop | `bg-black/20` (flat, no spotlight) | SVG mask with rounded-rect cutout over target region |
-| Pointer arrow | None | CSS triangle (8px) pointing toward target region |
-| Entrance animation | None (instant appear) | `onboarding-tooltip-enter` (scale + opacity, 200ms) |
-| Exit animation | None (instant disappear) | `onboarding-tooltip-exit` (scale + opacity, 150ms) |
-| Step transition | Instant | Exit current -> 200ms pause -> Enter next |
-| Step dots | Plain `h-1.5 rounded-full` with instant color change | `onboarding-dot` class with width/color transition |
-| Button styling | `bg-gray-900 text-white` (generic) | `bg-[var(--dc-color-interactive-primary)] text-white` (branded blue) |
-| Skip button | `text-gray-500` plain text | `text-[var(--dc-color-text-muted)]` with underline on focus |
-| Backdrop click | Calls `handleSkip` (dismisses tour) | Same behavior, retained |
+| Aspect             | Current                                              | Redesigned                                                           |
+| ------------------ | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| Card shadow        | `shadow-xl ring-1 ring-gray-200`                     | `--dc-shadow-onboarding-card` (deeper, softer)                       |
+| Card width         | `w-72` (288px)                                       | `--dc-onboarding-card-width` (300px), max `calc(100vw - 32px)`       |
+| Backdrop           | `bg-black/20` (flat, no spotlight)                   | SVG mask with rounded-rect cutout over target region                 |
+| Pointer arrow      | None                                                 | CSS triangle (8px) pointing toward target region                     |
+| Entrance animation | None (instant appear)                                | `onboarding-tooltip-enter` (scale + opacity, 200ms)                  |
+| Exit animation     | None (instant disappear)                             | `onboarding-tooltip-exit` (scale + opacity, 150ms)                   |
+| Step transition    | Instant                                              | Exit current -> 200ms pause -> Enter next                            |
+| Step dots          | Plain `h-1.5 rounded-full` with instant color change | `onboarding-dot` class with width/color transition                   |
+| Button styling     | `bg-gray-900 text-white` (generic)                   | `bg-[var(--dc-color-interactive-primary)] text-white` (branded blue) |
+| Skip button        | `text-gray-500` plain text                           | `text-[var(--dc-color-text-muted)]` with underline on focus          |
+| Backdrop click     | Calls `handleSkip` (dismisses tour)                  | Same behavior, retained                                              |
 
 ### What Does Not Change
 
@@ -985,10 +995,18 @@ The spotlight cutout uses an SVG mask. This avoids the complexity of multiple ov
       <rect x="0" y="0" width="100%" height="100%" fill="white" />
       <!-- Black = transparent (punches the spotlight hole) -->
       <rect
-        x={spotlightRect.left - 8}
-        y={spotlightRect.top - 8}
-        width={spotlightRect.width + 16}
-        height={spotlightRect.height + 16}
+        x="{spotlightRect.left"
+        -
+        8}
+        y="{spotlightRect.top"
+        -
+        8}
+        width="{spotlightRect.width"
+        +
+        16}
+        height="{spotlightRect.height"
+        +
+        16}
         rx="12"
         ry="12"
         fill="black"
@@ -996,8 +1014,10 @@ The spotlight cutout uses an SVG mask. This avoids the complexity of multiple ov
     </mask>
   </defs>
   <rect
-    x="0" y="0"
-    width="100%" height="100%"
+    x="0"
+    y="0"
+    width="100%"
+    height="100%"
     fill="var(--dc-color-onboarding-backdrop)"
     mask="url(#spotlight-mask)"
   />

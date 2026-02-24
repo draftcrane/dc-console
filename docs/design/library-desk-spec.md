@@ -23,12 +23,14 @@ The metaphor is a physical library:
 ### States
 
 **No connections (empty):**
+
 - Book icon
 - "Add documents to reference while you write."
 - "Your originals are never changed."
 - Single CTA: "Add Source" → opens Source Type Picker
 
 **Connected (default):**
+
 - Connection header showing account email (dropdown switcher if multiple)
 - Drive file browser: folders and documents
 - Breadcrumb navigation for folder hierarchy
@@ -53,11 +55,13 @@ The metaphor is a physical library:
 ### States
 
 **Empty (nothing tagged):**
+
 - Desk icon
 - "Tag documents from the Library to work with them here."
 - No action button — the action is in the Library tab
 
 **Has tagged documents:**
+
 - Document list with checkboxes for multi-select
 - "Select all" toggle at the top
 - Each document row shows: checkbox, document icon, title, bookmark (untag) icon
@@ -69,6 +73,7 @@ Users select one or more documents from their desk, write an instruction, and ru
 The AI receives the content of all selected documents as context.
 
 **Use cases:**
+
 - Analyze these docs and propose a chapter outline
 - Pull all references to [topic] across these documents
 - Summarize the key arguments across this research
@@ -79,6 +84,7 @@ The AI receives the content of all selected documents as context.
 When the selected documents exceed what fits in a single AI context window:
 
 **Current behavior:**
+
 - Allow selection of any number of documents
 - For small selections (fits in context): analyze immediately with SSE streaming
 - For large selections: show messaging that batch processing will be needed
@@ -98,6 +104,7 @@ read another stack, take notes, then synthesize notes into structure.
 over real time, and the perceived value is clear.
 
 **Technical path:**
+
 - Async job queue (Cloudflare Queues or Durable Objects)
 - Intermediate results stored in D1 or KV
 - Progress tracking: "Processed 15 of 32 documents..."
@@ -107,23 +114,23 @@ over real time, and the perceived value is clear.
 
 Consistent terminology across all UI:
 
-| Term | Meaning | Usage |
-|------|---------|-------|
-| Source | A repository/provider | Google Drive, local storage |
-| Folder | A directory within a Source | Drive folders |
-| Document | A specific file | Files the user works with |
-| Library | Browse view of connected sources | "Library" tab |
-| Desk | Tagged documents workspace | "Desk" tab |
-| Tag | Mark a document for desk use | Bookmark icon in browse |
+| Term     | Meaning                          | Usage                       |
+| -------- | -------------------------------- | --------------------------- |
+| Source   | A repository/provider            | Google Drive, local storage |
+| Folder   | A directory within a Source      | Drive folders               |
+| Document | A specific file                  | Files the user works with   |
+| Library  | Browse view of connected sources | "Library" tab               |
+| Desk     | Tagged documents workspace       | "Desk" tab                  |
+| Tag      | Mark a document for desk use     | Bookmark icon in browse     |
 
 Never say "research", "reference materials", "files", or "items" as synonyms for documents.
 
 ## Tab Structure
 
-| Tab | ID | Component | Purpose |
-|-----|-----|-----------|---------|
-| Library | `library` | LibraryTab | Browse sources, tag documents |
-| Desk | `desk` | DeskTab | Work with tagged documents, AI analysis |
+| Tab     | ID        | Component  | Purpose                                 |
+| ------- | --------- | ---------- | --------------------------------------- |
+| Library | `library` | LibraryTab | Browse sources, tag documents           |
+| Desk    | `desk`    | DeskTab    | Work with tagged documents, AI analysis |
 
 ## Design Decisions Log
 
