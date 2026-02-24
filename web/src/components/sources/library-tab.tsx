@@ -203,7 +203,10 @@ export function LibraryTab() {
 
   // Tagged documents: driveFileIds that are on the Desk
   const taggedFileIds = useMemo(
-    () => new Set(sources.filter((s) => s.driveFileId && s.status === "active").map((s) => s.driveFileId!)),
+    () =>
+      new Set(
+        sources.filter((s) => s.driveFileId && s.status === "active").map((s) => s.driveFileId!),
+      ),
     [sources],
   );
 
@@ -211,7 +214,10 @@ export function LibraryTab() {
     async (file: DriveFile) => {
       if (!activeConnectionId) return;
       try {
-        await addDriveSources([{ driveFileId: file.id, title: file.name, mimeType: file.mimeType }], activeConnectionId);
+        await addDriveSources(
+          [{ driveFileId: file.id, title: file.name, mimeType: file.mimeType }],
+          activeConnectionId,
+        );
         showToast(`Added "${file.name}" to desk`);
       } catch (err) {
         console.error("Failed to tag document:", err);
@@ -286,9 +292,7 @@ export function LibraryTab() {
           </svg>
 
           {connections.length === 1 ? (
-            <span className="text-xs text-gray-700 truncate flex-1">
-              {activeAccountEmail}
-            </span>
+            <span className="text-xs text-gray-700 truncate flex-1">{activeAccountEmail}</span>
           ) : (
             <>
               <label htmlFor="browse-account-picker" className="sr-only">

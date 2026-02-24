@@ -229,7 +229,12 @@ export function DriveBrowser({
                                transition-colors ${isTagged ? "text-blue-600" : "text-gray-300 hover:text-gray-500"}`}
                     aria-label={isTagged ? "Remove from desk" : "Add to desk"}
                   >
-                    <svg className="w-5 h-5" fill={isTagged ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                    <svg
+                      className="w-5 h-5"
+                      fill={isTagged ? "currentColor" : "none"}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"

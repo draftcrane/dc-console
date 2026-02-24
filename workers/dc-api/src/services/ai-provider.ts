@@ -29,6 +29,13 @@ export interface AIProvider {
     options?: CompletionOptions,
   ): Promise<ReadableStream<AIStreamEvent>>;
 
+  /** Non-streaming completion — returns the full response text */
+  completion(
+    systemPrompt: string,
+    userMessage: string,
+    options?: CompletionOptions,
+  ): Promise<string>;
+
   /** The model identifier used by this provider */
   readonly model: string;
 }
@@ -87,6 +94,40 @@ export class OpenAIProvider implements AIProvider {
     }
 
     return body.pipeThrough(createSSETransform());
+  }
+
+  async completion(
+    systemPrompt: string,
+    userMessage: string,
+    options?: CompletionOptions,
+  ): Promise<string> {
+    const response = await fetch(OPENAI_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.model,
+        max_tokens: options?.maxTokens ?? 4096,
+        stream: false,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => "Unknown error");
+      console.error("OpenAI API error:", response.status, errorBody);
+      throw new Error(`AI provider error: ${response.status}`);
+    }
+
+    const data = (await response.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    return data.choices?.[0]?.message?.content ?? "";
   }
 }
 
@@ -197,6 +238,25 @@ export class WorkersAIProvider implements AIProvider {
     }
 
     return (response as ReadableStream<Uint8Array>).pipeThrough(createWorkersAITransform());
+  }
+
+  async completion(
+    systemPrompt: string,
+    userMessage: string,
+    options?: CompletionOptions,
+  ): Promise<string> {
+    const response = await this.ai.run(this.model as Parameters<Ai["run"]>[0], {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
+      max_tokens: options?.maxTokens ?? 4096,
+      stream: false,
+    });
+
+    // Non-streaming returns an object with a response field
+    const result = response as { response?: string };
+    return result.response ?? "";
   }
 }
 

@@ -14,10 +14,7 @@ import type { SourcesTab } from "@/hooks/use-sources-panel";
 export function SourcesPanel() {
   const { activeTab, setActiveTab, closePanel, isPanelOpen, sources } = useSourcesContext();
 
-  const deskCount = useMemo(
-    () => sources.filter((s) => s.status === "active").length,
-    [sources],
-  );
+  const deskCount = useMemo(() => sources.filter((s) => s.status === "active").length, [sources]);
 
   const tabs: { id: SourcesTab; label: string }[] = useMemo(
     () => [
