@@ -92,7 +92,7 @@ export function ProjectSourceList() {
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Search sources..."
+              placeholder="Search documents..."
               className="w-full h-9 pl-8 pr-8 text-sm border border-gray-200 rounded-lg
                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />

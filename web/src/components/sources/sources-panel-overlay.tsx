@@ -6,7 +6,7 @@ import { AssistTab } from "./assist-tab";
 import type { SourcesTab } from "@/hooks/use-sources-panel";
 
 const TABS: { id: SourcesTab; label: string }[] = [
-  { id: "sources", label: "Sources" },
+  { id: "sources", label: "Library" },
   { id: "ask", label: "Ask" },
 ];
 
@@ -34,7 +34,7 @@ export function SourcesPanelOverlay() {
                    bg-background shadow-xl sources-panel-slide-in flex flex-col lg:hidden"
         role="dialog"
         aria-modal="true"
-        aria-label="Sources panel"
+        aria-label="Library panel"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
@@ -60,7 +60,7 @@ export function SourcesPanelOverlay() {
             onClick={closePanel}
             className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors
                        min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Close sources panel"
+            aria-label="Close library panel"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
