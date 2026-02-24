@@ -10,6 +10,7 @@ import {
   type AddSourceInput,
 } from "@/hooks/use-sources";
 import { useSourceAnalysis } from "@/hooks/use-source-analysis";
+import { useDeepAnalysis, type UseDeepAnalysisReturn } from "@/hooks/use-deep-analysis";
 import { useAIInstructions, type AIInstruction } from "@/hooks/use-ai-instructions";
 import { useSourcesPanel, type SourcesTab } from "@/hooks/use-sources-panel";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
@@ -55,7 +56,7 @@ interface SourcesContextValue {
   linkConnection: (driveConnectionId: string) => Promise<void>;
   unlinkConnection: (connectionId: string) => Promise<void>;
 
-  // AI Analysis
+  // AI Analysis (inline SSE)
   analyze: (projectId: string, sourceIds: string[], instruction: string) => void;
   analysisText: string;
   isAnalyzing: boolean;
@@ -63,6 +64,9 @@ interface SourcesContextValue {
   analysisError: string | null;
   resetAnalysis: () => void;
   abortAnalysis: () => void;
+
+  // Deep Analysis (async map-reduce)
+  deepAnalysis: UseDeepAnalysisReturn;
 
   // AI Instructions
   analysisInstructions: AIInstruction[];
@@ -132,7 +136,8 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
   }, [openPanel]);
 
   const sourcesData = useSources(projectId);
-  const analysis = useSourceAnalysis();
+  const deepAnalysis = useDeepAnalysis(projectId);
+  const analysis = useSourceAnalysis(deepAnalysis.startJob);
   const analysisInstructions = useAIInstructions("analysis");
   const rewriteInstructions = useAIInstructions("rewrite");
   // Disable auto-fetch: user-level account data is NEVER surfaced in project UI.
@@ -166,7 +171,7 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
     linkConnection: sourcesData.linkConnection,
     unlinkConnection: sourcesData.unlinkConnection,
 
-    // Analysis
+    // Analysis (inline SSE)
     analyze: analysis.analyze,
     analysisText: analysis.streamingText,
     isAnalyzing: analysis.isStreaming,
@@ -174,6 +179,9 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
     analysisError: analysis.error,
     resetAnalysis: analysis.reset,
     abortAnalysis: analysis.abort,
+
+    // Deep Analysis (async map-reduce)
+    deepAnalysis,
 
     // Instructions
     analysisInstructions: analysisInstructions.instructions,

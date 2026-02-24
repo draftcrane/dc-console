@@ -8,7 +8,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 /** Timeout for analysis requests (30s) */
 const ANALYSIS_TIMEOUT_MS = 30_000;
 
-interface UseSourceAnalysisReturn {
+interface AsyncJobResponse {
+  async: true;
+  jobId: string;
+  totalBatches: number;
+  estimatedTokens: number;
+}
+
+export interface UseSourceAnalysisReturn {
   analyze: (projectId: string, sourceIds: string[], instruction: string) => void;
   streamingText: string;
   isStreaming: boolean;
@@ -16,6 +23,10 @@ interface UseSourceAnalysisReturn {
   error: string | null;
   reset: () => void;
   abort: () => void;
+}
+
+export interface AsyncJobCallback {
+  (projectId: string, jobId: string, totalBatches: number): void;
 }
 
 /**
@@ -32,7 +43,7 @@ interface UseSourceAnalysisReturn {
  * - On connection drop mid-stream, preserves partial streamingText
  * - Sets error with retry affordance message
  */
-export function useSourceAnalysis(): UseSourceAnalysisReturn {
+export function useSourceAnalysis(onAsyncJob?: AsyncJobCallback): UseSourceAnalysisReturn {
   const { getToken } = useAuth();
   const [streamingText, setStreamingText] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -110,6 +121,18 @@ export function useSourceAnalysis(): UseSourceAnalysisReturn {
             setError(
               (body as { error?: string } | null)?.error || "Analysis failed. Tap to retry.",
             );
+          }
+          setIsStreaming(false);
+          clearTimeout(timeout);
+          return;
+        }
+
+        // Check if the response is an async job (JSON) vs inline SSE
+        const contentType = response.headers.get("Content-Type") || "";
+        if (contentType.includes("application/json")) {
+          const asyncResponse = (await response.json()) as AsyncJobResponse;
+          if (asyncResponse.async && onAsyncJob) {
+            onAsyncJob(projectId, asyncResponse.jobId, asyncResponse.totalBatches);
           }
           setIsStreaming(false);
           clearTimeout(timeout);
@@ -212,7 +235,7 @@ export function useSourceAnalysis(): UseSourceAnalysisReturn {
         setIsComplete(true);
       }
     },
-    [getToken, scheduleUpdate],
+    [getToken, scheduleUpdate, onAsyncJob],
   );
 
   const reset = useCallback(() => {

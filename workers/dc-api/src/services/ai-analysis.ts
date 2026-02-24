@@ -31,7 +31,7 @@ export interface AnalysisStreamResult {
 
 const MAX_INSTRUCTION_LENGTH = 2000;
 /** Max total characters of source text to include in prompt */
-const MAX_SOURCE_CHARS = 30000;
+const MAX_SOURCE_CHARS = 100000;
 
 // ── Source Content Loading ──
 
@@ -113,10 +113,7 @@ interface SourceChunks {
  * Build the user message with content from one or more sources.
  * Character budget is distributed equally across sources so all get representation.
  */
-export function buildAnalysisUserMessage(
-  instruction: string,
-  sources: SourceChunks[],
-): string {
+export function buildAnalysisUserMessage(instruction: string, sources: SourceChunks[]): string {
   const parts: string[] = [];
   const budgetPerSource = Math.floor(MAX_SOURCE_CHARS / sources.length);
 

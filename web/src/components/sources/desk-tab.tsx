@@ -31,17 +31,23 @@ export function DeskTab() {
     projectId,
     isPanelOpen,
     closePanel,
+    deepAnalysis,
   } = useSourcesContext();
 
   const { showToast } = useToast();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [instruction, setInstruction] = useState("Summarize key points");
 
+  // Merge inline + deep analysis state
+  const isDeepProcessing =
+    deepAnalysis.status === "pending" || deepAnalysis.status === "processing";
+  const isAnyAnalyzing = isAnalyzing || isDeepProcessing;
+  const effectiveText = analysisText || deepAnalysis.resultText || "";
+  const effectiveComplete = isAnalysisComplete || deepAnalysis.status === "completed";
+  const effectiveError = analysisError || deepAnalysis.error;
+
   // Only active (tagged) sources appear on the desk
-  const deskSources = useMemo(
-    () => sources.filter((s) => s.status === "active"),
-    [sources],
-  );
+  const deskSources = useMemo(() => sources.filter((s) => s.status === "active"), [sources]);
 
   const allSelected = deskSources.length > 0 && selectedIds.size === deskSources.length;
 
@@ -90,21 +96,22 @@ export function DeskTab() {
 
   const handleRetry = useCallback(() => {
     resetAnalysis();
+    deepAnalysis.reset();
     handleAnalyze();
-  }, [resetAnalysis, handleAnalyze]);
+  }, [resetAnalysis, deepAnalysis, handleAnalyze]);
 
   const handleCopy = useCallback(async () => {
-    if (!analysisText) return;
+    if (!effectiveText) return;
     try {
-      await navigator.clipboard.writeText(analysisText);
+      await navigator.clipboard.writeText(effectiveText);
       showToast("Copied to clipboard");
     } catch {
       showToast("Failed to copy");
     }
-  }, [analysisText, showToast]);
+  }, [effectiveText, showToast]);
 
   const handleInsert = useCallback(() => {
-    if (!analysisText) return;
+    if (!effectiveText) return;
     const editor = editorRef.current?.getEditor();
     if (!editor) return;
 
@@ -112,10 +119,10 @@ export function DeskTab() {
     const hasCursor = from === to && from > 0;
 
     if (hasCursor) {
-      editor.chain().focus().insertContent(`<p>${analysisText}</p>`).run();
+      editor.chain().focus().insertContent(`<p>${effectiveText}</p>`).run();
       showToast("Inserted at cursor");
     } else {
-      editor.chain().focus("end").insertContent(`<p>${analysisText}</p>`).run();
+      editor.chain().focus("end").insertContent(`<p>${effectiveText}</p>`).run();
       showToast("Added to end of chapter");
     }
 
@@ -123,7 +130,7 @@ export function DeskTab() {
     if (isPortrait && isPanelOpen) {
       closePanel();
     }
-  }, [analysisText, editorRef, showToast, isPanelOpen, closePanel]);
+  }, [effectiveText, editorRef, showToast, isPanelOpen, closePanel]);
 
   const handleSelectInstruction = useCallback((text: string) => {
     setInstruction(text);
@@ -160,21 +167,31 @@ export function DeskTab() {
           >
             <span
               className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                allSelected
-                  ? "bg-blue-600 border-blue-600"
-                  : "border-gray-300"
+                allSelected ? "bg-blue-600 border-blue-600" : "border-gray-300"
               }`}
             >
               {allSelected && (
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-3 h-3 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               )}
             </span>
             {allSelected ? "Deselect all" : "Select all"}
           </button>
           <span className="text-[10px] text-gray-400 ml-auto">
-            {selectedIds.size > 0 ? `${selectedIds.size} selected` : `${deskSources.length} on desk`}
+            {selectedIds.size > 0
+              ? `${selectedIds.size} selected`
+              : `${deskSources.length} on desk`}
           </span>
         </div>
 
@@ -194,14 +211,22 @@ export function DeskTab() {
                 >
                   <span
                     className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                      isSelected
-                        ? "bg-blue-600 border-blue-600"
-                        : "border-gray-300"
+                      isSelected ? "bg-blue-600 border-blue-600" : "border-gray-300"
                     }`}
                   >
                     {isSelected && (
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      <svg
+                        className="w-3 h-3 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={3}
+                          d="M5 13l4 4L19 7"
+                        />
                       </svg>
                     )}
                   </span>
@@ -230,7 +255,12 @@ export function DeskTab() {
                              text-blue-600 hover:text-gray-400 transition-colors"
                   aria-label="Remove from desk"
                 >
-                  <svg className="w-5 h-5" fill="currentColor" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -277,13 +307,13 @@ export function DeskTab() {
           {/* Analyze button */}
           <button
             onClick={handleAnalyze}
-            disabled={selectedIds.size === 0 || !instruction.trim() || isAnalyzing}
+            disabled={selectedIds.size === 0 || !instruction.trim() || isAnyAnalyzing}
             className="w-full h-10 rounded-lg bg-blue-600 text-sm font-medium text-white
                        hover:bg-blue-700 transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed
                        flex items-center justify-center gap-2"
           >
-            {isAnalyzing ? (
+            {isAnyAnalyzing ? (
               <>
                 <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
                   <circle
@@ -309,21 +339,47 @@ export function DeskTab() {
             )}
           </button>
 
-          {/* Streaming response */}
-          {(analysisText || isAnalyzing || analysisError) && (
+          {/* Deep analysis progress */}
+          {isDeepProcessing && deepAnalysis.totalBatches > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>
+                  Analyzing{" "}
+                  {deepAnalysis.totalBatches > 1
+                    ? `${deepAnalysis.totalBatches} batches`
+                    : "documents"}
+                  ...
+                </span>
+                <span>
+                  {deepAnalysis.completedBatches} of {deepAnalysis.totalBatches}
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                  style={{
+                    width: `${Math.max(5, (deepAnalysis.completedBatches / deepAnalysis.totalBatches) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Analysis result / streaming response */}
+          {(effectiveText || isAnalyzing || effectiveError) && (
             <div className="space-y-2">
               <h3 className="text-xs font-medium text-gray-500">Analysis</h3>
               <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-900 leading-relaxed whitespace-pre-wrap min-h-[60px]">
-                {analysisText}
+                {effectiveText}
                 {isAnalyzing && (
                   <span
                     className="inline-block w-0.5 h-4 bg-blue-600 ml-0.5 align-text-bottom animate-pulse"
                     aria-hidden="true"
                   />
                 )}
-                {analysisError && (
+                {effectiveError && (
                   <div className="mt-2">
-                    <p className="text-xs text-red-600 mb-1">{analysisError}</p>
+                    <p className="text-xs text-red-600 mb-1">{effectiveError}</p>
                     <button
                       onClick={handleRetry}
                       className="text-xs text-blue-600 hover:text-blue-700 min-h-[32px]"
@@ -339,7 +395,7 @@ export function DeskTab() {
       </div>
 
       {/* Action bar (shown when analysis is complete) */}
-      {isAnalysisComplete && analysisText && !analysisError && (
+      {effectiveComplete && effectiveText && !effectiveError && (
         <div className="px-4 py-3 border-t border-gray-100 flex gap-2 shrink-0">
           <button
             onClick={handleCopy}
