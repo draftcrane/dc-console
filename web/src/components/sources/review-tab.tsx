@@ -23,14 +23,8 @@ interface SourceDetailViewProps {
  * 4. On portrait (overlay), close panel after insertion
  */
 export function SourceDetailView({ onBack }: SourceDetailViewProps) {
-  const {
-    selectedSourceId,
-    sources,
-    getContent,
-    editorRef,
-    closePanel,
-    isPanelOpen,
-  } = useSourcesContext();
+  const { selectedSourceId, sources, getContent, editorRef, closePanel, isPanelOpen } =
+    useSourcesContext();
 
   const { showToast } = useToast();
   const [content, setContent] = useState<SourceContentResult | null>(null);
@@ -246,4 +240,3 @@ export function SourceDetailView({ onBack }: SourceDetailViewProps) {
     </div>
   );
 }
-
