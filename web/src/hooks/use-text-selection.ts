@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Editor } from "@tiptap/react";
+import { countWordsInText } from "@/utils/word-count";
 
 export interface FloatingBarPosition {
   /** Top position relative to the container element */
@@ -24,15 +25,6 @@ export interface TextSelectionState {
 }
 
 const MAX_WORDS = 2000;
-
-/**
- * Counts words in a plain text string.
- */
-function countWords(text: string): number {
-  const trimmed = text.trim();
-  if (!trimmed) return 0;
-  return trimmed.split(/\s+/).length;
-}
 
 /**
  * Gets the bounding rectangle of the current DOM selection,
@@ -177,7 +169,7 @@ export function useTextSelection(
 
     // Get the selected text from the editor document
     const selectedText = editor.state.doc.textBetween(from, to, " ");
-    const words = countWords(selectedText);
+    const words = countWordsInText(selectedText);
 
     // Get DOM selection bounds and compute floating bar position
     const domSelection = window.getSelection();

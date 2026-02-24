@@ -21,7 +21,12 @@ type ExportState =
   | { phase: "error"; message: string };
 
 /** Phase of post-export delivery flow */
-type DeliveryPhase = "none" | "auto-delivered" | "picker-open" | "destination-settings";
+type DeliveryPhase =
+  | "none"
+  | "auto-delivered"
+  | "picker-open"
+  | "destination-settings"
+  | "resolving-default";
 
 interface ExportMenuProps {
   projectId: string;
@@ -60,6 +65,7 @@ export function ExportMenu({
   const { downloadBackup, isDownloading } = useBackup();
   const {
     preference,
+    isLoading: isPreferenceLoading,
     save: savePreference,
     clear: clearPreference,
   } = useExportPreferences(projectId);
@@ -98,7 +104,7 @@ export function ExportMenu({
    */
   const handleSaveToDrive = useCallback(
     async (connectionId?: string, folderId?: string) => {
-      if (state.phase !== "complete") return;
+      if (state.phase !== "complete") return false;
 
       setDriveState({ phase: "saving" });
 
@@ -106,7 +112,7 @@ export function ExportMenu({
         const token = await getToken();
         if (!token) {
           setDriveState({ phase: "error", message: "Authentication required" });
-          return;
+          return false;
         }
 
         const response = await fetch(`${apiUrl}/exports/${state.jobId}/to-drive`, {
@@ -123,7 +129,7 @@ export function ExportMenu({
           const msg =
             (body as { error?: string } | null)?.error || "Failed to save to Google Drive";
           setDriveState({ phase: "error", message: msg });
-          return;
+          return false;
         }
 
         const result = (await response.json()) as {
@@ -137,11 +143,13 @@ export function ExportMenu({
           driveFileId: result.driveFileId,
           webViewLink: result.webViewLink,
         });
+        return true;
       } catch (err) {
         setDriveState({
           phase: "error",
           message: err instanceof Error ? err.message : "Failed to save to Google Drive",
         });
+        return false;
       }
     },
     [state, getToken, apiUrl],
@@ -162,8 +170,12 @@ export function ExportMenu({
 
       if (preference.destinationType === "device") {
         const token = await getToken();
-        if (token) {
-          await triggerDownload(downloadUrl, fileName, token);
+        if (!token) {
+          return false;
+        }
+        const delivered = await triggerDownload(downloadUrl, fileName, token);
+        if (!delivered) {
+          return false;
         }
         setDeliveryPhase("auto-delivered");
         return true;
@@ -178,11 +190,14 @@ export function ExportMenu({
         }
 
         setDriveState({ phase: "saving" });
-        setDeliveryPhase("auto-delivered");
 
         try {
           const token = await getToken();
-          if (!token) return false;
+          if (!token) {
+            setDriveState({ phase: "idle" });
+            return false;
+          }
+          setDeliveryPhase("auto-delivered");
 
           const response = await fetch(`${apiUrl}/exports/${jobId}/to-drive`, {
             method: "POST",
@@ -199,7 +214,6 @@ export function ExportMenu({
           if (!response.ok) {
             // Folder might be deleted — fall back to picker
             setDriveState({ phase: "idle" });
-            setDeliveryPhase("none");
             return false;
           }
 
@@ -218,7 +232,6 @@ export function ExportMenu({
           return true;
         } catch {
           setDriveState({ phase: "idle" });
-          setDeliveryPhase("none");
           return false;
         }
       }
@@ -294,15 +307,19 @@ export function ExportMenu({
             jobId: result.jobId,
           });
 
+          setDeliveryPhase("resolving-default");
+
           // Check for saved default preference
-          if (preference) {
+          if (!isPreferenceLoading && preference) {
             const applied = await applyDefault(result.fileName, result.downloadUrl, result.jobId);
             if (applied) return;
             // If failed (stale), fall through to picker
           }
 
-          // No default (or stale default) → always show picker for explicit consent
-          setDeliveryPhase("picker-open");
+          if (!isPreferenceLoading) {
+            // No default (or stale default) -> always show picker for explicit consent
+            setDeliveryPhase("picker-open");
+          }
         } else {
           setState({ phase: "error", message: "Export completed but no download available" });
         }
@@ -313,7 +330,7 @@ export function ExportMenu({
         });
       }
     },
-    [projectId, activeChapterId, getToken, apiUrl, preference, applyDefault],
+    [projectId, activeChapterId, getToken, apiUrl, preference, isPreferenceLoading, applyDefault],
   );
 
   /**
@@ -336,13 +353,15 @@ export function ExportMenu({
 
       if (destination.type === "device") {
         const token = await getToken();
-        if (token) {
-          await triggerDownload(state.downloadUrl, state.fileName, token);
+        if (!token) {
+          setDeliveryPhase("picker-open");
+          return;
         }
-        setDeliveryPhase("auto-delivered");
+        const delivered = await triggerDownload(state.downloadUrl, state.fileName, token);
+        setDeliveryPhase(delivered ? "auto-delivered" : "picker-open");
       } else if (destination.type === "drive" && destination.connectionId) {
-        await handleSaveToDrive(destination.connectionId, destination.folderId);
-        setDeliveryPhase("auto-delivered");
+        const saved = await handleSaveToDrive(destination.connectionId, destination.folderId);
+        setDeliveryPhase(saved ? "auto-delivered" : "picker-open");
       }
     },
     [state, getToken, savePreference, handleSaveToDrive],
@@ -361,6 +380,39 @@ export function ExportMenu({
     setDriveState({ phase: "idle" });
     setDeliveryPhase("none");
   }, []);
+
+  /**
+   * If export completed before preferences finished loading, resolve delivery
+   * once preference fetch settles.
+   */
+  useEffect(() => {
+    if (state.phase !== "complete") return;
+    if (deliveryPhase !== "resolving-default") return;
+    if (isPreferenceLoading) return;
+    const completedState = state;
+
+    let cancelled = false;
+
+    async function resolveDelayedDefault() {
+      if (preference) {
+        const applied = await applyDefault(
+          completedState.fileName,
+          completedState.downloadUrl,
+          completedState.jobId,
+        );
+        if (cancelled || applied) return;
+      }
+      if (!cancelled) {
+        setDeliveryPhase("picker-open");
+      }
+    }
+
+    void resolveDelayedDefault();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state, deliveryPhase, isPreferenceLoading, preference, applyDefault]);
 
   const isExporting = state.phase === "exporting" || isDownloading;
 
@@ -781,13 +833,13 @@ async function triggerDownload(
   downloadUrl: string,
   fileName: string,
   token: string,
-): Promise<void> {
+): Promise<boolean> {
   try {
     const response = await fetch(downloadUrl, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    if (!response.ok) return;
+    if (!response.ok) return false;
 
     // Determine the correct MIME type from the response or file extension
     const contentType =
@@ -812,8 +864,10 @@ async function triggerDownload(
       URL.revokeObjectURL(blobUrl);
       document.body.removeChild(link);
     }, 5000);
+    return true;
   } catch {
     // Download trigger failed silently - user can still use the Download button
+    return false;
   }
 }
 

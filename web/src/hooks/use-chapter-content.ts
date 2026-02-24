@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { countWordsInHtml } from "@/utils/word-count";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -76,16 +77,7 @@ export function useChapterContent({
     setSelectionWordCount(count);
   }, []);
 
-  const countWords = useCallback((html: string): number => {
-    const text = html
-      .replace(/<[^>]*>/g, " ")
-      .replace(/&nbsp;/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    return text.length > 0 ? text.split(" ").length : 0;
-  }, []);
-
-  const currentWordCount = countWords(currentContent);
+  const currentWordCount = countWordsInHtml(currentContent);
 
   return {
     currentWordCount,

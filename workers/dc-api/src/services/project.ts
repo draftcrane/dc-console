@@ -106,23 +106,21 @@ export class ProjectService {
     const chapterId = ulid();
     const now = new Date().toISOString();
 
-    // Create project
-    await this.db
-      .prepare(
-        `INSERT INTO projects (id, user_id, title, description, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'active', ?, ?)`,
-      )
-      .bind(projectId, userId, input.title.trim(), input.description?.trim() || "", now, now)
-      .run();
-
-    // Create default Chapter 1
-    await this.db
-      .prepare(
-        `INSERT INTO chapters (id, project_id, title, sort_order, word_count, version, status, created_at, updated_at)
-         VALUES (?, ?, ?, 1, 0, 1, 'draft', ?, ?)`,
-      )
-      .bind(chapterId, projectId, "Chapter 1", now, now)
-      .run();
+    // Create project + default chapter atomically.
+    await this.db.batch([
+      this.db
+        .prepare(
+          `INSERT INTO projects (id, user_id, title, description, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, 'active', ?, ?)`,
+        )
+        .bind(projectId, userId, input.title.trim(), input.description?.trim() || "", now, now),
+      this.db
+        .prepare(
+          `INSERT INTO chapters (id, project_id, title, sort_order, word_count, version, status, created_at, updated_at)
+           VALUES (?, ?, ?, 1, 0, 1, 'draft', ?, ?)`,
+        )
+        .bind(chapterId, projectId, "Chapter 1", now, now),
+    ]);
 
     return {
       id: projectId,

@@ -47,14 +47,14 @@ export default function DashboardPage() {
   const {
     projects,
     isLoadingProjects,
+    projectsError,
+    clearProjectsError,
     fetchProjects,
     renameProject,
     isRenaming,
     duplicateProject,
     isDuplicating,
   } = useProjectActions({ getToken: getToken as () => Promise<string | null> });
-
-  const [error, setError] = useState<string | null>(null);
 
   // Card overflow menu state
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -140,14 +140,14 @@ export default function DashboardPage() {
   }
 
   // Error state
-  if (error) {
+  if (projectsError) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-4">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+          <p className="text-red-600 mb-4">{projectsError}</p>
           <button
             onClick={() => {
-              setError(null);
+              clearProjectsError();
               fetchProjects();
             }}
             className="px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800"

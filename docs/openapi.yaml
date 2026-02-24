@@ -13,9 +13,9 @@ info:
 
     ## Rate Limiting
 
-    Standard endpoints enforce **120 requests per minute** per user (sliding window
-    via Cloudflare KV). AI and export endpoints have tighter limits noted in their
-    descriptions.
+    Standard endpoints enforce **120 requests per minute** per user (atomic
+    time-window counters in D1). AI and export endpoints have tighter limits
+    noted in their descriptions.
 
     ## Error Responses
 
@@ -615,6 +615,59 @@ components:
         webViewLink:
           type: string
           format: uri
+
+    ExportPreference:
+      type: object
+      required:
+        - id
+        - projectId
+        - userId
+        - destinationType
+        - driveConnectionId
+        - driveFolderId
+        - driveFolderPath
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        userId:
+          type: string
+        destinationType:
+          type: string
+          enum: [device, drive]
+        driveConnectionId:
+          type: string
+          nullable: true
+        driveFolderId:
+          type: string
+          nullable: true
+        driveFolderPath:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ExportPreferenceInput:
+      type: object
+      required:
+        - destinationType
+      properties:
+        destinationType:
+          type: string
+          enum: [device, drive]
+        driveConnectionId:
+          type: string
+        driveFolderId:
+          type: string
+        driveFolderPath:
+          type: string
 
     ImportBackupResult:
       type: object
@@ -3126,6 +3179,7 @@ paths:
         Uploads a completed export artifact to a DraftCrane folder in the
         user's Google Drive. Creates the folder on-demand via
         findOrCreateRootFolder. Date-stamped file names prevent overwrites.
+        Optionally accepts a specific Drive connection and destination folder.
       operationId: saveExportToDrive
       parameters:
         - name: jobId
@@ -3133,6 +3187,17 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                connectionId:
+                  type: string
+                folderId:
+                  type: string
       responses:
         "200":
           description: Export saved to Drive
@@ -3140,6 +3205,108 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ExportToDriveResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+  /projects/{projectId}/export-preferences:
+    get:
+      tags: [Exports]
+      summary: Get project export preference
+      description: Returns the user's saved export delivery preference for the project.
+      operationId: getExportPreference
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export preference (or null if not set)
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - preference
+                properties:
+                  preference:
+                    allOf:
+                      - $ref: "#/components/schemas/ExportPreference"
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    put:
+      tags: [Exports]
+      summary: Create or update project export preference
+      description: Saves the default export delivery destination for the project.
+      operationId: setExportPreference
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportPreferenceInput"
+      responses:
+        "200":
+          description: Updated export preference
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - preference
+                properties:
+                  preference:
+                    $ref: "#/components/schemas/ExportPreference"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+
+    delete:
+      tags: [Exports]
+      summary: Clear project export preference
+      description: Deletes the saved export delivery preference for the project.
+      operationId: clearExportPreference
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Preference cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                properties:
+                  success:
+                    type: boolean
+                    example: true
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":

@@ -12,11 +12,14 @@ interface RateLimitConfig {
 }
 
 /**
- * Rate limiting middleware using Cloudflare KV with time-bucketed keys.
+ * Rate limiting middleware using D1 atomic counters with time-bucketed keys.
  *
- * Each window gets its own KV key based on the current time bucket. Old windows
- * expire naturally regardless of write frequency, eliminating the false-positive
- * 429s caused by the previous sliding-window approach (where PUT resets TTL).
+ * Each window gets its own counter row (`prefix:userId:bucket`), incremented with
+ * an atomic UPSERT in SQLite. This avoids race conditions from KV read-then-write
+ * under concurrent requests.
+ *
+ * A KV fallback is retained for rollout safety if the migration has not yet been
+ * applied (no `rate_limit_counters` table).
  *
  * Phase 0 limits:
  * - Standard endpoints: 120 req/min
@@ -35,12 +38,12 @@ export function rateLimit(config: RateLimitConfig): MiddlewareHandler<{ Bindings
       return;
     }
 
-    const windowBucket = Math.floor(Date.now() / (config.windowSeconds * 1000));
+    const nowMs = Date.now();
+    const windowBucket = Math.floor(nowMs / (config.windowSeconds * 1000));
     const key = `ratelimit:${config.prefix}:${auth.userId}:${windowBucket}`;
-    const current = await c.env.CACHE.get(key);
-    const count = current ? parseInt(current, 10) : 0;
+    const count = await incrementRateLimitCounter(c, key, nowMs, config.windowSeconds);
 
-    if (count >= config.maxRequests) {
+    if (count > config.maxRequests) {
       console.warn(
         JSON.stringify({
           level: "warn",
@@ -55,15 +58,64 @@ export function rateLimit(config: RateLimitConfig): MiddlewareHandler<{ Bindings
       rateLimited(`Rate limit exceeded. Please wait before making more requests.`);
     }
 
-    await c.env.CACHE.put(key, String(count + 1), {
-      expirationTtl: config.windowSeconds * 2, // 2x for safety margin
-    });
-
-    const remaining = config.maxRequests - count - 1;
+    const remaining = Math.max(0, config.maxRequests - count);
     await next();
 
     c.header("X-RateLimit-Remaining", String(remaining));
   };
+}
+
+async function incrementRateLimitCounter(
+  c: Parameters<MiddlewareHandler<{ Bindings: Env }>>[0],
+  key: string,
+  nowMs: number,
+  windowSeconds: number,
+): Promise<number> {
+  const expiresAtMs = nowMs + windowSeconds * 2 * 1000;
+
+  try {
+    const row = await c.env.DB.prepare(
+      `INSERT INTO rate_limit_counters (counter_key, request_count, expires_at_ms)
+       VALUES (?, 1, ?)
+       ON CONFLICT(counter_key) DO UPDATE SET request_count = request_count + 1
+       RETURNING request_count`,
+    )
+      .bind(key, expiresAtMs)
+      .first<{ request_count: number }>();
+
+    const count = row?.request_count ?? 1;
+
+    // Opportunistic cleanup to keep the table bounded.
+    if (count === 1) {
+      c.env.DB.prepare(`DELETE FROM rate_limit_counters WHERE expires_at_ms < ?`)
+        .bind(nowMs)
+        .run()
+        .catch(() => {
+          // Cleanup is best-effort and must not block request handling.
+        });
+    }
+
+    return count;
+  } catch (err) {
+    if (!isMissingRateLimitTableError(err)) {
+      throw err;
+    }
+
+    // Rollout safety: fallback to KV until migration is applied.
+    const raw = await c.env.CACHE.get(key);
+    const parsed = raw ? Number.parseInt(raw, 10) : 0;
+    const previousCount = Number.isNaN(parsed) ? 0 : parsed;
+    const nextCount = previousCount + 1;
+    await c.env.CACHE.put(key, String(nextCount), {
+      expirationTtl: windowSeconds * 2,
+    });
+    return nextCount;
+  }
+}
+
+function isMissingRateLimitTableError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return err.message.includes("no such table: rate_limit_counters");
 }
 
 /** Standard rate limit: 120 req/min (bumped from 60 for Phase 0 auto-save cadence) */

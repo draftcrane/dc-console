@@ -31,6 +31,7 @@ export function useProjectActions({ getToken, projectId }: UseProjectActionsOpti
   // Project list
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [projectsError, setProjectsError] = useState<string | null>(null);
 
   // Rename
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -45,18 +46,24 @@ export function useProjectActions({ getToken, projectId }: UseProjectActionsOpti
 
   const fetchProjects = useCallback(async () => {
     setIsLoadingProjects(true);
+    setProjectsError(null);
     try {
       const token = await getToken();
       const response = await fetch(`${API_URL}/projects`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.ok) {
-        const data = (await response.json()) as { projects: ProjectSummary[] };
-        setProjects(data.projects);
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        setProjectsError(body?.error || "Failed to load projects");
+        return;
       }
+
+      const data = (await response.json()) as { projects: ProjectSummary[] };
+      setProjects(data.projects);
     } catch (err) {
       console.error("Failed to fetch projects:", err);
+      setProjectsError("Failed to load projects");
     } finally {
       setIsLoadingProjects(false);
     }
@@ -187,6 +194,8 @@ export function useProjectActions({ getToken, projectId }: UseProjectActionsOpti
   return {
     projects,
     isLoadingProjects,
+    projectsError,
+    clearProjectsError: () => setProjectsError(null),
     fetchProjects,
 
     renameDialogOpen,
