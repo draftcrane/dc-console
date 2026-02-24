@@ -118,14 +118,16 @@ export function useEditorAI({
         });
 
         if (!response.ok) {
+          const body = await response.json().catch(() => null);
           if (response.status === 429) {
-            const body = await response.json().catch(() => null);
             const msg =
               (body as { message?: string } | null)?.message ||
               "You've used AI rewrite frequently. Please wait a moment.";
             aiRewrite.abortStreaming(msg);
           } else {
-            aiRewrite.abortStreaming("Something went wrong. Please try again.");
+            const serverMsg = (body as { error?: string } | null)?.error;
+            console.error("AI rewrite failed:", response.status, body);
+            aiRewrite.abortStreaming(serverMsg || "Something went wrong. Please try again.");
           }
           return;
         }

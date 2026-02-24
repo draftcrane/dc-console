@@ -25,6 +25,23 @@ app.onError((err, c) => {
   const auth = c.get("auth");
 
   if (err instanceof AppError) {
+    // Log 4xx errors for diagnostics (KV, 7-day TTL)
+    if (err.statusCode >= 400) {
+      c.env.CACHE.put(
+        `error:${Date.now()}:${requestId}`,
+        JSON.stringify({
+          request_id: requestId,
+          user_id: c.get("auth")?.userId ?? null,
+          method: c.req.method,
+          path: c.req.path,
+          status: err.statusCode,
+          code: err.code,
+          error: err.message,
+          timestamp: new Date().toISOString(),
+        }),
+        { expirationTtl: 604800 },
+      ).catch(() => {});
+    }
     return c.json({ error: err.message, code: err.code, requestId }, err.statusCode as 400);
   }
 
