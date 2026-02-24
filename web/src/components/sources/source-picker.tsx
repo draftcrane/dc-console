@@ -22,8 +22,7 @@ interface SourcePickerProps {
  * Shows available source types (Google Drive, Local Files).
  * Google Drive behavior depends on connection count:
  *   0 connections → initiates OAuth
- *   1 connection → auto-selects and goes to browse
- *   2+ connections → expands inline account list
+ *   1+ connections → expands inline account list (browse existing or connect another)
  *
  * 44pt touch targets throughout. iPad-first.
  *
@@ -41,8 +40,6 @@ export function SourcePicker({
   const handleDriveClick = () => {
     if (connections.length === 0) {
       onConnectDrive();
-    } else if (connections.length === 1) {
-      onSelectConnection(connections[0]);
     } else {
       setExpanded((prev) => !prev);
     }
@@ -100,7 +97,7 @@ export function SourcePicker({
             </span>
           </div>
           <svg
-            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${expanded && connections.length >= 2 ? "rotate-90" : ""}`}
+            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${expanded && connections.length >= 1 ? "rotate-90" : ""}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -109,8 +106,8 @@ export function SourcePicker({
           </svg>
         </button>
 
-        {/* Inline account list for 2+ connections */}
-        {expanded && connections.length >= 2 && (
+        {/* Inline account list: browse existing or connect another */}
+        {expanded && connections.length >= 1 && (
           <div className="ml-6 bg-gray-50 rounded-lg overflow-hidden">
             {connections.map((connection) => (
               <button

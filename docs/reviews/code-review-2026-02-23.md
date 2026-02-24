@@ -32,6 +32,7 @@ The remaining action items are minor: consolidate word count implementations, ad
 ## Previous Issue Resolution
 
 21 of 24 findings from previous reviews resolved. 3 open issues remain:
+
 - #167 — 2026-02-19 finding log and remediation checklist (tracking issue)
 - #169 — Implement archived source reactivation for Drive reconnect
 - #170 — Update API docs for current Drive and project endpoints
@@ -94,7 +95,7 @@ The remaining action items are minor: consolidate word count implementations, ad
    - `workers/dc-api/src/utils/word-count.ts:5-12` (backend utility, properly extracted)
    - `web/src/hooks/use-chapter-content.ts:79-86` (inline, strips HTML + counts words)
    - `web/src/hooks/use-text-selection.ts:31-35` (plain text word count)
-   Backend duplication was fixed per previous review; frontend still has two inline implementations. Recommendation: Create `web/src/utils/word-count.ts` and import in both hooks.
+     Backend duplication was fixed per previous review; frontend still has two inline implementations. Recommendation: Create `web/src/utils/word-count.ts` and import in both hooks.
 
 2. [MEDIUM] `package.json:18-23` — Root devDependencies include `docx`, `mammoth`, `pdf-lib`, `unpdf` used only by `scripts/generate-doc-parse-fixtures.ts`. Adds unnecessary install weight. Recommendation: Move to `scripts/package.json` or add a comment documenting their purpose.
 
@@ -213,6 +214,7 @@ The remaining action items are minor: consolidate word count implementations, ad
 | **Overall**   | **C**  | **C**  | **B**  | **Improved** |
 
 ### Key Improvements Since Feb 17
+
 - Editor god component decomposed: 1,257 → 327 lines (7 hooks + 4 sub-components)
 - Frontend tests: 0 → 154 tests across 14 files
 - Security remediations: Drive query injection fixed, Content-Disposition injection fixed
@@ -221,21 +223,22 @@ The remaining action items are minor: consolidate word count implementations, ad
 - Golden Path: PR template added, frontend test CI added
 
 ### Issue Resolution
+
 21 of 24 code-review issues resolved (87.5% closure rate).
 
 ## File Manifest
 
-| Type             | Count |
-| ---------------- | ----- |
-| TypeScript (.ts) | 148   |
-| React (.tsx)     | 52    |
-| Markdown (.md)   | 38    |
-| JSON (.json)     | 21    |
-| Shell (.sh)      | 3     |
-| YAML (.yml)      | 2     |
-| TOML (.toml)     | 2     |
-| YAML (.yaml)     | 1     |
-| CSS (.css)       | 1     |
+| Type             | Count       |
+| ---------------- | ----------- |
+| TypeScript (.ts) | 148         |
+| React (.tsx)     | 52          |
+| Markdown (.md)   | 38          |
+| JSON (.json)     | 21          |
+| Shell (.sh)      | 3           |
+| YAML (.yml)      | 2           |
+| TOML (.toml)     | 2           |
+| YAML (.yaml)     | 1           |
+| CSS (.css)       | 1           |
 | **Total lines**  | **~46,450** |
 
 ## Raw Model Outputs

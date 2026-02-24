@@ -24,7 +24,8 @@ const POST_OAUTH_CONNECTION_KEY = "dc_post_oauth_connection";
  *
  * CRITICAL: Uses project-scoped `connections` (from useSources), NOT user-level
  * `driveAccounts`. User-level accounts are NEVER fetched or displayed in project UI.
- * Clicking "Google Drive" initiates OAuth directly — no intermediate account list.
+ * Clicking "Google Drive" with 0 connections initiates OAuth directly.
+ * With 1+ connections, expands inline list to browse existing or connect another.
  *
  * Vocabulary: Source = provider, Folder = directory, Document = file.
  */
