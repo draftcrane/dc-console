@@ -244,7 +244,9 @@ research.post("/projects/:projectId/research/analyze", researchQueryRateLimit, a
   const { userId } = c.get("auth");
   const projectId = c.req.param("projectId");
 
-  const body = (await c.req.json().catch(() => ({}))) as Partial<AnalysisInput>;
+  const body = (await c.req.json().catch(() => ({}))) as Partial<AnalysisInput> & {
+    sourceId?: string;
+  };
 
   // Verify project ownership
   const project = await c.env.DB.prepare(
@@ -266,8 +268,11 @@ research.post("/projects/:projectId/research/analyze", researchQueryRateLimit, a
 
   const service = new AIAnalysisService(c.env.DB, c.env.EXPORTS_BUCKET, provider);
 
+  // Accept sourceIds array or legacy sourceId string
+  const sourceIds = body.sourceIds ?? (body.sourceId ? [body.sourceId] : []);
+
   const input: AnalysisInput = {
-    sourceId: body.sourceId ?? "",
+    sourceIds,
     instruction: body.instruction ?? "",
   };
 

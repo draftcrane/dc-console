@@ -52,7 +52,7 @@ export function AssistTab() {
 
   const handleAnalyze = useCallback(() => {
     if (!sourceId || !instruction.trim()) return;
-    analyze(projectId, sourceId, instruction);
+    analyze(projectId, [sourceId], instruction);
   }, [sourceId, instruction, projectId, analyze]);
 
   const handleRetry = useCallback(() => {

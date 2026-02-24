@@ -59,7 +59,7 @@ export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSecti
       {/* Connection rows */}
       <div className="flex flex-col gap-1">
         {connections.length === 0 ? (
-          <p className="text-xs text-gray-400 py-2 px-1">No sources connected to this book.</p>
+          <p className="text-xs text-gray-400 py-2 px-1">No sources connected.</p>
         ) : (
           connections.map((connection) => (
             <div key={connection.id}>

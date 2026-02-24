@@ -94,24 +94,24 @@ describe("AIAnalysisService", () => {
       const provider = createMockProvider([]);
       const service = new AIAnalysisService(env.DB, env.EXPORTS_BUCKET, provider);
       const result = service.validateInput({
-        sourceId: "source-123",
+        sourceIds: ["source-123"],
         instruction: "Summarize this",
       });
       expect(result).toBeNull();
     });
 
-    it("rejects empty sourceId", () => {
+    it("rejects empty sourceIds", () => {
       const provider = createMockProvider([]);
       const service = new AIAnalysisService(env.DB, env.EXPORTS_BUCKET, provider);
-      expect(service.validateInput({ sourceId: "", instruction: "Test" })).toBe(
-        "sourceId is required",
+      expect(service.validateInput({ sourceIds: [], instruction: "Test" })).toBe(
+        "At least one source is required",
       );
     });
 
     it("rejects empty instruction", () => {
       const provider = createMockProvider([]);
       const service = new AIAnalysisService(env.DB, env.EXPORTS_BUCKET, provider);
-      expect(service.validateInput({ sourceId: "id", instruction: "" })).toBe(
+      expect(service.validateInput({ sourceIds: ["id"], instruction: "" })).toBe(
         "instruction is required",
       );
     });
@@ -119,8 +119,17 @@ describe("AIAnalysisService", () => {
     it("rejects instruction exceeding max length", () => {
       const provider = createMockProvider([]);
       const service = new AIAnalysisService(env.DB, env.EXPORTS_BUCKET, provider);
-      expect(service.validateInput({ sourceId: "id", instruction: "a".repeat(2001) })).toMatch(
-        /at most 2000/,
+      expect(
+        service.validateInput({ sourceIds: ["id"], instruction: "a".repeat(2001) }),
+      ).toMatch(/at most 2000/);
+    });
+
+    it("rejects more than MAX_SOURCES", () => {
+      const provider = createMockProvider([]);
+      const service = new AIAnalysisService(env.DB, env.EXPORTS_BUCKET, provider);
+      const ids = Array.from({ length: 11 }, (_, i) => `source-${i}`);
+      expect(service.validateInput({ sourceIds: ids, instruction: "Test" })).toMatch(
+        /up to 10/,
       );
     });
   });
@@ -153,11 +162,26 @@ describe("AIAnalysisService", () => {
   describe("buildAnalysisUserMessage", () => {
     it("includes source title, content, and instruction", () => {
       const chunks = chunkStructuredHtml("s1", "My Source", "<p>Content goes here.</p>");
-      const msg = buildAnalysisUserMessage("Summarize this", "My Source", chunks);
+      const msg = buildAnalysisUserMessage("Summarize this", [
+        { title: "My Source", chunks },
+      ]);
 
       expect(msg).toContain('Source: "My Source"');
       expect(msg).toContain("Content goes here");
       expect(msg).toContain("Summarize this");
+    });
+
+    it("numbers sources when multiple are provided", () => {
+      const chunks1 = chunkStructuredHtml("s1", "Source A", "<p>Content A</p>");
+      const chunks2 = chunkStructuredHtml("s2", "Source B", "<p>Content B</p>");
+      const msg = buildAnalysisUserMessage("Compare these", [
+        { title: "Source A", chunks: chunks1 },
+        { title: "Source B", chunks: chunks2 },
+      ]);
+
+      expect(msg).toContain('Source 1: "Source A"');
+      expect(msg).toContain('Source 2: "Source B"');
+      expect(msg).toContain("Compare these");
     });
   });
 
@@ -172,7 +196,7 @@ describe("AIAnalysisService", () => {
       const service = new AIAnalysisService(env.DB, env.EXPORTS_BUCKET, provider);
 
       const { stream } = await service.streamAnalysis(userId, {
-        sourceId: source.id,
+        sourceIds: [source.id],
         instruction: "Summarize this",
       });
 
@@ -195,7 +219,7 @@ describe("AIAnalysisService", () => {
       const service = new AIAnalysisService(env.DB, env.EXPORTS_BUCKET, provider);
 
       const { stream } = await service.streamAnalysis(userId, {
-        sourceId: source.id,
+        sourceIds: [source.id],
         instruction: "Analyze this",
       });
 
@@ -215,10 +239,29 @@ describe("AIAnalysisService", () => {
 
       await expect(
         service.streamAnalysis(userId, {
-          sourceId: source.id,
+          sourceIds: [source.id],
           instruction: "Steal this",
         }),
       ).rejects.toThrow("Source not found");
+    });
+
+    it("analyzes multiple sources in one request", async () => {
+      const source1 = await seedSourceWithContent(projectId, "<p>First document content.</p>");
+      const source2 = await seedSourceWithContent(projectId, "<p>Second document content.</p>");
+
+      const provider = createMockProvider(["Combined", " ", "analysis"]);
+      const service = new AIAnalysisService(env.DB, env.EXPORTS_BUCKET, provider);
+
+      const { stream } = await service.streamAnalysis(userId, {
+        sourceIds: [source1.id, source2.id],
+        instruction: "Compare these documents",
+      });
+
+      const events = await readSSEStream(stream);
+
+      expect(events[0]).toEqual({ type: "start" });
+      expect(events.some((e) => e.type === "token")).toBe(true);
+      expect(events[events.length - 1]).toEqual({ type: "done" });
     });
   });
 });
