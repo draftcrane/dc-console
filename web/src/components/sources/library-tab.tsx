@@ -6,36 +6,44 @@ import { ProjectSourceList } from "./project-source-list";
 import { DriveBrowser } from "./drive-browser";
 import { SourcePicker } from "./source-picker";
 import { SourcesSection } from "./sources-section";
+import { SourceDetailView } from "./review-tab";
 import { EmptyState } from "./empty-state";
 import { useToast } from "@/components/toast";
 import type { SourceConnection } from "@/hooks/use-sources";
 
-type ViewMode = "list" | "picker" | "browse";
+type ViewMode = "list" | "browse" | "detail" | "connect";
 
 const SOURCE_LINK_KEY = "dc_pending_source_link";
 const POST_OAUTH_CONNECTION_KEY = "dc_post_oauth_connection";
 
 /**
- * Library tab — three-mode redesign with project-scoped connections.
+ * Library tab - Source Manager with four view modes.
  *
- * List mode (default): ProjectSourceList + "Add Documents" button + "Your Sources" section
- * Picker mode: SourcePicker fills the panel ("Add documents from")
- * Browse mode: Full-height DriveBrowser fills the panel content area
+ * list:    ProjectSourceList + always-visible Connections section
+ * browse:  Drive file browser (entered from connection's Browse button)
+ * detail:  Source content viewer (entered from tapping a document)
+ * connect: SourcePicker for new connections only
  *
  * CRITICAL: Uses project-scoped `connections` (from useSources), NOT user-level
  * `driveAccounts`. User-level accounts are NEVER fetched or displayed in project UI.
- * Clicking "Google Drive" with 0 connections initiates OAuth directly.
- * With 1+ connections, expands inline list to browse existing or connect another.
  *
  * Vocabulary: Source = provider, Folder = directory, Document = file.
  */
 export function LibraryTab() {
-  const { sources, isLoadingSources, connections, connectDrive, uploadLocalFile, projectId } =
-    useSourcesContext();
+  const {
+    sources,
+    isLoadingSources,
+    connections,
+    connectDrive,
+    uploadLocalFile,
+    projectId,
+    detailSourceId,
+    setDetailSourceId,
+  } = useSourcesContext();
   const { showToast } = useToast();
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
-  const [isUploading, setIsUploading] = useState(false);
+  const [, setIsUploading] = useState(false);
   const [selectedConnectionIndex, setSelectedConnectionIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,12 +57,16 @@ export function LibraryTab() {
     }
   });
 
-  // Show toast when post-OAuth signal is detected
-  const toastFired = useRef(false);
+  // Show toast when post-OAuth signal is detected.
+  // Immediately clear sessionStorage to prevent re-fire on remount.
   useEffect(() => {
-    if (postOAuthConnectionId && !toastFired.current) {
-      toastFired.current = true;
+    if (postOAuthConnectionId) {
       showToast("Google Drive connected");
+      try {
+        sessionStorage.removeItem(POST_OAUTH_CONNECTION_KEY);
+      } catch {
+        // ignore
+      }
     }
   }, [postOAuthConnectionId, showToast]);
 
@@ -87,6 +99,13 @@ export function LibraryTab() {
     return () => clearTimeout(timeout);
   }, [postOAuthConnectionId, connections]);
 
+  // React to detailSourceId changes (e.g., from openSourceReview in other components)
+  useEffect(() => {
+    if (detailSourceId) {
+      setViewMode("detail");
+    }
+  }, [detailSourceId]);
+
   // Determine which project-scoped connection to use for the Drive browser
   // CRITICAL: Use driveConnectionId for Drive API, NOT id (junction row)
   const safeIndex = Math.min(selectedConnectionIndex, Math.max(connections.length - 1, 0));
@@ -113,9 +132,16 @@ export function LibraryTab() {
     [uploadLocalFile],
   );
 
-  const handleAddDocuments = useCallback(() => {
-    setViewMode("picker");
-  }, []);
+  const handleBrowseConnection = useCallback(
+    (connection: SourceConnection) => {
+      const index = connections.findIndex(
+        (c) => c.driveConnectionId === connection.driveConnectionId,
+      );
+      setSelectedConnectionIndex(index >= 0 ? index : 0);
+      setViewMode("browse");
+    },
+    [connections],
+  );
 
   const handleSelectConnection = useCallback(
     (connection: SourceConnection) => {
@@ -132,16 +158,21 @@ export function LibraryTab() {
     fileInputRef.current?.click();
   }, []);
 
-  // Go straight to OAuth — no intermediate screen showing user-level account emails.
+  // Go straight to OAuth - no intermediate screen showing user-level account emails.
   // After OAuth return, the account is auto-linked to this project via pid in state.
   const handleConnectDriveOAuth = useCallback(() => {
     try {
       sessionStorage.setItem(SOURCE_LINK_KEY, projectId);
     } catch {
-      // sessionStorage unavailable — pid fallback in OAuth state handles this
+      // sessionStorage unavailable - pid fallback in OAuth state handles this
     }
     connectDrive(undefined, projectId);
   }, [connectDrive, projectId]);
+
+  const handleBackToList = useCallback(() => {
+    setViewMode("list");
+    setDetailSourceId(null);
+  }, [setDetailSourceId]);
 
   // Loading state
   if (isLoadingSources) {
@@ -163,8 +194,8 @@ export function LibraryTab() {
     />
   );
 
-  // ── PICKER MODE ──
-  if (viewMode === "picker") {
+  // ── CONNECT MODE (source type picker for new connections) ──
+  if (viewMode === "connect") {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {fileInput}
@@ -173,7 +204,7 @@ export function LibraryTab() {
           onSelectConnection={handleSelectConnection}
           onConnectDrive={handleConnectDriveOAuth}
           onUploadLocal={handleUploadLocal}
-          onCancel={() => setViewMode("list")}
+          onCancel={handleBackToList}
         />
       </div>
     );
@@ -185,10 +216,10 @@ export function LibraryTab() {
       <div className="flex flex-col flex-1 min-h-0">
         {fileInput}
 
-        {/* Back button + source picker for multi-account */}
+        {/* Back button with account context */}
         <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-2 shrink-0">
           <button
-            onClick={() => setViewMode("list")}
+            onClick={handleBackToList}
             className="text-xs text-gray-500 hover:text-gray-700 min-h-[32px] flex items-center gap-1"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,7 +230,7 @@ export function LibraryTab() {
                 d="M15 19l-7-7 7-7"
               />
             </svg>
-            Back
+            {activeAccountEmail ?? "Back"}
           </button>
 
           {connections.length > 1 && (
@@ -227,7 +258,7 @@ export function LibraryTab() {
 
         <DriveBrowser
           connectionId={activeConnectionId}
-          onClose={() => setViewMode("list")}
+          onClose={handleBackToList}
           onReconnect={() => connectDrive(activeAccountEmail ?? undefined)}
           rootLabel={activeAccountEmail ?? undefined}
           accountEmail={activeAccountEmail ?? ""}
@@ -236,61 +267,41 @@ export function LibraryTab() {
     );
   }
 
+  // ── DETAIL MODE (source content viewer, inline) ──
+  if (viewMode === "detail" && detailSourceId) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        {fileInput}
+        <SourceDetailView onBack={handleBackToList} />
+      </div>
+    );
+  }
+
   // ── LIST MODE ──
 
   // Empty state: no documents in this project
   if (sources.length === 0) {
-    const hasConnections = connections.length > 0;
-
-    const emptyIcon = hasConnections ? (
-      <svg className="w-10 h-10" viewBox="0 0 24 24" fill="currentColor">
-        <path
-          d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z"
-          className="text-blue-500"
-        />
-      </svg>
-    ) : (
-      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-        />
-      </svg>
-    );
-
-    const emptyMessage = hasConnections ? "Your Drive is connected" : "Add sources to your library";
-
-    const emptyDescription = hasConnections
-      ? "Browse your files and add documents to reference while you write."
-      : "Bring in documents from Google Drive or this device to reference while you write.";
-
-    const emptyAction = hasConnections
-      ? {
-          label: "Browse Drive",
-          onClick: () => {
-            setSelectedConnectionIndex(0);
-            setViewMode("browse");
-          },
-        }
-      : { label: "Add Source", onClick: () => setViewMode("picker") };
-
-    const emptySecondary = hasConnections
-      ? { label: "Upload from device", onClick: () => fileInputRef.current?.click() }
-      : undefined;
-
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {fileInput}
         <EmptyState
-          icon={emptyIcon}
-          message={emptyMessage}
-          description={emptyDescription}
-          action={emptyAction}
-          secondaryAction={emptySecondary}
+          icon={
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+              />
+            </svg>
+          }
+          message="Add research documents to reference while you write."
+          description="Your originals are never changed."
         />
-        {hasConnections && <SourcesSection onAddSource={() => setViewMode("picker")} />}
+        <SourcesSection
+          onBrowseConnection={handleBrowseConnection}
+          onAddSource={() => setViewMode("connect")}
+        />
       </div>
     );
   }
@@ -302,31 +313,13 @@ export function LibraryTab() {
 
       <div className="flex-1 overflow-auto min-h-0">
         <ProjectSourceList />
-
-        {/* Add Documents button */}
-        <div className="px-3 py-2">
-          <button
-            onClick={handleAddDocuments}
-            disabled={isUploading}
-            className="h-9 px-3 text-xs text-blue-600 border border-blue-200 rounded-lg
-                       hover:bg-blue-50 transition-colors min-h-[44px] flex items-center gap-1.5
-                       disabled:opacity-50"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            {isUploading ? "Uploading..." : "+ Add"}
-          </button>
-        </div>
       </div>
 
-      {/* Your Sources section at bottom */}
-      <SourcesSection onAddSource={() => setViewMode("picker")} />
+      {/* Always-visible connections section */}
+      <SourcesSection
+        onBrowseConnection={handleBrowseConnection}
+        onAddSource={() => setViewMode("connect")}
+      />
     </div>
   );
 }

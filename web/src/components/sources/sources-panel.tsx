@@ -2,14 +2,12 @@
 
 import { useSourcesContext } from "@/contexts/sources-context";
 import { LibraryTab } from "./library-tab";
-import { ReviewTab } from "./review-tab";
 import { AssistTab } from "./assist-tab";
 import type { SourcesTab } from "@/hooks/use-sources-panel";
 
 const TABS: { id: SourcesTab; label: string }[] = [
-  { id: "library", label: "Library" },
-  { id: "review", label: "Review" },
-  { id: "assist", label: "Assist" },
+  { id: "sources", label: "Sources" },
+  { id: "ask", label: "Ask" },
 ];
 
 /**
@@ -63,9 +61,8 @@ export function SourcesPanel() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto flex flex-col">
-        {activeTab === "library" && <LibraryTab />}
-        {activeTab === "review" && <ReviewTab />}
-        {activeTab === "assist" && <AssistTab />}
+        {activeTab === "sources" && <LibraryTab />}
+        {activeTab === "ask" && <AssistTab />}
       </div>
     </div>
   );
