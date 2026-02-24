@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 
-export type SourcesTab = "library" | "review" | "assist";
+export type SourcesTab = "sources" | "ask";
 
 interface UseSourcesPanelReturn {
   activeTab: SourcesTab;
@@ -24,7 +24,7 @@ interface UseSourcesPanelReturn {
  * Manages tab selection, source selection, detail view, and panel visibility.
  */
 export function useSourcesPanel(): UseSourcesPanelReturn {
-  const [activeTab, setActiveTab] = useState<SourcesTab>("library");
+  const [activeTab, setActiveTab] = useState<SourcesTab>("sources");
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [detailSourceId, setDetailSourceId] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
@@ -36,13 +36,13 @@ export function useSourcesPanel(): UseSourcesPanelReturn {
   const openSourceReview = useCallback((sourceId: string) => {
     setSelectedSourceId(sourceId);
     setDetailSourceId(sourceId);
-    setActiveTab("library");
+    setActiveTab("sources");
     setIsPanelOpen(true);
   }, []);
 
   const openSourceAnalysis = useCallback((sourceId: string) => {
     setSelectedSourceId(sourceId);
-    setActiveTab("assist");
+    setActiveTab("ask");
     setIsPanelOpen(true);
   }, []);
 

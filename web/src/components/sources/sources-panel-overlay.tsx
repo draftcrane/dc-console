@@ -6,8 +6,8 @@ import { AssistTab } from "./assist-tab";
 import type { SourcesTab } from "@/hooks/use-sources-panel";
 
 const TABS: { id: SourcesTab; label: string }[] = [
-  { id: "library", label: "Library" },
-  { id: "assist", label: "Assist" },
+  { id: "sources", label: "Sources" },
+  { id: "ask", label: "Ask" },
 ];
 
 /**
@@ -75,8 +75,8 @@ export function SourcesPanelOverlay() {
 
         {/* Content */}
         <div className="flex-1 overflow-auto flex flex-col">
-          {activeTab === "library" && <LibraryTab />}
-          {activeTab === "assist" && <AssistTab />}
+          {activeTab === "sources" && <LibraryTab />}
+          {activeTab === "ask" && <AssistTab />}
         </div>
 
         {/* Safe area */}
