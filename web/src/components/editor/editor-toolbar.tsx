@@ -9,6 +9,7 @@ import { SaveIndicator } from "./save-indicator";
 import { ExportMenu } from "@/components/project/export-menu";
 import { SettingsMenu } from "@/components/project/settings-menu";
 import { useSourcesContext } from "@/contexts/sources-context";
+import { WorkspaceToggle, type ViewMode } from "./workspace-toggle";
 
 interface EditorToolbarProps {
   projectData: ProjectData;
@@ -18,6 +19,10 @@ interface EditorToolbarProps {
   // Save
   saveStatus: SaveStatus;
   onSaveRetry: () => void;
+
+  // View mode (#318)
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
 
   // AI Rewrite
   selectionWordCount: number;
@@ -41,6 +46,9 @@ interface EditorToolbarProps {
 
 /**
  * EditorToolbar - Top toolbar for the writing environment.
+ *
+ * Per Issue #318: Contains workspace toggle control for Chapter/Book view switching.
+ * The toggle is placed prominently in the toolbar for immediate discoverability.
  */
 export function EditorToolbar({
   projectData,
@@ -48,6 +56,8 @@ export function EditorToolbar({
   totalWordCount,
   saveStatus,
   onSaveRetry,
+  viewMode,
+  onViewModeChange,
   selectionWordCount,
   aiSheetState,
   onOpenAiRewrite,
@@ -66,6 +76,7 @@ export function EditorToolbar({
 
   return (
     <div className="flex items-center justify-between h-12 px-4 border-b border-border bg-background shrink-0">
+      {/* Left: Project switcher */}
       <div className="flex items-center gap-2 min-w-0">
         <ProjectSwitcher
           currentProject={{
@@ -81,6 +92,12 @@ export function EditorToolbar({
         />
       </div>
 
+      {/* Center: Workspace toggle - prominently placed for discoverability (#318) */}
+      <div className="absolute left-1/2 -translate-x-1/2">
+        <WorkspaceToggle value={viewMode} onChange={onViewModeChange} />
+      </div>
+
+      {/* Right: Actions */}
       <div className="flex items-center gap-2">
         <SaveIndicator status={saveStatus} onRetry={onSaveRetry} />
 

@@ -425,6 +425,39 @@ body {
   animation: toolbar-scale-in 150ms ease-out;
 }
 
+/* ------------------------------------------------------------------
+ * Workspace View Transition (#318)
+ *
+ * Crossfade animation for switching between Chapter and Book views.
+ * Per AC: 300ms ease-in-out crossfade for center area.
+ * ------------------------------------------------------------------ */
+
+@keyframes workspace-view-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes workspace-view-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.workspace-view-enter {
+  animation: workspace-view-fade-in 300ms ease-in-out;
+}
+
+.workspace-view-exit {
+  animation: workspace-view-fade-out 300ms ease-in-out;
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-slide-up {
@@ -456,6 +489,11 @@ body {
   }
 
   .toolbar-scale-in {
+    animation: none;
+  }
+
+  .workspace-view-enter,
+  .workspace-view-exit {
     animation: none;
   }
 }
