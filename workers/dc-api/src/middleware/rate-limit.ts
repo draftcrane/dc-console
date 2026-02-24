@@ -138,3 +138,10 @@ export const exportRateLimit = rateLimit({
   maxRequests: 5,
   windowSeconds: 60,
 });
+
+/** Feedback rate limit: 5 req/min (#341) */
+export const feedbackRateLimit = rateLimit({
+  prefix: "feedback",
+  maxRequests: 5,
+  windowSeconds: 60,
+});
