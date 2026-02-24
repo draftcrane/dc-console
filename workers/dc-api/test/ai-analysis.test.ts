@@ -27,6 +27,9 @@ function createMockProvider(tokens: string[]): AIProvider {
         },
       });
     },
+    async completion() {
+      return tokens.join("");
+    },
   };
 }
 
@@ -41,6 +44,9 @@ function createErrorProvider(message: string): AIProvider {
           controller.close();
         },
       });
+    },
+    async completion() {
+      throw new Error(message);
     },
   };
 }
@@ -119,18 +125,16 @@ describe("AIAnalysisService", () => {
     it("rejects instruction exceeding max length", () => {
       const provider = createMockProvider([]);
       const service = new AIAnalysisService(env.DB, env.EXPORTS_BUCKET, provider);
-      expect(
-        service.validateInput({ sourceIds: ["id"], instruction: "a".repeat(2001) }),
-      ).toMatch(/at most 2000/);
+      expect(service.validateInput({ sourceIds: ["id"], instruction: "a".repeat(2001) })).toMatch(
+        /at most 2000/,
+      );
     });
 
     it("rejects more than MAX_SOURCES", () => {
       const provider = createMockProvider([]);
       const service = new AIAnalysisService(env.DB, env.EXPORTS_BUCKET, provider);
       const ids = Array.from({ length: 11 }, (_, i) => `source-${i}`);
-      expect(service.validateInput({ sourceIds: ids, instruction: "Test" })).toMatch(
-        /up to 10/,
-      );
+      expect(service.validateInput({ sourceIds: ids, instruction: "Test" })).toMatch(/up to 10/);
     });
   });
 
@@ -162,9 +166,7 @@ describe("AIAnalysisService", () => {
   describe("buildAnalysisUserMessage", () => {
     it("includes source title, content, and instruction", () => {
       const chunks = chunkStructuredHtml("s1", "My Source", "<p>Content goes here.</p>");
-      const msg = buildAnalysisUserMessage("Summarize this", [
-        { title: "My Source", chunks },
-      ]);
+      const msg = buildAnalysisUserMessage("Summarize this", [{ title: "My Source", chunks }]);
 
       expect(msg).toContain('Source: "My Source"');
       expect(msg).toContain("Content goes here");

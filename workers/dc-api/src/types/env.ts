@@ -20,6 +20,7 @@ export interface Env {
   AI_API_KEY: string;
   AI_MODEL?: string; // Default: gpt-4o
   AI_DEFAULT_TIER?: string; // "edge" | "frontier", default: "frontier"
+  DEEP_ANALYSIS_TOKEN_THRESHOLD?: string; // Token threshold for async deep analysis (default: 40000)
 
   // Cloudflare Browser Rendering (PDF export)
   CF_ACCOUNT_ID: string;

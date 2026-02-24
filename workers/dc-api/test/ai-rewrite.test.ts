@@ -21,6 +21,9 @@ const mockProvider: AIProvider = {
       },
     });
   },
+  async completion() {
+    return "Hello world";
+  },
 };
 
 /**
