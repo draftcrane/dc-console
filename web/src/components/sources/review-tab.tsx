@@ -150,7 +150,7 @@ export function SourceDetailView({ onBack }: SourceDetailViewProps) {
         }
         message="Select a source to view its content"
         action={{
-          label: "Back to Sources",
+          label: "Back to Library",
           onClick: onBack,
         }}
       />
@@ -165,7 +165,7 @@ export function SourceDetailView({ onBack }: SourceDetailViewProps) {
           <button
             onClick={onBack}
             className="p-1 text-gray-400 hover:text-gray-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Back to Sources"
+            aria-label="Back to Library"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
