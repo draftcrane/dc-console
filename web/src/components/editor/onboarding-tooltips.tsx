@@ -14,10 +14,11 @@ interface OnboardingStep {
 }
 
 /**
- * The three onboarding steps per issue #38:
+ * The four onboarding steps per issue #38:
  * 1. "This is your chapter" - pointing at editor
  * 2. "Use the sidebar for chapters" - pointing at sidebar
- * 3. "Select text for AI" - pointing at text area
+ * 3. "Add documents" - pointing at sources/library
+ * 4. "Select text for AI" - pointing at text area
  */
 const STEPS: OnboardingStep[] = [
   {
@@ -43,17 +44,33 @@ const STEPS: OnboardingStep[] = [
 ];
 
 /**
+ * Clear onboarding completion state so the tour replays on next editor visit.
+ * Called from the Help page "Replay the tour" action.
+ */
+export function resetOnboarding(): void {
+  try {
+    localStorage.removeItem(ONBOARDING_KEY);
+  } catch {
+    // Silently fail if localStorage unavailable
+  }
+}
+
+/**
  * OnboardingTooltips - First-time tooltip flow for the Writing Environment.
  *
- * Per Issue #38:
- * - 3 steps max
- * - Small floating card with text and Next/Done buttons
+ * Per Issue #38 + redesign (#337):
+ * - 4 steps with pointer arrow, step label, smooth animations
  * - Stored in localStorage so tooltips only show once
  * - iPad-first: 44pt minimum touch targets
+ * - Shadow: elevated layered shadow with subtle ring
+ * - Width: 300px, max 100vw-32px
+ * - Entrance: tooltip-enter animation from globals.css
+ * - Step transitions: CSS opacity crossfade
  *
  * Positioning strategy:
  * - "editor" target: centered in the main content area
  * - "sidebar" target: positioned near the left sidebar
+ * - "sources" target: near top-right Library button
  * - "text-selection" target: centered in the main content area
  *
  * The component uses fixed positioning with simple layout-based placement
@@ -110,6 +127,7 @@ export function OnboardingTooltips() {
 
   // Position classes based on target
   const positionClasses = getPositionClasses(step.target);
+  const arrowPosition = getArrowPosition(step.target);
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[100]">
@@ -122,18 +140,29 @@ export function OnboardingTooltips() {
 
       {/* Tooltip card */}
       <div
-        className={`pointer-events-auto absolute ${positionClasses}`}
+        className={`pointer-events-auto absolute ${positionClasses} tooltip-enter`}
         role="dialog"
         aria-label={`Tip ${currentStep + 1} of ${STEPS.length}`}
         aria-live="polite"
       >
-        <div className="w-72 rounded-xl bg-white p-5 shadow-xl ring-1 ring-gray-200">
-          {/* Step indicator */}
+        <div
+          className="relative w-[300px] max-w-[calc(100vw-32px)] rounded-xl bg-white p-5
+                        shadow-[0_8px_32px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.04]"
+        >
+          {/* Pointer arrow */}
+          <PointerArrow position={arrowPosition} />
+
+          {/* Step label */}
+          <p className="mb-2 text-xs text-gray-500">
+            Step {currentStep + 1} of {STEPS.length}
+          </p>
+
+          {/* Progress dots */}
           <div className="mb-3 flex items-center gap-1.5">
             {STEPS.map((_, i) => (
               <div
                 key={i}
-                className={`h-1.5 rounded-full transition-colors ${
+                className={`h-1.5 rounded-full transition-all duration-200 ${
                   i === currentStep ? "w-6 bg-blue-600" : "w-1.5 bg-gray-300"
                 }`}
                 aria-hidden="true"
@@ -167,6 +196,23 @@ export function OnboardingTooltips() {
 }
 
 /**
+ * Pointer arrow rendered as a CSS border triangle.
+ * Positioned based on which edge the arrow should point from.
+ */
+type ArrowPosition = "top" | "left" | "right";
+
+function PointerArrow({ position }: { position: ArrowPosition }) {
+  const classes: Record<ArrowPosition, string> = {
+    top: "absolute -top-2 left-1/2 -translate-x-1/2 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-white",
+    left: "absolute top-6 -left-2 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[8px] border-r-white",
+    right:
+      "absolute top-6 -right-2 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[8px] border-l-white",
+  };
+
+  return <div className={classes[position]} aria-hidden="true" />;
+}
+
+/**
  * Returns Tailwind positioning classes based on which area the tooltip targets.
  * Uses safe, responsive positioning that works on iPad in both orientations.
  */
@@ -186,6 +232,25 @@ function getPositionClasses(target: OnboardingStep["target"]): string {
       return "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2";
     default:
       return "top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2";
+  }
+}
+
+/**
+ * Returns which edge the pointer arrow should appear on,
+ * based on where the tooltip is positioned relative to its target.
+ */
+function getArrowPosition(target: OnboardingStep["target"]): ArrowPosition {
+  switch (target) {
+    case "editor":
+      return "top";
+    case "sidebar":
+      return "left";
+    case "sources":
+      return "right";
+    case "text-selection":
+      return "top";
+    default:
+      return "top";
   }
 }
 

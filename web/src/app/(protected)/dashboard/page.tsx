@@ -399,6 +399,14 @@ export default function DashboardPage() {
           {isImporting ? "Importing..." : "Import from a backup file"}
         </button>
         {importError && <p className="text-sm text-red-600 mt-1">{importError}</p>}
+        <div className="mt-2">
+          <Link
+            href="/help"
+            className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            Help
+          </Link>
+        </div>
       </div>
 
       {/* Rename dialog */}
