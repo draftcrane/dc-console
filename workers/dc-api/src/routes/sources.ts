@@ -28,7 +28,7 @@ import type { Env } from "../types/index.js";
 import { standardRateLimit } from "../middleware/rate-limit.js";
 import { validationError } from "../middleware/error-handler.js";
 import { SourceMaterialService, type AddSourceInput } from "../services/source-material.js";
-import { LinkedFolderService } from "../services/linked-folder.js";
+import { LinkedFolderService, type ExclusionInput } from "../services/linked-folder.js";
 import { DriveService } from "../services/drive.js";
 import { validateDriveId } from "../utils/drive-query.js";
 
@@ -260,6 +260,7 @@ sources.post("/projects/:projectId/linked-folders", async (c) => {
     driveConnectionId?: string;
     driveFolderId?: string;
     folderName?: string;
+    exclusions?: ExclusionInput[];
   };
 
   if (!body.driveConnectionId || !body.driveFolderId || !body.folderName) {
@@ -267,6 +268,21 @@ sources.post("/projects/:projectId/linked-folders", async (c) => {
   }
 
   validateDriveId(body.driveFolderId);
+
+  // Validate exclusions if provided
+  if (body.exclusions) {
+    if (!Array.isArray(body.exclusions)) {
+      validationError("exclusions must be an array");
+    }
+    for (const excl of body.exclusions) {
+      if (!excl.driveItemId || !excl.itemType || !excl.itemName) {
+        validationError("Each exclusion must have driveItemId, itemType, and itemName");
+      }
+      if (excl.itemType !== "folder" && excl.itemType !== "document") {
+        validationError("exclusion itemType must be 'folder' or 'document'");
+      }
+    }
+  }
 
   const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
   const driveService = new DriveService(c.env);
@@ -277,6 +293,7 @@ sources.post("/projects/:projectId/linked-folders", async (c) => {
       driveConnectionId: body.driveConnectionId,
       driveFolderId: body.driveFolderId,
       folderName: body.folderName,
+      exclusions: body.exclusions,
     },
     driveService,
   );
@@ -311,6 +328,57 @@ sources.delete("/projects/:projectId/linked-folders/:id", async (c) => {
   await service.unlinkFolder(userId, projectId, linkedFolderId);
 
   return c.json({ success: true });
+});
+
+/**
+ * GET /projects/:projectId/linked-folders/:id/exclusions
+ * List exclusions for a linked folder.
+ */
+sources.get("/projects/:projectId/linked-folders/:id/exclusions", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+  const linkedFolderId = c.req.param("id");
+
+  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const exclusions = await service.listExclusions(userId, projectId, linkedFolderId);
+
+  return c.json({ exclusions });
+});
+
+/**
+ * PUT /projects/:projectId/linked-folders/:id/exclusions
+ * Replace all exclusions for a linked folder (full replacement).
+ */
+sources.put("/projects/:projectId/linked-folders/:id/exclusions", async (c) => {
+  const { userId } = c.get("auth");
+  const projectId = c.req.param("projectId");
+  const linkedFolderId = c.req.param("id");
+  const body = (await c.req.json().catch(() => ({}))) as {
+    exclusions?: ExclusionInput[];
+  };
+
+  if (!body.exclusions || !Array.isArray(body.exclusions)) {
+    validationError("exclusions array is required");
+  }
+
+  for (const excl of body.exclusions) {
+    if (!excl.driveItemId || !excl.itemType || !excl.itemName) {
+      validationError("Each exclusion must have driveItemId, itemType, and itemName");
+    }
+    if (excl.itemType !== "folder" && excl.itemType !== "document") {
+      validationError("exclusion itemType must be 'folder' or 'document'");
+    }
+  }
+
+  const service = new LinkedFolderService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const exclusions = await service.setExclusions(
+    userId,
+    projectId,
+    linkedFolderId,
+    body.exclusions,
+  );
+
+  return c.json({ exclusions });
 });
 
 /**

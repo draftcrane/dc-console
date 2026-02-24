@@ -54,6 +54,31 @@ export interface LinkFolderInput {
   driveConnectionId: string;
   driveFolderId: string;
   folderName: string;
+  exclusions?: ExclusionInput[];
+}
+
+export interface ExclusionInput {
+  driveItemId: string;
+  itemType: "folder" | "document";
+  itemName: string;
+}
+
+export interface Exclusion {
+  id: string;
+  linkedFolderId: string;
+  driveItemId: string;
+  itemType: "folder" | "document";
+  itemName: string;
+  createdAt: string;
+}
+
+interface ExclusionRow {
+  id: string;
+  linked_folder_id: string;
+  drive_item_id: string;
+  item_type: "folder" | "document";
+  item_name: string;
+  created_at: string;
 }
 
 // ── Service ──
@@ -122,6 +147,20 @@ export class LinkedFolderService {
 
     if (!row) {
       throw new Error("Failed to create or retrieve linked folder");
+    }
+
+    // Insert exclusion rows if provided
+    if (input.exclusions && input.exclusions.length > 0) {
+      for (const excl of input.exclusions) {
+        await this.db
+          .prepare(
+            `INSERT OR IGNORE INTO linked_folder_exclusions
+             (id, linked_folder_id, drive_item_id, item_type, item_name, created_at)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+          )
+          .bind(ulid(), row.id, excl.driveItemId, excl.itemType, excl.itemName, now)
+          .run();
+      }
     }
 
     // Auto-ensure project_source_connections row exists (same pattern as SourceDriveService)
@@ -297,6 +336,109 @@ export class LinkedFolderService {
     return { syncedFolders, newDocs: totalNewDocs };
   }
 
+  // ── Exclusion management ──
+
+  /**
+   * List exclusions for a linked folder. Enforces project ownership.
+   */
+  async listExclusions(
+    userId: string,
+    projectId: string,
+    linkedFolderId: string,
+  ): Promise<Exclusion[]> {
+    // Verify project ownership
+    const project = await this.db
+      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
+      .bind(projectId, userId)
+      .first<{ id: string }>();
+
+    if (!project) {
+      notFound("Project not found");
+    }
+
+    // Verify linked folder belongs to project
+    const folder = await this.db
+      .prepare(`SELECT id FROM project_linked_folders WHERE id = ? AND project_id = ?`)
+      .bind(linkedFolderId, projectId)
+      .first<{ id: string }>();
+
+    if (!folder) {
+      notFound("Linked folder not found");
+    }
+
+    const result = await this.db
+      .prepare(
+        `SELECT * FROM linked_folder_exclusions WHERE linked_folder_id = ? ORDER BY created_at ASC`,
+      )
+      .bind(linkedFolderId)
+      .all<ExclusionRow>();
+
+    return (result.results ?? []).map((row) => this._rowToExclusion(row));
+  }
+
+  /**
+   * Replace all exclusions for a linked folder (PUT semantics).
+   * Deletes existing exclusions, then inserts the new set.
+   */
+  async setExclusions(
+    userId: string,
+    projectId: string,
+    linkedFolderId: string,
+    exclusions: ExclusionInput[],
+  ): Promise<Exclusion[]> {
+    // Verify project ownership
+    const project = await this.db
+      .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
+      .bind(projectId, userId)
+      .first<{ id: string }>();
+
+    if (!project) {
+      notFound("Project not found");
+    }
+
+    // Verify linked folder belongs to project
+    const folder = await this.db
+      .prepare(`SELECT id FROM project_linked_folders WHERE id = ? AND project_id = ?`)
+      .bind(linkedFolderId, projectId)
+      .first<{ id: string }>();
+
+    if (!folder) {
+      notFound("Linked folder not found");
+    }
+
+    const now = new Date().toISOString();
+
+    // Delete all existing exclusions
+    await this.db
+      .prepare(`DELETE FROM linked_folder_exclusions WHERE linked_folder_id = ?`)
+      .bind(linkedFolderId)
+      .run();
+
+    // Insert new exclusions
+    const rows: Exclusion[] = [];
+    for (const excl of exclusions) {
+      const id = ulid();
+      await this.db
+        .prepare(
+          `INSERT INTO linked_folder_exclusions
+           (id, linked_folder_id, drive_item_id, item_type, item_name, created_at)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(id, linkedFolderId, excl.driveItemId, excl.itemType, excl.itemName, now)
+        .run();
+      rows.push({
+        id,
+        linkedFolderId,
+        driveItemId: excl.driveItemId,
+        itemType: excl.itemType,
+        itemName: excl.itemName,
+        createdAt: now,
+      });
+    }
+
+    return rows;
+  }
+
   // ── Private helpers ──
 
   /**
@@ -316,13 +458,30 @@ export class LinkedFolderService {
       row.drive_connection_id,
     );
 
-    // List all supported files in the folder (recursive)
+    // Load exclusions for this linked folder
+    const exclusionRows = await this.db
+      .prepare(`SELECT * FROM linked_folder_exclusions WHERE linked_folder_id = ?`)
+      .bind(linkedFolderId)
+      .all<ExclusionRow>();
+
+    const excludedFolderIds = new Set<string>();
+    const excludedDocIds = new Set<string>();
+    for (const excl of exclusionRows.results ?? []) {
+      if (excl.item_type === "folder") {
+        excludedFolderIds.add(excl.drive_item_id);
+      } else {
+        excludedDocIds.add(excl.drive_item_id);
+      }
+    }
+
+    // List all supported files in the folder (recursive), skipping excluded folders
     let docs: Array<{ id: string; name: string; mimeType: string }>;
     try {
       docs = await driveService.listSupportedFilesInFoldersRecursive(
         tokens.accessToken,
         [row.drive_folder_id],
         MAX_DOCS_PER_FOLDER,
+        excludedFolderIds.size > 0 ? excludedFolderIds : undefined,
       );
     } catch (err) {
       if (err instanceof Error && err.message === "MAX_DOCS_EXCEEDED") {
@@ -331,6 +490,11 @@ export class LinkedFolderService {
       } else {
         throw err;
       }
+    }
+
+    // Filter out individually excluded documents
+    if (excludedDocIds.size > 0) {
+      docs = docs.filter((doc) => !excludedDocIds.has(doc.id));
     }
 
     // Get existing source drive_file_ids for this project to deduplicate
@@ -407,6 +571,17 @@ export class LinkedFolderService {
       .run();
 
     return { newDocs, totalDocs };
+  }
+
+  private _rowToExclusion(row: ExclusionRow): Exclusion {
+    return {
+      id: row.id,
+      linkedFolderId: row.linked_folder_id,
+      driveItemId: row.drive_item_id,
+      itemType: row.item_type,
+      itemName: row.item_name,
+      createdAt: row.created_at,
+    };
   }
 
   private _rowToFolder(row: LinkedFolderWithEmail): LinkedFolder {

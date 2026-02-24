@@ -226,6 +226,7 @@ export class DriveFileService {
     accessToken: string,
     folderIds: string[],
     maxDocs: number,
+    excludedFolderIds?: Set<string>,
   ): Promise<DriveFile[]> {
     const pending = [...new Set(folderIds.map((id) => validateDriveId(id)))];
     const visitedFolders = new Set<string>();
@@ -270,7 +271,7 @@ export class DriveFileService {
           if (!file.id || !file.mimeType) continue;
 
           if (file.mimeType === GOOGLE_FOLDER_MIME_TYPE) {
-            if (!visitedFolders.has(file.id)) {
+            if (!visitedFolders.has(file.id) && !excludedFolderIds?.has(file.id)) {
               pending.push(file.id);
             }
             continue;

@@ -122,8 +122,18 @@ export class DriveService {
     return this.files.browseFolder(accessToken, folderId, options);
   }
 
-  listSupportedFilesInFoldersRecursive(accessToken: string, folderIds: string[], maxDocs: number) {
-    return this.files.listSupportedFilesInFoldersRecursive(accessToken, folderIds, maxDocs);
+  listSupportedFilesInFoldersRecursive(
+    accessToken: string,
+    folderIds: string[],
+    maxDocs: number,
+    excludedFolderIds?: Set<string>,
+  ) {
+    return this.files.listSupportedFilesInFoldersRecursive(
+      accessToken,
+      folderIds,
+      maxDocs,
+      excludedFolderIds,
+    );
   }
 
   findOrCreateRootFolder(accessToken: string, folderName: string) {
