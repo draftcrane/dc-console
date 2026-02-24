@@ -11,14 +11,14 @@ interface DocumentPeekViewProps {
   mimeType: string;
   connectionId: string;
   onBack: () => void;
-  onStudied?: () => void;
+  onTagged?: () => void;
 }
 
 /**
- * DocumentPeekView — view a Drive document's content with Study and insert actions.
+ * DocumentPeekView — view a Drive document's content with tag and insert actions.
  *
- * "Study This" adds the document to the project's working set (source_materials)
- * and eagerly triggers content extraction so it becomes searchable in the Ask tab.
+ * "Add to Desk" tags the document (creates a source_materials record) and eagerly
+ * triggers content extraction so it becomes available on the Desk.
  *
  * Text selection replaces "Insert All" with "Insert Selected" in the action bar
  * (no floating button — avoids iPad positioning conflicts).
@@ -29,23 +29,21 @@ export function DocumentPeekView({
   mimeType,
   connectionId,
   onBack,
-  onStudied,
+  onTagged,
 }: DocumentPeekViewProps) {
   const { content, format, wordCount, isLoading, error } = useDriveContent(connectionId, fileId);
-  const { addDriveSources, sources, getContent, editorRef, isPanelOpen, closePanel } =
+  const { addDriveSources, sources, removeSource, getContent, editorRef, isPanelOpen, closePanel } =
     useSourcesContext();
   const { showToast } = useToast();
 
   const [selectedText, setSelectedText] = useState("");
-  const [isStudying, setIsStudying] = useState(false);
-  const [isStudied, setIsStudied] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Check if this document is already in the working set
-  useEffect(() => {
-    const existing = sources.find((s) => s.driveFileId === fileId && s.status === "active");
-    if (existing) setIsStudied(true);
-  }, [sources, fileId]);
+  // Derive tag state from sources
+  const existingSource = sources.find((s) => s.driveFileId === fileId && s.status === "active");
+  const isOnDesk = !!existingSource;
 
   // Listen for text selection (selectionchange is more reliable on iPad than mouseup)
   useEffect(() => {
@@ -105,13 +103,12 @@ export function DocumentPeekView({
     }
   }, [content, format, insertContent]);
 
-  const handleStudy = useCallback(async () => {
-    setIsStudying(true);
+  const handleAddToDesk = useCallback(async () => {
+    setIsAdding(true);
     try {
       await addDriveSources([{ driveFileId: fileId, title: fileName, mimeType }], connectionId);
-      setIsStudied(true);
-      showToast("DraftCrane will study this document");
-      onStudied?.();
+      showToast(`Added "${fileName}" to desk`);
+      onTagged?.();
 
       // Eagerly trigger content extraction in the background.
       // After addDriveSources, sources state is updated. Find the new source by driveFileId.
@@ -122,21 +119,24 @@ export function DocumentPeekView({
         });
       }
     } catch {
-      showToast("Couldn't study this document — try again");
+      showToast("Couldn't add to desk — try again");
     } finally {
-      setIsStudying(false);
+      setIsAdding(false);
     }
-  }, [
-    addDriveSources,
-    fileId,
-    fileName,
-    mimeType,
-    connectionId,
-    showToast,
-    onStudied,
-    sources,
-    getContent,
-  ]);
+  }, [addDriveSources, fileId, fileName, mimeType, connectionId, showToast, onTagged, sources, getContent]);
+
+  const handleRemoveFromDesk = useCallback(async () => {
+    if (!existingSource) return;
+    setIsRemoving(true);
+    try {
+      await removeSource(existingSource.id);
+      showToast(`Removed "${fileName}" from desk`);
+    } catch {
+      showToast("Couldn't remove from desk — try again");
+    } finally {
+      setIsRemoving(false);
+    }
+  }, [existingSource, removeSource, fileName, showToast]);
 
   return (
     <div className="flex flex-col h-full">
@@ -191,12 +191,16 @@ export function DocumentPeekView({
       {content && (
         <div className="px-4 py-3 border-t border-gray-100 flex gap-2 shrink-0">
           <button
-            onClick={handleStudy}
-            disabled={isStudied || isStudying}
-            className="h-10 px-4 rounded-lg border border-gray-300 text-sm font-medium text-gray-700
-                       hover:bg-gray-50 transition-colors min-h-[44px] disabled:opacity-50 disabled:cursor-default"
+            onClick={isOnDesk ? handleRemoveFromDesk : handleAddToDesk}
+            disabled={isAdding || isRemoving}
+            className={`h-10 px-4 rounded-lg border text-sm font-medium transition-colors min-h-[44px]
+                       disabled:opacity-50 disabled:cursor-default ${
+                         isOnDesk
+                           ? "border-blue-300 text-blue-700 hover:bg-blue-50"
+                           : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                       }`}
           >
-            {isStudying ? "Studying..." : isStudied ? "Studied" : "Study This"}
+            {isAdding ? "Adding..." : isRemoving ? "Removing..." : isOnDesk ? "On Desk" : "Add to Desk"}
           </button>
 
           <button

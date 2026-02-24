@@ -1,14 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import { useSourcesContext } from "@/contexts/sources-context";
 import { LibraryTab } from "./library-tab";
 import { DeskTab } from "./desk-tab";
 import type { SourcesTab } from "@/hooks/use-sources-panel";
-
-const TABS: { id: SourcesTab; label: string }[] = [
-  { id: "library", label: "Library" },
-  { id: "desk", label: "Desk" },
-];
 
 /**
  * Main Sources panel container.
@@ -16,7 +12,20 @@ const TABS: { id: SourcesTab; label: string }[] = [
  * Width: w-[320px] on desktop, full on overlay.
  */
 export function SourcesPanel() {
-  const { activeTab, setActiveTab, closePanel, isPanelOpen } = useSourcesContext();
+  const { activeTab, setActiveTab, closePanel, isPanelOpen, sources } = useSourcesContext();
+
+  const deskCount = useMemo(
+    () => sources.filter((s) => s.status === "active").length,
+    [sources],
+  );
+
+  const tabs: { id: SourcesTab; label: string }[] = useMemo(
+    () => [
+      { id: "library", label: "Library" },
+      { id: "desk", label: deskCount > 0 ? `Desk (${deskCount})` : "Desk" },
+    ],
+    [deskCount],
+  );
 
   if (!isPanelOpen) return null;
 
@@ -25,7 +34,7 @@ export function SourcesPanel() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-12 border-b border-border shrink-0">
         <div className="flex items-center gap-1">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
