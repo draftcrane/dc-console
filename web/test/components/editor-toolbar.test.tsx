@@ -68,6 +68,8 @@ function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorToolbar
     totalWordCount: 1000,
     saveStatus: { state: "idle" as const },
     onSaveRetry: vi.fn(),
+    viewMode: "chapter" as const,
+    onViewModeChange: vi.fn(),
     selectionWordCount: 0,
     aiSheetState: "idle" as const,
     onOpenAiRewrite: vi.fn(),

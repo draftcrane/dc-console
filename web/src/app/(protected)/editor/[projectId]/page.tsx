@@ -20,6 +20,7 @@ import { useEditorTitle } from "@/hooks/use-editor-title";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { useEditorProject } from "@/hooks/use-editor-project";
 import { useChapterContent } from "@/hooks/use-chapter-content";
+import { useViewMode } from "@/hooks/use-view-mode";
 import { SourcesProvider } from "@/contexts/sources-context";
 import { SourcesPanel } from "@/components/sources/sources-panel";
 import { SourcesPanelOverlay } from "@/components/sources/sources-panel-overlay";
@@ -48,6 +49,9 @@ function EditorPageInner() {
 
   // Editor ref for AI rewrite text replacement
   const editorRef = useRef<ChapterEditorHandle>(null);
+
+  // View mode state with URL sync (#318)
+  const { viewMode, setViewMode } = useViewMode();
 
   // --- Core project data ---
   const { projectData, setProjectData, activeChapterId, setActiveChapterId, isLoading, error } =
@@ -251,6 +255,8 @@ function EditorPageInner() {
               totalWordCount={totalWordCount}
               saveStatus={saveStatus}
               onSaveRetry={saveNow}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
               selectionWordCount={selectionWordCount}
               aiSheetState={aiSheetState}
               onOpenAiRewrite={handleOpenAiRewrite}
