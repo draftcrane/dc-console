@@ -123,7 +123,17 @@ export function DocumentPeekView({
     } finally {
       setIsAdding(false);
     }
-  }, [addDriveSources, fileId, fileName, mimeType, connectionId, showToast, onTagged, sources, getContent]);
+  }, [
+    addDriveSources,
+    fileId,
+    fileName,
+    mimeType,
+    connectionId,
+    showToast,
+    onTagged,
+    sources,
+    getContent,
+  ]);
 
   const handleRemoveFromDesk = useCallback(async () => {
     if (!existingSource) return;
@@ -200,7 +210,13 @@ export function DocumentPeekView({
                            : "border-gray-300 text-gray-700 hover:bg-gray-50"
                        }`}
           >
-            {isAdding ? "Adding..." : isRemoving ? "Removing..." : isOnDesk ? "On Desk" : "Add to Desk"}
+            {isAdding
+              ? "Adding..."
+              : isRemoving
+                ? "Removing..."
+                : isOnDesk
+                  ? "On Desk"
+                  : "Add to Desk"}
           </button>
 
           <button
