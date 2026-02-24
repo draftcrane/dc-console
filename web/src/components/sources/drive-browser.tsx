@@ -9,6 +9,12 @@ interface DriveBrowserProps {
   rootLabel?: string;
   accountEmail?: string;
   onDocumentTap: (file: DriveFile) => void;
+  /** driveFileIds that are tagged (on the Desk) */
+  taggedFileIds: Set<string>;
+  /** Tag a document (add to Desk) */
+  onTag: (file: DriveFile) => void;
+  /** Untag a document (remove from Desk) */
+  onUntag: (file: DriveFile) => void;
 }
 
 interface BreadcrumbItem {
@@ -36,6 +42,9 @@ export function DriveBrowser({
   onReconnect,
   rootLabel,
   onDocumentTap,
+  taggedFileIds,
+  onTag,
+  onUntag,
 }: DriveBrowserProps) {
   const [currentFolder, setCurrentFolder] = useState("root");
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([
@@ -186,29 +195,52 @@ export function DriveBrowser({
             ))}
 
             {/* Documents */}
-            {documents.map((doc) => (
-              <button
-                key={doc.id}
-                onClick={() => onDocumentTap(doc)}
-                className="flex items-center gap-2 w-full px-3 min-h-[44px] border-b border-gray-50
-                           hover:bg-gray-50 cursor-pointer"
-              >
-                <svg
-                  className="w-5 h-5 text-blue-400 shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            {documents.map((doc) => {
+              const isTagged = taggedFileIds.has(doc.id);
+              return (
+                <div
+                  key={doc.id}
+                  className="flex items-center w-full border-b border-gray-50 hover:bg-gray-50"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                <span className="text-sm text-gray-900 truncate flex-1 text-left">{doc.name}</span>
-              </button>
-            ))}
+                  <button
+                    onClick={() => onDocumentTap(doc)}
+                    className="flex items-center gap-2 flex-1 min-w-0 px-3 min-h-[44px] cursor-pointer"
+                  >
+                    <svg
+                      className="w-5 h-5 text-blue-400 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <span className="text-sm text-gray-900 truncate flex-1 text-left">
+                      {doc.name}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => (isTagged ? onUntag(doc) : onTag(doc))}
+                    className={`p-2 mr-1 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center
+                               transition-colors ${isTagged ? "text-blue-600" : "text-gray-300 hover:text-gray-500"}`}
+                    aria-label={isTagged ? "Remove from desk" : "Add to desk"}
+                  >
+                    <svg className="w-5 h-5" fill={isTagged ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })}
 
             {/* Pagination */}
             {hasMore && (

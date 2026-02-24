@@ -19,7 +19,7 @@ import { notFound, validationError } from "../middleware/error-handler.js";
 // ── Types ──
 
 export interface AnalysisInput {
-  sourceId: string;
+  sourceIds: string[];
   instruction: string;
 }
 
@@ -104,36 +104,47 @@ Rules:
 - When citing from the source, use direct quotes with context.
 - Keep your response focused and actionable for a book author.`;
 
+interface SourceChunks {
+  title: string;
+  chunks: Chunk[];
+}
+
 /**
- * Build the user message with source content chunks.
+ * Build the user message with content from one or more sources.
+ * Character budget is distributed equally across sources so all get representation.
  */
 export function buildAnalysisUserMessage(
   instruction: string,
-  sourceTitle: string,
-  chunks: Chunk[],
+  sources: SourceChunks[],
 ): string {
   const parts: string[] = [];
+  const budgetPerSource = Math.floor(MAX_SOURCE_CHARS / sources.length);
 
-  parts.push(`## Source: "${sourceTitle}"\n`);
+  for (let i = 0; i < sources.length; i++) {
+    const source = sources[i];
+    if (sources.length > 1) {
+      parts.push(`## Source ${i + 1}: "${source.title}"\n`);
+    } else {
+      parts.push(`## Source: "${source.title}"\n`);
+    }
 
-  // Concatenate chunk text up to max chars
-  let totalChars = 0;
-  for (const chunk of chunks) {
-    const text = stripHtml(chunk.html);
-    if (totalChars + text.length > MAX_SOURCE_CHARS) {
-      // Include partial text to fill budget
-      const remaining = MAX_SOURCE_CHARS - totalChars;
-      if (remaining > 100) {
-        parts.push(text.slice(0, remaining) + "...");
+    let totalChars = 0;
+    for (const chunk of source.chunks) {
+      const text = stripHtml(chunk.html);
+      if (totalChars + text.length > budgetPerSource) {
+        const remaining = budgetPerSource - totalChars;
+        if (remaining > 100) {
+          parts.push(text.slice(0, remaining) + "...");
+        }
+        break;
       }
-      break;
+      if (chunk.headingChain.length > 0) {
+        parts.push(`### ${chunk.headingChain.join(" > ")}\n`);
+      }
+      parts.push(text);
+      parts.push("");
+      totalChars += text.length;
     }
-    if (chunk.headingChain.length > 0) {
-      parts.push(`### ${chunk.headingChain.join(" > ")}\n`);
-    }
-    parts.push(text);
-    parts.push("");
-    totalChars += text.length;
   }
 
   parts.push(`\n## Instruction\n\n${instruction}`);
@@ -150,12 +161,21 @@ export class AIAnalysisService {
     private readonly aiProvider: AIProvider,
   ) {}
 
+  /** Max sources per analysis request */
+  static readonly MAX_SOURCES = 10;
+
   /**
    * Validate analysis input. Returns error message or null.
    */
   validateInput(input: AnalysisInput): string | null {
-    if (!input.sourceId?.trim()) {
-      return "sourceId is required";
+    if (!input.sourceIds || input.sourceIds.length === 0) {
+      return "At least one source is required";
+    }
+    if (input.sourceIds.length > AIAnalysisService.MAX_SOURCES) {
+      return `Select up to ${AIAnalysisService.MAX_SOURCES} documents for analysis`;
+    }
+    if (input.sourceIds.some((id) => !id?.trim())) {
+      return "Invalid source ID";
     }
     if (!input.instruction?.trim()) {
       return "instruction is required";
@@ -168,29 +188,34 @@ export class AIAnalysisService {
 
   /**
    * Stream an analysis response via the AI provider.
+   * Supports single or multiple sources.
    * Returns an SSE-compatible ReadableStream with normalized events.
    */
   async streamAnalysis(userId: string, input: AnalysisInput): Promise<AnalysisStreamResult> {
-    // 1. Load and verify source content
-    const source = await loadSourceContent(this.db, this.bucket, userId, input.sourceId);
-
-    // 2. Chunk content
-    const htmlType = htmlTypeFromMime(source.mimeType);
-    const chunks = chunkHtml(input.sourceId, source.title, source.html, htmlType);
-
-    if (chunks.length === 0) {
-      validationError("Source has no analyzable content");
+    // 1. Load and verify all source contents
+    const loadedSources: SourceChunks[] = [];
+    for (const sourceId of input.sourceIds) {
+      const source = await loadSourceContent(this.db, this.bucket, userId, sourceId);
+      const htmlType = htmlTypeFromMime(source.mimeType);
+      const chunks = chunkHtml(sourceId, source.title, source.html, htmlType);
+      if (chunks.length > 0) {
+        loadedSources.push({ title: source.title, chunks });
+      }
     }
 
-    // 3. Build prompt
-    const userMessage = buildAnalysisUserMessage(input.instruction, source.title, chunks);
+    if (loadedSources.length === 0) {
+      validationError("Selected sources have no analyzable content");
+    }
 
-    // 4. Stream via AIProvider
+    // 2. Build prompt with all sources
+    const userMessage = buildAnalysisUserMessage(input.instruction, loadedSources);
+
+    // 3. Stream via AIProvider
     const aiStream = await this.aiProvider.streamCompletion(ANALYSIS_SYSTEM_PROMPT, userMessage, {
       maxTokens: 4096,
     });
 
-    // 5. Transform AIStreamEvents into SSE-formatted bytes
+    // 4. Transform AIStreamEvents into SSE-formatted bytes
     const encoder = new TextEncoder();
 
     const sseTransform = new TransformStream<AIStreamEvent, Uint8Array>({

@@ -56,7 +56,7 @@ interface SourcesContextValue {
   unlinkConnection: (connectionId: string) => Promise<void>;
 
   // AI Analysis
-  analyze: (projectId: string, sourceId: string, instruction: string) => void;
+  analyze: (projectId: string, sourceIds: string[], instruction: string) => void;
   analysisText: string;
   isAnalyzing: boolean;
   isAnalysisComplete: boolean;

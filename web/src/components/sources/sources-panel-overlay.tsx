@@ -2,12 +2,12 @@
 
 import { useSourcesContext } from "@/contexts/sources-context";
 import { LibraryTab } from "./library-tab";
-import { AssistTab } from "./assist-tab";
+import { DeskTab } from "./desk-tab";
 import type { SourcesTab } from "@/hooks/use-sources-panel";
 
 const TABS: { id: SourcesTab; label: string }[] = [
-  { id: "sources", label: "Library" },
-  { id: "ask", label: "Ask" },
+  { id: "library", label: "Library" },
+  { id: "desk", label: "Desk" },
 ];
 
 /**
@@ -75,8 +75,8 @@ export function SourcesPanelOverlay() {
 
         {/* Content */}
         <div className="flex-1 overflow-auto flex flex-col">
-          {activeTab === "sources" && <LibraryTab />}
-          {activeTab === "ask" && <AssistTab />}
+          {activeTab === "library" && <LibraryTab />}
+          {activeTab === "desk" && <DeskTab />}
         </div>
 
         {/* Safe area */}

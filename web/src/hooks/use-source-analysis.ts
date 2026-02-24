@@ -9,7 +9,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const ANALYSIS_TIMEOUT_MS = 30_000;
 
 interface UseSourceAnalysisReturn {
-  analyze: (projectId: string, sourceId: string, instruction: string) => void;
+  analyze: (projectId: string, sourceIds: string[], instruction: string) => void;
   streamingText: string;
   isStreaming: boolean;
   isComplete: boolean;
@@ -60,7 +60,7 @@ export function useSourceAnalysis(): UseSourceAnalysisReturn {
   }, []);
 
   const analyze = useCallback(
-    async (projectId: string, sourceId: string, instruction: string) => {
+    async (projectId: string, sourceIds: string[], instruction: string) => {
       // Abort any existing request
       abortControllerRef.current?.abort();
       if (rafRef.current) {
@@ -98,7 +98,7 @@ export function useSourceAnalysis(): UseSourceAnalysisReturn {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ sourceId, instruction }),
+          body: JSON.stringify({ sourceIds, instruction }),
           signal: abortController.signal,
         });
 
