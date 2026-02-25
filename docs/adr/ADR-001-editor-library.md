@@ -166,12 +166,12 @@ Reviewed 2026-02-24 to determine whether any changes to the ecosystem warrant re
 
 ### New Entrants
 
-| Library | Notes |
-|---------|-------|
-| **BlockNote** (v0.47, Feb 2026) | Block-based editor built *on top of Tiptap/ProseMirror*. Additive, not a replacement. |
-| **Novel** | Also built on Tiptap + Vercel AI SDK. Same foundation. |
-| **Quill 2.0** (Apr 2024 rewrite) | Used by Slack/LinkedIn/Figma but not targeting iPad-first use cases. |
-| **LexKit** | Type-safe wrapper around Lexical. Inherits Lexical's Safari issues. |
+| Library                          | Notes                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------------------------- |
+| **BlockNote** (v0.47, Feb 2026)  | Block-based editor built _on top of Tiptap/ProseMirror_. Additive, not a replacement. |
+| **Novel**                        | Also built on Tiptap + Vercel AI SDK. Same foundation.                                |
+| **Quill 2.0** (Apr 2024 rewrite) | Used by Slack/LinkedIn/Figma but not targeting iPad-first use cases.                  |
+| **LexKit**                       | Type-safe wrapper around Lexical. Inherits Lexical's Safari issues.                   |
 
 No new library challenges ProseMirror's mobile Safari reliability. The ecosystem is consolidating around ProseMirror — BlockNote and Novel both chose Tiptap as their foundation.
 

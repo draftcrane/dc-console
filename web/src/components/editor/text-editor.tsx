@@ -62,225 +62,224 @@ interface TextEditorProps {
  * Styles are in editor.css under .text-editor-content.
  * Ref: Exposes TextEditorHandle for programmatic operations (e.g., AI rewrite text replacement)
  */
-export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
-  function TextEditor(
-    {
-      content = "",
-      onUpdate,
-      onSave,
-      placeholder = "Start writing, or paste your existing notes here...",
-      editable = true,
-      onEditorReady,
-      onSelectionWordCountChange,
-      onSelectionUpdate,
-      onBlur,
-    },
-    ref,
-  ) {
-    const editorContainerRef = useRef<HTMLDivElement>(null);
-    const editor = useEditor({
-      extensions: [
-        StarterKit.configure({
-          heading: {
-            levels: [2, 3],
-          },
-        }),
-        Placeholder.configure({
-          placeholder,
-          emptyEditorClass: "is-editor-empty",
-        }),
-        FootnoteRef,
-        FootnoteContent,
-        FootnoteSection,
-        FootnotePlugin,
-      ],
-      content,
-      editable,
-      editorProps: {
-        attributes: {
-          class: "text-editor-content outline-none",
-        },
-        handlePaste: (_view, event) => {
-          const html = event.clipboardData?.getData("text/html");
-          if (html?.includes("docs-internal-guid")) {
-            return false;
-          }
-          return false;
-        },
-      },
-      onUpdate: ({ editor: ed }) => {
-        onUpdate?.(ed.getHTML());
-      },
-      onSelectionUpdate: () => {
-        onSelectionUpdate?.();
-      },
-      onBlur: () => {
-        onBlur?.();
-      },
-    });
-
-    // Sync external content changes into the editor (e.g., after API load on refresh).
-    // Tiptap's useEditor only uses `content` for initialization, not prop updates.
-    useEffect(() => {
-      if (!editor) return;
-      if (content !== editor.getHTML()) {
-        editor.commands.setContent(content, { emitUpdate: false });
-      }
-    }, [editor, content]);
-
-    // Track text selection for floating action bar (200ms delay per US-016)
-    const textSelection = useTextSelection(editor, editorContainerRef, 200);
-
-    // Notify parent of selection word count changes (US-024)
-    useEffect(() => {
-      onSelectionWordCountChange?.(textSelection.wordCount);
-    }, [textSelection.wordCount, onSelectionWordCountChange]);
-
-    // Notify parent when editor is ready
-    useEffect(() => {
-      if (editor && onEditorReady) {
-        onEditorReady(editor);
-      }
-    }, [editor, onEditorReady]);
-
-    // Handle Cmd+S for save
-    useEffect(() => {
-      if (!editor || !onSave) return;
-
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if ((event.metaKey || event.ctrlKey) && event.key === "s") {
-          event.preventDefault();
-          onSave();
-        }
-      };
-
-      document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
-    }, [editor, onSave]);
-
-    // Virtual keyboard handling for iPad Safari
-    useEffect(() => {
-      if (typeof window === "undefined" || !window.visualViewport) return;
-
-      const viewport = window.visualViewport;
-      const handleResize = () => {
-        const keyboardHeight = window.innerHeight - viewport.height;
-        document.documentElement.style.setProperty("--keyboard-height", `${keyboardHeight}px`);
-      };
-
-      viewport.addEventListener("resize", handleResize);
-      viewport.addEventListener("scroll", handleResize);
-
-      return () => {
-        viewport.removeEventListener("resize", handleResize);
-        viewport.removeEventListener("scroll", handleResize);
-      };
-    }, []);
-
-    // Expose imperative handle for programmatic operations (AI rewrite text replacement)
-    useImperativeHandle(
-      ref,
-      () => ({
-        getEditor: () => editor,
-        replaceText: (searchText: string, replacementText: string): boolean => {
-          if (!editor) return false;
-
-          const { doc } = editor.state;
-          // Search full document text so multi-node selections (paragraphs, lists) match
-          const fullText = doc.textBetween(0, doc.content.size, "\n");
-          const index = fullText.indexOf(searchText);
-          if (index === -1) return false;
-
-          // Map the plain-text offset back to a document position.
-          // textBetween inserts "\n" between blocks, so we walk block boundaries
-          // to compute the real document positions.
-          let charsSeen = 0;
-          let from = -1;
-          let to = -1;
-          const targetEnd = index + searchText.length;
-
-          doc.descendants((node, pos) => {
-            if (to !== -1) return false;
-            if (node.isText && node.text) {
-              const nodeStart = charsSeen;
-              const nodeEnd = charsSeen + node.text.length;
-
-              if (from === -1 && index >= nodeStart && index < nodeEnd) {
-                from = pos + (index - nodeStart);
-              }
-              if (from !== -1 && targetEnd >= nodeStart && targetEnd <= nodeEnd) {
-                to = pos + (targetEnd - nodeStart);
-              }
-
-              charsSeen += node.text.length;
-            } else if (node.isBlock && charsSeen > 0) {
-              // Block boundaries produce the "\n" separator in textBetween
-              if (from === -1 && index === charsSeen) {
-                from = pos;
-              }
-              if (from !== -1 && targetEnd === charsSeen) {
-                to = pos;
-              }
-              charsSeen += 1; // the "\n"
-            }
-          });
-
-          if (from === -1 || to === -1) return false;
-
-          editor
-            .chain()
-            .focus()
-            .setTextSelection({ from, to })
-            .deleteSelection()
-            .insertContent(replacementText)
-            .run();
-
-          requestAnimationFrame(() => {
-            const editorElement = editor.view.dom;
-            const { from: cursorPos } = editor.state.selection;
-            const highlightFrom = cursorPos - replacementText.length;
-
-            editor.chain().setTextSelection({ from: highlightFrom, to: cursorPos }).run();
-
-            editorElement.classList.add("ai-rewrite-highlight");
-            setTimeout(() => {
-              editorElement.classList.remove("ai-rewrite-highlight");
-              editor.chain().setTextSelection(cursorPos).run();
-            }, 1500);
-          });
-
-          return true;
-        },
-        insertContent: (content: string, format: "html" | "text"): boolean => {
-          if (!editor) return false;
-
-          // For plain text, convert newlines to paragraphs to ensure proper formatting.
-          const contentToInsert =
-            format === "text"
-              ? content
-                  .split("\n")
-                  .map((p) => `<p>${p}</p>`)
-                  .join("")
-              : content;
-
-          editor.chain().focus().insertContent(contentToInsert).run();
-          return true;
+export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(function TextEditor(
+  {
+    content = "",
+    onUpdate,
+    onSave,
+    placeholder = "Start writing, or paste your existing notes here...",
+    editable = true,
+    onEditorReady,
+    onSelectionWordCountChange,
+    onSelectionUpdate,
+    onBlur,
+  },
+  ref,
+) {
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [2, 3],
         },
       }),
-      [editor],
-    );
+      Placeholder.configure({
+        placeholder,
+        emptyEditorClass: "is-editor-empty",
+      }),
+      FootnoteRef,
+      FootnoteContent,
+      FootnoteSection,
+      FootnotePlugin,
+    ],
+    content,
+    editable,
+    editorProps: {
+      attributes: {
+        class: "text-editor-content outline-none",
+      },
+      handlePaste: (_view, event) => {
+        const html = event.clipboardData?.getData("text/html");
+        if (html?.includes("docs-internal-guid")) {
+          return false;
+        }
+        return false;
+      },
+    },
+    onUpdate: ({ editor: ed }) => {
+      onUpdate?.(ed.getHTML());
+    },
+    onSelectionUpdate: () => {
+      onSelectionUpdate?.();
+    },
+    onBlur: () => {
+      onBlur?.();
+    },
+  });
 
-    if (!editor) {
-      return <div className="min-h-[400px] animate-pulse bg-gray-100 rounded-lg" />;
+  // Sync external content changes into the editor (e.g., after API load on refresh).
+  // Tiptap's useEditor only uses `content` for initialization, not prop updates.
+  useEffect(() => {
+    if (!editor) return;
+    if (content !== editor.getHTML()) {
+      editor.commands.setContent(content, { emitUpdate: false });
     }
+  }, [editor, content]);
 
-    return (
-      <div className="text-editor relative" ref={editorContainerRef}>
-        <EditorToolbar editor={editor} />
+  // Track text selection for floating action bar (200ms delay per US-016)
+  const textSelection = useTextSelection(editor, editorContainerRef, 200);
 
-        <EditorContent
-          editor={editor}
-          className="prose prose-lg max-w-none
+  // Notify parent of selection word count changes (US-024)
+  useEffect(() => {
+    onSelectionWordCountChange?.(textSelection.wordCount);
+  }, [textSelection.wordCount, onSelectionWordCountChange]);
+
+  // Notify parent when editor is ready
+  useEffect(() => {
+    if (editor && onEditorReady) {
+      onEditorReady(editor);
+    }
+  }, [editor, onEditorReady]);
+
+  // Handle Cmd+S for save
+  useEffect(() => {
+    if (!editor || !onSave) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "s") {
+        event.preventDefault();
+        onSave();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [editor, onSave]);
+
+  // Virtual keyboard handling for iPad Safari
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const viewport = window.visualViewport;
+    const handleResize = () => {
+      const keyboardHeight = window.innerHeight - viewport.height;
+      document.documentElement.style.setProperty("--keyboard-height", `${keyboardHeight}px`);
+    };
+
+    viewport.addEventListener("resize", handleResize);
+    viewport.addEventListener("scroll", handleResize);
+
+    return () => {
+      viewport.removeEventListener("resize", handleResize);
+      viewport.removeEventListener("scroll", handleResize);
+    };
+  }, []);
+
+  // Expose imperative handle for programmatic operations (AI rewrite text replacement)
+  useImperativeHandle(
+    ref,
+    () => ({
+      getEditor: () => editor,
+      replaceText: (searchText: string, replacementText: string): boolean => {
+        if (!editor) return false;
+
+        const { doc } = editor.state;
+        // Search full document text so multi-node selections (paragraphs, lists) match
+        const fullText = doc.textBetween(0, doc.content.size, "\n");
+        const index = fullText.indexOf(searchText);
+        if (index === -1) return false;
+
+        // Map the plain-text offset back to a document position.
+        // textBetween inserts "\n" between blocks, so we walk block boundaries
+        // to compute the real document positions.
+        let charsSeen = 0;
+        let from = -1;
+        let to = -1;
+        const targetEnd = index + searchText.length;
+
+        doc.descendants((node, pos) => {
+          if (to !== -1) return false;
+          if (node.isText && node.text) {
+            const nodeStart = charsSeen;
+            const nodeEnd = charsSeen + node.text.length;
+
+            if (from === -1 && index >= nodeStart && index < nodeEnd) {
+              from = pos + (index - nodeStart);
+            }
+            if (from !== -1 && targetEnd >= nodeStart && targetEnd <= nodeEnd) {
+              to = pos + (targetEnd - nodeStart);
+            }
+
+            charsSeen += node.text.length;
+          } else if (node.isBlock && charsSeen > 0) {
+            // Block boundaries produce the "\n" separator in textBetween
+            if (from === -1 && index === charsSeen) {
+              from = pos;
+            }
+            if (from !== -1 && targetEnd === charsSeen) {
+              to = pos;
+            }
+            charsSeen += 1; // the "\n"
+          }
+        });
+
+        if (from === -1 || to === -1) return false;
+
+        editor
+          .chain()
+          .focus()
+          .setTextSelection({ from, to })
+          .deleteSelection()
+          .insertContent(replacementText)
+          .run();
+
+        requestAnimationFrame(() => {
+          const editorElement = editor.view.dom;
+          const { from: cursorPos } = editor.state.selection;
+          const highlightFrom = cursorPos - replacementText.length;
+
+          editor.chain().setTextSelection({ from: highlightFrom, to: cursorPos }).run();
+
+          editorElement.classList.add("ai-rewrite-highlight");
+          setTimeout(() => {
+            editorElement.classList.remove("ai-rewrite-highlight");
+            editor.chain().setTextSelection(cursorPos).run();
+          }, 1500);
+        });
+
+        return true;
+      },
+      insertContent: (content: string, format: "html" | "text"): boolean => {
+        if (!editor) return false;
+
+        // For plain text, convert newlines to paragraphs to ensure proper formatting.
+        const contentToInsert =
+          format === "text"
+            ? content
+                .split("\n")
+                .map((p) => `<p>${p}</p>`)
+                .join("")
+            : content;
+
+        editor.chain().focus().insertContent(contentToInsert).run();
+        return true;
+      },
+    }),
+    [editor],
+  );
+
+  if (!editor) {
+    return <div className="min-h-[400px] animate-pulse bg-gray-100 rounded-lg" />;
+  }
+
+  return (
+    <div className="text-editor relative" ref={editorContainerRef}>
+      <EditorToolbar editor={editor} />
+
+      <EditorContent
+        editor={editor}
+        className="prose prose-lg max-w-none
                      [&_.text-editor-content]:min-h-[400px]
                      [&_.text-editor-content]:text-lg
                      [&_.text-editor-content]:leading-relaxed
@@ -289,11 +288,10 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
                      [&_.is-editor-empty]:before:float-left
                      [&_.is-editor-empty]:before:pointer-events-none
                      [&_.is-editor-empty]:before:h-0"
-        />
-      </div>
-    );
-  },
-);
+      />
+    </div>
+  );
+});
 
 function EditorToolbar({ editor }: { editor: Editor }) {
   const buttonClass = useCallback(
