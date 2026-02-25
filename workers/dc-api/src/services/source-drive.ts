@@ -151,11 +151,45 @@ export class SourceDriveService {
 
       // Check for existing source with same drive_file_id (partial unique index not usable with ON CONFLICT)
       const existing = await this.db
-        .prepare(`SELECT id FROM source_materials WHERE project_id = ? AND drive_file_id = ?`)
+        .prepare(
+          `SELECT id, status FROM source_materials WHERE project_id = ? AND drive_file_id = ?`,
+        )
         .bind(projectId, file.driveFileId)
-        .first<{ id: string }>();
+        .first<{ id: string; status: string }>();
 
-      if (existing) continue;
+      if (existing) {
+        if (existing.status === "archived") {
+          // Re-activate previously removed source
+          await this.db
+            .prepare(
+              `UPDATE source_materials SET status = 'active', sort_order = ?, updated_at = ? WHERE id = ?`,
+            )
+            .bind(sortOrder, now, existing.id)
+            .run();
+
+          created.push({
+            id: existing.id,
+            projectId,
+            sourceType: "drive",
+            driveConnectionId: connectionId || null,
+            driveFileId: file.driveFileId,
+            title: file.title,
+            mimeType: file.mimeType,
+            originalFilename: null,
+            driveModifiedTime: null,
+            wordCount: 0,
+            r2Key: null,
+            cachedAt: null,
+            status: "active",
+            sortOrder,
+            createdAt: now,
+            updatedAt: now,
+          });
+          sortOrder++;
+        }
+        // Already active — skip silently (true duplicate)
+        continue;
+      }
 
       await this.db
         .prepare(
