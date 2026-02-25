@@ -49,7 +49,7 @@ export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSecti
       <div className="flex items-center gap-2 min-h-[32px] mb-1">
         <div className="flex-1 flex items-center gap-2">
           <div className="h-px bg-gray-200 flex-1" />
-          <span className="text-[10px] font-semibold tracking-wider text-gray-400 uppercase shrink-0">
+          <span className="text-[10px] font-semibold tracking-wider text-[var(--dc-color-text-placeholder)] uppercase shrink-0">
             Connections
           </span>
           <div className="h-px bg-gray-200 flex-1" />
@@ -59,7 +59,9 @@ export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSecti
       {/* Connection rows */}
       <div className="flex flex-col gap-1">
         {connections.length === 0 ? (
-          <p className="text-xs text-gray-400 py-2 px-1">No sources connected.</p>
+          <p className="text-xs text-[var(--dc-color-text-placeholder)] py-2 px-1">
+            No sources connected.
+          </p>
         ) : (
           connections.map((connection) => (
             <div key={connection.id}>
@@ -72,9 +74,11 @@ export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSecti
                   />
                 </svg>
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs text-gray-700 truncate block">{connection.email}</span>
+                  <span className="text-xs text-[var(--dc-color-text-secondary)] truncate block">
+                    {connection.email}
+                  </span>
                   {connection.documentCount > 0 && (
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-[var(--dc-color-text-placeholder)]">
                       {connection.documentCount} document{connection.documentCount !== 1 ? "s" : ""}
                     </span>
                   )}
@@ -93,7 +97,7 @@ export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSecti
                 {confirmingId !== connection.id && (
                   <button
                     onClick={() => setConfirmingId(connection.id)}
-                    className="text-xs text-gray-400 hover:text-red-600 transition-colors
+                    className="text-xs text-[var(--dc-color-text-placeholder)] hover:text-red-600 transition-colors
                                  min-h-[44px] flex items-center shrink-0"
                   >
                     Remove
@@ -103,8 +107,8 @@ export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSecti
 
               {/* Inline confirmation */}
               {confirmingId === connection.id && (
-                <div className="px-1 py-2 bg-gray-50 rounded-lg mx-1 mb-1">
-                  <p className="text-xs text-gray-600 mb-2">
+                <div className="px-1 py-2 bg-[var(--dc-color-surface-secondary)] rounded-lg mx-1 mb-1">
+                  <p className="text-xs text-[var(--dc-color-text-muted)] mb-2">
                     Remove {connection.email} from this book? Documents from this source will be
                     archived.
                   </p>
@@ -120,7 +124,7 @@ export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSecti
                     <button
                       onClick={() => setConfirmingId(null)}
                       disabled={isUnlinking}
-                      className="text-xs text-gray-500 hover:text-gray-700
+                      className="text-xs text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)]
                                    min-h-[36px] px-2 disabled:opacity-50"
                     >
                       Cancel

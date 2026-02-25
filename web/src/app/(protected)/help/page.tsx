@@ -250,7 +250,9 @@ function HelpPageContent() {
   return (
     <div className="mx-auto max-w-[640px] px-4 py-8 pb-[env(safe-area-inset-bottom)]">
       {/* Page heading */}
-      <h1 className="font-serif text-3xl font-semibold text-gray-900 mb-8">Help</h1>
+      <h1 className="font-serif text-3xl font-semibold text-[var(--dc-color-text-primary)] mb-8">
+        Help
+      </h1>
 
       {/* FAQ Sections */}
       <div ref={accordionRef} onKeyDown={handleAccordionKeyDown}>
@@ -263,8 +265,12 @@ function HelpPageContent() {
           >
             {section.items.map((item, i) => (
               <div key={i}>
-                <h4 className="text-sm font-medium text-gray-900 mb-1">{item.q}</h4>
-                <p className="text-sm leading-relaxed text-gray-600">{item.a}</p>
+                <h4 className="text-sm font-medium text-[var(--dc-color-text-primary)] mb-1">
+                  {item.q}
+                </h4>
+                <p className="text-sm leading-relaxed text-[var(--dc-color-text-muted)]">
+                  {item.a}
+                </p>
               </div>
             ))}
           </AccordionSection>
@@ -272,9 +278,11 @@ function HelpPageContent() {
       </div>
 
       {/* Footer actions */}
-      <div className="mt-10 rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
-        <h2 className="text-base font-semibold text-gray-900 mb-2">Still need help?</h2>
-        <p className="text-sm text-gray-600 mb-4">
+      <div className="mt-10 rounded-xl border border-gray-200 bg-[var(--dc-color-surface-secondary)] p-6 text-center">
+        <h2 className="text-base font-semibold text-[var(--dc-color-text-primary)] mb-2">
+          Still need help?
+        </h2>
+        <p className="text-sm text-[var(--dc-color-text-muted)] mb-4">
           We read every report and use your feedback to improve DraftCrane.
         </p>
         <div className="flex flex-col items-center gap-3">
@@ -287,7 +295,7 @@ function HelpPageContent() {
           </button>
           <button
             onClick={handleReplayTour}
-            className="text-sm text-gray-500 hover:text-gray-700 transition-colors min-h-[44px]"
+            className="text-sm text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)] transition-colors min-h-[44px]"
           >
             Replay the tour
           </button>

@@ -254,7 +254,10 @@ export function InstructionList({
     return (
       <div className="space-y-1">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-12 rounded-lg bg-gray-100 animate-pulse" />
+          <div
+            key={i}
+            className="h-12 rounded-lg bg-[var(--dc-color-surface-tertiary)] animate-pulse"
+          />
         ))}
       </div>
     );
@@ -364,7 +367,7 @@ export function InstructionList({
         role="listbox"
         aria-label={`${type} instructions`}
         onKeyDown={handleKeyDown}
-        className="border border-[var(--dc-color-border-strong)] rounded-lg overflow-hidden bg-white"
+        className="border border-[var(--dc-color-border-strong)] rounded-lg overflow-hidden bg-[var(--dc-color-surface-primary)]"
       >
         {/* Recents section */}
         {showRecents && (
@@ -636,9 +639,9 @@ interface TokenSet {
 }
 
 const primaryTokens: TokenSet = {
-  textInteractive: "text-blue-600",
-  rowHover: "hover:bg-gray-50",
-  rowActive: "active:bg-gray-100",
+  textInteractive: "text-[var(--dc-color-interactive-primary)]",
+  rowHover: "hover:bg-[var(--dc-color-surface-secondary)]",
+  rowActive: "active:bg-[var(--dc-color-surface-tertiary)]",
 };
 
 const escalationTokens: TokenSet = {

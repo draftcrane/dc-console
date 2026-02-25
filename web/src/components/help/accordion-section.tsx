@@ -57,15 +57,15 @@ export function AccordionSection({
           aria-expanded={isOpen}
           aria-controls={panelId}
           className="flex w-full items-center gap-3 py-4 text-left min-h-[48px]
-                     text-base font-medium text-gray-900
-                     hover:text-gray-700 transition-colors"
+                     text-base font-medium text-[var(--dc-color-text-primary)]
+                     hover:text-[var(--dc-color-text-secondary)] transition-colors"
         >
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center text-gray-500">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center text-[var(--dc-color-text-muted)]">
             {icon}
           </span>
           <span className="flex-1">{title}</span>
           <svg
-            className={`h-5 w-5 shrink-0 text-gray-400 transition-transform duration-150 ${
+            className={`h-5 w-5 shrink-0 text-[var(--dc-color-text-placeholder)] transition-transform duration-150 ${
               isOpen ? "rotate-180" : ""
             }`}
             viewBox="0 0 20 20"

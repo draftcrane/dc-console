@@ -105,12 +105,12 @@ export function DriveBrowser({
       <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-1 overflow-x-auto shrink-0">
         {breadcrumbs.map((crumb, i) => (
           <span key={crumb.id} className="flex items-center gap-1 shrink-0">
-            {i > 0 && <span className="text-gray-300 text-xs">/</span>}
+            {i > 0 && <span className="text-[var(--dc-color-border-strong)] text-xs">/</span>}
             <button
               onClick={() => navigateToBreadcrumb(i)}
               className={`text-xs min-h-[32px] px-1 rounded transition-colors ${
                 i === breadcrumbs.length - 1
-                  ? "font-medium text-gray-900"
+                  ? "font-medium text-[var(--dc-color-text-primary)]"
                   : "text-blue-600 hover:text-blue-700"
               }`}
             >
@@ -123,7 +123,9 @@ export function DriveBrowser({
       {/* File list */}
       <div className="flex-1 overflow-auto min-h-0">
         {isLoading ? (
-          <p className="px-3 py-6 text-center text-sm text-gray-500">Loading...</p>
+          <p className="px-3 py-6 text-center text-sm text-[var(--dc-color-text-muted)]">
+            Loading...
+          </p>
         ) : error ? (
           <div className="px-3 py-6 text-center">
             <p className="text-sm text-red-600 mb-2">{error}</p>
@@ -153,8 +155,12 @@ export function DriveBrowser({
             const msg = getEmptyMessage();
             return (
               <div className="px-3 py-6 text-center">
-                <p className="text-sm text-gray-400">{msg.title}</p>
-                {msg.detail && <p className="text-xs text-gray-400 mt-1">{msg.detail}</p>}
+                <p className="text-sm text-[var(--dc-color-text-placeholder)]">{msg.title}</p>
+                {msg.detail && (
+                  <p className="text-xs text-[var(--dc-color-text-placeholder)] mt-1">
+                    {msg.detail}
+                  </p>
+                )}
               </div>
             );
           })()
@@ -166,7 +172,7 @@ export function DriveBrowser({
                 key={folder.id}
                 onClick={() => navigateToFolder(folder.id, folder.name)}
                 className="flex items-center gap-2 w-full px-3 min-h-[44px] border-b border-gray-50
-                           hover:bg-gray-50 cursor-pointer"
+                           hover:bg-[var(--dc-color-surface-secondary)] cursor-pointer"
               >
                 <svg
                   className="w-5 h-5 text-yellow-500 shrink-0"
@@ -175,11 +181,11 @@ export function DriveBrowser({
                 >
                   <path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z" />
                 </svg>
-                <span className="text-sm text-gray-900 truncate flex-1 text-left">
+                <span className="text-sm text-[var(--dc-color-text-primary)] truncate flex-1 text-left">
                   {folder.name}
                 </span>
                 <svg
-                  className="w-4 h-4 text-gray-400 shrink-0"
+                  className="w-4 h-4 text-[var(--dc-color-text-placeholder)] shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -200,7 +206,7 @@ export function DriveBrowser({
               return (
                 <div
                   key={doc.id}
-                  className="flex items-center w-full border-b border-gray-50 hover:bg-gray-50"
+                  className="flex items-center w-full border-b border-gray-50 hover:bg-[var(--dc-color-surface-secondary)]"
                 >
                   <button
                     onClick={() => onDocumentTap(doc)}
@@ -219,14 +225,14 @@ export function DriveBrowser({
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
-                    <span className="text-sm text-gray-900 truncate flex-1 text-left">
+                    <span className="text-sm text-[var(--dc-color-text-primary)] truncate flex-1 text-left">
                       {doc.name}
                     </span>
                   </button>
                   <button
                     onClick={() => (isTagged ? onUntag(doc) : onTag(doc))}
                     className={`p-2 mr-1 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center
-                               transition-colors ${isTagged ? "text-blue-600" : "text-gray-300 hover:text-gray-500"}`}
+                               transition-colors ${isTagged ? "text-blue-600" : "text-[var(--dc-color-border-strong)] hover:text-[var(--dc-color-text-muted)]"}`}
                     aria-label={isTagged ? "Remove from desk" : "Add to desk"}
                   >
                     <svg
@@ -252,7 +258,7 @@ export function DriveBrowser({
               <button
                 onClick={loadMore}
                 disabled={isLoading}
-                className="w-full px-3 py-3 text-xs text-blue-600 hover:bg-gray-50
+                className="w-full px-3 py-3 text-xs text-blue-600 hover:bg-[var(--dc-color-surface-secondary)]
                            min-h-[44px] border-t border-gray-100"
               >
                 {isLoading ? "Loading..." : "Load more"}

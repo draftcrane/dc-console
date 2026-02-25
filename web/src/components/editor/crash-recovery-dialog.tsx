@@ -26,11 +26,14 @@ export function CrashRecoveryDialog({ recovery, onAccept, onDismiss }: CrashReco
       aria-labelledby="recovery-title"
       aria-describedby="recovery-description"
     >
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-        <h2 id="recovery-title" className="text-lg font-semibold text-gray-900 mb-2">
+      <div className="bg-[var(--dc-color-surface-primary)] rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+        <h2
+          id="recovery-title"
+          className="text-lg font-semibold text-[var(--dc-color-text-primary)] mb-2"
+        >
           Unsaved Changes Found
         </h2>
-        <p id="recovery-description" className="text-sm text-gray-600 mb-6">
+        <p id="recovery-description" className="text-sm text-[var(--dc-color-text-muted)] mb-6">
           We found unsaved changes from {timeAgo}. This may have been caused by a browser crash or
           unexpected closure. Would you like to restore your work?
         </p>
@@ -38,7 +41,7 @@ export function CrashRecoveryDialog({ recovery, onAccept, onDismiss }: CrashReco
         <div className="flex gap-3 justify-end">
           <button
             onClick={onDismiss}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg
+            className="px-4 py-2 text-sm font-medium text-[var(--dc-color-text-secondary)] bg-[var(--dc-color-surface-tertiary)] rounded-lg
                        hover:bg-gray-200 transition-colors min-h-[44px]"
           >
             Discard

@@ -13,14 +13,19 @@ import Link from "next/link";
  */
 export default function SignInPage() {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-gray-50 px-6 py-12">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-[var(--dc-color-surface-secondary)] px-6 py-12">
       {/* Header with back to home */}
       <div className="mb-8 text-center">
-        <Link href="/" className="mb-4 inline-block text-sm text-gray-500 hover:text-gray-700">
+        <Link
+          href="/"
+          className="mb-4 inline-block text-sm text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)]"
+        >
           Back to DraftCrane
         </Link>
-        <h1 className="text-2xl font-semibold text-gray-900">Welcome back</h1>
-        <p className="mt-2 text-gray-600">Sign in to continue writing your book</p>
+        <h1 className="text-2xl font-semibold text-[var(--dc-color-text-primary)]">Welcome back</h1>
+        <p className="mt-2 text-[var(--dc-color-text-muted)]">
+          Sign in to continue writing your book
+        </p>
       </div>
 
       {/* Clerk SignIn component with enhanced styling */}

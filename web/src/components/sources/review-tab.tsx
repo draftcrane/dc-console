@@ -164,7 +164,7 @@ export function SourceDetailView({ onBack }: SourceDetailViewProps) {
         <div className="flex items-center gap-2">
           <button
             onClick={onBack}
-            className="p-1 text-gray-400 hover:text-gray-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-1 text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-muted)] min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Back to Library"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -177,9 +177,13 @@ export function SourceDetailView({ onBack }: SourceDetailViewProps) {
             </svg>
           </button>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-medium text-gray-900 truncate">{source.title}</h3>
+            <h3 className="text-sm font-medium text-[var(--dc-color-text-primary)] truncate">
+              {source.title}
+            </h3>
             {content && (
-              <p className="text-xs text-gray-500">{content.wordCount.toLocaleString()} words</p>
+              <p className="text-xs text-[var(--dc-color-text-muted)]">
+                {content.wordCount.toLocaleString()} words
+              </p>
             )}
           </div>
         </div>
@@ -189,7 +193,7 @@ export function SourceDetailView({ onBack }: SourceDetailViewProps) {
       <div className="flex-1 overflow-auto px-4 py-4 relative">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-gray-500">Loading content...</p>
+            <p className="text-sm text-[var(--dc-color-text-muted)]">Loading content...</p>
           </div>
         ) : error ? (
           <div className="flex items-center justify-center py-12">

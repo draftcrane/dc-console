@@ -29,9 +29,13 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-      <div className="mb-4 text-gray-400">{icon}</div>
-      <p className="text-sm font-medium text-gray-700 mb-1">{message}</p>
-      {description && <p className="text-xs text-gray-500 mb-4 max-w-[240px]">{description}</p>}
+      <div className="mb-4 text-[var(--dc-color-text-placeholder)]">{icon}</div>
+      <p className="text-sm font-medium text-[var(--dc-color-text-secondary)] mb-1">{message}</p>
+      {description && (
+        <p className="text-xs text-[var(--dc-color-text-muted)] mb-4 max-w-[240px]">
+          {description}
+        </p>
+      )}
       {(action || secondaryAction) && (
         <div className="flex flex-col items-center gap-2">
           {action && (
@@ -46,7 +50,7 @@ export function EmptyState({
           {secondaryAction && (
             <button
               onClick={secondaryAction.onClick}
-              className="text-xs text-gray-500 hover:text-gray-700 transition-colors min-h-[44px]"
+              className="text-xs text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)] transition-colors min-h-[44px]"
             >
               {secondaryAction.label}
             </button>

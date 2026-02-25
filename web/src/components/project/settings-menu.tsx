@@ -74,14 +74,14 @@ export function SettingsMenu({
 
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+          className="absolute right-0 top-full mt-1 w-52 bg-[var(--dc-color-surface-primary)] rounded-lg shadow-lg border border-gray-200 py-1 z-50"
           role="menu"
           aria-label="Project settings"
         >
           {/* Rename Book */}
           <button
             onClick={() => handleMenuItem(onRenameBook)}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+            className="w-full text-left px-4 py-2.5 text-sm text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-tertiary)]
                        transition-colors min-h-[44px] flex items-center gap-2"
             role="menuitem"
           >
@@ -100,7 +100,7 @@ export function SettingsMenu({
           <button
             onClick={() => handleMenuItem(onDuplicateBook)}
             disabled={isDuplicating}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+            className="w-full text-left px-4 py-2.5 text-sm text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-tertiary)]
                        transition-colors min-h-[44px] flex items-center gap-2
                        disabled:opacity-50 disabled:cursor-not-allowed"
             role="menuitem"
@@ -139,7 +139,7 @@ export function SettingsMenu({
           <Link
             href="/help"
             onClick={close}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+            className="w-full text-left px-4 py-2.5 text-sm text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-tertiary)]
                        transition-colors min-h-[44px] flex items-center gap-2"
             role="menuitem"
           >
@@ -161,7 +161,7 @@ export function SettingsMenu({
           <button
             onClick={() => handleMenuItem(onSignOut)}
             disabled={isSigningOut}
-            className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+            className="w-full text-left px-4 py-2.5 text-sm text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-tertiary)]
                        transition-colors min-h-[44px] flex items-center gap-2
                        disabled:opacity-50 disabled:cursor-not-allowed"
             role="menuitem"

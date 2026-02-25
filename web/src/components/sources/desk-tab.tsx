@@ -185,7 +185,9 @@ export function DeskTab() {
       {/* Zone A: Instruction controls — fixed at top, capped at 50% */}
       <div className="shrink-0 max-h-[50%] overflow-y-auto border-b border-gray-200">
         <div className="px-4 pt-4">
-          <label className="text-xs font-medium text-gray-500 mb-1.5 block">Instruction</label>
+          <label className="text-xs font-medium text-[var(--dc-color-text-muted)] mb-1.5 block">
+            Instruction
+          </label>
 
           {/* Instruction list (replaces chips + saved picker) */}
           <div className="mb-3">
@@ -209,7 +211,7 @@ export function DeskTab() {
           <div className="pb-3">
             <label
               htmlFor="desk-instruction-textarea"
-              className="text-xs font-medium text-gray-500 mb-1.5 block"
+              className="text-xs font-medium text-[var(--dc-color-text-muted)] mb-1.5 block"
             >
               Or write your own
             </label>
@@ -233,12 +235,12 @@ export function DeskTab() {
       {/* Zone B: Document list + analysis results — flex-grows to fill remaining space */}
       <div className="flex-1 overflow-y-auto min-h-0">
         {/* Document list header */}
-        <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2 sticky top-0 bg-white z-10">
+        <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2 sticky top-0 bg-[var(--dc-color-surface-primary)] z-10">
           <button
             onClick={toggleSelectAll}
             role="checkbox"
             aria-checked={allSelected ? "true" : someSelected ? "mixed" : "false"}
-            className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700
+            className="flex items-center gap-2 text-xs text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)]
                        transition-colors min-h-[32px]"
           >
             <span
@@ -247,7 +249,7 @@ export function DeskTab() {
                   ? "bg-blue-600 border-blue-600"
                   : someSelected
                     ? "bg-blue-600 border-blue-600"
-                    : "border-gray-300"
+                    : "border-[var(--dc-color-border-strong)]"
               }`}
             >
               {allSelected && (
@@ -278,7 +280,7 @@ export function DeskTab() {
             </span>
             {allSelected ? "Deselect all" : "Select all"}
           </button>
-          <span className="text-[10px] text-gray-400 ml-auto">
+          <span className="text-[10px] text-[var(--dc-color-text-placeholder)] ml-auto">
             {selectedIds.size > 0
               ? `${selectedIds.size} selected`
               : `${deskSources.length} on desk`}
@@ -299,7 +301,7 @@ export function DeskTab() {
             return (
               <div
                 key={source.id}
-                className="flex items-center w-full border-b border-gray-50 hover:bg-gray-50"
+                className="flex items-center w-full border-b border-gray-50 hover:bg-[var(--dc-color-surface-secondary)]"
               >
                 {/* Checkbox + title (tap to select) */}
                 <button
@@ -310,7 +312,9 @@ export function DeskTab() {
                 >
                   <span
                     className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                      isSelected ? "bg-blue-600 border-blue-600" : "border-gray-300"
+                      isSelected
+                        ? "bg-blue-600 border-blue-600"
+                        : "border-[var(--dc-color-border-strong)]"
                     }`}
                   >
                     {isSelected && (
@@ -342,7 +346,7 @@ export function DeskTab() {
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                  <span className="text-sm text-gray-900 truncate flex-1 text-left">
+                  <span className="text-sm text-[var(--dc-color-text-primary)] truncate flex-1 text-left">
                     {source.title}
                   </span>
                 </button>
@@ -351,7 +355,7 @@ export function DeskTab() {
                 <button
                   onClick={() => handleUntag(source.id, source.title)}
                   className="p-2 mr-1 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center
-                             text-blue-600 hover:text-gray-400 transition-colors"
+                             text-blue-600 hover:text-[var(--dc-color-text-placeholder)] transition-colors"
                   aria-label="Remove from desk"
                 >
                   <svg
@@ -376,7 +380,7 @@ export function DeskTab() {
         {/* Deep analysis progress */}
         {isDeepProcessing && deepAnalysis.totalBatches > 0 && (
           <div className="px-4 py-4 space-y-2">
-            <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center justify-between text-xs text-[var(--dc-color-text-muted)]">
               <span>
                 Analyzing{" "}
                 {deepAnalysis.totalBatches > 1
@@ -402,9 +406,9 @@ export function DeskTab() {
         {/* Analysis result / streaming response */}
         {(effectiveText || isAnalyzing || effectiveError) && (
           <div ref={analysisRef} className="px-4 py-4 space-y-2">
-            <h3 className="text-xs font-medium text-gray-500">Analysis</h3>
+            <h3 className="text-xs font-medium text-[var(--dc-color-text-muted)]">Analysis</h3>
             <div
-              className="p-3 bg-gray-50 rounded-lg text-sm text-gray-900 leading-relaxed whitespace-pre-wrap min-h-[60px]"
+              className="p-3 bg-[var(--dc-color-surface-secondary)] rounded-lg text-sm text-[var(--dc-color-text-primary)] leading-relaxed whitespace-pre-wrap min-h-[60px]"
               aria-live={isAnyAnalyzing ? "off" : "polite"}
             >
               {effectiveText}
@@ -436,8 +440,8 @@ export function DeskTab() {
           <>
             <button
               onClick={handleCopy}
-              className="flex-1 h-10 rounded-lg border border-gray-300 text-sm font-medium text-gray-700
-                         hover:bg-gray-50 transition-colors min-h-[44px]"
+              className="flex-1 h-10 rounded-lg border border-[var(--dc-color-border-strong)] text-sm font-medium text-[var(--dc-color-text-secondary)]
+                         hover:bg-[var(--dc-color-surface-secondary)] transition-colors min-h-[44px]"
             >
               Copy
             </button>

@@ -453,18 +453,18 @@ export function ExportMenu({
       {/* Dropdown menu */}
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+          className="absolute right-0 top-full mt-1 w-56 bg-[var(--dc-color-surface-primary)] rounded-lg shadow-lg border border-gray-200 py-1 z-50"
           role="menu"
           aria-label="Export options"
         >
           <button
             onClick={() => handleExport("book", "pdf")}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2"
             role="menuitem"
           >
             <svg
-              className="w-4 h-4 text-gray-500 shrink-0"
+              className="w-4 h-4 text-[var(--dc-color-text-muted)] shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -481,12 +481,12 @@ export function ExportMenu({
 
           <button
             onClick={() => handleExport("book", "epub")}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2"
             role="menuitem"
           >
             <svg
-              className="w-4 h-4 text-gray-500 shrink-0"
+              className="w-4 h-4 text-[var(--dc-color-text-muted)] shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -506,13 +506,13 @@ export function ExportMenu({
           <button
             onClick={() => handleExport("chapter", "pdf")}
             disabled={!activeChapterId}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2
                        disabled:opacity-50 disabled:cursor-not-allowed"
             role="menuitem"
           >
             <svg
-              className="w-4 h-4 text-gray-500 shrink-0"
+              className="w-4 h-4 text-[var(--dc-color-text-muted)] shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -530,13 +530,13 @@ export function ExportMenu({
           <button
             onClick={() => handleExport("chapter", "epub")}
             disabled={!activeChapterId}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2
                        disabled:opacity-50 disabled:cursor-not-allowed"
             role="menuitem"
           >
             <svg
-              className="w-4 h-4 text-gray-500 shrink-0"
+              className="w-4 h-4 text-[var(--dc-color-text-muted)] shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -559,12 +559,12 @@ export function ExportMenu({
               close();
               setDeliveryPhase("destination-settings");
             }}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2"
             role="menuitem"
           >
             <svg
-              className="w-4 h-4 text-gray-500 shrink-0"
+              className="w-4 h-4 text-[var(--dc-color-text-muted)] shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -591,13 +591,13 @@ export function ExportMenu({
               downloadBackup(projectId);
             }}
             disabled={isDownloading}
-            className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
+            className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2
                        disabled:opacity-50 disabled:cursor-not-allowed"
             role="menuitem"
           >
             <svg
-              className="w-4 h-4 text-gray-500 shrink-0"
+              className="w-4 h-4 text-[var(--dc-color-text-muted)] shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

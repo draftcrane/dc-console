@@ -56,8 +56,11 @@ export function RenameProjectDialog({
       aria-modal="true"
       aria-labelledby="rename-dialog-title"
     >
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-        <h2 id="rename-dialog-title" className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="bg-[var(--dc-color-surface-primary)] rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+        <h2
+          id="rename-dialog-title"
+          className="text-lg font-semibold text-[var(--dc-color-text-primary)] mb-4"
+        >
           Rename Book
         </h2>
         <input
@@ -68,7 +71,7 @@ export function RenameProjectDialog({
             if (e.key === "Enter") handleSubmit();
             if (e.key === "Escape") onCancel();
           }}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+          className="w-full px-3 py-2 border border-[var(--dc-color-border-strong)] rounded-lg text-sm
                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           maxLength={500}
           autoFocus
@@ -77,7 +80,7 @@ export function RenameProjectDialog({
           <button
             onClick={onCancel}
             disabled={isSubmitting}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg
+            className="px-4 py-2 text-sm font-medium text-[var(--dc-color-text-secondary)] bg-[var(--dc-color-surface-tertiary)] rounded-lg
                        hover:bg-gray-200 transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
