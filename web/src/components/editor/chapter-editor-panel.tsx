@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { AIRewriteResult, SheetState } from "@/hooks/use-ai-rewrite";
 import { StreamingResponse } from "./streaming-response";
 import { useSourcesContext } from "@/contexts/sources-context";
@@ -74,7 +74,6 @@ export function ChapterEditorPanel({
 
   const isStreaming = sheetState === "streaming";
   const isComplete = sheetState === "complete";
-  const isIdle = sheetState === "idle";
   const hasResult = result !== null;
   const hasSelectedText = selectedText.length > 0;
 
@@ -159,13 +158,6 @@ export function ChapterEditorPanel({
   const handleGoDeeper = useCallback(() => {
     if (result && onGoDeeper) onGoDeeper(result);
   }, [result, onGoDeeper]);
-
-  // Focus instruction field when panel becomes idle with selected text
-  useEffect(() => {
-    if (isIdle && hasSelectedText && instructionRef.current) {
-      instructionRef.current.focus();
-    }
-  }, [isIdle, hasSelectedText]);
 
   return (
     <div className="flex flex-col h-full">
