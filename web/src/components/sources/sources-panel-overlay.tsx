@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useSourcesContext } from "@/contexts/sources-context";
 import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { LibraryTab } from "./library-tab";
 import { DeskTab } from "./desk-tab";
 import type { SourcesTab } from "@/hooks/use-sources-panel";
@@ -14,6 +15,7 @@ import type { SourcesTab } from "@/hooks/use-sources-panel";
 export function SourcesPanelOverlay() {
   const { activeTab, setActiveTab, isPanelOpen, closePanel, sources } = useSourcesContext();
   const { shouldRender, isClosing } = useDelayedUnmount(isPanelOpen, 200);
+  const panelRef = useFocusTrap({ isOpen: isPanelOpen, onEscape: closePanel });
 
   const deskCount = useMemo(() => sources.filter((s) => s.status === "active").length, [sources]);
 
@@ -38,6 +40,7 @@ export function SourcesPanelOverlay() {
 
       {/* Panel */}
       <div
+        ref={panelRef}
         className={`sources-panel-overlay fixed inset-y-0 right-0 z-50 w-full max-w-[380px]
                    bg-background shadow-xl flex flex-col lg:hidden ${isClosing ? "sources-panel-slide-out" : "sources-panel-slide-in"}`}
         role="dialog"

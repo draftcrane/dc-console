@@ -13,6 +13,7 @@ import { EditorWritingArea } from "@/components/editor/editor-writing-area";
 import { EditorDialogs } from "@/components/editor/editor-dialogs";
 import { EditorPanel, EditorPanelOverlay } from "@/components/editor/editor-panel";
 import { ChapterEditorPanel } from "@/components/editor/chapter-editor-panel";
+import { SkipLink } from "@/components/editor/skip-link";
 import { ToastProvider } from "@/components/toast";
 import { useAutoSave } from "@/hooks/use-auto-save";
 import { useSignOut } from "@/hooks/use-sign-out";
@@ -108,6 +109,13 @@ function EditorPageInner() {
   const [editorPanelOpen, setEditorPanelOpen] = useState(false);
   const [editorSelectedText, setEditorSelectedText] = useState("");
 
+  // --- Panel announcements for screen readers (#330) ---
+  const [panelAnnouncement, setPanelAnnouncement] = useState("");
+  const announcePanel = useCallback((msg: string) => {
+    setPanelAnnouncement("");
+    requestAnimationFrame(() => setPanelAnnouncement(msg));
+  }, []);
+
   // Read selected text from editor whenever selection changes
   const handleEditorSelectionUpdate = useCallback(() => {
     const editor = editorRef.current?.getEditor();
@@ -139,10 +147,12 @@ function EditorPageInner() {
 
   const handleToggleEditorPanel = useCallback(() => {
     setEditorPanelOpen((prev) => {
-      if (!prev) setSidebarCollapsed(true);
-      return !prev;
+      const nextOpen = !prev;
+      if (nextOpen) setSidebarCollapsed(true);
+      announcePanel(nextOpen ? "Editor panel opened" : "Editor panel closed");
+      return nextOpen;
     });
-  }, []);
+  }, [announcePanel]);
 
   // --- Chapter management ---
   const {
@@ -261,8 +271,14 @@ function EditorPageInner() {
 
   return (
     <SourcesProvider projectId={projectId} editorRef={editorRef}>
+      <SkipLink />
       <div className="flex h-[calc(100dvh-3.5rem)]">
         <OnboardingTooltips />
+
+        {/* Screen reader announcements for panel state changes (#330) */}
+        <div className="sr-only" aria-live="polite" aria-atomic="true" role="status">
+          {panelAnnouncement}
+        </div>
 
         {recoveryPrompt && (
           <CrashRecoveryDialog
@@ -285,8 +301,14 @@ function EditorPageInner() {
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebarCollapsed={() => setSidebarCollapsed(!sidebarCollapsed)}
           mobileOverlayOpen={mobileOverlayOpen}
-          onOpenMobileOverlay={() => setMobileOverlayOpen(true)}
-          onCloseMobileOverlay={() => setMobileOverlayOpen(false)}
+          onOpenMobileOverlay={() => {
+            setMobileOverlayOpen(true);
+            announcePanel("Chapter navigation opened");
+          }}
+          onCloseMobileOverlay={() => {
+            setMobileOverlayOpen(false);
+            announcePanel("Chapter navigation closed");
+          }}
         />
 
         <EditorPanel isOpen={editorPanelOpen} onClose={() => setEditorPanelOpen(false)}>

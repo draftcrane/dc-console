@@ -56,7 +56,12 @@ export function EditorWritingArea({
   onBlur,
 }: EditorWritingAreaProps) {
   return (
-    <div className="flex-1 overflow-auto">
+    <div
+      className="flex-1 overflow-auto"
+      id="writing-area"
+      tabIndex={-1}
+      style={{ outline: "none" }}
+    >
       <div className="max-w-[700px] mx-auto px-6 py-8">
         {/* Chapter title - editable at top of editor (US-011) */}
         {editingTitle ? (
