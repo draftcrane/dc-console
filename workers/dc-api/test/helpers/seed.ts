@@ -290,13 +290,13 @@ export async function seedAIInstruction(
     id?: string;
     label?: string;
     instructionText?: string;
-    type?: "analysis" | "rewrite";
+    type?: "desk" | "book" | "chapter";
   },
 ) {
   const id = overrides?.id ?? ulid();
   const label = overrides?.label ?? "Test Instruction";
   const instructionText = overrides?.instructionText ?? "Do something with this text.";
-  const type = overrides?.type ?? "analysis";
+  const type = overrides?.type ?? "desk";
   const ts = now();
   await env.DB.prepare(
     `INSERT INTO ai_instructions (id, user_id, label, instruction_text, type, created_at, updated_at)
