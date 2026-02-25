@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useSourcesContext } from "@/contexts/sources-context";
 import { LibraryTab } from "./library-tab";
 import { DeskTab } from "./desk-tab";
@@ -13,6 +13,24 @@ import type { SourcesTab } from "@/hooks/use-sources-panel";
  */
 export function SourcesPanel() {
   const { activeTab, setActiveTab, closePanel, isPanelOpen, sources } = useSourcesContext();
+  const triggerRef = useRef<Element | null>(null);
+  const prevIsOpenRef = useRef(false);
+
+  // Focus management: capture trigger on open, restore on close (#330)
+  useEffect(() => {
+    const wasOpen = prevIsOpenRef.current;
+    prevIsOpenRef.current = isPanelOpen;
+
+    if (isPanelOpen && !wasOpen) {
+      triggerRef.current = document.activeElement;
+    } else if (!isPanelOpen && wasOpen) {
+      const trigger = triggerRef.current;
+      triggerRef.current = null;
+      if (trigger instanceof HTMLElement) {
+        trigger.focus();
+      }
+    }
+  }, [isPanelOpen]);
 
   const deskCount = useMemo(() => sources.filter((s) => s.status === "active").length, [sources]);
 

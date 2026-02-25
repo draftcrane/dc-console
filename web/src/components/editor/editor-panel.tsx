@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
 
 /**
@@ -36,9 +36,28 @@ interface EditorPanelProps {
 /**
  * Desktop/landscape persistent panel.
  * Hidden on portrait (< 1024px). Use EditorPanelOverlay for portrait.
+ * Restores focus to trigger element on close (#330).
  */
 export function EditorPanel({ isOpen, onClose, children }: EditorPanelProps) {
   const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
+  const triggerRef = useRef<Element | null>(null);
+  const prevIsOpenRef = useRef(false);
+
+  // Focus management: capture trigger on open, restore on close
+  useEffect(() => {
+    const wasOpen = prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    if (isOpen && !wasOpen) {
+      triggerRef.current = document.activeElement;
+    } else if (!isOpen && wasOpen) {
+      const trigger = triggerRef.current;
+      triggerRef.current = null;
+      if (trigger instanceof HTMLElement) {
+        trigger.focus();
+      }
+    }
+  }, [isOpen]);
 
   if (!shouldRender) return null;
 
@@ -78,10 +97,53 @@ export function EditorPanel({ isOpen, onClose, children }: EditorPanelProps) {
 
 /**
  * Portrait/tablet overlay version of the editor panel.
- * Full-screen overlay with backdrop, slides in from the left.
+ * Slides in from the left. Non-modal: users can still interact
+ * with the editor behind it. Focus is restored to the trigger
+ * element when the panel closes (#330).
  */
 export function EditorPanelOverlay({ isOpen, onClose, children }: EditorPanelProps) {
   const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
+  const triggerRef = useRef<Element | null>(null);
+  const prevIsOpenRef = useRef(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Focus management: capture trigger on open, restore on close
+  useEffect(() => {
+    const wasOpen = prevIsOpenRef.current;
+    prevIsOpenRef.current = isOpen;
+
+    if (isOpen && !wasOpen) {
+      // Opening: capture the element that triggered the overlay
+      triggerRef.current = document.activeElement;
+      // Focus the close button inside the panel
+      requestAnimationFrame(() => {
+        const firstButton = panelRef.current?.querySelector<HTMLElement>(
+          'button[aria-label="Close editor panel"]',
+        );
+        firstButton?.focus();
+      });
+    } else if (!isOpen && wasOpen) {
+      // Closing: return focus to the trigger element
+      const trigger = triggerRef.current;
+      triggerRef.current = null;
+      if (trigger instanceof HTMLElement) {
+        trigger.focus();
+      }
+    }
+  }, [isOpen]);
+
+  // Escape key to close
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!shouldRender) return null;
 
@@ -89,6 +151,7 @@ export function EditorPanelOverlay({ isOpen, onClose, children }: EditorPanelPro
     <>
       {/* Panel — non-modal so users can still select text in the editor */}
       <div
+        ref={panelRef}
         className={`editor-panel-overlay fixed inset-y-0 left-0 z-50 w-full max-w-[380px]
                    bg-[var(--color-background)] shadow-xl flex flex-col lg:hidden
                    ${isClosing ? "editor-panel-slide-out" : "editor-panel-slide-in"}`}

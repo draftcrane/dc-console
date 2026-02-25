@@ -178,6 +178,56 @@
   animation: backdrop-fade-out 200ms ease-in forwards;
 }
 
+/* ------------------------------------------------------------------
+ * Skip Link (#330)
+ *
+ * Visually hidden link that appears on focus for keyboard users.
+ * Positioned fixed at top-center, slides down when focused.
+ * Uses --dc-color-interactive-primary for visual identity.
+ * ------------------------------------------------------------------ */
+
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  padding: 12px 24px;
+  background: var(--dc-color-interactive-primary);
+  color: var(--dc-color-text-inverse);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--dc-radius-md);
+  box-shadow: var(--dc-shadow-lg);
+  text-decoration: none;
+  transition: top var(--dc-motion-fast) var(--dc-motion-ease-out);
+  white-space: nowrap;
+}
+
+.skip-link:focus {
+  top: 12px;
+  outline: 2px solid var(--dc-color-interactive-primary);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------
+ * Global Focus-Visible Styles (#330)
+ *
+ * Consistent focus ring using the --dc-color-interactive-primary
+ * design token. Applied to all focusable elements when focused
+ * via keyboard (focus-visible).
+ * ------------------------------------------------------------------ */
+
+:focus-visible {
+  outline: 2px solid var(--dc-color-interactive-primary);
+  outline-offset: 2px;
+}
+
+/* Remove default focus outline — only show on focus-visible */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .toast-fade-in {
