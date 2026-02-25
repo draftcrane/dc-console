@@ -23,8 +23,21 @@
   }
 }
 
+@keyframes editor-panel-slide-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
 .editor-panel-slide-in {
   animation: editor-panel-slide-in 200ms ease-out;
+}
+
+.editor-panel-slide-out {
+  animation: editor-panel-slide-out 200ms ease-in forwards;
 }
 
 .editor-panel-backdrop-fade-in {

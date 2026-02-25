@@ -31,6 +31,22 @@
   --dc-color-surface-tertiary: #f3f4f6;
   /* Toggle indicator, panel backgrounds */
   --dc-color-surface-primary: #ffffff;
+
+  /* Layout tokens (#395) */
+  --dc-toolbar-height: 48px;
+  --dc-toolbar-padding-x: 16px;
+  --dc-toolbar-gap: 8px;
+  --dc-toggle-height: 44px;
+  --dc-toggle-option-height: 40px;
+  --dc-toggle-option-min-width: 72px;
+  --dc-panel-toggle-height: 44px;
+
+  /* Motion tokens (#395) */
+  --dc-motion-fast: 150ms;
+  --dc-motion-normal: 200ms;
+  --dc-motion-ease-in-out: ease-in-out;
+  --dc-motion-ease-out: ease-out;
+  --dc-motion-ease-in: ease-in;
 }
 
 @theme inline {

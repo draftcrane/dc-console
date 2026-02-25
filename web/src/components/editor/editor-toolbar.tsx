@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useCallback } from "react";
 import type { ProjectData } from "@/types/editor";
 import type { SaveStatus } from "@/hooks/use-auto-save";
 import type { ProjectSummary } from "@/hooks/use-project-actions";
@@ -71,9 +72,65 @@ export function EditorToolbar({
   isSigningOut,
 }: EditorToolbarProps) {
   const { isPanelOpen, togglePanel, connections } = useSourcesContext();
+  const [announcement, setAnnouncement] = useState("");
+
+  // Keyboard shortcuts (#394)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (!isMod || !e.shiftKey) return;
+
+      switch (e.key.toLowerCase()) {
+        case "e":
+          e.preventDefault();
+          onToggleEditorPanel?.();
+          break;
+        case "l":
+          e.preventDefault();
+          togglePanel();
+          break;
+        case "b":
+          e.preventDefault();
+          onViewModeChange(viewMode === "chapter" ? "book" : "chapter");
+          break;
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onToggleEditorPanel, togglePanel, viewMode, onViewModeChange]);
+
+  // aria-live announcements (#393)
+  const announce = useCallback((msg: string) => {
+    setAnnouncement("");
+    requestAnimationFrame(() => setAnnouncement(msg));
+  }, []);
+
+  const handleViewModeChange = useCallback(
+    (mode: ViewMode) => {
+      onViewModeChange(mode);
+      announce(`Switched to ${mode === "chapter" ? "Chapter" : "Book"} view`);
+    },
+    [onViewModeChange, announce],
+  );
+
+  const handleToggleEditor = useCallback(() => {
+    onToggleEditorPanel?.();
+    announce(isEditorPanelOpen ? "Editor panel closed" : "Editor panel opened");
+  }, [onToggleEditorPanel, isEditorPanelOpen, announce]);
+
+  const handleToggleLibrary = useCallback(() => {
+    togglePanel();
+    announce(isPanelOpen ? "Library panel closed" : "Library panel opened");
+  }, [togglePanel, isPanelOpen, announce]);
 
   return (
-    <div className="flex items-center h-12 px-4 border-b border-border bg-background shrink-0">
+    <div
+      className="flex items-center h-12 px-4 border-b border-border bg-background shrink-0"
+      role="toolbar"
+      aria-label="Editor toolbar"
+      aria-orientation="horizontal"
+    >
       {/* Left: Project switcher */}
       <div className="flex items-center gap-2 min-w-0 shrink-0">
         <ProjectSwitcher
@@ -92,7 +149,7 @@ export function EditorToolbar({
 
       {/* Center: Workspace toggle - in flex flow to avoid overlap (#353) */}
       <div className="flex-1 flex justify-center min-w-0 px-2">
-        <WorkspaceToggle value={viewMode} onChange={onViewModeChange} />
+        <WorkspaceToggle value={viewMode} onChange={handleViewModeChange} />
       </div>
 
       {/* Right: Actions */}
@@ -114,7 +171,7 @@ export function EditorToolbar({
               </svg>
             }
             isOpen={isEditorPanelOpen}
-            onToggle={onToggleEditorPanel}
+            onToggle={handleToggleEditor}
             zone="editor"
           />
         )}
@@ -132,7 +189,7 @@ export function EditorToolbar({
             </svg>
           }
           isOpen={isPanelOpen}
-          onToggle={togglePanel}
+          onToggle={handleToggleLibrary}
           zone="library"
         />
 
@@ -153,6 +210,11 @@ export function EditorToolbar({
           onSignOut={onSignOut}
           isSigningOut={isSigningOut}
         />
+      </div>
+
+      {/* Screen reader announcements (#393) */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {announcement}
       </div>
     </div>
   );

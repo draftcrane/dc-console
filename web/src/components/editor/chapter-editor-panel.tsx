@@ -325,12 +325,18 @@ export function ChapterEditorPanel({
           </div>
         )}
 
-        {/* Streaming response area */}
+        {/* Streaming response area (#390) */}
         {hasResult && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-medium text-[var(--dc-color-interactive-escalation)]">
-                Rewrite
+                {panelState === "streaming"
+                  ? "Rewriting\u2026"
+                  : panelState === "error"
+                    ? "Could not finish the rewrite."
+                    : result.attemptNumber > 1
+                      ? "Here is another take."
+                      : "Here is a rewrite."}
               </h3>
               {isStreaming && (
                 <span className="text-xs text-[var(--dc-color-interactive-escalation)] flex items-center gap-1">
