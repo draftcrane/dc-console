@@ -150,9 +150,7 @@ describe("EditorPanelOverlay", () => {
         <div>Content</div>
       </EditorPanelOverlay>,
     );
-    expect(
-      screen.getByRole("complementary", { name: "Chapter editor" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Chapter editor" })).toBeInTheDocument();
   });
 
   it("does not have aria-modal (non-modal panel)", () => {

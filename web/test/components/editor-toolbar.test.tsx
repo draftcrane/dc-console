@@ -135,9 +135,7 @@ describe("EditorToolbar", () => {
 
   it("shows active state when editor panel is open", () => {
     render(
-      <EditorToolbar
-        {...makeProps({ isEditorPanelOpen: true, onToggleEditorPanel: vi.fn() })}
-      />,
+      <EditorToolbar {...makeProps({ isEditorPanelOpen: true, onToggleEditorPanel: vi.fn() })} />,
     );
 
     expect(screen.getByLabelText("Close editor panel")).toBeInTheDocument();
