@@ -491,6 +491,47 @@
   display: none;
 }
 
+/* ------------------------------------------------------------------
+ * Sidebar Overlay Exit Animations (#377)
+ *
+ * Exit animations for sidebar overlay (slides left out of view)
+ * and backdrop (fades out). Used with useDelayedUnmount.
+ * ------------------------------------------------------------------ */
+
+@keyframes sidebar-overlay-slide-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes sidebar-backdrop-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.sidebar-overlay-slide-in {
+  animation: workspace-slide-from-left 200ms ease-out;
+}
+
+.sidebar-overlay-slide-out {
+  animation: sidebar-overlay-slide-out 200ms ease-in forwards;
+}
+
+.sidebar-backdrop-fade-in {
+  animation: workspace-backdrop-fade-in 200ms ease-out;
+}
+
+.sidebar-backdrop-fade-out {
+  animation: sidebar-backdrop-fade-out 200ms ease-in forwards;
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .workspace-view-enter,
@@ -504,6 +545,22 @@
   }
 
   .workspace-overlay-backdrop {
+    animation: none;
+  }
+
+  .sidebar-overlay-slide-in {
+    animation: none;
+  }
+
+  .sidebar-overlay-slide-out {
+    animation: none;
+  }
+
+  .sidebar-backdrop-fade-in {
+    animation: none;
+  }
+
+  .sidebar-backdrop-fade-out {
     animation: none;
   }
 }

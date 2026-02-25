@@ -5,6 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/components/toast";
 import { useFeedbackContext } from "@/hooks/use-feedback-context";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -33,6 +34,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
   const { getToken } = useAuth();
   const { showToast } = useToast();
   const { collectContext } = useFeedbackContext();
+  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
 
   const sheetRef = useFocusTrap({ isOpen, onEscape: onClose });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -111,7 +113,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
     }
   }, [type, description, getToken, collectContext, onClose, showToast]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const canSubmit = type !== null && description.trim().length >= 10 && !isSubmitting;
 
@@ -119,7 +121,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/30 transition-opacity"
+        className={`fixed inset-0 z-40 bg-black/30 ${isClosing ? "backdrop-fade-out" : "backdrop-fade-in"}`}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -132,8 +134,8 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
         aria-label="Report a problem"
         className={
           isLandscape
-            ? "fixed inset-y-0 right-0 z-50 w-full max-w-[380px] bg-[var(--dc-color-surface-primary)] rounded-l-2xl shadow-2xl border-l border-gray-200 sheet-slide-right flex flex-col"
-            : "fixed bottom-0 left-0 right-0 z-50 bg-[var(--dc-color-surface-primary)] rounded-t-2xl shadow-2xl border-t border-gray-200 sheet-slide-up max-h-[80vh] flex flex-col"
+            ? `fixed inset-y-0 right-0 z-50 w-full max-w-[380px] bg-[var(--dc-color-surface-primary)] rounded-l-2xl shadow-2xl border-l border-gray-200 flex flex-col ${isClosing ? "sheet-slide-right-out" : "sheet-slide-right"}`
+            : `fixed bottom-0 left-0 right-0 z-50 bg-[var(--dc-color-surface-primary)] rounded-t-2xl shadow-2xl border-t border-gray-200 max-h-[80vh] flex flex-col ${isClosing ? "sheet-slide-down" : "sheet-slide-up"}`
         }
       >
         {/* Drag handle — portrait only */}

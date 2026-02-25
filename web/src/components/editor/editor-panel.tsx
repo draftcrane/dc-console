@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
+import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
 
 /**
  * EditorPanel — Left-side persistent panel shell for the writing environment.
@@ -123,30 +124,4 @@ export function EditorPanelOverlay({ isOpen, onClose, children }: EditorPanelPro
       </div>
     </>
   );
-}
-
-/**
- * Delayed unmount hook — keeps component in DOM during exit animation (#391).
- *
- * On open: renders immediately via synchronous state update in render.
- * On close: keeps rendered for durationMs (exit animation), then unmounts.
- * `isClosing` is derived from `shouldRender && !isOpen`.
- */
-function useDelayedUnmount(isOpen: boolean, durationMs: number) {
-  const [shouldRender, setShouldRender] = useState(isOpen);
-
-  // Synchronous open: set shouldRender during render (no effect needed)
-  if (isOpen && !shouldRender) {
-    setShouldRender(true);
-  }
-
-  // Delayed close: unmount after exit animation completes
-  useEffect(() => {
-    if (!isOpen && shouldRender) {
-      const timer = setTimeout(() => setShouldRender(false), durationMs);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, shouldRender, durationMs]);
-
-  return { shouldRender, isClosing: shouldRender && !isOpen };
 }
