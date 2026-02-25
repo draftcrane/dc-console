@@ -302,7 +302,16 @@ export function ExportMenu({
         });
       }
     },
-    [projectId, activeChapterId, getToken, apiUrl, preference, isPreferenceLoading, applyDefault, close],
+    [
+      projectId,
+      activeChapterId,
+      getToken,
+      apiUrl,
+      preference,
+      isPreferenceLoading,
+      applyDefault,
+      close,
+    ],
   );
 
   /**
