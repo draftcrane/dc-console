@@ -81,19 +81,11 @@ export function EditorPanelOverlay({ isOpen, onClose, children }: EditorPanelPro
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40 bg-black/30 editor-panel-backdrop-fade-in lg:hidden"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Panel */}
+      {/* Panel — non-modal so users can still select text in the editor */}
       <div
         className="editor-panel-overlay fixed inset-y-0 left-0 z-50 w-full max-w-[380px]
                    bg-[var(--color-background)] shadow-xl editor-panel-slide-in flex flex-col lg:hidden"
-        role="dialog"
-        aria-modal="true"
+        role="complementary"
         aria-label="Chapter editor"
       >
         {/* Header */}
