@@ -106,6 +106,12 @@ export default function DriveSuccessPage() {
         // sessionStorage unavailable — URL param fallback below handles this
       }
     }
+    // Record Drive connection status for feedback context (#373)
+    try {
+      sessionStorage.setItem("dc_drive_connected", "true");
+    } catch {
+      // Non-critical
+    }
     // Append URL param as iPad Safari fallback (sessionStorage can be lost on tab suspension)
     const destination = sourceLinkProjectId ? `${base}?sources=open` : base;
     router.push(destination);

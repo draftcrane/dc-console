@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 import { withSerwist } from "@serwist/turbopack";
+import { createRequire } from "module";
+
+// Read version from package.json at build time for NEXT_PUBLIC_APP_VERSION.
+// createRequire is used because next.config.ts is processed as ESM by Next.js.
+const require = createRequire(import.meta.url);
+const pkg = require("./package.json") as { version: string };
 
 /**
  * Security headers applied to all routes.
@@ -52,6 +58,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_APP_VERSION: pkg.version,
+  },
   images: {
     remotePatterns: [
       {
