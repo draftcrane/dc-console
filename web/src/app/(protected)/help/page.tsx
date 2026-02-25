@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ToastProvider } from "@/components/toast";
 import { AccordionSection } from "@/components/help/accordion-section";
@@ -209,6 +209,38 @@ export default function HelpPage() {
 function HelpPageContent() {
   const router = useRouter();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const accordionRef = useRef<HTMLDivElement>(null);
+
+  /** ArrowUp/Down/Home/End navigation between accordion section headers */
+  const handleAccordionKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const container = accordionRef.current;
+    if (!container) return;
+
+    const headers = Array.from(container.querySelectorAll<HTMLElement>("h3 > button"));
+    const currentIndex = headers.indexOf(e.target as HTMLElement);
+    if (currentIndex === -1) return;
+
+    let nextIndex: number | null = null;
+    switch (e.key) {
+      case "ArrowDown":
+        nextIndex = (currentIndex + 1) % headers.length;
+        break;
+      case "ArrowUp":
+        nextIndex = (currentIndex - 1 + headers.length) % headers.length;
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = headers.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    headers[nextIndex].focus();
+  }, []);
 
   const handleReplayTour = () => {
     resetOnboarding();
@@ -221,7 +253,7 @@ function HelpPageContent() {
       <h1 className="font-serif text-3xl font-semibold text-gray-900 mb-8">Help</h1>
 
       {/* FAQ Sections */}
-      <div>
+      <div ref={accordionRef} onKeyDown={handleAccordionKeyDown}>
         {FAQ_SECTIONS.map((section) => (
           <AccordionSection
             key={section.id}
