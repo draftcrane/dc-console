@@ -1,0 +1,179 @@
+/* ------------------------------------------------------------------
+ * Chapter Editor Styles (US-011)
+ *
+ * 18px base font size per PRD Section 8.
+ * Styles for Tiptap ProseMirror editor content area.
+ * ------------------------------------------------------------------ */
+
+.chapter-editor-content {
+  font-size: 18px;
+  line-height: 1.75;
+}
+
+.chapter-editor-content p {
+  margin-bottom: 1em;
+}
+
+.chapter-editor-content h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.chapter-editor-content h3 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+
+.chapter-editor-content ul,
+.chapter-editor-content ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.chapter-editor-content ul {
+  list-style-type: disc;
+}
+
+.chapter-editor-content ol {
+  list-style-type: decimal;
+}
+
+.chapter-editor-content li {
+  margin-bottom: 0.25em;
+}
+
+.chapter-editor-content li p {
+  margin-bottom: 0;
+}
+
+.chapter-editor-content blockquote {
+  border-left: 3px solid #e5e7eb;
+  padding-left: 1em;
+  margin-left: 0;
+  margin-right: 0;
+  font-style: italic;
+  color: #6b7280;
+}
+
+.chapter-editor-content strong {
+  font-weight: 600;
+}
+
+.chapter-editor-content em {
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------
+ * Footnote Styles (#196)
+ *
+ * Footnote references appear as superscript [N] inline with text.
+ * Footnote content entries render at the bottom of the chapter,
+ * separated by a horizontal rule.
+ *
+ * Per design-spec.md Decision 9: "[N] Source Title" format.
+ * ------------------------------------------------------------------ */
+
+.chapter-editor-content .footnote-ref {
+  font-size: 0.75em;
+  vertical-align: super;
+  line-height: 0;
+  color: #2563eb;
+  cursor: default;
+  font-weight: 500;
+  user-select: all;
+}
+
+.chapter-editor-content .footnotes {
+  margin-top: 1.5em;
+  padding-top: 1em;
+  font-size: 0.875em;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.chapter-editor-content .footnote-content {
+  margin-bottom: 0.5em;
+  padding-left: 0;
+}
+
+.chapter-editor-content .footnote-content::before {
+  content: "[" attr(data-footnote-label) "] ";
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Separator between body text and footnotes — the <hr> before .footnotes */
+.chapter-editor-content hr + .footnotes {
+  border-top: none;
+}
+
+.chapter-editor-content hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1.5em 0 0;
+}
+
+/* Placeholder styling for empty editor */
+.chapter-editor-content.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  position: absolute;
+  height: 0;
+  float: left;
+}
+
+/* Remove focus outline - editor manages its own state */
+.chapter-editor-content:focus {
+  outline: none;
+}
+
+/* Virtual keyboard offset for chapter editor on iPad Safari */
+.chapter-editor {
+  padding-bottom: var(--keyboard-height);
+}
+
+/* AI Rewrite Bottom Sheet - slide up animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* AI Rewrite - highlight flash on accepted text replacement */
+@keyframes highlight-flash {
+  0% {
+    background-color: rgba(59, 130, 246, 0.3);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.ai-rewrite-highlight {
+  animation: highlight-flash 1.5s ease-out;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-up {
+    animation: none;
+  }
+
+  .ai-rewrite-highlight {
+    animation: none;
+  }
+}

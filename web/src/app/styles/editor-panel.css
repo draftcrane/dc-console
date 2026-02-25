@@ -1,0 +1,77 @@
+/* ------------------------------------------------------------------
+ * Editor Panel (#317)
+ *
+ * Panel slides in from the left. Blinking cursor for streaming.
+ * Violet accent per Design Charter Section 6 color code.
+ * ------------------------------------------------------------------ */
+
+@keyframes editor-panel-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes editor-panel-backdrop-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.editor-panel-slide-in {
+  animation: editor-panel-slide-in 200ms ease-out;
+}
+
+.editor-panel-backdrop-fade-in {
+  animation: editor-panel-backdrop-fade-in 200ms ease-out;
+}
+
+/* Editor Panel safe area handling */
+.editor-panel {
+  padding-left: env(safe-area-inset-left, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.editor-panel-overlay {
+  height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Streaming cursor blink */
+@keyframes editor-cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.editor-cursor-blink {
+  animation: editor-cursor-blink 1s step-end infinite;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .editor-panel-slide-in {
+    animation: none;
+  }
+
+  .editor-panel-backdrop-fade-in {
+    animation: none;
+  }
+
+  .editor-cursor-blink {
+    animation: none;
+    /* Keep cursor visible but static */
+    opacity: 1;
+  }
+}
