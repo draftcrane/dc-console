@@ -240,8 +240,8 @@ export function ChapterEditorPanel({
                   aria-selected={editedInstruction === inst.instructionText}
                   onClick={() => handleChipSelect(inst.instructionText)}
                   disabled={isStreaming}
-                  className={`h-8 px-3 text-xs font-medium rounded-full transition-colors
-                             min-h-[32px] border
+                  className={`h-9 px-3 text-xs font-medium rounded-full transition-colors
+                             min-h-[36px] border
                              ${
                                editedInstruction === inst.instructionText
                                  ? "bg-[var(--dc-color-interactive-escalation-subtle)] text-[var(--dc-color-interactive-escalation)] border-[var(--dc-color-interactive-escalation-border)]"
