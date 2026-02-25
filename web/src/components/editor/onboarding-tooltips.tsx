@@ -96,7 +96,9 @@ export function OnboardingTooltips() {
 
   /** Whether to skip animation delays for prefers-reduced-motion */
   const prefersReducedMotion = useCallback(() => {
-    return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return (
+      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
   }, []);
 
   const handleNext = useCallback(() => {
