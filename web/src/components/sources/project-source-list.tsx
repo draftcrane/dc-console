@@ -64,7 +64,7 @@ export function ProjectSourceList() {
   if (isLoadingSources) {
     return (
       <div className="px-3 py-6 text-center">
-        <p className="text-sm text-gray-500">Loading sources...</p>
+        <p className="text-sm text-[var(--dc-color-text-muted)]">Loading sources...</p>
       </div>
     );
   }
@@ -76,7 +76,7 @@ export function ProjectSourceList() {
         <div className="px-3 pb-2">
           <div className="relative">
             <svg
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--dc-color-text-placeholder)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -99,7 +99,7 @@ export function ProjectSourceList() {
             {searchQuery && (
               <button
                 onClick={() => handleSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-muted)]
                            min-h-[32px] min-w-[32px] flex items-center justify-center"
                 aria-label="Clear search"
               >
@@ -114,7 +114,11 @@ export function ProjectSourceList() {
               </button>
             )}
           </div>
-          {isSearching && <p className="text-xs text-gray-400 mt-1 px-1">Searching...</p>}
+          {isSearching && (
+            <p className="text-xs text-[var(--dc-color-text-placeholder)] mt-1 px-1">
+              Searching...
+            </p>
+          )}
         </div>
       )}
 
@@ -148,7 +152,7 @@ export function ProjectSourceList() {
                 <>
                   <button
                     onClick={() => openSourceAnalysis(source.id)}
-                    className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors
+                    className="p-1.5 text-[var(--dc-color-text-placeholder)] hover:text-blue-600 transition-colors
                                min-h-[44px] min-w-[44px] flex items-center justify-center"
                     aria-label={`Analyze ${source.title}`}
                     title="Analyze with AI"
@@ -164,7 +168,7 @@ export function ProjectSourceList() {
                   </button>
                   <button
                     onClick={() => handleRemove(source.id, source.title)}
-                    className="p-1.5 text-gray-400 hover:text-red-600 transition-colors
+                    className="p-1.5 text-[var(--dc-color-text-placeholder)] hover:text-red-600 transition-colors
                                min-h-[44px] min-w-[44px] flex items-center justify-center"
                     aria-label={`Remove ${source.title}`}
                     title="Remove source"

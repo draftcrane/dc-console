@@ -139,7 +139,7 @@ export function DocumentPeekView({
         <div className="flex items-center gap-2">
           <button
             onClick={onBack}
-            className="p-1 text-gray-400 hover:text-gray-600 min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-1 text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-muted)] min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Back to browser"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,9 +152,13 @@ export function DocumentPeekView({
             </svg>
           </button>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-medium text-gray-900 truncate">{fileName}</h3>
+            <h3 className="text-sm font-medium text-[var(--dc-color-text-primary)] truncate">
+              {fileName}
+            </h3>
             {!isLoading && !error && (
-              <p className="text-xs text-gray-500">{wordCount.toLocaleString()} words</p>
+              <p className="text-xs text-[var(--dc-color-text-muted)]">
+                {wordCount.toLocaleString()} words
+              </p>
             )}
           </div>
         </div>
@@ -164,7 +168,7 @@ export function DocumentPeekView({
       <div className="flex-1 overflow-auto px-4 py-4">
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-gray-500">Loading content...</p>
+            <p className="text-sm text-[var(--dc-color-text-muted)]">Loading content...</p>
           </div>
         ) : error ? (
           <div className="flex items-center justify-center py-12">
@@ -175,7 +179,9 @@ export function DocumentPeekView({
             {format === "html" ? (
               <div className="source-content" dangerouslySetInnerHTML={{ __html: content }} />
             ) : (
-              <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans">{content}</pre>
+              <pre className="whitespace-pre-wrap text-sm text-[var(--dc-color-text-primary)] font-sans">
+                {content}
+              </pre>
             )}
           </div>
         ) : null}
@@ -191,7 +197,7 @@ export function DocumentPeekView({
                        disabled:opacity-50 disabled:cursor-default ${
                          isOnDesk
                            ? "border-blue-300 text-blue-700 hover:bg-blue-50"
-                           : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                           : "border-[var(--dc-color-border-strong)] text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-secondary)]"
                        }`}
           >
             {isAdding

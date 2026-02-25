@@ -275,7 +275,9 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(function
   );
 
   if (!editor) {
-    return <div className="min-h-[400px] animate-pulse bg-gray-100 rounded-lg" />;
+    return (
+      <div className="min-h-[400px] animate-pulse bg-[var(--dc-color-surface-tertiary)] rounded-lg" />
+    );
   }
 
   return (
@@ -289,7 +291,7 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(function
                      [&_.text-editor-content]:text-lg
                      [&_.text-editor-content]:leading-relaxed
                      [&_.is-editor-empty]:before:content-[attr(data-placeholder)]
-                     [&_.is-editor-empty]:before:text-gray-400
+                     [&_.is-editor-empty]:before:text-[var(--dc-color-text-placeholder)]
                      [&_.is-editor-empty]:before:float-left
                      [&_.is-editor-empty]:before:pointer-events-none
                      [&_.is-editor-empty]:before:h-0"
@@ -302,7 +304,7 @@ function EditorToolbar({ editor }: { editor: Editor }) {
   const buttonClass = useCallback(
     (isActive: boolean) =>
       `p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center
-       ${isActive ? "bg-blue-100 text-blue-700" : "hover:bg-gray-100 text-gray-600"}`,
+       ${isActive ? "bg-blue-100 text-blue-700" : "hover:bg-[var(--dc-color-surface-tertiary)] text-[var(--dc-color-text-muted)]"}`,
     [],
   );
 

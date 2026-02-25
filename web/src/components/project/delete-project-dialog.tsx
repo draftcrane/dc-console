@@ -49,7 +49,7 @@ export function DeleteProjectDialog({
       aria-labelledby="delete-project-title"
       aria-describedby="delete-project-description"
     >
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+      <div className="bg-[var(--dc-color-surface-primary)] rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
         {/* Warning icon */}
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
           <svg
@@ -69,16 +69,19 @@ export function DeleteProjectDialog({
 
         <h2
           id="delete-project-title"
-          className="text-lg font-semibold text-gray-900 mb-2 text-center"
+          className="text-lg font-semibold text-[var(--dc-color-text-primary)] mb-2 text-center"
         >
           Delete Project
         </h2>
 
-        <p id="delete-project-description" className="text-sm text-gray-600 mb-2 text-center">
+        <p
+          id="delete-project-description"
+          className="text-sm text-[var(--dc-color-text-muted)] mb-2 text-center"
+        >
           Are you sure you want to delete &ldquo;{projectTitle}&rdquo;?
         </p>
 
-        <p className="text-sm text-gray-500 mb-6 text-center">
+        <p className="text-sm text-[var(--dc-color-text-muted)] mb-6 text-center">
           Your Google Drive files will not be affected.
         </p>
 
@@ -86,7 +89,7 @@ export function DeleteProjectDialog({
           <button
             onClick={onCancel}
             disabled={isDeleting}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg
+            className="px-4 py-2 text-sm font-medium text-[var(--dc-color-text-secondary)] bg-[var(--dc-color-surface-tertiary)] rounded-lg
                        hover:bg-gray-200 transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >

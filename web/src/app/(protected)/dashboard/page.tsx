@@ -180,7 +180,9 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          <p className="mt-4 text-sm text-gray-400">Your first chapter will be waiting for you.</p>
+          <p className="mt-4 text-sm text-[var(--dc-color-text-placeholder)]">
+            Your first chapter will be waiting for you.
+          </p>
 
           <div className="mt-3">
             <input
@@ -201,7 +203,7 @@ export default function DashboardPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={isImporting}
-              className="text-sm text-gray-400 hover:text-gray-700 transition-colors
+              className="text-sm text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-secondary)] transition-colors
                          disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isImporting ? "Importing..." : "Import from a backup file"}
@@ -213,7 +215,7 @@ export default function DashboardPage() {
             <button
               onClick={handleSignOut}
               disabled={isSigningOut}
-              className="text-sm text-gray-400 hover:text-gray-700 transition-colors
+              className="text-sm text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-secondary)] transition-colors
                          disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSigningOut ? "Signing out\u2026" : "Sign out"}
@@ -243,7 +245,7 @@ export default function DashboardPage() {
         {projects.map((project) => (
           <div
             key={project.id}
-            className="relative bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow group"
+            className="relative bg-[var(--dc-color-surface-primary)] border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow group"
           >
             {/* Clickable card body */}
             <Link href={`/editor/${project.id}`} className="block min-h-[100px]">
@@ -254,10 +256,10 @@ export default function DashboardPage() {
                 <span>
                   {project.chapterCount} {project.chapterCount === 1 ? "chapter" : "chapters"}
                 </span>
-                <span className="text-gray-300">&middot;</span>
+                <span className="text-[var(--dc-color-border-strong)]">&middot;</span>
                 <span className="tabular-nums">{project.wordCount.toLocaleString()} words</span>
               </div>
-              <p className="mt-3 text-xs text-gray-400">
+              <p className="mt-3 text-xs text-[var(--dc-color-text-placeholder)]">
                 Last edited {relativeTime(project.updatedAt)}
               </p>
             </Link>
@@ -273,13 +275,17 @@ export default function DashboardPage() {
                   e.stopPropagation();
                   setOpenMenuId(openMenuId === project.id ? null : project.id);
                 }}
-                className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-100
+                className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-[var(--dc-color-surface-tertiary)]
                            transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                 aria-label={`Actions for ${project.title}`}
                 aria-haspopup="true"
                 aria-expanded={openMenuId === project.id}
               >
-                <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-5 h-5 text-[var(--dc-color-text-muted)]"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <circle cx="12" cy="6" r="1.5" />
                   <circle cx="12" cy="12" r="1.5" />
                   <circle cx="12" cy="18" r="1.5" />
@@ -289,7 +295,7 @@ export default function DashboardPage() {
               {/* Overflow menu dropdown */}
               {openMenuId === project.id && (
                 <div
-                  className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                  className="absolute right-0 top-full mt-1 w-48 bg-[var(--dc-color-surface-primary)] rounded-lg shadow-lg border border-gray-200 py-1 z-50"
                   role="menu"
                 >
                   <button
@@ -298,7 +304,7 @@ export default function DashboardPage() {
                       setRenameValue(project.title);
                       setRenameTarget(project);
                     }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+                    className="w-full text-left px-4 py-2.5 text-sm text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-tertiary)]
                                transition-colors min-h-[44px] flex items-center gap-2"
                     role="menuitem"
                   >
@@ -322,7 +328,7 @@ export default function DashboardPage() {
                       setOpenMenuId(null);
                       setDuplicateTarget(project);
                     }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
+                    className="w-full text-left px-4 py-2.5 text-sm text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-tertiary)]
                                transition-colors min-h-[44px] flex items-center gap-2"
                     role="menuitem"
                   >
@@ -393,7 +399,7 @@ export default function DashboardPage() {
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isImporting}
-          className="text-sm text-gray-400 hover:text-gray-700 transition-colors
+          className="text-sm text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-secondary)] transition-colors
                      disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isImporting ? "Importing..." : "Import from a backup file"}
@@ -402,7 +408,7 @@ export default function DashboardPage() {
         <div className="mt-2">
           <Link
             href="/help"
-            className="text-sm text-gray-400 hover:text-gray-700 transition-colors"
+            className="text-sm text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-secondary)] transition-colors"
           >
             Help
           </Link>
@@ -417,8 +423,11 @@ export default function DashboardPage() {
           aria-modal="true"
           aria-labelledby="rename-dialog-title"
         >
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-            <h2 id="rename-dialog-title" className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-[var(--dc-color-surface-primary)] rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+            <h2
+              id="rename-dialog-title"
+              className="text-lg font-semibold text-[var(--dc-color-text-primary)] mb-4"
+            >
               Rename Book
             </h2>
             <input
@@ -438,7 +447,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => setRenameTarget(null)}
                 disabled={isRenaming}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg
+                className="px-4 py-2 text-sm font-medium text-[var(--dc-color-text-secondary)] bg-[var(--dc-color-surface-tertiary)] rounded-lg
                            hover:bg-gray-200 transition-colors min-h-[44px]
                            disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -466,11 +475,14 @@ export default function DashboardPage() {
           aria-modal="true"
           aria-labelledby="duplicate-dialog-title"
         >
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
-            <h2 id="duplicate-dialog-title" className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="bg-[var(--dc-color-surface-primary)] rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
+            <h2
+              id="duplicate-dialog-title"
+              className="text-lg font-semibold text-[var(--dc-color-text-primary)] mb-2"
+            >
               Duplicate Book
             </h2>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-[var(--dc-color-text-muted)] mb-6">
               Duplicate &ldquo;{duplicateTarget.title}&rdquo;? This creates a full copy of all
               chapters.
             </p>
@@ -478,7 +490,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => setDuplicateTarget(null)}
                 disabled={isDuplicating}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg
+                className="px-4 py-2 text-sm font-medium text-[var(--dc-color-text-secondary)] bg-[var(--dc-color-surface-tertiary)] rounded-lg
                            hover:bg-gray-200 transition-colors min-h-[44px]
                            disabled:opacity-50 disabled:cursor-not-allowed"
               >

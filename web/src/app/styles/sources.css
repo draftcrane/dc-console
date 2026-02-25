@@ -8,7 +8,7 @@
 .source-content {
   font-size: 16px;
   line-height: 1.7;
-  color: #374151;
+  color: var(--dc-color-text-secondary);
 }
 
 .source-content h1 {
@@ -16,7 +16,7 @@
   font-weight: 700;
   margin: 1.5em 0 0.5em;
   font-family: var(--font-serif);
-  color: #111827;
+  color: var(--dc-color-text-primary);
 }
 
 .source-content h2 {
@@ -24,7 +24,7 @@
   font-weight: 600;
   margin: 1.25em 0 0.5em;
   font-family: var(--font-serif);
-  color: #111827;
+  color: var(--dc-color-text-primary);
 }
 
 .source-content h3 {
@@ -32,7 +32,7 @@
   font-weight: 600;
   margin: 1em 0 0.4em;
   font-family: var(--font-serif);
-  color: #111827;
+  color: var(--dc-color-text-primary);
 }
 
 .source-content p {
@@ -61,11 +61,11 @@
   border-left: 3px solid #e5e7eb;
   padding-left: 1em;
   font-style: italic;
-  color: #6b7280;
+  color: var(--dc-color-text-muted);
 }
 
 .source-content a {
-  color: #2563eb;
+  color: var(--dc-color-interactive-primary);
   text-decoration: none;
 }
 
@@ -96,7 +96,7 @@
 }
 
 .source-content th {
-  background-color: #f9fafb;
+  background-color: var(--dc-color-surface-secondary);
   font-weight: 600;
 }
 

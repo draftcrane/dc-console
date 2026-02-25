@@ -13,22 +13,27 @@ export const metadata: Metadata = {
  */
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-dvh bg-white px-6 py-12">
+    <div className="min-h-dvh bg-[var(--dc-color-surface-primary)] px-6 py-12">
       <article className="mx-auto max-w-2xl">
         {/* Back link */}
-        <Link href="/" className="mb-8 inline-block text-sm text-gray-500 hover:text-gray-700">
+        <Link
+          href="/"
+          className="mb-8 inline-block text-sm text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)]"
+        >
           &larr; Back to DraftCrane
         </Link>
 
-        <h1 className="mb-2 font-serif text-4xl font-semibold tracking-tight text-gray-900">
+        <h1 className="mb-2 font-serif text-4xl font-semibold tracking-tight text-[var(--dc-color-text-primary)]">
           Privacy Policy
         </h1>
-        <p className="mb-10 text-sm text-gray-500">Effective date: February 16, 2026</p>
+        <p className="mb-10 text-sm text-[var(--dc-color-text-muted)]">
+          Effective date: February 16, 2026
+        </p>
 
-        <div className="space-y-8 text-base leading-relaxed text-gray-700">
+        <div className="space-y-8 text-base leading-relaxed text-[var(--dc-color-text-secondary)]">
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               What DraftCrane Is
             </h2>
             <p>
@@ -41,18 +46,20 @@ export default function PrivacyPolicyPage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Information We Collect
             </h2>
 
-            <h3 className="mb-2 mt-4 text-lg font-semibold text-gray-800">Account information</h3>
+            <h3 className="mb-2 mt-4 text-lg font-semibold text-[var(--dc-color-text-primary)]">
+              Account information
+            </h3>
             <p>
               When you create an account, we collect your name, email address, and profile
               information through our authentication provider, Clerk. If you sign in with Google, we
               receive basic profile information (name, email, profile photo) from Google OAuth.
             </p>
 
-            <h3 className="mb-2 mt-4 text-lg font-semibold text-gray-800">
+            <h3 className="mb-2 mt-4 text-lg font-semibold text-[var(--dc-color-text-primary)]">
               Google Drive file metadata
             </h3>
             <p>
@@ -61,7 +68,9 @@ export default function PrivacyPolicyPage() {
               metadata in our database to power the dashboard and chapter list.
             </p>
 
-            <h3 className="mb-2 mt-4 text-lg font-semibold text-gray-800">Manuscript content</h3>
+            <h3 className="mb-2 mt-4 text-lg font-semibold text-[var(--dc-color-text-primary)]">
+              Manuscript content
+            </h3>
             <p>
               When you open a chapter in the editor, DraftCrane reads the chapter content from your
               Google Drive to display it. When you use the AI rewrite feature, the selected text is
@@ -69,7 +78,9 @@ export default function PrivacyPolicyPage() {
               stored on our servers. Your Google Drive is the canonical store for your writing.
             </p>
 
-            <h3 className="mb-2 mt-4 text-lg font-semibold text-gray-800">Usage data</h3>
+            <h3 className="mb-2 mt-4 text-lg font-semibold text-[var(--dc-color-text-primary)]">
+              Usage data
+            </h3>
             <p>
               We collect basic usage information such as pages visited and features used to improve
               the product. We do not use third-party analytics or advertising trackers.
@@ -78,13 +89,15 @@ export default function PrivacyPolicyPage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Google Drive Access
             </h2>
             <p>
               DraftCrane requests the{" "}
-              <code className="rounded bg-gray-100 px-1.5 py-0.5 text-sm">drive.file</code> scope
-              from Google. This is the most restrictive file-access scope available. It means:
+              <code className="rounded bg-[var(--dc-color-surface-tertiary)] px-1.5 py-0.5 text-sm">
+                drive.file
+              </code>{" "}
+              scope from Google. This is the most restrictive file-access scope available. It means:
             </p>
             <ul className="mt-3 list-disc space-y-2 pl-6">
               <li>
@@ -104,7 +117,9 @@ export default function PrivacyPolicyPage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">AI Processing</h2>
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
+              AI Processing
+            </h2>
             <p>
               When you use the AI rewrite feature, the text you select is sent to OpenAI (our AI
               provider) for processing. Here is what you should know:
@@ -132,7 +147,7 @@ export default function PrivacyPolicyPage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Where Your Data Lives
             </h2>
             <ul className="list-disc space-y-2 pl-6">
@@ -158,7 +173,9 @@ export default function PrivacyPolicyPage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">Authentication</h2>
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
+              Authentication
+            </h2>
             <p>
               DraftCrane uses Clerk as its authentication provider. When you sign in, Clerk handles
               your credentials securely. DraftCrane never sees or stores your password. If you sign
@@ -168,7 +185,7 @@ export default function PrivacyPolicyPage() {
                 href="https://clerk.com/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-900 underline hover:text-gray-700"
+                className="text-[var(--dc-color-text-primary)] underline hover:text-[var(--dc-color-text-secondary)]"
               >
                 Clerk&apos;s Privacy Policy
               </a>
@@ -178,7 +195,7 @@ export default function PrivacyPolicyPage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               What We Do Not Do
             </h2>
             <ul className="list-disc space-y-2 pl-6">
@@ -194,7 +211,7 @@ export default function PrivacyPolicyPage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Deleting Your Data
             </h2>
             <p>You can request account deletion at any time by contacting us. When you do:</p>
@@ -214,7 +231,9 @@ export default function PrivacyPolicyPage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">Data Security</h2>
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
+              Data Security
+            </h2>
             <p>
               We use industry-standard security practices to protect your data. All connections use
               HTTPS. OAuth tokens are encrypted at rest with AES-256-GCM. Our infrastructure runs on
@@ -225,7 +244,7 @@ export default function PrivacyPolicyPage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Changes to This Policy
             </h2>
             <p>
@@ -236,12 +255,14 @@ export default function PrivacyPolicyPage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">Contact</h2>
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
+              Contact
+            </h2>
             <p>
               If you have questions about this privacy policy or your data, contact us at{" "}
               <a
                 href="mailto:privacy@draftcrane.app"
-                className="text-gray-900 underline hover:text-gray-700"
+                className="text-[var(--dc-color-text-primary)] underline hover:text-[var(--dc-color-text-secondary)]"
               >
                 privacy@draftcrane.app
               </a>
@@ -251,12 +272,12 @@ export default function PrivacyPolicyPage() {
         </div>
 
         {/* Footer links */}
-        <footer className="mt-12 border-t border-gray-200 pt-6 text-sm text-gray-500">
+        <footer className="mt-12 border-t border-gray-200 pt-6 text-sm text-[var(--dc-color-text-muted)]">
           <div className="flex gap-6">
-            <Link href="/terms" className="hover:text-gray-700">
+            <Link href="/terms" className="hover:text-[var(--dc-color-text-secondary)]">
               Terms of Service
             </Link>
-            <Link href="/" className="hover:text-gray-700">
+            <Link href="/" className="hover:text-[var(--dc-color-text-secondary)]">
               Home
             </Link>
           </div>

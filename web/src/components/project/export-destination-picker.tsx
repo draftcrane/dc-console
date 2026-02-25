@@ -109,7 +109,7 @@ export function ExportDestinationPicker({
     const folder = driveFolders[folderPickerOpen];
     return (
       <div className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center">
-        <div className="bg-white rounded-t-2xl w-full max-w-lg max-h-[70vh] flex flex-col shadow-xl">
+        <div className="bg-[var(--dc-color-surface-primary)] rounded-t-2xl w-full max-w-lg max-h-[70vh] flex flex-col shadow-xl">
           <DriveFolderPicker
             connectionId={folderPickerOpen}
             initialFolderId={folder?.folderId}
@@ -126,14 +126,18 @@ export function ExportDestinationPicker({
 
   return (
     <div className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center">
-      <div className="bg-white rounded-t-2xl w-full max-w-lg shadow-xl">
+      <div className="bg-[var(--dc-color-surface-primary)] rounded-t-2xl w-full max-w-lg shadow-xl">
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">
+            <h2 className="text-base font-semibold text-[var(--dc-color-text-primary)]">
               {editMode ? "Export Destination" : "Save Export"}
             </h2>
-            {!editMode && <p className="text-xs text-gray-500 truncate mt-0.5">{fileName}</p>}
+            {!editMode && (
+              <p className="text-xs text-[var(--dc-color-text-muted)] truncate mt-0.5">
+                {fileName}
+              </p>
+            )}
           </div>
           <button
             onClick={onDismiss}
@@ -141,7 +145,7 @@ export function ExportDestinationPicker({
             aria-label="Close"
           >
             <svg
-              className="w-5 h-5 text-gray-400"
+              className="w-5 h-5 text-[var(--dc-color-text-placeholder)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -164,12 +168,12 @@ export function ExportDestinationPicker({
             className={`w-full text-left p-3 rounded-lg border transition-colors min-h-[44px] ${
               selected.type === "device"
                 ? "border-blue-500 bg-blue-50"
-                : "border-gray-200 hover:border-gray-300"
+                : "border-gray-200 hover:border-[var(--dc-color-border-strong)]"
             }`}
           >
             <div className="flex items-center gap-3">
               <svg
-                className="w-5 h-5 text-gray-600 shrink-0"
+                className="w-5 h-5 text-[var(--dc-color-text-muted)] shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -182,8 +186,12 @@ export function ExportDestinationPicker({
                 />
               </svg>
               <div>
-                <p className="text-sm font-medium text-gray-900">This Device</p>
-                <p className="text-xs text-gray-500">Save to your Downloads folder</p>
+                <p className="text-sm font-medium text-[var(--dc-color-text-primary)]">
+                  This Device
+                </p>
+                <p className="text-xs text-[var(--dc-color-text-muted)]">
+                  Save to your Downloads folder
+                </p>
               </div>
             </div>
           </button>
@@ -201,21 +209,25 @@ export function ExportDestinationPicker({
                 className={`w-full text-left p-3 rounded-lg border transition-colors min-h-[44px] ${
                   isSelected
                     ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-gray-300"
+                    : "border-gray-200 hover:border-[var(--dc-color-border-strong)]"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <svg
-                    className="w-5 h-5 text-gray-600 shrink-0"
+                    className="w-5 h-5 text-[var(--dc-color-text-muted)] shrink-0"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
                     <path d="M7.71 3.5L1.15 15l3.43 5.99L11.01 9.5 7.71 3.5zm1.14 0l6.87 12H22.86l-3.43-6-6.87-12H8.85l-.01 0 .01-.01zm6.88 12.01H2.58l3.43 6h13.15l-3.43-6z" />
                   </svg>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">Google Drive</p>
-                    <p className="text-xs text-gray-500 truncate">{connection.email}</p>
-                    <p className="text-xs text-gray-400 truncate">
+                    <p className="text-sm font-medium text-[var(--dc-color-text-primary)]">
+                      Google Drive
+                    </p>
+                    <p className="text-xs text-[var(--dc-color-text-muted)] truncate">
+                      {connection.email}
+                    </p>
+                    <p className="text-xs text-[var(--dc-color-text-placeholder)] truncate">
                       {folder?.folderPath || `${projectTitle} / _exports`}
                     </p>
                     {isSelected && (
@@ -243,9 +255,11 @@ export function ExportDestinationPicker({
               type="checkbox"
               checked={rememberDefault}
               onChange={(e) => setRememberDefault(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-[var(--dc-color-border-strong)] text-blue-600 focus:ring-blue-500"
             />
-            <span className="text-sm text-gray-700">Always save exports here</span>
+            <span className="text-sm text-[var(--dc-color-text-secondary)]">
+              Always save exports here
+            </span>
           </label>
         </div>
 

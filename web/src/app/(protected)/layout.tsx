@@ -41,7 +41,7 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
         {/* Logo/Title - links to dashboard */}
         <Link
           href="/dashboard"
-          className="flex h-11 items-center font-serif text-xl font-semibold text-gray-900"
+          className="flex h-11 items-center font-serif text-xl font-semibold text-[var(--dc-color-text-primary)]"
         >
           DraftCrane
         </Link>
@@ -50,11 +50,11 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
         <div className="flex items-center gap-2">
           <Link
             href="/help"
-            className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+            className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-[var(--dc-color-surface-tertiary)] transition-colors"
             aria-label="Help"
           >
             <svg
-              className="h-5 w-5 text-gray-500"
+              className="h-5 w-5 text-[var(--dc-color-text-muted)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

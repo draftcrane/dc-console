@@ -243,7 +243,7 @@ export function Sidebar({
   return (
     <aside
       className="flex flex-col h-full w-[260px] min-w-[240px] max-w-[280px]
-                 bg-gray-50 border-r border-border"
+                 bg-[var(--dc-color-surface-secondary)] border-r border-border"
       role="navigation"
       aria-label="Chapter navigation"
     >
@@ -345,7 +345,7 @@ export function Sidebar({
       <div className="px-4 py-2 border-t border-border">
         <button
           onClick={onAddChapter}
-          className="w-full py-3 px-4 rounded-lg border border-dashed border-gray-300
+          className="w-full py-3 px-4 rounded-lg border border-dashed border-[var(--dc-color-border-strong)]
                      text-muted-foreground hover:border-blue-500 hover:text-blue-600
                      focus:outline-none focus:ring-2 focus:ring-blue-500
                      transition-colors flex items-center justify-center gap-2
@@ -371,7 +371,7 @@ export function Sidebar({
       </div>
 
       {/* Total word count */}
-      <div className="px-4 py-3 border-t border-border bg-gray-100">
+      <div className="px-4 py-3 border-t border-border bg-[var(--dc-color-surface-tertiary)]">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Total</span>
           <span className="font-medium text-foreground tabular-nums">
@@ -469,8 +469,8 @@ function ChapterListItem({
   return (
     <div
       className={`group w-full flex items-center min-h-[48px] transition-colors
-                 ${isActive ? "bg-blue-100 text-blue-900" : "hover:bg-gray-100 text-foreground"}
-                 ${isDragOverlay ? "shadow-lg rounded-lg bg-white border border-blue-300" : ""}`}
+                 ${isActive ? "bg-blue-100 text-blue-900" : "hover:bg-[var(--dc-color-surface-tertiary)] text-foreground"}
+                 ${isDragOverlay ? "shadow-lg rounded-lg bg-[var(--dc-color-surface-primary)] border border-blue-300" : ""}`}
       role="listitem"
     >
       {/* Drag handle */}
@@ -610,7 +610,7 @@ function InlineRenameInput({
     <div
       className={`w-full px-4 py-3 flex items-center justify-between
                  min-h-[48px] transition-colors
-                 ${isActive ? "bg-blue-100 text-blue-900" : "bg-gray-100 text-foreground"}`}
+                 ${isActive ? "bg-blue-100 text-blue-900" : "bg-[var(--dc-color-surface-tertiary)] text-foreground"}`}
       role="listitem"
     >
       <input
@@ -621,7 +621,7 @@ function InlineRenameInput({
         onBlur={handleCommit}
         onKeyDown={handleKeyDown}
         maxLength={200}
-        className="flex-1 min-w-0 text-sm font-medium bg-white
+        className="flex-1 min-w-0 text-sm font-medium bg-[var(--dc-color-surface-primary)]
                    border border-blue-500 rounded px-2 py-1 outline-none
                    focus:ring-2 focus:ring-blue-500"
         aria-label="Chapter title"

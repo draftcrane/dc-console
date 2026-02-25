@@ -41,7 +41,7 @@ export function FloatingActionBar({ selection, onRewrite }: FloatingActionBarPro
     <div
       role="toolbar"
       aria-label="AI text actions"
-      className="absolute z-50 flex items-center gap-2 bg-white border border-gray-200
+      className="absolute z-50 flex items-center gap-2 bg-[var(--dc-color-surface-primary)] border border-gray-200
                  rounded-xl shadow-lg px-2 py-1 select-none
                  transform -translate-x-1/2"
       style={{

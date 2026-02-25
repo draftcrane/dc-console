@@ -38,8 +38,8 @@ export function SourcesPanel() {
               className={`h-8 px-3 text-xs font-medium rounded-md transition-colors min-h-[32px]
                          ${
                            activeTab === tab.id
-                             ? "bg-blue-50 text-blue-700"
-                             : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                             ? "bg-[var(--dc-color-interactive-primary-subtle)] text-[var(--dc-color-interactive-primary-on-subtle)]"
+                             : "text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-primary)] hover:bg-[var(--dc-color-surface-secondary)]"
                          }`}
               aria-selected={activeTab === tab.id}
               role="tab"
@@ -50,7 +50,7 @@ export function SourcesPanel() {
         </div>
         <button
           onClick={closePanel}
-          className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors
+          className="p-1.5 text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-muted)] transition-colors
                      min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label="Close library panel"
         >

@@ -14,15 +14,15 @@ import Link from "next/link";
  */
 export default function LandingPage() {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-white px-6 py-12">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-[var(--dc-color-surface-primary)] px-6 py-12">
       <main className="flex max-w-xl flex-col items-center text-center">
         {/* Logo/Title - serif font for book-writing theme */}
-        <h1 className="mb-4 font-serif text-5xl font-semibold tracking-tight text-gray-900">
+        <h1 className="mb-4 font-serif text-5xl font-semibold tracking-tight text-[var(--dc-color-text-primary)]">
           DraftCrane
         </h1>
 
         {/* Tagline — seeds Author/Editor metaphor (#387) */}
-        <p className="mb-8 font-serif text-xl leading-relaxed text-gray-600">
+        <p className="mb-8 font-serif text-xl leading-relaxed text-[var(--dc-color-text-muted)]">
           Write your book.
           <br />
           Keep your files.
@@ -31,7 +31,7 @@ export default function LandingPage() {
         </p>
 
         {/* Description — author-friendly language, introduces Editor role */}
-        <p className="mb-10 max-w-md text-lg leading-relaxed text-gray-500">
+        <p className="mb-10 max-w-md text-lg leading-relaxed text-[var(--dc-color-text-muted)]">
           A quiet place to write your nonfiction book, chapter by chapter. When your prose needs
           tightening, your Editor is one tap away &mdash; select text, ask for a rewrite, and decide
           what stays. Your chapters live in your Google Drive, always yours.
@@ -46,21 +46,24 @@ export default function LandingPage() {
         </Link>
 
         {/* Secondary link for existing users */}
-        <p className="mt-6 text-sm text-gray-500">
+        <p className="mt-6 text-sm text-[var(--dc-color-text-muted)]">
           Already have an account?{" "}
-          <Link href="/sign-in" className="font-medium text-gray-700 underline hover:text-gray-900">
+          <Link
+            href="/sign-in"
+            className="font-medium text-[var(--dc-color-text-secondary)] underline hover:text-[var(--dc-color-text-primary)]"
+          >
             Sign in
           </Link>
         </p>
       </main>
 
       {/* Footer with legal links */}
-      <footer className="mt-auto pb-8 pt-12 text-center text-sm text-gray-400">
+      <footer className="mt-auto pb-8 pt-12 text-center text-sm text-[var(--dc-color-text-placeholder)]">
         <div className="flex justify-center gap-6">
-          <Link href="/privacy" className="hover:text-gray-600">
+          <Link href="/privacy" className="hover:text-[var(--dc-color-text-muted)]">
             Privacy Policy
           </Link>
-          <Link href="/terms" className="hover:text-gray-600">
+          <Link href="/terms" className="hover:text-[var(--dc-color-text-muted)]">
             Terms of Service
           </Link>
         </div>

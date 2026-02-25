@@ -13,22 +13,27 @@ export const metadata: Metadata = {
  */
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-dvh bg-white px-6 py-12">
+    <div className="min-h-dvh bg-[var(--dc-color-surface-primary)] px-6 py-12">
       <article className="mx-auto max-w-2xl">
         {/* Back link */}
-        <Link href="/" className="mb-8 inline-block text-sm text-gray-500 hover:text-gray-700">
+        <Link
+          href="/"
+          className="mb-8 inline-block text-sm text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)]"
+        >
           &larr; Back to DraftCrane
         </Link>
 
-        <h1 className="mb-2 font-serif text-4xl font-semibold tracking-tight text-gray-900">
+        <h1 className="mb-2 font-serif text-4xl font-semibold tracking-tight text-[var(--dc-color-text-primary)]">
           Terms of Service
         </h1>
-        <p className="mb-10 text-sm text-gray-500">Effective date: February 16, 2026</p>
+        <p className="mb-10 text-sm text-[var(--dc-color-text-muted)]">
+          Effective date: February 16, 2026
+        </p>
 
-        <div className="space-y-8 text-base leading-relaxed text-gray-700">
+        <div className="space-y-8 text-base leading-relaxed text-[var(--dc-color-text-secondary)]">
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               What DraftCrane Is
             </h2>
             <p>
@@ -45,7 +50,9 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">Your Account</h2>
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
+              Your Account
+            </h2>
             <p>
               To use DraftCrane, you create an account using your email address or Google account.
               You are responsible for keeping your account credentials secure. If you believe your
@@ -55,7 +62,7 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Your Content and Intellectual Property
             </h2>
             <p>
@@ -76,14 +83,16 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Google Drive Access
             </h2>
             <p>
               DraftCrane stores your manuscripts in your Google Drive account using the{" "}
-              <code className="rounded bg-gray-100 px-1.5 py-0.5 text-sm">drive.file</code> scope.
-              This means DraftCrane can only access files and folders that it creates. It cannot
-              access any other files in your Drive.
+              <code className="rounded bg-[var(--dc-color-surface-tertiary)] px-1.5 py-0.5 text-sm">
+                drive.file
+              </code>{" "}
+              scope. This means DraftCrane can only access files and folders that it creates. It
+              cannot access any other files in your Drive.
             </p>
             <p className="mt-3">
               Your files always remain in your Google Drive, under your control. If you stop using
@@ -94,7 +103,7 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               AI-Assisted Writing
             </h2>
             <p>DraftCrane offers AI rewrite tools powered by OpenAI. When you use these tools:</p>
@@ -120,7 +129,7 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Data Portability
             </h2>
             <p>
@@ -137,7 +146,9 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">Acceptable Use</h2>
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
+              Acceptable Use
+            </h2>
             <p>You agree not to use DraftCrane to:</p>
             <ul className="mt-3 list-disc space-y-2 pl-6">
               <li>
@@ -157,7 +168,7 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Service Availability
             </h2>
             <p>
@@ -173,7 +184,7 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Account Termination
             </h2>
             <p>
@@ -201,7 +212,7 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Limitation of Liability
             </h2>
             <p>
@@ -218,7 +229,7 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
               Changes to These Terms
             </h2>
             <p>
@@ -231,12 +242,14 @@ export default function TermsOfServicePage() {
 
           {/* ------------------------------------------------------------ */}
           <section>
-            <h2 className="mb-3 font-serif text-2xl font-semibold text-gray-900">Contact</h2>
+            <h2 className="mb-3 font-serif text-2xl font-semibold text-[var(--dc-color-text-primary)]">
+              Contact
+            </h2>
             <p>
               If you have questions about these terms, contact us at{" "}
               <a
                 href="mailto:support@draftcrane.app"
-                className="text-gray-900 underline hover:text-gray-700"
+                className="text-[var(--dc-color-text-primary)] underline hover:text-[var(--dc-color-text-secondary)]"
               >
                 support@draftcrane.app
               </a>
@@ -246,12 +259,12 @@ export default function TermsOfServicePage() {
         </div>
 
         {/* Footer links */}
-        <footer className="mt-12 border-t border-gray-200 pt-6 text-sm text-gray-500">
+        <footer className="mt-12 border-t border-gray-200 pt-6 text-sm text-[var(--dc-color-text-muted)]">
           <div className="flex gap-6">
-            <Link href="/privacy" className="hover:text-gray-700">
+            <Link href="/privacy" className="hover:text-[var(--dc-color-text-secondary)]">
               Privacy Policy
             </Link>
-            <Link href="/" className="hover:text-gray-700">
+            <Link href="/" className="hover:text-[var(--dc-color-text-secondary)]">
               Home
             </Link>
           </div>

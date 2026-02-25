@@ -77,7 +77,7 @@ export function EditorWritingArea({
         ) : (
           <h1
             className="text-3xl font-semibold text-foreground mb-6 outline-none cursor-text
-                       hover:bg-gray-50 focus:bg-gray-50 focus:ring-2 focus:ring-blue-500
+                       hover:bg-[var(--dc-color-surface-secondary)] focus:bg-[var(--dc-color-surface-secondary)] focus:ring-2 focus:ring-blue-500
                        rounded px-1 -mx-1 transition-colors"
             onClick={onTitleEdit}
             onKeyDown={(e) => {

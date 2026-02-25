@@ -13,14 +13,21 @@ import Link from "next/link";
  */
 export default function SignUpPage() {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-gray-50 px-6 py-12">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-[var(--dc-color-surface-secondary)] px-6 py-12">
       {/* Header with back to home */}
       <div className="mb-8 text-center">
-        <Link href="/" className="mb-4 inline-block text-sm text-gray-500 hover:text-gray-700">
+        <Link
+          href="/"
+          className="mb-4 inline-block text-sm text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)]"
+        >
           Back to DraftCrane
         </Link>
-        <h1 className="text-2xl font-semibold text-gray-900">Start writing your book</h1>
-        <p className="mt-2 text-gray-600">Create your free account to get started</p>
+        <h1 className="text-2xl font-semibold text-[var(--dc-color-text-primary)]">
+          Start writing your book
+        </h1>
+        <p className="mt-2 text-[var(--dc-color-text-muted)]">
+          Create your free account to get started
+        </p>
       </div>
 
       {/* Clerk SignUp component with enhanced styling */}
@@ -52,13 +59,19 @@ export default function SignUpPage() {
       />
 
       {/* Consent notice */}
-      <p className="mt-6 max-w-md text-center text-xs leading-relaxed text-gray-500">
+      <p className="mt-6 max-w-md text-center text-xs leading-relaxed text-[var(--dc-color-text-muted)]">
         By signing up, you agree to our{" "}
-        <Link href="/terms" className="text-gray-700 underline hover:text-gray-900">
+        <Link
+          href="/terms"
+          className="text-[var(--dc-color-text-secondary)] underline hover:text-[var(--dc-color-text-primary)]"
+        >
           Terms of Service
         </Link>{" "}
         and{" "}
-        <Link href="/privacy" className="text-gray-700 underline hover:text-gray-900">
+        <Link
+          href="/privacy"
+          className="text-[var(--dc-color-text-secondary)] underline hover:text-[var(--dc-color-text-primary)]"
+        >
           Privacy Policy
         </Link>
         .

@@ -56,7 +56,7 @@
   margin-left: 0;
   margin-right: 0;
   font-style: italic;
-  color: #6b7280;
+  color: var(--dc-color-text-muted);
 }
 
 .text-editor-content strong {
@@ -81,7 +81,7 @@
   font-size: 0.75em;
   vertical-align: super;
   line-height: 0;
-  color: #2563eb;
+  color: var(--dc-color-interactive-primary);
   cursor: default;
   font-weight: 500;
   user-select: all;
@@ -91,7 +91,7 @@
   margin-top: 1.5em;
   padding-top: 1em;
   font-size: 0.875em;
-  color: #6b7280;
+  color: var(--dc-color-text-muted);
   line-height: 1.5;
 }
 
@@ -103,7 +103,7 @@
 .text-editor-content .footnote-content::before {
   content: "[" attr(data-footnote-label) "] ";
   font-weight: 600;
-  color: #374151;
+  color: var(--dc-color-text-secondary);
 }
 
 /* Separator between body text and footnotes — the <hr> before .footnotes */
@@ -120,7 +120,7 @@
 /* Placeholder styling for empty editor */
 .text-editor-content.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  color: #9ca3af;
+  color: var(--dc-color-text-placeholder);
   pointer-events: none;
   position: absolute;
   height: 0;

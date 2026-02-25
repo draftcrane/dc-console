@@ -244,7 +244,7 @@ export function LibraryTab() {
   if (isLoadingSources) {
     return (
       <div className="px-3 py-8 text-center">
-        <p className="text-sm text-gray-500">Loading...</p>
+        <p className="text-sm text-[var(--dc-color-text-muted)]">Loading...</p>
       </div>
     );
   }
@@ -292,7 +292,9 @@ export function LibraryTab() {
           </svg>
 
           {connections.length === 1 ? (
-            <span className="text-xs text-gray-700 truncate flex-1">{activeAccountEmail}</span>
+            <span className="text-xs text-[var(--dc-color-text-secondary)] truncate flex-1">
+              {activeAccountEmail}
+            </span>
           ) : (
             <>
               <label htmlFor="browse-account-picker" className="sr-only">
@@ -302,7 +304,7 @@ export function LibraryTab() {
                 id="browse-account-picker"
                 value={safeIndex}
                 onChange={(e) => setSelectedConnectionIndex(Number(e.target.value))}
-                className="text-xs text-gray-700 bg-white border border-gray-200 rounded-md
+                className="text-xs text-[var(--dc-color-text-secondary)] bg-white border border-gray-200 rounded-md
                            px-2 py-1.5 min-h-[32px] flex-1 truncate"
               >
                 {connections.map((connection, i) => (

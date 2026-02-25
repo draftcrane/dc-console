@@ -162,7 +162,7 @@
     min-width: var(--workspace-sidebar-min-width);
     max-width: var(--workspace-sidebar-max-width);
     border-right: 1px solid var(--color-border);
-    background: #f9fafb;
+    background: var(--dc-color-surface-secondary);
     overflow: hidden;
   }
 
@@ -386,7 +386,7 @@
   /* Styling */
   padding: 8px 12px;
   border-radius: 9999px;
-  background: #2563eb;
+  background: var(--dc-color-interactive-primary);
   color: white;
   font-size: 14px;
   font-weight: 500;
@@ -409,7 +409,7 @@
 }
 
 .workspace-sidebar-pill:hover {
-  background: #1d4ed8;
+  background: var(--dc-color-interactive-primary-on-subtle);
 }
 
 .workspace-sidebar-pill:focus {

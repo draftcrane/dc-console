@@ -43,7 +43,7 @@ export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherPro
       {/* Trigger button */}
       <button
         onClick={toggle}
-        className="flex items-center gap-2 h-11 px-3 rounded-lg hover:bg-gray-100 transition-colors max-w-[280px]"
+        className="flex items-center gap-2 h-11 px-3 rounded-lg hover:bg-[var(--dc-color-surface-tertiary)] transition-colors max-w-[280px]"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
       >
@@ -61,7 +61,7 @@ export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherPro
       {/* Dropdown menu */}
       {isOpen && (
         <div
-          className="absolute top-full left-0 mt-1 w-64 bg-white border border-border rounded-lg shadow-lg z-50 py-1"
+          className="absolute top-full left-0 mt-1 w-64 bg-[var(--dc-color-surface-primary)] border border-border rounded-lg shadow-lg z-50 py-1"
           role="listbox"
         >
           {/* Project list */}
@@ -70,8 +70,8 @@ export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherPro
               key={project.id}
               onClick={() => handleProjectSelect(project.id)}
               className={`w-full px-4 py-3 text-left flex items-center justify-between min-h-[48px]
-                         hover:bg-gray-50 transition-colors
-                         ${project.id === currentProject.id ? "bg-blue-50" : ""}`}
+                         hover:bg-[var(--dc-color-surface-secondary)] transition-colors
+                         ${project.id === currentProject.id ? "bg-[var(--dc-color-interactive-primary-subtle)]" : ""}`}
               role="option"
               aria-selected={project.id === currentProject.id}
             >
@@ -109,7 +109,7 @@ export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherPro
             href="/setup"
             onClick={close}
             className="w-full px-4 py-3 text-left flex items-center gap-2 min-h-[48px]
-                       hover:bg-gray-50 transition-colors text-blue-600"
+                       hover:bg-[var(--dc-color-surface-secondary)] transition-colors text-blue-600"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

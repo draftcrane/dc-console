@@ -175,7 +175,7 @@ export function OnboardingTooltips() {
           <PointerArrow position={arrowPosition} />
 
           {/* Step label */}
-          <p className="mb-2 text-xs text-gray-500">
+          <p className="mb-2 text-xs text-[var(--dc-color-text-muted)]">
             Step {currentStep + 1} of {STEPS.length}
           </p>
 
@@ -185,7 +185,7 @@ export function OnboardingTooltips() {
               <div
                 key={i}
                 className={`h-1.5 rounded-full transition-all duration-200 ${
-                  i === currentStep ? "w-6 bg-blue-600" : "w-1.5 bg-gray-300"
+                  i === currentStep ? "w-6 bg-blue-600" : "w-1.5 bg-[var(--dc-color-border-strong)]"
                 }`}
                 aria-hidden="true"
               />
@@ -193,13 +193,15 @@ export function OnboardingTooltips() {
           </div>
 
           {/* Step text */}
-          <p className="mb-4 text-sm leading-relaxed text-gray-700">{step.text}</p>
+          <p className="mb-4 text-sm leading-relaxed text-[var(--dc-color-text-secondary)]">
+            {step.text}
+          </p>
 
           {/* Actions - 44pt minimum touch targets */}
           <div className="flex items-center justify-between">
             <button
               onClick={handleSkip}
-              className="min-h-[44px] px-3 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              className="min-h-[44px] px-3 text-sm text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)] transition-colors"
             >
               Skip
             </button>

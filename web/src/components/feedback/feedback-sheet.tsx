@@ -132,24 +132,29 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
         aria-label="Report a problem"
         className={
           isLandscape
-            ? "fixed inset-y-0 right-0 z-50 w-full max-w-[380px] bg-white rounded-l-2xl shadow-2xl border-l border-gray-200 sheet-slide-right flex flex-col"
-            : "fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 sheet-slide-up max-h-[80vh] flex flex-col"
+            ? "fixed inset-y-0 right-0 z-50 w-full max-w-[380px] bg-[var(--dc-color-surface-primary)] rounded-l-2xl shadow-2xl border-l border-gray-200 sheet-slide-right flex flex-col"
+            : "fixed bottom-0 left-0 right-0 z-50 bg-[var(--dc-color-surface-primary)] rounded-t-2xl shadow-2xl border-t border-gray-200 sheet-slide-up max-h-[80vh] flex flex-col"
         }
       >
         {/* Drag handle — portrait only */}
         {!isLandscape && (
           <div className="flex justify-center pt-3 pb-1">
-            <div className="w-10 h-1 rounded-full bg-gray-300" aria-hidden="true" />
+            <div
+              className="w-10 h-1 rounded-full bg-[var(--dc-color-border-strong)]"
+              aria-hidden="true"
+            />
           </div>
         )}
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pb-3 pt-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">Report a Problem</h2>
+          <h2 className="text-lg font-semibold text-[var(--dc-color-text-primary)]">
+            Report a Problem
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors -mr-2"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-muted)] hover:bg-[var(--dc-color-surface-tertiary)] transition-colors -mr-2"
             aria-label="Close"
           >
             <svg
@@ -173,7 +178,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
         <div className="flex-1 overflow-auto px-6 py-4 space-y-4">
           {/* Type selector - radio cards */}
           <fieldset>
-            <legend className="text-sm font-medium text-gray-700 mb-2">
+            <legend className="text-sm font-medium text-[var(--dc-color-text-secondary)] mb-2">
               What kind of feedback?
             </legend>
             <div className="grid grid-cols-2 gap-3" role="radiogroup">
@@ -191,7 +196,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
                            transition-colors ${
                              type === "bug"
                                ? "border-red-200 bg-red-50 text-red-600"
-                               : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                               : "border-[var(--dc-color-border-strong)] text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-secondary)]"
                            }`}
               >
                 {/* Bug icon */}
@@ -225,7 +230,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
                            transition-colors ${
                              type === "suggestion"
                                ? "border-blue-200 bg-blue-50 text-blue-600"
-                               : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                               : "border-[var(--dc-color-border-strong)] text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-secondary)]"
                            }`}
               >
                 {/* Lightbulb icon */}
@@ -252,7 +257,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
           <div>
             <label
               htmlFor="feedback-description"
-              className="text-sm font-medium text-gray-700 mb-2 block"
+              className="text-sm font-medium text-[var(--dc-color-text-secondary)] mb-2 block"
             >
               Tell us more
             </label>
@@ -268,8 +273,8 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
                   : "What would make DraftCrane better for you?"
               }
               maxLength={2000}
-              className="w-full min-h-[120px] rounded-lg border border-gray-300 p-3 text-base leading-relaxed
-                         placeholder:text-gray-400
+              className="w-full min-h-[120px] rounded-lg border border-[var(--dc-color-border-strong)] p-3 text-base leading-relaxed
+                         placeholder:text-[var(--dc-color-text-placeholder)]
                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                          disabled:opacity-50 disabled:cursor-not-allowed
                          resize-none"
@@ -277,14 +282,14 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
             />
             {/* Character count hint */}
             {description.length > 0 && description.trim().length < 10 && (
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-[var(--dc-color-text-placeholder)]">
                 {10 - description.trim().length} more characters needed
               </p>
             )}
           </div>
 
           {/* Context disclosure */}
-          <p className="flex items-start gap-1.5 text-xs text-gray-400">
+          <p className="flex items-start gap-1.5 text-xs text-[var(--dc-color-text-placeholder)]">
             <svg
               className="h-3.5 w-3.5 mt-0.5 shrink-0"
               fill="none"

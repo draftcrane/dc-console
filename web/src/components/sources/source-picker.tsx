@@ -55,7 +55,7 @@ export function SourcePicker({
           aria-label="Go back"
         >
           <svg
-            className="w-5 h-5 text-gray-500"
+            className="w-5 h-5 text-[var(--dc-color-text-muted)]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -68,18 +68,20 @@ export function SourcePicker({
             />
           </svg>
         </button>
-        <h3 className="text-sm font-medium text-gray-900">Add Source</h3>
+        <h3 className="text-sm font-medium text-[var(--dc-color-text-primary)]">Add Source</h3>
       </div>
 
       {/* Trust message */}
-      <p className="text-xs text-gray-400 mb-4 px-1">Your originals are never changed.</p>
+      <p className="text-xs text-[var(--dc-color-text-placeholder)] mb-4 px-1">
+        Your originals are never changed.
+      </p>
 
       {/* Source type rows */}
       <div className="flex flex-col gap-1">
         {/* Google Drive */}
         <button
           onClick={handleDriveClick}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--dc-color-surface-secondary)]
                      transition-colors min-h-[56px] w-full text-left"
         >
           <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
@@ -91,13 +93,15 @@ export function SourcePicker({
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-900 block">Google Drive</span>
-            <span className="text-xs text-gray-500 block">
+            <span className="text-sm font-medium text-[var(--dc-color-text-primary)] block">
+              Google Drive
+            </span>
+            <span className="text-xs text-[var(--dc-color-text-muted)] block">
               Browse and add documents from your Drive
             </span>
           </div>
           <svg
-            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${expanded && connections.length >= 1 ? "rotate-90" : ""}`}
+            className={`w-4 h-4 text-[var(--dc-color-text-placeholder)] shrink-0 transition-transform ${expanded && connections.length >= 1 ? "rotate-90" : ""}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -108,12 +112,12 @@ export function SourcePicker({
 
         {/* Inline account list: browse existing or connect another */}
         {expanded && connections.length >= 1 && (
-          <div className="ml-6 bg-gray-50 rounded-lg overflow-hidden">
+          <div className="ml-6 bg-[var(--dc-color-surface-secondary)] rounded-lg overflow-hidden">
             {connections.map((connection) => (
               <button
                 key={connection.driveConnectionId}
                 onClick={() => onSelectConnection(connection)}
-                className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-100
+                className="flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--dc-color-surface-tertiary)]
                            transition-colors min-h-[44px] w-full text-left"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -122,9 +126,11 @@ export function SourcePicker({
                     className="text-blue-500"
                   />
                 </svg>
-                <span className="text-sm text-gray-700 truncate flex-1">{connection.email}</span>
+                <span className="text-sm text-[var(--dc-color-text-secondary)] truncate flex-1">
+                  {connection.email}
+                </span>
                 <svg
-                  className="w-4 h-4 text-gray-400 shrink-0"
+                  className="w-4 h-4 text-[var(--dc-color-text-placeholder)] shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -140,11 +146,11 @@ export function SourcePicker({
             ))}
             <button
               onClick={onConnectDrive}
-              className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-100
+              className="flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--dc-color-surface-tertiary)]
                          transition-colors min-h-[44px] w-full text-left border-t border-gray-200"
             >
               <svg
-                className="w-4 h-4 shrink-0 text-gray-400"
+                className="w-4 h-4 shrink-0 text-[var(--dc-color-text-placeholder)]"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -156,7 +162,9 @@ export function SourcePicker({
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              <span className="text-sm text-gray-500">Connect another account</span>
+              <span className="text-sm text-[var(--dc-color-text-muted)]">
+                Connect another account
+              </span>
             </button>
           </div>
         )}
@@ -164,12 +172,12 @@ export function SourcePicker({
         {/* Local Files */}
         <button
           onClick={onUploadLocal}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--dc-color-surface-secondary)]
                      transition-colors min-h-[56px] w-full text-left"
         >
-          <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-[var(--dc-color-surface-secondary)] flex items-center justify-center shrink-0">
             <svg
-              className="w-5 h-5 text-gray-500"
+              className="w-5 h-5 text-[var(--dc-color-text-muted)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -183,11 +191,15 @@ export function SourcePicker({
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-900 block">Local Files</span>
-            <span className="text-xs text-gray-500 block">Upload documents from this device</span>
+            <span className="text-sm font-medium text-[var(--dc-color-text-primary)] block">
+              Local Files
+            </span>
+            <span className="text-xs text-[var(--dc-color-text-muted)] block">
+              Upload documents from this device
+            </span>
           </div>
           <svg
-            className="w-4 h-4 text-gray-400 shrink-0"
+            className="w-4 h-4 text-[var(--dc-color-text-placeholder)] shrink-0"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -201,7 +213,7 @@ export function SourcePicker({
       <div className="mt-auto pt-4">
         <button
           onClick={onCancel}
-          className="text-sm text-gray-500 hover:text-gray-700 transition-colors min-h-[44px] px-3"
+          className="text-sm text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)] transition-colors min-h-[44px] px-3"
         >
           Cancel
         </button>

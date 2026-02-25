@@ -55,21 +55,23 @@ export function AccountsSheet({
 
       {/* Panel */}
       <div
-        className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-xl z-50
+        className="fixed top-0 right-0 h-full w-full max-w-sm bg-[var(--dc-color-surface-primary)] shadow-xl z-50
                    flex flex-col"
         role="dialog"
         aria-label="Google Accounts"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 h-14 border-b border-gray-200 shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">Google Accounts</h2>
+          <h2 className="text-lg font-semibold text-[var(--dc-color-text-primary)]">
+            Google Accounts
+          </h2>
           <button
             onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 min-h-[44px] min-w-[44px]"
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--dc-color-surface-tertiary)] min-h-[44px] min-w-[44px]"
             aria-label="Close"
           >
             <svg
-              className="w-5 h-5 text-gray-500"
+              className="w-5 h-5 text-[var(--dc-color-text-muted)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -87,14 +89,16 @@ export function AccountsSheet({
         {/* Content */}
         <div className="flex-1 overflow-auto px-4 py-4">
           {/* Explanation */}
-          <p className="text-xs text-gray-500 mb-4">
+          <p className="text-xs text-[var(--dc-color-text-muted)] mb-4">
             Connected accounts let you browse Google Drive for source materials and back up your
             manuscript. You can connect multiple accounts.
           </p>
 
           {accounts.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-sm text-gray-500 mb-4">No Google accounts connected</p>
+              <p className="text-sm text-[var(--dc-color-text-muted)] mb-4">
+                No Google accounts connected
+              </p>
               <button
                 onClick={onConnectAccount}
                 className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg
@@ -108,13 +112,13 @@ export function AccountsSheet({
               {accounts.map((account) => (
                 <div
                   key={account.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-3 bg-[var(--dc-color-surface-secondary)] rounded-lg"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-gray-900 truncate">
+                    <div className="text-sm font-medium text-[var(--dc-color-text-primary)] truncate">
                       {account.email}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-[var(--dc-color-text-muted)]">
                       Connected {formatDate(account.connectedAt)}
                     </div>
                   </div>
