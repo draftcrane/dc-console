@@ -125,15 +125,17 @@ function EditorPageInner() {
   // Without this, clicking outside the editor leaves editorSelectedText
   // set from the previous selection, causing the instruction panel to
   // show "Selected text" when nothing is visually selected.
+  // Exception: keep selection alive while the editor panel is open —
+  // the panel needs the selected text to offer rewrite instructions.
   const handleEditorBlur = useCallback(() => {
-    // Small delay so clicks on panel buttons can read the selection first
     setTimeout(() => {
+      if (editorPanelOpen) return; // Panel needs the selection
       const editor = editorRef.current?.getEditor();
       if (!editor?.isFocused) {
         setEditorSelectedText("");
       }
     }, 200);
-  }, []);
+  }, [editorPanelOpen]);
 
   const handleToggleEditorPanel = useCallback(() => {
     setEditorPanelOpen((prev) => !prev);
@@ -310,9 +312,6 @@ function EditorPageInner() {
               onSaveRetry={saveNow}
               viewMode={viewMode}
               onViewModeChange={setViewMode}
-              selectionWordCount={selectionWordCount}
-              aiSheetState={aiSheetState}
-              onOpenAiRewrite={handleOpenAiRewrite}
               isEditorPanelOpen={editorPanelOpen}
               onToggleEditorPanel={handleToggleEditorPanel}
               projectId={projectId}
@@ -373,14 +372,6 @@ function EditorPageInner() {
             setDeleteChapterDialogOpen(false);
             setChapterToDelete(null);
           }}
-          // AI Rewrite
-          aiSheetState={aiSheetState}
-          aiCurrentResult={aiCurrentResult}
-          aiErrorMessage={aiErrorMessage}
-          onAIAccept={handleAIAccept}
-          onAIRetry={handleAIRetry}
-          onAIDiscard={handleAIDiscard}
-          onGoDeeper={handleGoDeeper}
         />
 
         <SourcesPanelOverlay />
@@ -395,6 +386,9 @@ function EditorPageInner() {
             onRetry={handleAIRetry}
             onDiscard={handleAIDiscard}
             onGoDeeper={handleGoDeeper}
+            onRewriteWithInstruction={() => {
+              handleOpenAiRewrite();
+            }}
           />
         </EditorPanelOverlay>
       </div>

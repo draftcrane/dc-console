@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import type { AIRewriteResult } from "@/components/editor/ai-rewrite-sheet";
-import type { SheetState } from "@/hooks/use-ai-rewrite";
+import type { AIRewriteResult, SheetState } from "@/hooks/use-ai-rewrite";
 import { StreamingResponse } from "./streaming-response";
 import { useSourcesContext } from "@/contexts/sources-context";
 import { InstructionPicker } from "@/components/sources/instruction-picker";
