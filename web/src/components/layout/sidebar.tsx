@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import {
   DndContext,
   closestCenter,
@@ -637,12 +638,6 @@ function InlineRenameInput({
 }
 
 /**
- * Focusable element selector for focus management
- */
-const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-/**
  * Mobile sidebar overlay component
  * Used when sidebar is shown as overlay in portrait mode
  *
@@ -662,80 +657,7 @@ export function SidebarOverlay({
   onClose: () => void;
   children: React.ReactNode;
 }) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<Element | null>(null);
-  const prevIsOpenRef = useRef(false);
-
-  // Focus management: capture trigger, focus first element, return focus on close
-  useEffect(() => {
-    const wasOpen = prevIsOpenRef.current;
-    prevIsOpenRef.current = isOpen;
-
-    if (isOpen && !wasOpen) {
-      // Opening: capture the element that triggered the overlay
-      triggerRef.current = document.activeElement;
-
-      // Focus the first focusable element inside the panel
-      if (panelRef.current) {
-        const firstFocusable = panelRef.current.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-        if (firstFocusable) {
-          firstFocusable.focus();
-        }
-      }
-    } else if (!isOpen && wasOpen) {
-      // Closing: return focus to the trigger element
-      const trigger = triggerRef.current;
-      triggerRef.current = null;
-      if (trigger instanceof HTMLElement) {
-        trigger.focus();
-      }
-    }
-  }, [isOpen]);
-
-  // Escape key handler
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
-
-  // Focus trap: keep focus within the dialog
-  const handleFocusTrap = useCallback((event: KeyboardEvent) => {
-    if (event.key !== "Tab" || !panelRef.current) return;
-
-    const focusableElements = panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    if (focusableElements.length === 0) return;
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    if (event.shiftKey) {
-      if (document.activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      }
-    } else {
-      if (document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    document.addEventListener("keydown", handleFocusTrap);
-    return () => document.removeEventListener("keydown", handleFocusTrap);
-  }, [isOpen, handleFocusTrap]);
+  const panelRef = useFocusTrap({ isOpen, onEscape: onClose });
 
   if (!isOpen) return null;
 
