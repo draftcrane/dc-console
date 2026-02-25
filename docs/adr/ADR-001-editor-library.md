@@ -3,6 +3,7 @@
 ## Status
 
 **Accepted** - 2025-02-10
+**Reaffirmed** - 2026-02-24
 
 ## Context
 
@@ -49,7 +50,7 @@ DraftCrane requires a rich text editor for chapter content editing. The PRD iden
 - Rich extension ecosystem for future features
 - Active maintenance and community
 - Excellent TypeScript support
-- Built-in collaborative editing primitives (Phase 2+)
+- Built-in collaborative editing primitives (future)
 
 ### Negative
 
@@ -137,6 +138,50 @@ Before shipping, verify on physical iPad (Air 5th gen+, iPadOS 17+):
 8. [ ] Input latency feels instant (< 100ms perceived)
 
 Score each 1-5. Minimum passing: no item below 3, average >= 4.
+
+## 2026 Landscape Review
+
+Reviewed 2026-02-24 to determine whether any changes to the ecosystem warrant reconsidering this decision.
+
+### Tiptap (current choice)
+
+- **Version:** v3.19 in our repo, v3.20 latest (released 2026-02-18)
+- **Trajectory:** Steady v3.x releases throughout 2025-2026. Also maintaining 2.x LTS (v2.27.2, Jan 2026).
+- **Licensing improved:** 10 formerly-paid Pro extensions open-sourced under MIT. Paid tier now only covers cloud services (collaboration, AI, comments). Core remains MIT.
+- **Community:** 35K+ GitHub stars, ~2,900 contributors, frequent releases.
+- **iPad Safari:** No regressions reported. ProseMirror foundation continues to receive mobile Safari fixes.
+- **Integration depth:** 11 files, 26 import references, plus custom footnote extensions (`web/src/extensions/`).
+
+### Lexical
+
+- **Version:** v0.40 (still pre-1.0 after 2+ years)
+- **Safari issue #5683: STILL OPEN.** Last activity Oct 2025. Confirmed reproducing in v0.37. Root cause identified as Safari's line-wrapping performance with long lines — not strictly a Lexical bug, but no workaround exists.
+- **Verdict:** Still disqualified for an iPad-first product.
+
+### Slate/Plate
+
+- **Version:** Slate v0.123 (Jan 2026)
+- **iOS backspace bug #5711: STILL OPEN.** Last activity Nov 2024. Holding backspace on iOS Safari still breaks the editor entirely. Multiple related iOS issues remain.
+- **Verdict:** Still disqualified.
+
+### New Entrants
+
+| Library | Notes |
+|---------|-------|
+| **BlockNote** (v0.47, Feb 2026) | Block-based editor built *on top of Tiptap/ProseMirror*. Additive, not a replacement. |
+| **Novel** | Also built on Tiptap + Vercel AI SDK. Same foundation. |
+| **Quill 2.0** (Apr 2024 rewrite) | Used by Slack/LinkedIn/Figma but not targeting iPad-first use cases. |
+| **LexKit** | Type-safe wrapper around Lexical. Inherits Lexical's Safari issues. |
+
+No new library challenges ProseMirror's mobile Safari reliability. The ecosystem is consolidating around ProseMirror — BlockNote and Novel both chose Tiptap as their foundation.
+
+### Platform Note
+
+iPadOS 26 Safari has reported platform-level bugs (page freezes, fixed positioning inconsistencies). These affect all editors equally and are not a reason to switch. Worth monitoring during iPad testing.
+
+### Conclusion
+
+**Decision reaffirmed.** The original disqualifying issues in both alternatives remain unfixed a year later. Tiptap's position has strengthened (better licensing, active development, no regressions). No new contender offers better iPad Safari reliability.
 
 ## References
 
