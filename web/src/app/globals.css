@@ -4,35 +4,199 @@
   --background: #ffffff;
   --foreground: #171717;
 
-  /* Help & Support semantic tokens (#344) */
-  --dc-color-interactive-primary: #2563eb;
-  --dc-color-interactive-primary-subtle: #eff6ff;
-  --dc-color-status-error: #dc2626;
-  --dc-color-error-bg: #fef2f2;
-  --dc-color-status-success: #059669;
-  --dc-color-success-bg: #ecfdf5;
-  --dc-color-text-secondary: #374151;
-  --dc-color-text-muted: #6b7280;
-  --dc-color-text-placeholder: #9ca3af;
-  --dc-color-border-strong: #d1d5db;
-  --dc-color-surface-secondary: #f9fafb;
+  /* ================================================================
+   * COLOR TOKENS
+   * Naming: --dc-color-{category}-{variant}
+   * ================================================================ */
 
-  /* Editor Panel — violet accent (#317) */
+  /* --- Text --- */
+  --dc-color-text-primary: #111827; /* 17.4:1 vs white — headings, prominent labels */
+  --dc-color-text-secondary: #374151; /* Body text, descriptions */
+  --dc-color-text-muted: #6b7280; /* Captions, hints, idle labels */
+  --dc-color-text-placeholder: #9ca3af; /* Input placeholders */
+  --dc-color-text-inverse: #ffffff; /* Text on dark/colored backgrounds */
+
+  /* --- Surfaces --- */
+  --dc-color-surface-primary: #ffffff; /* Panel backgrounds, toggle indicators */
+  --dc-color-surface-secondary: #f9fafb; /* Subtle background tint */
+  --dc-color-surface-tertiary: #f3f4f6; /* Toggle tracks, hover backgrounds */
+  --dc-color-surface-overlay: rgba(0, 0, 0, 0.5); /* Modal/dialog backdrops */
+
+  /* --- Borders --- */
+  --dc-color-border-default: #e5e7eb; /* Standard borders */
+  --dc-color-border-subtle: #f3f4f6; /* Dividers, separators */
+  --dc-color-border-strong: #d1d5db; /* Emphasized borders, input outlines */
+
+  /* --- Interactive: Primary (Blue — Author's domain) --- */
+  --dc-color-interactive-primary: #2563eb; /* Primary actions, links */
+  --dc-color-interactive-primary-subtle: #eff6ff; /* Light blue tint backgrounds */
+  --dc-color-interactive-primary-on-subtle: #1d4ed8; /* Blue text on blue-subtle — 5.9:1 on #eff6ff */
+  --dc-color-interactive-primary-hover: #1d4ed8; /* Hover state for primary buttons */
+  --dc-color-interactive-primary-active: #1e40af; /* Active/pressed state */
+  --dc-color-interactive-primary-border: #93c5fd; /* Focus/selection borders on primary elements */
+
+  /* --- Interactive: Escalation (Violet — Editor's domain) --- */
   --dc-color-interactive-escalation: #7c3aed;
   --dc-color-interactive-escalation-subtle: #f5f3ff;
   --dc-color-interactive-escalation-hover: #6d28d9;
   --dc-color-interactive-escalation-border: #c4b5fd;
 
-  /* Blue text on blue-subtle backgrounds — 5.9:1 on #eff6ff */
-  --dc-color-interactive-primary-on-subtle: #1d4ed8;
-  /* High-emphasis text — 17.4:1 vs white */
-  --dc-color-text-primary: #111827;
-  /* Toggle track, hover backgrounds */
-  --dc-color-surface-tertiary: #f3f4f6;
-  /* Toggle indicator, panel backgrounds */
-  --dc-color-surface-primary: #ffffff;
+  /* --- Interactive: Destructive --- */
+  --dc-color-interactive-destructive: #dc2626; /* Delete buttons, destructive actions */
+  --dc-color-interactive-destructive-hover: #b91c1c; /* Hover on destructive actions */
+  --dc-color-interactive-destructive-subtle: #fef2f2; /* Light red tint backgrounds */
 
-  /* Layout tokens (#395) */
+  /* --- Status --- */
+  --dc-color-status-error: #dc2626;
+  --dc-color-error-bg: #fef2f2;
+  --dc-color-status-success: #059669;
+  --dc-color-success-bg: #ecfdf5;
+  --dc-color-status-success-subtle: #ecfdf5; /* Alias for consistency */
+  --dc-color-status-warning: #d97706; /* Warnings, cautions */
+  --dc-color-status-warning-bg: #fffbeb; /* Warning background tint */
+
+  /* --- Focus --- */
+  --dc-color-border-focus: #2563eb; /* Focus rings — consistent blue across all zones */
+
+  /* --- Help & Support (#344, #367) --- */
+  --dc-color-feedback-surface: var(--dc-color-surface-primary);
+  --dc-color-feedback-border: var(--dc-color-border-default);
+  --dc-color-feedback-type-active-bg: var(--dc-color-interactive-primary);
+  --dc-color-feedback-type-active-text: #ffffff;
+  --dc-color-feedback-type-inactive-bg: var(--dc-color-surface-secondary);
+  --dc-color-feedback-type-inactive-text: var(--dc-color-text-secondary);
+  --dc-color-feedback-success-bg: var(--dc-color-status-success-subtle);
+  --dc-color-feedback-success-icon: var(--dc-color-status-success);
+  --dc-color-feedback-success-text: var(--dc-color-text-primary);
+
+  /* --- Onboarding (#344) --- */
+  --dc-color-onboarding-card-bg: var(--dc-color-surface-primary);
+  --dc-color-onboarding-card-border: var(--dc-color-border-default);
+  --dc-color-onboarding-backdrop: rgba(0, 0, 0, 0.4);
+  --dc-color-onboarding-dot-active: var(--dc-color-interactive-primary);
+  --dc-color-onboarding-dot-inactive: #d1d5db;
+  --dc-color-onboarding-arrow: var(--dc-color-surface-primary);
+
+  /* --- Help Page (#344) --- */
+  --dc-color-help-accordion-bg: var(--dc-color-surface-primary);
+  --dc-color-help-accordion-hover: var(--dc-color-surface-secondary);
+  --dc-color-help-accordion-border: var(--dc-color-border-default);
+  --dc-color-help-section-heading: var(--dc-color-text-primary);
+
+  /* ================================================================
+   * SPACING TOKENS
+   * Naming: --dc-spacing-{size}
+   * Values aligned to 4px grid
+   * ================================================================ */
+
+  --dc-spacing-xs: 4px;
+  --dc-spacing-sm: 8px;
+  --dc-spacing-md: 12px;
+  --dc-spacing-lg: 16px;
+  --dc-spacing-xl: 24px;
+  --dc-spacing-2xl: 32px;
+  --dc-spacing-3xl: 48px;
+
+  /* Safe area aliases — use for iPad notch/home-indicator insets */
+  --dc-safe-area-top: env(safe-area-inset-top, 0px);
+  --dc-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --dc-safe-area-left: env(safe-area-inset-left, 0px);
+  --dc-safe-area-right: env(safe-area-inset-right, 0px);
+
+  /* ================================================================
+   * TYPOGRAPHY TOKENS
+   * Naming: --dc-font-{role}, --dc-text-{size}, --dc-leading-{size}
+   * ================================================================ */
+
+  /* Font stacks */
+  --dc-font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --dc-font-serif: var(--font-lora), ui-serif, Georgia, serif;
+  --dc-font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Text sizes */
+  --dc-text-xs: 0.75rem; /* 12px */
+  --dc-text-sm: 0.875rem; /* 14px */
+  --dc-text-base: 1rem; /* 16px */
+  --dc-text-lg: 1.125rem; /* 18px */
+  --dc-text-xl: 1.25rem; /* 20px */
+  --dc-text-2xl: 1.5rem; /* 24px */
+  --dc-text-3xl: 1.875rem; /* 30px */
+
+  /* Line heights */
+  --dc-leading-tight: 1.25;
+  --dc-leading-snug: 1.375;
+  --dc-leading-normal: 1.5;
+  --dc-leading-relaxed: 1.625;
+  --dc-leading-loose: 1.75;
+
+  /* ================================================================
+   * BORDER RADIUS TOKENS
+   * Naming: --dc-radius-{size}
+   * ================================================================ */
+
+  --dc-radius-sm: 4px;
+  --dc-radius-md: 8px;
+  --dc-radius-lg: 12px;
+  --dc-radius-xl: 16px;
+  --dc-radius-full: 9999px;
+
+  /* ================================================================
+   * SHADOW TOKENS
+   * Naming: --dc-shadow-{size}
+   * ================================================================ */
+
+  --dc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --dc-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --dc-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --dc-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --dc-shadow-tooltip: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --dc-shadow-onboarding-card: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+
+  /* ================================================================
+   * MOTION TOKENS
+   * Naming: --dc-motion-{property}
+   * Maximum animation duration: 300ms
+   * All animations respect prefers-reduced-motion
+   * ================================================================ */
+
+  --dc-motion-instant: 100ms;
+  --dc-motion-fast: 150ms;
+  --dc-motion-normal: 200ms;
+  --dc-motion-slow: 300ms;
+  --dc-motion-ease-in-out: ease-in-out; /* State changes (toggle, hover) */
+  --dc-motion-ease-out: ease-out; /* Entrances (decelerate into rest) */
+  --dc-motion-ease-in: ease-in; /* Exits (accelerate out of view) */
+  --dc-motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* Playful micro-interactions */
+
+  /* ================================================================
+   * TOUCH TARGET TOKENS
+   * Naming: --dc-touch-target-{variant}
+   * Apple HIG / WCAG 2.5.8 minimum: 44px
+   * ================================================================ */
+
+  --dc-touch-target-min: 44px; /* Minimum per Apple HIG / WCAG 2.5.8 */
+  --dc-touch-target-ai: 48px; /* AI action buttons, suggestion chips */
+  --dc-touch-target-chip: 36px; /* Compact suggestion chips (#365) */
+
+  /* ================================================================
+   * Z-INDEX TOKENS
+   * Naming: --dc-z-{layer}
+   * Centralized z-index scale prevents stacking conflicts
+   * ================================================================ */
+
+  --dc-z-base: 0;
+  --dc-z-sidebar-pill: 40;
+  --dc-z-dropdown: 50;
+  --dc-z-overlay: 50;
+  --dc-z-modal: 50;
+  --dc-z-onboarding: 100;
+  --dc-z-toast: 9999;
+
+  /* ================================================================
+   * LAYOUT TOKENS (#395)
+   * Toolbar and toggle component dimensions
+   * ================================================================ */
+
   --dc-toolbar-height: 48px;
   --dc-toolbar-padding-x: 16px;
   --dc-toolbar-gap: 8px;
@@ -41,28 +205,90 @@
   --dc-toggle-option-min-width: 72px;
   --dc-panel-toggle-height: 44px;
 
-  /* Motion tokens (#395) */
-  --dc-motion-fast: 150ms;
-  --dc-motion-normal: 200ms;
-  --dc-motion-ease-in-out: ease-in-out;
-  --dc-motion-ease-out: ease-out;
-  --dc-motion-ease-in: ease-in;
+  /* Feedback sheet layout */
+  --dc-feedback-sheet-max-height: 85vh;
+  --dc-feedback-textarea-min-height: 120px;
+
+  /* Onboarding layout */
+  --dc-onboarding-card-width: 300px;
+  --dc-onboarding-card-max-width: calc(100vw - 32px);
+  --dc-onboarding-arrow-size: 8px;
+
+  /* Help page layout */
+  --dc-help-content-max-width: 640px;
 }
 
 @theme inline {
+  /* Base colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted-foreground: #6b7280;
   --color-border: #e5e7eb;
+
+  /* Font families */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-serif: var(--font-lora);
+
+  /* DC semantic color utilities */
+  --color-dc-text-primary: var(--dc-color-text-primary);
+  --color-dc-text-secondary: var(--dc-color-text-secondary);
+  --color-dc-text-muted: var(--dc-color-text-muted);
+  --color-dc-text-inverse: var(--dc-color-text-inverse);
+
+  --color-dc-surface-primary: var(--dc-color-surface-primary);
+  --color-dc-surface-secondary: var(--dc-color-surface-secondary);
+  --color-dc-surface-tertiary: var(--dc-color-surface-tertiary);
+  --color-dc-surface-overlay: var(--dc-color-surface-overlay);
+
+  --color-dc-border-default: var(--dc-color-border-default);
+  --color-dc-border-subtle: var(--dc-color-border-subtle);
+  --color-dc-border-strong: var(--dc-color-border-strong);
+  --color-dc-border-focus: var(--dc-color-border-focus);
+
+  --color-dc-interactive-primary: var(--dc-color-interactive-primary);
+  --color-dc-interactive-primary-hover: var(--dc-color-interactive-primary-hover);
+  --color-dc-interactive-primary-active: var(--dc-color-interactive-primary-active);
+  --color-dc-interactive-primary-border: var(--dc-color-interactive-primary-border);
+  --color-dc-interactive-destructive: var(--dc-color-interactive-destructive);
+
+  --color-dc-status-error: var(--dc-color-status-error);
+  --color-dc-status-success: var(--dc-color-status-success);
+  --color-dc-status-warning: var(--dc-color-status-warning);
+
+  --color-dc-feedback-active: var(--dc-color-feedback-type-active-bg);
+  --color-dc-success-subtle: var(--dc-color-status-success-subtle);
+  --color-dc-success: var(--dc-color-status-success);
+  --color-dc-onboarding-backdrop: var(--dc-color-onboarding-backdrop);
+
+  /* DC spacing utilities */
+  --spacing-dc-xs: var(--dc-spacing-xs);
+  --spacing-dc-sm: var(--dc-spacing-sm);
+  --spacing-dc-md: var(--dc-spacing-md);
+  --spacing-dc-lg: var(--dc-spacing-lg);
+  --spacing-dc-xl: var(--dc-spacing-xl);
+  --spacing-dc-2xl: var(--dc-spacing-2xl);
+  --spacing-dc-3xl: var(--dc-spacing-3xl);
+
+  /* DC border radius utilities */
+  --radius-dc-sm: var(--dc-radius-sm);
+  --radius-dc-md: var(--dc-radius-md);
+  --radius-dc-lg: var(--dc-radius-lg);
+  --radius-dc-xl: var(--dc-radius-xl);
+  --radius-dc-full: var(--dc-radius-full);
+
+  /* DC shadow utilities */
+  --shadow-dc-sm: var(--dc-shadow-sm);
+  --shadow-dc-md: var(--dc-shadow-md);
+  --shadow-dc-lg: var(--dc-shadow-lg);
+  --shadow-dc-xl: var(--dc-shadow-xl);
+  --shadow-dc-tooltip: var(--dc-shadow-tooltip);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--dc-font-sans);
 }
 
 /* Virtual keyboard offset for iPad Safari */
