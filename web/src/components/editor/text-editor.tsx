@@ -5,7 +5,13 @@ import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from "react";
 import { useTextSelection } from "@/hooks/use-text-selection";
-import { FootnoteRef, FootnoteContent, FootnoteSection, FootnotePlugin } from "@/extensions";
+import {
+  FootnoteRef,
+  FootnoteContent,
+  FootnoteSection,
+  FootnotePlugin,
+  HighlightFlash,
+} from "@/extensions";
 
 /** Handle exposed by TextEditor for programmatic operations */
 export interface TextEditorHandle {
@@ -92,6 +98,7 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(function
       FootnoteContent,
       FootnoteSection,
       FootnotePlugin,
+      HighlightFlash,
     ],
     content,
     editable,
@@ -234,18 +241,16 @@ export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(function
           .insertContent(replacementText)
           .run();
 
+        // Flash highlight on the replaced text range
         requestAnimationFrame(() => {
-          const editorElement = editor.view.dom;
           const { from: cursorPos } = editor.state.selection;
           const highlightFrom = cursorPos - replacementText.length;
 
-          editor.chain().setTextSelection({ from: highlightFrom, to: cursorPos }).run();
+          // Trigger the highlight flash decoration
+          editor.commands.flashHighlight({ from: highlightFrom, to: cursorPos });
 
-          editorElement.classList.add("ai-rewrite-highlight");
-          setTimeout(() => {
-            editorElement.classList.remove("ai-rewrite-highlight");
-            editor.chain().setTextSelection(cursorPos).run();
-          }, 1500);
+          // Collapse selection to end of inserted text
+          editor.chain().setTextSelection(cursorPos).run();
         });
 
         return true;
