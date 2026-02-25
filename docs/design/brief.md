@@ -41,16 +41,16 @@ This is not branding on top of technology. This is the actual product architectu
 
 ### Settled Vocabulary (Non-Negotiable)
 
-| Term | Meaning | Usage |
-|------|---------|-------|
-| **Source** | A repository/provider (Google Drive, local storage) | "Connect a source" |
-| **Folder** | A directory within a source | "Browse folders" |
-| **Document** | A specific file | "Add documents" |
-| **Library** | The right-panel browsing view for all connected documents | Toolbar label, tab name |
-| **Desk** | The tab for documents tagged to the current chapter | Tab name within Library panel |
-| **Editor** | The AI editorial collaborator | Toolbar label, panel identity |
-| **Chapter** | A unit of the book | View toggle label |
-| **Book** | The full manuscript | View toggle label |
+| Term         | Meaning                                                   | Usage                         |
+| ------------ | --------------------------------------------------------- | ----------------------------- |
+| **Source**   | A repository/provider (Google Drive, local storage)       | "Connect a source"            |
+| **Folder**   | A directory within a source                               | "Browse folders"              |
+| **Document** | A specific file                                           | "Add documents"               |
+| **Library**  | The right-panel browsing view for all connected documents | Toolbar label, tab name       |
+| **Desk**     | The tab for documents tagged to the current chapter       | Tab name within Library panel |
+| **Editor**   | The AI editorial collaborator                             | Toolbar label, panel identity |
+| **Chapter**  | A unit of the book                                        | View toggle label             |
+| **Book**     | The full manuscript                                       | View toggle label             |
 
 These terms are embedded in the product architecture, the Design Charter's spatial model, and the codebase. They are not up for revision.
 
@@ -62,13 +62,13 @@ These terms are embedded in the product architecture, the Design Charter's spati
 
 The five personality traits from the Design Charter apply directly to the Editor's presence:
 
-| Trait | Applied to the Editor |
-|-------|----------------------|
-| **Calm** | The Editor does not announce itself. It does not flash or pulse when it has a suggestion. It is available when the Author reaches for it, silent when the Author is writing. An editor who interrupts is a bad editor. |
-| **Knowledgeable** | The Editor speaks in publishing vocabulary. "Rewrite" is what editors do. "Tighten" is what editors do. "Strengthen the opening" is what editors do. "Process your text with an AI model" is what no editor has ever said. |
-| **Honest** | The Editor does not pretend to be human. It is a capability, not a character. The product never says "your AI editor thinks..." It says "Rewrite" and shows the result. |
-| **Warm** | Warmth is in the restraint: the Editor waits. It does not nag, track, or score. Its presence is felt through the violet accent color, the spatial position (left panel), and the quality of its suggestions. |
-| **Focused** | The Editor does one thing in the current product: rewrite selected text according to the Author's instruction. Scope expands later (Book Editor, style analysis), but each expansion earns its place through the same discipline. |
+| Trait             | Applied to the Editor                                                                                                                                                                                                             |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Calm**          | The Editor does not announce itself. It does not flash or pulse when it has a suggestion. It is available when the Author reaches for it, silent when the Author is writing. An editor who interrupts is a bad editor.            |
+| **Knowledgeable** | The Editor speaks in publishing vocabulary. "Rewrite" is what editors do. "Tighten" is what editors do. "Strengthen the opening" is what editors do. "Process your text with an AI model" is what no editor has ever said.        |
+| **Honest**        | The Editor does not pretend to be human. It is a capability, not a character. The product never says "your AI editor thinks..." It says "Rewrite" and shows the result.                                                           |
+| **Warm**          | Warmth is in the restraint: the Editor waits. It does not nag, track, or score. Its presence is felt through the violet accent color, the spatial position (left panel), and the quality of its suggestions.                      |
+| **Focused**       | The Editor does one thing in the current product: rewrite selected text according to the Author's instruction. Scope expands later (Book Editor, style analysis), but each expansion earns its place through the same discipline. |
 
 ### Design Principles Applied to the Metaphor
 
@@ -126,11 +126,11 @@ The five personality traits from the Design Charter apply directly to the Editor
 
 The two-accent color architecture is the visual language of the Author/Editor relationship. It communicates the spatial model, the authority structure, and the collaboration dynamic without a single word.
 
-| Accent | Hex | Token | Represents | Spatial Position |
-|--------|-----|-------|------------|-----------------|
-| **Blue** | `#2563eb` | `--dc-color-interactive-primary` | The Author's domain | Right panel (Library), navigation, user-initiated actions |
-| **Violet** | `#7c3aed` | `--dc-color-interactive-escalation` | The Editor's domain | Left panel (Editor), rewrite actions, AI-generated content |
-| **Neutral** | `#ffffff` / `#f9fafb` | `--dc-color-surface-primary` / `--dc-color-surface-secondary` | The manuscript | Center writing surface |
+| Accent      | Hex                   | Token                                                         | Represents          | Spatial Position                                           |
+| ----------- | --------------------- | ------------------------------------------------------------- | ------------------- | ---------------------------------------------------------- |
+| **Blue**    | `#2563eb`             | `--dc-color-interactive-primary`                              | The Author's domain | Right panel (Library), navigation, user-initiated actions  |
+| **Violet**  | `#7c3aed`             | `--dc-color-interactive-escalation`                           | The Editor's domain | Left panel (Editor), rewrite actions, AI-generated content |
+| **Neutral** | `#ffffff` / `#f9fafb` | `--dc-color-surface-primary` / `--dc-color-surface-secondary` | The manuscript      | Center writing surface                                     |
 
 **Blue for the Author's domain.** Blue is used for the Author's actions throughout the product: sidebar navigation, chapter selection, Library panel activation, links, focus rings. When the Library button turns blue, the Author sees "my documents are showing."
 
@@ -140,29 +140,29 @@ The two-accent color architecture is the visual language of the Author/Editor re
 
 ### Color in the Toolbar
 
-| Button | Idle State | Active State | Communicates |
-|--------|-----------|-------------|--------------|
-| **Editor** | Gray text (`--dc-color-text-muted`, `#6b7280`) | Violet text on violet-subtle bg (`#7c3aed` on `#f5f3ff`) | "My editor is here" |
-| **Library** | Gray text (`--dc-color-text-muted`, `#6b7280`) | Blue text on blue-subtle bg (`#1d4ed8` on `#eff6ff`) | "My documents are showing" |
+| Button      | Idle State                                     | Active State                                             | Communicates               |
+| ----------- | ---------------------------------------------- | -------------------------------------------------------- | -------------------------- |
+| **Editor**  | Gray text (`--dc-color-text-muted`, `#6b7280`) | Violet text on violet-subtle bg (`#7c3aed` on `#f5f3ff`) | "My editor is here"        |
+| **Library** | Gray text (`--dc-color-text-muted`, `#6b7280`) | Blue text on blue-subtle bg (`#1d4ed8` on `#eff6ff`)     | "My documents are showing" |
 
 ### New Token Additions
 
-| Token | Hex | Role |
-|-------|-----|------|
+| Token                                      | Hex       | Role                                                                                                |
+| ------------------------------------------ | --------- | --------------------------------------------------------------------------------------------------- |
 | `--dc-color-interactive-primary-on-subtle` | `#1d4ed8` | Blue text on blue-subtle backgrounds (5.9:1 on `#eff6ff`). Fixes contrast for Library active state. |
-| `--dc-color-text-primary` | `#111827` | High-emphasis text (17.4:1 vs white). Headings and prominent labels. |
-| `--dc-color-surface-tertiary` | `#f3f4f6` | Toggle track, hover backgrounds. Replaces hardcoded `bg-gray-100`. |
-| `--dc-color-surface-primary` | `#ffffff` | Toggle indicator, panel backgrounds. Explicit token enables dark mode. |
+| `--dc-color-text-primary`                  | `#111827` | High-emphasis text (17.4:1 vs white). Headings and prominent labels.                                |
+| `--dc-color-surface-tertiary`              | `#f3f4f6` | Toggle track, hover backgrounds. Replaces hardcoded `bg-gray-100`.                                  |
+| `--dc-color-surface-primary`               | `#ffffff` | Toggle indicator, panel backgrounds. Explicit token enables dark mode.                              |
 
 All 15 existing `--dc-` color tokens are preserved without modification.
 
 ### Typography
 
-| Role | Font | Where | Communicates |
-|------|------|-------|-------------|
-| **UI Sans** | Geist Sans | Toolbar, sidebar, panels, all interactive elements | Professional tool |
-| **Literary Serif** | Lora | Book/chapter titles (prominent contexts), logotype, landing page headline, export | This is about books |
-| **UI Mono** | Geist Mono | Word counts, numeric displays | Tabular data |
+| Role               | Font       | Where                                                                             | Communicates        |
+| ------------------ | ---------- | --------------------------------------------------------------------------------- | ------------------- |
+| **UI Sans**        | Geist Sans | Toolbar, sidebar, panels, all interactive elements                                | Professional tool   |
+| **Literary Serif** | Lora       | Book/chapter titles (prominent contexts), logotype, landing page headline, export | This is about books |
+| **UI Mono**        | Geist Mono | Word counts, numeric displays                                                     | Tabular data        |
 
 The separation reinforces the metaphor: the manuscript (Lora headings, generous whitespace) is the Author's creative work. The panels and toolbar (Geist Sans, functional spacing) are the workspace where Author and Editor collaborate.
 
@@ -174,18 +174,19 @@ The separation reinforces the metaphor: the manuscript (Lora headings, generous 
 
 The metaphor flows through six layers, from first contact to core interaction:
 
-| Layer | Touchpoint | Metaphor Signal | Risk Level |
-|-------|-----------|----------------|------------|
-| 1 | **Landing page** | First mention of "editor" as a publishing role. "Write your book with an editor who never sleeps." | Low |
-| 2 | **Book setup** | No metaphor signal. The Editor is not relevant until the Author has something written. | None |
-| 3 | **Onboarding step 4** | "Your Editor is here." Introduces the Editor as a collaborator, connecting the concept to the toolbar button. | **Medium** — hinge moment |
-| 4 | **Editor panel empty state** | The Editor's introduction. Calm, brief, first-person (if decided — see Open Decision #1). | **High** — make-or-break |
-| 5 | **First rewrite result** | The Editor's work. Streaming text, action buttons. The interaction teaches the collaboration dynamic. | **Medium** |
-| 6 | **Chapter Editor / Book Editor** | Future differentiation. Same "Editor" button, different scope based on view mode. | Low (future) |
+| Layer | Touchpoint                       | Metaphor Signal                                                                                               | Risk Level                |
+| ----- | -------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| 1     | **Landing page**                 | First mention of "editor" as a publishing role. "Write your book with an editor who never sleeps."            | Low                       |
+| 2     | **Book setup**                   | No metaphor signal. The Editor is not relevant until the Author has something written.                        | None                      |
+| 3     | **Onboarding step 4**            | "Your Editor is here." Introduces the Editor as a collaborator, connecting the concept to the toolbar button. | **Medium** — hinge moment |
+| 4     | **Editor panel empty state**     | The Editor's introduction. Calm, brief, first-person (if decided — see Open Decision #1).                     | **High** — make-or-break  |
+| 5     | **First rewrite result**         | The Editor's work. Streaming text, action buttons. The interaction teaches the collaboration dynamic.         | **Medium**                |
+| 6     | **Chapter Editor / Book Editor** | Future differentiation. Same "Editor" button, different scope based on view mode.                             | Low (future)              |
 
 ### Landing Page Copy
 
 **Current tagline area:**
+
 ```
 Write your book.
 Keep your files.
@@ -193,6 +194,7 @@ Get AI help when you need it.
 ```
 
 **Recommended:**
+
 ```
 Write your book.
 Keep your files.
@@ -200,21 +202,23 @@ Work with an Editor who gets it.
 ```
 
 **Current description:**
+
 > A quiet place to write and organize your nonfiction book, chapter by chapter. When you are ready, export to PDF or EPUB. Your chapters stay in your Google Drive, always yours.
 
 **Recommended:**
+
 > A quiet place to write your nonfiction book, chapter by chapter. When your prose needs tightening, your Editor is one tap away — select text, ask for a rewrite, and decide what stays. Your chapters live in your Google Drive, always yours.
 
 The word "Editor" appears once, attached to human-like actions (tightening prose, offering rewrites). The user reads "Editor" as a publishing role before they ever see the toolbar button. "Decide what stays" reinforces Author authority.
 
 ### Onboarding Tooltip Redesign
 
-| Step | Current | Recommended | Rationale |
-|------|---------|-------------|-----------|
-| 1 | "This is your chapter. Start writing here, or paste what you already have." | No change. | Correct. Establishes Author ownership. |
-| 2 | "Use the sidebar to switch between chapters or add new ones." | "Your chapters live here. Switch between them, add new ones, or drag to reorder." | "Your chapters live here" is spatial ("where") not mechanical ("how"). Surfaces drag-to-reorder. |
-| 3 | "Add documents from Google Drive or your device." | "Your documents are here — anything you have added from Google Drive or your device." | Orients instead of instructs. The panel's own empty state handles the call-to-action. |
-| 4 | "Select any text to get AI suggestions for rewriting." | "Your Editor is here. Select any text, then tap Editor for a rewrite." | The critical revision. "Your Editor" introduces a collaborator, not a feature. Drops "AI" per Invisible Technology. Connects concept to toolbar button. |
+| Step | Current                                                                     | Recommended                                                                           | Rationale                                                                                                                                               |
+| ---- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | "This is your chapter. Start writing here, or paste what you already have." | No change.                                                                            | Correct. Establishes Author ownership.                                                                                                                  |
+| 2    | "Use the sidebar to switch between chapters or add new ones."               | "Your chapters live here. Switch between them, add new ones, or drag to reorder."     | "Your chapters live here" is spatial ("where") not mechanical ("how"). Surfaces drag-to-reorder.                                                        |
+| 3    | "Add documents from Google Drive or your device."                           | "Your documents are here — anything you have added from Google Drive or your device." | Orients instead of instructs. The panel's own empty state handles the call-to-action.                                                                   |
+| 4    | "Select any text to get AI suggestions for rewriting."                      | "Your Editor is here. Select any text, then tap Editor for a rewrite."                | The critical revision. "Your Editor" introduces a collaborator, not a feature. Drops "AI" per Invisible Technology. Connects concept to toolbar button. |
 
 Step 4 visual detail: the word "Editor" in the tooltip copy should use the violet accent color (`--dc-color-interactive-escalation`) with `font-medium`, creating a visual link between the tooltip text and the toolbar button it references.
 
@@ -226,29 +230,31 @@ Step 4 visual detail: the word "Editor" in the tooltip copy should use the viole
 
 The most important flow in the product. Establishes the collaboration dynamic.
 
-| Step | Author Action | System Response | Timing |
-|------|--------------|-----------------|--------|
-| 1 | Selects a paragraph | Native iPadOS selection handles appear | Instant |
-| 2 | — | Floating action bar appears below selection: "Rewrite" button | 200ms fade-in |
-| 3 | Taps "Rewrite" in floating bar | Editor panel slides open from left. Selected text appears. Instruction chips visible. Floating bar dismisses. | 200ms panel slide |
-| 4 | Taps "More concise" chip (or types custom instruction) | Chip highlights in violet. Streaming begins. Header shows "Rewriting..." with spinner. | First token < 2s |
-| 5 | Reads the streaming response | Text streams word by word | 5-15s total |
-| 6 | Streaming completes | Header changes to "Here is a rewrite." Action buttons appear: Discard, Try Again, Use This. | Instant |
-| 7a | Taps "Use This" | Rewritten text replaces selection. Brief violet highlight flash (300ms). Panel resets. | 300ms |
-| 7b | Taps "Try Again" | Instruction field editable. New streaming begins. | < 2s |
-| 7c | Taps "Discard" | Panel resets. Original text untouched. | Instant |
+| Step | Author Action                                          | System Response                                                                                               | Timing            |
+| ---- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- | ----------------- |
+| 1    | Selects a paragraph                                    | Native iPadOS selection handles appear                                                                        | Instant           |
+| 2    | —                                                      | Floating action bar appears below selection: "Rewrite" button                                                 | 200ms fade-in     |
+| 3    | Taps "Rewrite" in floating bar                         | Editor panel slides open from left. Selected text appears. Instruction chips visible. Floating bar dismisses. | 200ms panel slide |
+| 4    | Taps "More concise" chip (or types custom instruction) | Chip highlights in violet. Streaming begins. Header shows "Rewriting..." with spinner.                        | First token < 2s  |
+| 5    | Reads the streaming response                           | Text streams word by word                                                                                     | 5-15s total       |
+| 6    | Streaming completes                                    | Header changes to "Here is a rewrite." Action buttons appear: Discard, Try Again, Use This.                   | Instant           |
+| 7a   | Taps "Use This"                                        | Rewritten text replaces selection. Brief violet highlight flash (300ms). Panel resets.                        | 300ms             |
+| 7b   | Taps "Try Again"                                       | Instruction field editable. New streaming begins.                                                             | < 2s              |
+| 7c   | Taps "Discard"                                         | Panel resets. Original text untouched.                                                                        | Instant           |
 
 **Key detail:** Tapping "Rewrite" in the floating bar opens the Editor panel if it is not already open. The floating bar serves as a contextual entry point that always leads to the Editor panel.
 
 ### Editor Panel Empty State
 
 **Current:**
+
 ```
 [pencil icon]
 Select text in your chapter to start rewriting.
 ```
 
 **Recommended:**
+
 ```
 [sparkles icon, 24px, violet muted]
 
@@ -273,12 +279,12 @@ The toolbar button stays "Editor" in both contexts. The panel header specifies w
 
 ### Streaming Response Headers
 
-| State | Header Text | Style |
-|-------|-------------|-------|
-| Streaming | "Rewriting..." | Violet, with spinner |
-| Complete, first attempt | "Here is a rewrite." | Violet, no spinner |
-| Complete, retry | "Here is another take." | Violet, attempt number |
-| Error | "Could not finish the rewrite." | Error color, retry affordance |
+| State                   | Header Text                     | Style                         |
+| ----------------------- | ------------------------------- | ----------------------------- |
+| Streaming               | "Rewriting..."                  | Violet, with spinner          |
+| Complete, first attempt | "Here is a rewrite."            | Violet, no spinner            |
+| Complete, retry         | "Here is another take."         | Violet, attempt number        |
+| Error                   | "Could not finish the rewrite." | Error color, retry affordance |
 
 ### State Matrix
 
@@ -286,28 +292,28 @@ Three independent state dimensions: View mode (Chapter/Book) x Editor panel (Ope
 
 ### Animation Timing
 
-| Transition | Duration | Easing | Spec |
-|-----------|----------|--------|------|
-| Toggle indicator slide | 200ms | ease-in-out | Charter: symmetric for state changes |
-| Toggle label color/weight | 200ms | ease-in-out | |
-| Panel button active/idle | 150ms | ease-in-out | |
-| Panel slide in (entrance) | 200ms | ease-out | Charter: entrances |
-| Panel slide out (exit) | 200ms | ease-in | Charter: exits |
-| View crossfade | 300ms | ease-in-out | Existing implementation |
-| Rewrite highlight flash | 300ms | ease-out | |
+| Transition                | Duration | Easing      | Spec                                 |
+| ------------------------- | -------- | ----------- | ------------------------------------ |
+| Toggle indicator slide    | 200ms    | ease-in-out | Charter: symmetric for state changes |
+| Toggle label color/weight | 200ms    | ease-in-out |                                      |
+| Panel button active/idle  | 150ms    | ease-in-out |                                      |
+| Panel slide in (entrance) | 200ms    | ease-out    | Charter: entrances                   |
+| Panel slide out (exit)    | 200ms    | ease-in     | Charter: exits                       |
+| View crossfade            | 300ms    | ease-in-out | Existing implementation              |
+| Rewrite highlight flash   | 300ms    | ease-out    |                                      |
 
 Maximum animation duration: 300ms. All animations respect `prefers-reduced-motion: reduce` — instant state change, no motion.
 
 ### Keyboard Shortcuts
 
-| Context | Key | Action |
-|---------|-----|--------|
-| Global | `Cmd+Shift+E` | Toggle Editor panel |
-| Global | `Cmd+Shift+L` | Toggle Library panel |
-| Global | `Cmd+Shift+B` | Toggle Chapter/Book view |
-| Workspace toggle | `ArrowLeft` / `Home` | Select Chapter |
-| Workspace toggle | `ArrowRight` / `End` | Select Book |
-| Any panel open | `Escape` | Close most recently opened panel |
+| Context          | Key                  | Action                           |
+| ---------------- | -------------------- | -------------------------------- |
+| Global           | `Cmd+Shift+E`        | Toggle Editor panel              |
+| Global           | `Cmd+Shift+L`        | Toggle Library panel             |
+| Global           | `Cmd+Shift+B`        | Toggle Chapter/Book view         |
+| Workspace toggle | `ArrowLeft` / `Home` | Select Chapter                   |
+| Workspace toggle | `ArrowRight` / `End` | Select Book                      |
+| Any panel open   | `Escape`             | Close most recently opened panel |
 
 ---
 
@@ -330,13 +336,13 @@ interface PanelToggleButtonProps {
 
 Key implementation decisions:
 
-| Decision | Value | Rationale |
-|----------|-------|-----------|
-| Touch target | `min-h-[44px]` | Apple HIG / WCAG 2.5.8. Uses `min-h` not `h` to avoid constraining content. |
-| Label visibility | `hidden lg:inline` | Labels hide below 1024px (landscape breakpoint). Icons + color coding differentiate in portrait. |
-| Icon size | `w-5 h-5` (20px) | Increased from current `w-4 h-4` (16px). 20px with 2px stroke suits 44px touch target. |
-| Color transitions | `duration-150 ease-in-out` | 150ms per animation spec. Symmetric easing per charter. |
-| Focus ring | Blue (`--dc-color-interactive-primary`) | Consistent across both zones. Focus is system-level, not zone-specific. |
+| Decision          | Value                                   | Rationale                                                                                        |
+| ----------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Touch target      | `min-h-[44px]`                          | Apple HIG / WCAG 2.5.8. Uses `min-h` not `h` to avoid constraining content.                      |
+| Label visibility  | `hidden lg:inline`                      | Labels hide below 1024px (landscape breakpoint). Icons + color coding differentiate in portrait. |
+| Icon size         | `w-5 h-5` (20px)                        | Increased from current `w-4 h-4` (16px). 20px with 2px stroke suits 44px touch target.           |
+| Color transitions | `duration-150 ease-in-out`              | 150ms per animation spec. Symmetric easing per charter.                                          |
+| Focus ring        | Blue (`--dc-color-interactive-primary`) | Consistent across both zones. Focus is system-level, not zone-specific.                          |
 
 ### Editor Panel Architecture (Future Book Editor)
 
@@ -356,14 +362,14 @@ No separate `BookEditorPanel` shell component. The shell is structural; the cont
 
 ### Hardcoded Color Migration
 
-| Location | Current | Token Replacement |
-|----------|---------|-------------------|
-| `workspace-toggle.tsx` | `bg-gray-100` | `bg-[var(--dc-color-surface-tertiary)]` |
-| `editor-toolbar.tsx` (Library active) | `bg-blue-50 text-blue-700` | `bg-[var(--dc-color-interactive-primary-subtle)] text-[var(--dc-color-interactive-primary-on-subtle)]` |
-| `editor-toolbar.tsx` (Library idle) | `text-gray-600` | `text-[var(--dc-color-text-muted)]` |
-| `settings-menu.tsx` | `hover:bg-gray-100` | `hover:bg-[var(--dc-color-surface-tertiary)]` |
-| `export-menu.tsx` | `hover:bg-gray-100` | `hover:bg-[var(--dc-color-surface-tertiary)]` |
-| `workspace-toggle.tsx` (inactive text) | `text-muted-foreground` | `text-[var(--dc-color-text-secondary)]` |
+| Location                               | Current                    | Token Replacement                                                                                      |
+| -------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `workspace-toggle.tsx`                 | `bg-gray-100`              | `bg-[var(--dc-color-surface-tertiary)]`                                                                |
+| `editor-toolbar.tsx` (Library active)  | `bg-blue-50 text-blue-700` | `bg-[var(--dc-color-interactive-primary-subtle)] text-[var(--dc-color-interactive-primary-on-subtle)]` |
+| `editor-toolbar.tsx` (Library idle)    | `text-gray-600`            | `text-[var(--dc-color-text-muted)]`                                                                    |
+| `settings-menu.tsx`                    | `hover:bg-gray-100`        | `hover:bg-[var(--dc-color-surface-tertiary)]`                                                          |
+| `export-menu.tsx`                      | `hover:bg-gray-100`        | `hover:bg-[var(--dc-color-surface-tertiary)]`                                                          |
+| `workspace-toggle.tsx` (inactive text) | `text-muted-foreground`    | `text-[var(--dc-color-text-secondary)]`                                                                |
 
 ---
 
@@ -373,36 +379,36 @@ No separate `BookEditorPanel` shell component. The shell is structural; the cont
 
 5 of 7 toolbar interactive elements fail the 44px minimum mandated by Apple HIG and WCAG 2.5.8.
 
-| Element | Current | Fix |
-|---------|---------|-----|
-| WorkspaceToggle container | `h-9` (36px) | `h-11` (44px) |
-| WorkspaceToggle options | `h-8` (32px), `min-w-[60px]` | `h-10` (40px), `min-w-[72px]` |
-| Editor panel toggle | `h-9` (36px) | `min-h-[44px]` |
-| Library panel toggle | `h-9` (36px) | `min-h-[44px]` |
-| ExportMenu trigger | `h-9` (36px) | `min-h-[44px]` |
-| SettingsMenu trigger | `h-9 w-9` (36x36px) | `min-h-[44px] min-w-[44px]` |
+| Element                   | Current                      | Fix                           |
+| ------------------------- | ---------------------------- | ----------------------------- |
+| WorkspaceToggle container | `h-9` (36px)                 | `h-11` (44px)                 |
+| WorkspaceToggle options   | `h-8` (32px), `min-w-[60px]` | `h-10` (40px), `min-w-[72px]` |
+| Editor panel toggle       | `h-9` (36px)                 | `min-h-[44px]`                |
+| Library panel toggle      | `h-9` (36px)                 | `min-h-[44px]`                |
+| ExportMenu trigger        | `h-9` (36px)                 | `min-h-[44px]`                |
+| SettingsMenu trigger      | `h-9 w-9` (36x36px)          | `min-h-[44px] min-w-[44px]`   |
 
 The toolbar container height remains `h-12` (48px). All 44px touch targets fit within 48px.
 
 ### Contrast Audit (P0)
 
-| Element | Foreground | Background | Ratio | Fix |
-|---------|-----------|------------|-------|-----|
-| Toggle inactive text | `#6b7280` | `#f3f4f6` | **3.8:1 (FAIL)** | Use `--dc-color-text-secondary` (`#374151`). New ratio: 9.6:1. |
-| Library active text | `#2563eb` | `#eff6ff` | **4.4:1 (borderline)** | Use `--dc-color-interactive-primary-on-subtle` (`#1d4ed8`). New ratio: 5.9:1. |
+| Element              | Foreground | Background | Ratio                  | Fix                                                                           |
+| -------------------- | ---------- | ---------- | ---------------------- | ----------------------------------------------------------------------------- |
+| Toggle inactive text | `#6b7280`  | `#f3f4f6`  | **3.8:1 (FAIL)**       | Use `--dc-color-text-secondary` (`#374151`). New ratio: 9.6:1.                |
+| Library active text  | `#2563eb`  | `#eff6ff`  | **4.4:1 (borderline)** | Use `--dc-color-interactive-primary-on-subtle` (`#1d4ed8`). New ratio: 5.9:1. |
 
 **Note:** Editor active state (`#7c3aed` on `#f5f3ff`) is 4.6:1 — passes AA for large text (14px bold qualifies). However, `font-medium` (500 weight) is load-bearing for compliance. If weight is reduced to 400, this pairing fails.
 
 ### ARIA Summary
 
-| Component | Role | Key Attributes |
-|-----------|------|---------------|
-| `EditorToolbar` | `toolbar` | `aria-label="Editor toolbar"`, `aria-orientation="horizontal"` |
-| `WorkspaceToggle` | `radiogroup` | `aria-label="View mode"` |
-| `ToggleOption` | `radio` | `aria-checked`, `aria-label="{label} view"` |
-| `PanelToggleButton` | `button` | `aria-pressed`, `aria-label="Open/Close {name} panel"` |
-| `EditorPanel` | `complementary` | `aria-label="Chapter editor"` |
-| Live region | — | `aria-live="polite"`, `aria-atomic="true"` |
+| Component           | Role            | Key Attributes                                                 |
+| ------------------- | --------------- | -------------------------------------------------------------- |
+| `EditorToolbar`     | `toolbar`       | `aria-label="Editor toolbar"`, `aria-orientation="horizontal"` |
+| `WorkspaceToggle`   | `radiogroup`    | `aria-label="View mode"`                                       |
+| `ToggleOption`      | `radio`         | `aria-checked`, `aria-label="{label} view"`                    |
+| `PanelToggleButton` | `button`        | `aria-pressed`, `aria-label="Open/Close {name} panel"`         |
+| `EditorPanel`       | `complementary` | `aria-label="Chapter editor"`                                  |
+| Live region         | —               | `aria-live="polite"`, `aria-atomic="true"`                     |
 
 The overlay variant (`EditorPanelOverlay`) uses `role="complementary"`, NOT `role="dialog"` — the design intent is non-modal so users can still select text in the editor.
 
@@ -415,19 +421,19 @@ The Design Charter specifies `ease-in-out` for state changes (symmetric easing).
 
 ### Responsive Breakpoints
 
-| Name | Width | Primary Device |
-|------|-------|---------------|
-| Portrait | < 1024px | iPad portrait |
-| Landscape | 1024-1279px | iPad landscape |
-| Desktop | >= 1280px | Desktop, iPad Pro landscape |
+| Name      | Width       | Primary Device              |
+| --------- | ----------- | --------------------------- |
+| Portrait  | < 1024px    | iPad portrait               |
+| Landscape | 1024-1279px | iPad landscape              |
+| Desktop   | >= 1280px   | Desktop, iPad Pro landscape |
 
 Panel behavior by breakpoint:
 
-| Breakpoint | Editor Panel | Library Panel | Both Open |
-|-----------|-------------|--------------|-----------|
-| < 1024px | Overlay | Overlay | Both overlay |
-| 1024-1279px | Persistent | Persistent | Second is overlay |
-| >= 1280px | Persistent | Persistent | Both persistent if center >= 400px |
+| Breakpoint  | Editor Panel | Library Panel | Both Open                          |
+| ----------- | ------------ | ------------- | ---------------------------------- |
+| < 1024px    | Overlay      | Overlay       | Both overlay                       |
+| 1024-1279px | Persistent   | Persistent    | Second is overlay                  |
+| >= 1280px   | Persistent   | Persistent    | Both persistent if center >= 400px |
 
 ### Performance
 
@@ -469,42 +475,42 @@ Panel behavior by breakpoint:
 
 ### P0 — Ship Together (Toolbar Dimensions & Contrast)
 
-| # | Ask | Description | Files |
-|---|-----|-------------|-------|
-| 1 | **Fix toolbar touch targets** | WorkspaceToggle: `h-9` → `h-11`, options `h-8` → `h-10`, `min-w-[60px]` → `min-w-[72px]`. Panel buttons: `h-9` → `min-h-[44px]`. Export trigger: `h-9` → `min-h-[44px]`. Settings trigger: `h-9 w-9` → `min-h-[44px] min-w-[44px]`. | `workspace-toggle.tsx`, `editor-toolbar.tsx`, `export-menu.tsx`, `settings-menu.tsx` |
-| 2 | **Fix toggle easing** | Sliding indicator: `ease-out` → `ease-in-out`. Add `motion-reduce:transition-none`. | `workspace-toggle.tsx` |
-| 3 | **Fix inactive toggle contrast** | Inactive text from `text-muted-foreground` (`#6b7280`, 3.8:1) to `--dc-color-text-secondary` (`#374151`, 9.6:1). | `workspace-toggle.tsx` |
-| 4 | **Add missing color tokens** | `--dc-color-interactive-primary-on-subtle` (`#1d4ed8`), `--dc-color-text-primary` (`#111827`), `--dc-color-surface-tertiary` (`#f3f4f6`), `--dc-color-surface-primary` (`#ffffff`). | `globals.css` |
-| 5 | **Replace Library hardcoded colors** | `bg-blue-50 text-blue-700` → semantic tokens. | `editor-toolbar.tsx` |
+| #   | Ask                                  | Description                                                                                                                                                                                                                         | Files                                                                                |
+| --- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 1   | **Fix toolbar touch targets**        | WorkspaceToggle: `h-9` → `h-11`, options `h-8` → `h-10`, `min-w-[60px]` → `min-w-[72px]`. Panel buttons: `h-9` → `min-h-[44px]`. Export trigger: `h-9` → `min-h-[44px]`. Settings trigger: `h-9 w-9` → `min-h-[44px] min-w-[44px]`. | `workspace-toggle.tsx`, `editor-toolbar.tsx`, `export-menu.tsx`, `settings-menu.tsx` |
+| 2   | **Fix toggle easing**                | Sliding indicator: `ease-out` → `ease-in-out`. Add `motion-reduce:transition-none`.                                                                                                                                                 | `workspace-toggle.tsx`                                                               |
+| 3   | **Fix inactive toggle contrast**     | Inactive text from `text-muted-foreground` (`#6b7280`, 3.8:1) to `--dc-color-text-secondary` (`#374151`, 9.6:1).                                                                                                                    | `workspace-toggle.tsx`                                                               |
+| 4   | **Add missing color tokens**         | `--dc-color-interactive-primary-on-subtle` (`#1d4ed8`), `--dc-color-text-primary` (`#111827`), `--dc-color-surface-tertiary` (`#f3f4f6`), `--dc-color-surface-primary` (`#ffffff`).                                                 | `globals.css`                                                                        |
+| 5   | **Replace Library hardcoded colors** | `bg-blue-50 text-blue-700` → semantic tokens.                                                                                                                                                                                       | `editor-toolbar.tsx`                                                                 |
 
 ### P1 — Ship Together (Author/Editor Metaphor Establishment)
 
-| # | Ask | Description | Files |
-|---|-----|-------------|-------|
-| 6 | **Revise onboarding tooltip copy** | Step 2: "Your chapters live here..." Step 3: "Your documents are here..." Step 4: "Your Editor is here..." with violet accent on "Editor." | `onboarding-tooltips.tsx` |
-| 7 | **Update Editor panel empty state** | Replace pencil icon with sparkles. Copy: "Ready when you are." + instruction text. | `chapter-editor-panel.tsx` |
-| 8 | **Update landing page copy** | Revise tagline and description to seed the Author/Editor metaphor. | `page.tsx` (landing) |
-| 9 | **Change panel button label breakpoint** | `hidden sm:inline` → `hidden lg:inline` for Editor and Library labels. | `editor-toolbar.tsx` |
-| 10 | **Extract PanelToggleButton** | Shared component replacing inline panel toggle JSX. Tokenized colors, 44px touch target, `w-5 h-5` icons. | New: `panel-toggle-button.tsx` |
+| #   | Ask                                      | Description                                                                                                                                | Files                          |
+| --- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| 6   | **Revise onboarding tooltip copy**       | Step 2: "Your chapters live here..." Step 3: "Your documents are here..." Step 4: "Your Editor is here..." with violet accent on "Editor." | `onboarding-tooltips.tsx`      |
+| 7   | **Update Editor panel empty state**      | Replace pencil icon with sparkles. Copy: "Ready when you are." + instruction text.                                                         | `chapter-editor-panel.tsx`     |
+| 8   | **Update landing page copy**             | Revise tagline and description to seed the Author/Editor metaphor.                                                                         | `page.tsx` (landing)           |
+| 9   | **Change panel button label breakpoint** | `hidden sm:inline` → `hidden lg:inline` for Editor and Library labels.                                                                     | `editor-toolbar.tsx`           |
+| 10  | **Extract PanelToggleButton**            | Shared component replacing inline panel toggle JSX. Tokenized colors, 44px touch target, `w-5 h-5` icons.                                  | New: `panel-toggle-button.tsx` |
 
 ### P2 — Ship Incrementally (Polish & Accessibility)
 
-| # | Ask | Description | Files |
-|---|-----|-------------|-------|
-| 11 | **Update streaming response headers** | Contextual copy: "Here is a rewrite." / "Here is another take." / "Rewriting..." | `chapter-editor-panel.tsx` |
-| 12 | **Add panel exit animations** | Delayed unmount pattern for 200ms slide-out (ease-in). Currently panels unmount immediately. | `editor-panel.tsx` |
-| 13 | **Add `role="toolbar"` to EditorToolbar** | `role="toolbar"`, `aria-label="Editor toolbar"`, `aria-orientation="horizontal"`. | `editor-toolbar.tsx` |
-| 14 | **Add live region for announcements** | Hidden `aria-live="polite"` region for view mode and panel state changes. | `editor-toolbar.tsx` |
-| 15 | **Implement keyboard shortcuts** | `Cmd+Shift+E` (Editor), `Cmd+Shift+L` (Library), `Cmd+Shift+B` (view toggle). | `editor-toolbar.tsx`, new hook |
-| 16 | **Add layout and motion tokens** | `--dc-toolbar-height`, `--dc-toggle-height`, `--dc-motion-fast`, `--dc-motion-normal`, easing tokens. | `globals.css` |
+| #   | Ask                                       | Description                                                                                           | Files                          |
+| --- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------ |
+| 11  | **Update streaming response headers**     | Contextual copy: "Here is a rewrite." / "Here is another take." / "Rewriting..."                      | `chapter-editor-panel.tsx`     |
+| 12  | **Add panel exit animations**             | Delayed unmount pattern for 200ms slide-out (ease-in). Currently panels unmount immediately.          | `editor-panel.tsx`             |
+| 13  | **Add `role="toolbar"` to EditorToolbar** | `role="toolbar"`, `aria-label="Editor toolbar"`, `aria-orientation="horizontal"`.                     | `editor-toolbar.tsx`           |
+| 14  | **Add live region for announcements**     | Hidden `aria-live="polite"` region for view mode and panel state changes.                             | `editor-toolbar.tsx`           |
+| 15  | **Implement keyboard shortcuts**          | `Cmd+Shift+E` (Editor), `Cmd+Shift+L` (Library), `Cmd+Shift+B` (view toggle).                         | `editor-toolbar.tsx`, new hook |
+| 16  | **Add layout and motion tokens**          | `--dc-toolbar-height`, `--dc-toggle-height`, `--dc-motion-fast`, `--dc-motion-normal`, easing tokens. | `globals.css`                  |
 
 ### Future (Not Current Scope)
 
-| # | Ask | Description |
-|---|-----|-------------|
-| 17 | **Editor rewrite explanations** | Include a brief explanation with each rewrite: "Tightened the argument and cut the redundant setup." This is what separates a collaborator from a tool (Target User). Requires AI prompt engineering. |
-| 18 | **Book Editor panel** | Manuscript-level editorial assistance: chapter ordering, pacing analysis, structural overview, thematic consistency. Triggered when user is in Book view. |
-| 19 | **Editor continuity across sessions** | Some signal that the Editor has been here before: recent interaction, chapter context. "The difference between a metaphor that deepens over time and one that becomes 'the rewrite thing' by day ten" (Target User). |
+| #   | Ask                                   | Description                                                                                                                                                                                                          |
+| --- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 17  | **Editor rewrite explanations**       | Include a brief explanation with each rewrite: "Tightened the argument and cut the redundant setup." This is what separates a collaborator from a tool (Target User). Requires AI prompt engineering.                |
+| 18  | **Book Editor panel**                 | Manuscript-level editorial assistance: chapter ordering, pacing analysis, structural overview, thematic consistency. Triggered when user is in Book view.                                                            |
+| 19  | **Editor continuity across sessions** | Some signal that the Editor has been here before: recent interaction, chapter context. "The difference between a metaphor that deepens over time and one that becomes 'the rewrite thing' by day ten" (Target User). |
 
 ---
 
@@ -516,11 +522,11 @@ Panel behavior by breakpoint:
 
 **Options considered:**
 
-| Approach | Proposed By | Strengths | Risks |
-|----------|------------|-----------|-------|
-| First person ("I am your Editor") | Target User | "The single most powerful moment in the onboarding." Establishes the Editor as a presence, not a tool. | Could feel forced. Clippy risk. Contradicts "Not a character" brand principle. |
-| Third person ("Ready when you are") | Interaction Designer, Brand Strategist | Calm, professional. Does not anthropomorphize. Consistent with "Not a character" principle. | Misses the emotional opportunity. "Ready when you are" is warm but does not name the relationship. |
-| Hybrid | — | "Your Editor is ready. Select some text to get started." Uses "your Editor" (relational) without "I" (anthropomorphizing). | Compromise that might not satisfy either goal. |
+| Approach                            | Proposed By                            | Strengths                                                                                                                  | Risks                                                                                              |
+| ----------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| First person ("I am your Editor")   | Target User                            | "The single most powerful moment in the onboarding." Establishes the Editor as a presence, not a tool.                     | Could feel forced. Clippy risk. Contradicts "Not a character" brand principle.                     |
+| Third person ("Ready when you are") | Interaction Designer, Brand Strategist | Calm, professional. Does not anthropomorphize. Consistent with "Not a character" principle.                                | Misses the emotional opportunity. "Ready when you are" is warm but does not name the relationship. |
+| Hybrid                              | —                                      | "Your Editor is ready. Select some text to get started." Uses "your Editor" (relational) without "I" (anthropomorphizing). | Compromise that might not satisfy either goal.                                                     |
 
 **Why it matters:** The Target User identified this as "the single most important design decision in the entire Author/Editor metaphor." The empty state is the first time the Author sees the Editor panel. If it reads as a tool, the metaphor is dead on arrival. If it reads as a presence, everything else makes sense retroactively.
 
@@ -556,4 +562,4 @@ Panel behavior by breakpoint:
 
 ---
 
-*This design brief was synthesized from 4 agent contributions (Brand Strategist, Interaction Designer, Design Technologist, Target User) in the `docs/design/contributions-archive/2026-02-24-4/` archive. 16 design asks across P0/P1/P2, 3 open design decisions, 19 future asks identified.*
+_This design brief was synthesized from 4 agent contributions (Brand Strategist, Interaction Designer, Design Technologist, Target User) in the `docs/design/contributions-archive/2026-02-24-4/` archive. 16 design asks across P0/P1/P2, 3 open design decisions, 19 future asks identified._
