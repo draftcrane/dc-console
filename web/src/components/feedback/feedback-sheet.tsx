@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/components/toast";
 import { useFeedbackContext } from "@/hooks/use-feedback-context";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -33,7 +34,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
   const { showToast } = useToast();
   const { collectContext } = useFeedbackContext();
 
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useFocusTrap({ isOpen, onEscape: onClose });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [type, setType] = useState<FeedbackType | null>(null);
@@ -60,52 +61,6 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
       setIsSubmitting(false);
     }
   }, [isOpen]);
-
-  // Focus trap and Escape handler
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
-      if (!isOpen) return;
-
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-
-      if (event.key !== "Tab") return;
-
-      const focusableElements = sheetRef.current?.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
-
-      if (!focusableElements || focusableElements.length === 0) return;
-
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-
-      if (event.shiftKey) {
-        if (document.activeElement === firstElement) {
-          event.preventDefault();
-          lastElement.focus();
-        }
-      } else {
-        if (document.activeElement === lastElement) {
-          event.preventDefault();
-          firstElement.focus();
-        }
-      }
-    },
-    [isOpen, onClose],
-  );
-
-  useEffect(() => {
-    if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-    }
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen, handleKeyDown]);
 
   // Body scroll lock
   useEffect(() => {
