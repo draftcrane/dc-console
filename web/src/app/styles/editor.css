@@ -153,10 +153,13 @@
   animation: slide-up 0.3s ease-out;
 }
 
-/* AI Rewrite - highlight flash on accepted text replacement */
+/* AI Rewrite - highlight flash on accepted text replacement (#325)
+ * Uses --dc-color-interactive-primary (blue) with 30% opacity.
+ * Animation duration: 1.5s per design spec.
+ */
 @keyframes highlight-flash {
   0% {
-    background-color: rgba(59, 130, 246, 0.3);
+    background-color: color-mix(in srgb, var(--dc-color-interactive-primary) 30%, transparent);
   }
   100% {
     background-color: transparent;
@@ -165,6 +168,7 @@
 
 .ai-rewrite-highlight {
   animation: highlight-flash 1.5s ease-out;
+  border-radius: 2px;
 }
 
 /* Respect prefers-reduced-motion */
