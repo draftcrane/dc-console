@@ -208,7 +208,12 @@ describe("ChapterEditorPanel", () => {
         onDiscard={vi.fn()}
       />,
     );
-    expect(screen.getByText("Select text in your chapter to start rewriting.")).toBeInTheDocument();
+    expect(screen.getByText("Ready when you are.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Select text in your chapter, then choose an instruction or write your own.",
+      ),
+    ).toBeInTheDocument();
   });
 
   // ── With selected text ──
