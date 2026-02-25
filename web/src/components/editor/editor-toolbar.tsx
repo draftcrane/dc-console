@@ -81,9 +81,9 @@ export function EditorToolbar({
   const { isPanelOpen, togglePanel, connections } = useSourcesContext();
 
   return (
-    <div className="flex items-center justify-between h-12 px-4 border-b border-border bg-background shrink-0">
+    <div className="flex items-center h-12 px-4 border-b border-border bg-background shrink-0">
       {/* Left: Project switcher */}
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center gap-2 min-w-0 shrink-0">
         <ProjectSwitcher
           currentProject={{
             id: projectData.id,
@@ -98,13 +98,13 @@ export function EditorToolbar({
         />
       </div>
 
-      {/* Center: Workspace toggle - prominently placed for discoverability (#318) */}
-      <div className="absolute left-1/2 -translate-x-1/2">
+      {/* Center: Workspace toggle - in flex flow to avoid overlap (#353) */}
+      <div className="flex-1 flex justify-center min-w-0 px-2">
         <WorkspaceToggle value={viewMode} onChange={onViewModeChange} />
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <SaveIndicator status={saveStatus} onRetry={onSaveRetry} />
 
         {/* Editor Panel toggle (#317) */}

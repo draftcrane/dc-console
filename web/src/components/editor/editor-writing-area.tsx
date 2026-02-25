@@ -25,6 +25,8 @@ interface EditorWritingAreaProps {
 
   /** Callback when cursor/selection changes in the editor */
   onSelectionUpdate?: () => void;
+  /** Callback when editor loses focus (#357) */
+  onBlur?: () => void;
 }
 
 /**
@@ -51,6 +53,7 @@ export function EditorWritingArea({
   currentWordCount,
   selectionWordCount,
   onSelectionUpdate,
+  onBlur,
 }: EditorWritingAreaProps) {
   return (
     <div className="flex-1 overflow-auto">
@@ -98,6 +101,7 @@ export function EditorWritingArea({
           onUpdate={onContentChange}
           onSelectionWordCountChange={onSelectionWordCountChange}
           onSelectionUpdate={onSelectionUpdate}
+          onBlur={onBlur}
         />
 
         <div className="mt-4 flex items-center justify-end">

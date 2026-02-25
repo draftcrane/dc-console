@@ -141,7 +141,7 @@ export function useSources(projectId: string): UseSourcesReturn {
     [getToken],
   );
 
-  // Add Drive sources
+  // Add Drive sources (optimistic update — no full refetch)
   const addDriveSources = useCallback(
     async (files: AddSourceInput[], connectionId?: string) => {
       const token = await getToken();
@@ -157,7 +157,13 @@ export function useSources(projectId: string): UseSourcesReturn {
         const data = await response.json().catch(() => null);
         throw new Error((data as { error?: string } | null)?.error || "Failed to add sources");
       }
-      await fetchSources();
+      const data = await response.json().catch(() => null);
+      if (data?.sources && Array.isArray(data.sources)) {
+        setSources((prev) => [...prev, ...data.sources]);
+      } else {
+        // Fallback: refetch if response didn't include sources
+        await fetchSources();
+      }
     },
     [getToken, projectId, fetchSources],
   );
@@ -183,19 +189,32 @@ export function useSources(projectId: string): UseSourcesReturn {
     [getToken, projectId, fetchSources],
   );
 
-  // Remove source (soft delete)
+  // Remove source (optimistic update — no full refetch)
   const removeSource = useCallback(
     async (sourceId: string) => {
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/sources/${sourceId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Failed to remove source");
+      // Optimistic: remove from local state immediately
+      const previousSources = sources;
+      setSources((prev) => prev.filter((s) => s.id !== sourceId));
       contentCacheRef.current.delete(sourceId);
-      await fetchSources();
+
+      try {
+        const token = await getToken();
+        const response = await fetch(`${API_URL}/sources/${sourceId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          // Rollback on failure
+          setSources(previousSources);
+          throw new Error("Failed to remove source");
+        }
+      } catch (err) {
+        // Rollback on network error
+        setSources(previousSources);
+        throw err;
+      }
     },
-    [getToken, fetchSources],
+    [getToken, sources],
   );
 
   // Restore source (undo remove)

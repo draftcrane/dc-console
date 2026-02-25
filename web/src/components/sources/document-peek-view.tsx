@@ -32,7 +32,7 @@ export function DocumentPeekView({
   onTagged,
 }: DocumentPeekViewProps) {
   const { content, format, wordCount, isLoading, error } = useDriveContent(connectionId, fileId);
-  const { addDriveSources, sources, removeSource, getContent, editorRef, isPanelOpen, closePanel } =
+  const { addDriveSources, sources, removeSource, editorRef, isPanelOpen, closePanel } =
     useSourcesContext();
   const { showToast } = useToast();
 
@@ -65,7 +65,10 @@ export function DocumentPeekView({
   const insertContent = useCallback(
     (html: string) => {
       const editor = editorRef.current?.getEditor();
-      if (!editor) return;
+      if (!editor) {
+        showToast("Editor not available - click in your chapter first");
+        return;
+      }
 
       const { from, to } = editor.state.selection;
       const hasSelection = from !== to;
@@ -109,31 +112,12 @@ export function DocumentPeekView({
       await addDriveSources([{ driveFileId: fileId, title: fileName, mimeType }], connectionId);
       showToast(`Added "${fileName}" to desk`);
       onTagged?.();
-
-      // Eagerly trigger content extraction in the background.
-      // After addDriveSources, sources state is updated. Find the new source by driveFileId.
-      const newSource = sources.find((s) => s.driveFileId === fileId && s.status === "active");
-      if (newSource) {
-        getContent(newSource.id).catch(() => {
-          // Non-critical — extraction will happen lazily on next access
-        });
-      }
     } catch {
-      showToast("Couldn't add to desk — try again");
+      showToast("Couldn't add to desk - try again");
     } finally {
       setIsAdding(false);
     }
-  }, [
-    addDriveSources,
-    fileId,
-    fileName,
-    mimeType,
-    connectionId,
-    showToast,
-    onTagged,
-    sources,
-    getContent,
-  ]);
+  }, [addDriveSources, fileId, fileName, mimeType, connectionId, showToast, onTagged]);
 
   const handleRemoveFromDesk = useCallback(async () => {
     if (!existingSource) return;
@@ -215,7 +199,7 @@ export function DocumentPeekView({
               : isRemoving
                 ? "Removing..."
                 : isOnDesk
-                  ? "On Desk"
+                  ? "Remove from Desk"
                   : "Add to Desk"}
           </button>
 
