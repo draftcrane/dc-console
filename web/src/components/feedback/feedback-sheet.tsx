@@ -40,6 +40,16 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLandscape, setIsLandscape] = useState(false);
+
+  // Track landscape/portrait for side sheet vs bottom sheet
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 1024px)");
+    setIsLandscape(query.matches);
+    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
+    query.addEventListener("change", handler);
+    return () => query.removeEventListener("change", handler);
+  }, []);
 
   // Reset state when sheet opens
   useEffect(() => {
@@ -159,24 +169,49 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
         aria-hidden="true"
       />
 
-      {/* Bottom Sheet */}
+      {/* Sheet — bottom (portrait) or side (landscape) */}
       <div
         ref={sheetRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Send feedback"
-        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl
-                   border-t border-gray-200 sheet-slide-up
-                   max-h-[80vh] flex flex-col"
+        aria-label="Report a problem"
+        className={
+          isLandscape
+            ? "fixed inset-y-0 right-0 z-50 w-full max-w-[380px] bg-white rounded-l-2xl shadow-2xl border-l border-gray-200 sheet-slide-right flex flex-col"
+            : "fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 sheet-slide-up max-h-[80vh] flex flex-col"
+        }
       >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-300" aria-hidden="true" />
-        </div>
+        {/* Drag handle — portrait only */}
+        {!isLandscape && (
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-gray-300" aria-hidden="true" />
+          </div>
+        )}
 
         {/* Header */}
-        <div className="px-6 pb-3 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">Send Feedback</h2>
+        <div className="flex items-center justify-between px-6 pb-3 pt-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">Report a Problem</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors -mr-2"
+            aria-label="Close"
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
 
         {/* Content */}
@@ -219,7 +254,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
                     d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                Bug
+                Something broke
               </button>
 
               {/* Suggestion card */}
@@ -253,7 +288,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
                     d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
                   />
                 </svg>
-                Suggestion
+                I have an idea
               </button>
             </div>
           </fieldset>
@@ -278,8 +313,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
                   : "What would make DraftCrane better for you?"
               }
               maxLength={2000}
-              rows={4}
-              className="w-full rounded-lg border border-gray-300 p-3 text-base leading-relaxed
+              className="w-full min-h-[120px] rounded-lg border border-gray-300 p-3 text-base leading-relaxed
                          placeholder:text-gray-400
                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                          disabled:opacity-50 disabled:cursor-not-allowed
@@ -330,7 +364,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
                        hover:bg-gray-800 transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Sending..." : "Send Feedback"}
+            {isSubmitting ? "Sending..." : "Send Report"}
           </button>
         </div>
 
