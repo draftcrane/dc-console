@@ -22,6 +22,15 @@
   --dc-color-interactive-escalation-subtle: #f5f3ff;
   --dc-color-interactive-escalation-hover: #6d28d9;
   --dc-color-interactive-escalation-border: #c4b5fd;
+
+  /* Blue text on blue-subtle backgrounds — 5.9:1 on #eff6ff */
+  --dc-color-interactive-primary-on-subtle: #1d4ed8;
+  /* High-emphasis text — 17.4:1 vs white */
+  --dc-color-text-primary: #111827;
+  /* Toggle track, hover backgrounds */
+  --dc-color-surface-tertiary: #f3f4f6;
+  /* Toggle indicator, panel backgrounds */
+  --dc-color-surface-primary: #ffffff;
 }
 
 @theme inline {

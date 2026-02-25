@@ -438,7 +438,7 @@ export function ExportMenu({
           setIsOpen(!isOpen);
         }}
         disabled={isExporting}
-        className="h-9 px-3 text-sm rounded-lg hover:bg-gray-100 transition-colors min-w-[44px]
+        className="min-h-[44px] px-3 text-sm rounded-lg hover:bg-[var(--dc-color-surface-tertiary)] transition-colors min-w-[44px]
                    disabled:opacity-50 disabled:cursor-not-allowed
                    flex items-center gap-1.5"
         aria-label="Export"

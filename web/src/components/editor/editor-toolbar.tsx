@@ -102,8 +102,8 @@ export function EditorToolbar({
         {onToggleEditorPanel && (
           <button
             onClick={onToggleEditorPanel}
-            className={`h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
-                       transition-colors ${isEditorPanelOpen ? "bg-[var(--dc-color-interactive-escalation-subtle)] text-[var(--dc-color-interactive-escalation)]" : "text-gray-600 hover:bg-gray-50"}`}
+            className={`min-h-[44px] px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
+                       transition-colors duration-150 ease-in-out ${isEditorPanelOpen ? "bg-[var(--dc-color-interactive-escalation-subtle)] text-[var(--dc-color-interactive-escalation)]" : "text-[var(--dc-color-text-muted)] hover:bg-[var(--dc-color-surface-tertiary)]"}`}
             aria-label={isEditorPanelOpen ? "Close editor panel" : "Open editor panel"}
             aria-pressed={isEditorPanelOpen}
           >
@@ -127,8 +127,8 @@ export function EditorToolbar({
 
         <button
           onClick={togglePanel}
-          className={`h-9 px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
-                     transition-colors ${isPanelOpen ? "bg-blue-50 text-blue-700" : "text-gray-600 hover:bg-gray-50"}`}
+          className={`min-h-[44px] px-2.5 flex items-center gap-1.5 rounded-lg text-sm font-medium
+                     transition-colors duration-150 ease-in-out ${isPanelOpen ? "bg-[var(--dc-color-interactive-primary-subtle)] text-[var(--dc-color-interactive-primary-on-subtle)]" : "text-[var(--dc-color-text-muted)] hover:bg-[var(--dc-color-surface-tertiary)]"}`}
           aria-label={isPanelOpen ? "Close library panel" : "Open library panel"}
           aria-pressed={isPanelOpen}
         >

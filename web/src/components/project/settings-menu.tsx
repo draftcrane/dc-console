@@ -71,7 +71,7 @@ export function SettingsMenu({
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-[var(--dc-color-surface-tertiary)] transition-colors"
         aria-label="Settings"
         aria-expanded={isOpen}
         aria-haspopup="true"
