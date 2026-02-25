@@ -78,6 +78,10 @@
     animation: none;
   }
 
+  .editor-panel-slide-out {
+    animation: none;
+  }
+
   .editor-panel-backdrop-fade-in {
     animation: none;
   }

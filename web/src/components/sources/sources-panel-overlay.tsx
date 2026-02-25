@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useSourcesContext } from "@/contexts/sources-context";
+import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
 import { LibraryTab } from "./library-tab";
 import { DeskTab } from "./desk-tab";
 import type { SourcesTab } from "@/hooks/use-sources-panel";
@@ -12,6 +13,7 @@ import type { SourcesTab } from "@/hooks/use-sources-panel";
  */
 export function SourcesPanelOverlay() {
   const { activeTab, setActiveTab, isPanelOpen, closePanel, sources } = useSourcesContext();
+  const { shouldRender, isClosing } = useDelayedUnmount(isPanelOpen, 200);
 
   const deskCount = useMemo(() => sources.filter((s) => s.status === "active").length, [sources]);
 
@@ -23,21 +25,21 @@ export function SourcesPanelOverlay() {
     [deskCount],
   );
 
-  if (!isPanelOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/30 sources-backdrop-fade-in lg:hidden"
+        className={`fixed inset-0 z-40 bg-black/30 lg:hidden ${isClosing ? "sources-backdrop-fade-out" : "sources-backdrop-fade-in"}`}
         onClick={closePanel}
         aria-hidden="true"
       />
 
       {/* Panel */}
       <div
-        className="sources-panel-overlay fixed inset-y-0 right-0 z-50 w-full max-w-[380px]
-                   bg-background shadow-xl sources-panel-slide-in flex flex-col lg:hidden"
+        className={`sources-panel-overlay fixed inset-y-0 right-0 z-50 w-full max-w-[380px]
+                   bg-background shadow-xl flex flex-col lg:hidden ${isClosing ? "sources-panel-slide-out" : "sources-panel-slide-in"}`}
         role="dialog"
         aria-modal="true"
         aria-label="Library panel"

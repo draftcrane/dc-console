@@ -118,6 +118,66 @@
   animation: sheet-slide-right 300ms ease-out;
 }
 
+/* ------------------------------------------------------------------
+ * Feedback Sheet Exit Animations (#377)
+ *
+ * Exit counterparts for sheet-slide-up and sheet-slide-right.
+ * Used with useDelayedUnmount to keep DOM mounted during animation.
+ * ------------------------------------------------------------------ */
+
+@keyframes sheet-slide-down {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+.sheet-slide-down {
+  animation: sheet-slide-down 200ms ease-in forwards;
+}
+
+@keyframes sheet-slide-right-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.sheet-slide-right-out {
+  animation: sheet-slide-right-out 200ms ease-in forwards;
+}
+
+/* ------------------------------------------------------------------
+ * Backdrop Fade-Out (#377)
+ *
+ * Shared exit animation for overlay backdrops.
+ * ------------------------------------------------------------------ */
+
+@keyframes backdrop-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.backdrop-fade-in {
+  animation: sources-backdrop-fade-in 200ms ease-out;
+}
+
+.backdrop-fade-out {
+  animation: backdrop-fade-out 200ms ease-in forwards;
+}
+
 /* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   .toast-fade-in {
@@ -141,6 +201,22 @@
   }
 
   .sheet-slide-right {
+    animation: none;
+  }
+
+  .sheet-slide-down {
+    animation: none;
+  }
+
+  .sheet-slide-right-out {
+    animation: none;
+  }
+
+  .backdrop-fade-in {
+    animation: none;
+  }
+
+  .backdrop-fade-out {
     animation: none;
   }
 }

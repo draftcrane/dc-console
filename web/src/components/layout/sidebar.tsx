@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
 import {
   DndContext,
   closestCenter,
@@ -658,18 +659,23 @@ export function SidebarOverlay({
   children: React.ReactNode;
 }) {
   const panelRef = useFocusTrap({ isOpen, onEscape: onClose });
+  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
+      <div
+        className={`absolute inset-0 bg-black/50 ${isClosing ? "sidebar-backdrop-fade-out" : "sidebar-backdrop-fade-in"}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
       {/* Sidebar container */}
       <div
         ref={panelRef}
-        className="absolute left-0 top-0 bottom-0 w-[280px] max-w-[85vw]"
+        className={`absolute left-0 top-0 bottom-0 w-[280px] max-w-[85vw] ${isClosing ? "sidebar-overlay-slide-out" : "sidebar-overlay-slide-in"}`}
         role="dialog"
         aria-modal="true"
         aria-label="Chapter navigation"

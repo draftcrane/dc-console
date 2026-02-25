@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { DriveAccount } from "@/hooks/use-drive-accounts";
+import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
 
 interface AccountsSheetProps {
   isOpen: boolean;
@@ -27,6 +28,8 @@ export function AccountsSheet({
   onConnectAccount,
   onDisconnectAccount,
 }: AccountsSheetProps) {
+  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
+
   // Close on Escape
   useEffect(() => {
     if (!isOpen) return;
@@ -37,7 +40,7 @@ export function AccountsSheet({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr);
@@ -51,12 +54,16 @@ export function AccountsSheet({
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/20 z-50" onClick={onClose} aria-hidden="true" />
+      <div
+        className={`fixed inset-0 bg-black/20 z-50 ${isClosing ? "backdrop-fade-out" : "backdrop-fade-in"}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
       {/* Panel */}
       <div
-        className="fixed top-0 right-0 h-full w-full max-w-sm bg-[var(--dc-color-surface-primary)] shadow-xl z-50
-                   flex flex-col"
+        className={`fixed top-0 right-0 h-full w-full max-w-sm bg-[var(--dc-color-surface-primary)] shadow-xl z-50
+                   flex flex-col ${isClosing ? "sheet-slide-right-out" : "sheet-slide-right"}`}
         role="dialog"
         aria-label="Google Accounts"
       >
