@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import type { ChapterData } from "@/components/layout/sidebar";
-import type { ChapterEditorHandle } from "@/components/editor/chapter-editor";
+import type { TextEditorHandle } from "@/components/editor/text-editor";
 import { OnboardingTooltips } from "@/components/editor/onboarding-tooltips";
 import { CrashRecoveryDialog } from "@/components/editor/crash-recovery-dialog";
 import { EditorSidebar } from "@/components/editor/editor-sidebar";
@@ -50,7 +50,7 @@ function EditorPageInner() {
   const projectId = params.projectId as string;
 
   // Editor ref for AI rewrite text replacement
-  const editorRef = useRef<ChapterEditorHandle>(null);
+  const editorRef = useRef<TextEditorHandle>(null);
 
   // View mode state with URL sync (#318)
   const { viewMode, setViewMode } = useViewMode();

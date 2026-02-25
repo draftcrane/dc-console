@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { useAIRewrite, type SheetState, type AIRewriteResult } from "@/hooks/use-ai-rewrite";
-import type { ChapterEditorHandle } from "@/components/editor/chapter-editor";
+import type { TextEditorHandle } from "@/components/editor/text-editor";
 
 interface Chapter {
   id: string;
@@ -26,7 +26,7 @@ interface UseEditorAIOptions {
   activeChapter: Chapter | undefined;
   projectData: ProjectData | null;
   activeChapterId: string | null;
-  editorRef: React.RefObject<ChapterEditorHandle | null>;
+  editorRef: React.RefObject<TextEditorHandle | null>;
 }
 
 interface UseEditorAIReturn {

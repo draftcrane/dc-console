@@ -7,8 +7,8 @@ import { useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from 
 import { useTextSelection } from "@/hooks/use-text-selection";
 import { FootnoteRef, FootnoteContent, FootnoteSection, FootnotePlugin } from "@/extensions";
 
-/** Handle exposed by ChapterEditor for programmatic operations */
-export interface ChapterEditorHandle {
+/** Handle exposed by TextEditor for programmatic operations */
+export interface TextEditorHandle {
   /** Get the Tiptap editor instance */
   getEditor: () => Editor | null;
   /**
@@ -24,7 +24,7 @@ export interface ChapterEditorHandle {
   insertContent: (content: string, format: "html" | "text") => boolean;
 }
 
-interface ChapterEditorProps {
+interface TextEditorProps {
   /** Initial content (HTML string) */
   content?: string;
   /** Callback when content changes */
@@ -46,7 +46,7 @@ interface ChapterEditorProps {
 }
 
 /**
- * ChapterEditor - Tiptap-based rich text editor for chapter content
+ * TextEditor - Tiptap-based rich text editor for chapter content
  *
  * Per PRD US-011:
  * - Formatting: Bold, Italic, H2, H3, Bulleted list, Numbered list, Block quote
@@ -59,11 +59,11 @@ interface ChapterEditorProps {
  * - Works with virtual keyboard (cursor visible via visualViewport API)
  *
  * Per ADR-001: Tiptap selected for iPad Safari reliability.
- * Styles are in globals.css under .chapter-editor-content.
- * Ref: Exposes ChapterEditorHandle for programmatic operations (e.g., AI rewrite text replacement)
+ * Styles are in editor.css under .text-editor-content.
+ * Ref: Exposes TextEditorHandle for programmatic operations (e.g., AI rewrite text replacement)
  */
-export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>(
-  function ChapterEditor(
+export const TextEditor = forwardRef<TextEditorHandle, TextEditorProps>(
+  function TextEditor(
     {
       content = "",
       onUpdate,
@@ -98,7 +98,7 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
       editable,
       editorProps: {
         attributes: {
-          class: "chapter-editor-content outline-none",
+          class: "text-editor-content outline-none",
         },
         handlePaste: (_view, event) => {
           const html = event.clipboardData?.getData("text/html");
@@ -275,15 +275,15 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
     }
 
     return (
-      <div className="chapter-editor relative" ref={editorContainerRef}>
+      <div className="text-editor relative" ref={editorContainerRef}>
         <EditorToolbar editor={editor} />
 
         <EditorContent
           editor={editor}
           className="prose prose-lg max-w-none
-                     [&_.chapter-editor-content]:min-h-[400px]
-                     [&_.chapter-editor-content]:text-lg
-                     [&_.chapter-editor-content]:leading-relaxed
+                     [&_.text-editor-content]:min-h-[400px]
+                     [&_.text-editor-content]:text-lg
+                     [&_.text-editor-content]:leading-relaxed
                      [&_.is-editor-empty]:before:content-[attr(data-placeholder)]
                      [&_.is-editor-empty]:before:text-gray-400
                      [&_.is-editor-empty]:before:float-left
@@ -462,5 +462,5 @@ function EditorToolbar({ editor }: { editor: Editor }) {
   );
 }
 
-export default ChapterEditor;
-export type { ChapterEditorProps };
+export default TextEditor;
+export type { TextEditorProps };

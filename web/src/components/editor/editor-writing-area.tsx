@@ -2,10 +2,10 @@
 
 import type { RefObject } from "react";
 import type { Chapter } from "@/types/editor";
-import { ChapterEditor, type ChapterEditorHandle } from "./chapter-editor";
+import { TextEditor, type TextEditorHandle } from "./text-editor";
 
 interface EditorWritingAreaProps {
-  editorRef: RefObject<ChapterEditorHandle | null>;
+  editorRef: RefObject<TextEditorHandle | null>;
   currentContent: string;
   onContentChange: (html: string) => void;
   onSelectionWordCountChange: (count: number) => void;
@@ -95,7 +95,7 @@ export function EditorWritingArea({
           </h1>
         )}
 
-        <ChapterEditor
+        <TextEditor
           ref={editorRef}
           content={currentContent}
           onUpdate={onContentChange}

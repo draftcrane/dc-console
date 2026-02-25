@@ -14,7 +14,7 @@ import { useDeepAnalysis, type UseDeepAnalysisReturn } from "@/hooks/use-deep-an
 import { useAIInstructions, type AIInstruction } from "@/hooks/use-ai-instructions";
 import { useSourcesPanel, type SourcesTab } from "@/hooks/use-sources-panel";
 import { useDriveAccounts } from "@/hooks/use-drive-accounts";
-import type { ChapterEditorHandle } from "@/components/editor/chapter-editor";
+import type { TextEditorHandle } from "@/components/editor/text-editor";
 
 // ── Context Value Type ──
 
@@ -87,7 +87,7 @@ interface SourcesContextValue {
   connectDrive: (loginHint?: string, projectId?: string) => Promise<void>;
 
   // Editor ref (for content insertion)
-  editorRef: React.RefObject<ChapterEditorHandle | null>;
+  editorRef: React.RefObject<TextEditorHandle | null>;
 
   // Project ID
   projectId: string;
@@ -99,7 +99,7 @@ const SourcesContext = createContext<SourcesContextValue | null>(null);
 
 interface SourcesProviderProps {
   projectId: string;
-  editorRef: React.RefObject<ChapterEditorHandle | null>;
+  editorRef: React.RefObject<TextEditorHandle | null>;
   children: ReactNode;
 }
 

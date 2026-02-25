@@ -3,37 +3,37 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { EditorWritingArea } from "@/components/editor/editor-writing-area";
 import type { RefObject } from "react";
-import type { ChapterEditorHandle } from "@/components/editor/chapter-editor";
+import type { TextEditorHandle } from "@/components/editor/text-editor";
 
 /**
  * Tests for EditorWritingArea — the main writing surface component.
  *
  * Contains:
  * - Editable chapter title (display mode / editing mode)
- * - ChapterEditor (Tiptap) — mocked to avoid full ProseMirror setup
+ * - TextEditor (Tiptap) — mocked to avoid full ProseMirror setup
  * - Word count display (total and selection)
  *
- * Mock strategy: We mock ChapterEditor since it requires a full Tiptap/ProseMirror
+ * Mock strategy: We mock TextEditor since it requires a full Tiptap/ProseMirror
  * environment. The interesting behavior to test is the title editing UX and
  * word count display, which don't depend on the editor internals.
  */
 
-// Mock the ChapterEditor component — must handle forwardRef since the real
+// Mock the TextEditor component — must handle forwardRef since the real
 // component uses it for the imperative handle
-vi.mock("@/components/editor/chapter-editor", () => ({
-  ChapterEditor: React.forwardRef(function MockChapterEditor(
+vi.mock("@/components/editor/text-editor", () => ({
+  TextEditor: React.forwardRef(function MockTextEditor(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     props: any,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _ref: React.Ref<ChapterEditorHandle>,
+    _ref: React.Ref<TextEditorHandle>,
   ) {
-    return <div data-testid="chapter-editor" data-content={props.content} />;
+    return <div data-testid="text-editor" data-content={props.content} />;
   }),
 }));
 
 function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorWritingArea>>) {
   return {
-    editorRef: { current: null } as RefObject<ChapterEditorHandle | null>,
+    editorRef: { current: null } as RefObject<TextEditorHandle | null>,
     currentContent: "<p>Some content here</p>",
     onContentChange: vi.fn(),
     onSelectionWordCountChange: vi.fn(),
@@ -235,10 +235,10 @@ describe("EditorWritingArea", () => {
   // Editor integration
   // ────────────────────────────────────────────
 
-  it("renders the ChapterEditor component", () => {
+  it("renders the TextEditor component", () => {
     render(<EditorWritingArea {...makeProps()} />);
 
-    expect(screen.getByTestId("chapter-editor")).toBeInTheDocument();
+    expect(screen.getByTestId("text-editor")).toBeInTheDocument();
   });
 
   it("has proper content width constraint (max-w-[700px])", () => {
