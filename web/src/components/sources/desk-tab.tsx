@@ -2,8 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useSourcesContext } from "@/contexts/sources-context";
-import { InstructionPicker } from "./instruction-picker";
-import { InstructionSetPicker, DESK_INSTRUCTIONS } from "@/components/instruction-set-picker";
+import { InstructionList } from "@/components/instruction-list";
 import { EmptyState } from "./empty-state";
 import { useToast } from "@/components/toast";
 
@@ -29,9 +28,11 @@ export function DeskTab() {
     analysisError,
     resetAnalysis,
     deskInstructions,
+    isLoadingInstructions,
     createInstruction,
     updateInstruction,
     removeInstruction,
+    touchInstructionLastUsed,
     editorRef,
     projectId,
     isPanelOpen,
@@ -41,7 +42,7 @@ export function DeskTab() {
 
   const { showToast } = useToast();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [instruction, setInstruction] = useState(DESK_INSTRUCTIONS[0].instructionText);
+  const [instruction, setInstruction] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analysisRef = useRef<HTMLDivElement>(null);
   const hasScrolledToResults = useRef(false);
@@ -160,10 +161,6 @@ export function DeskTab() {
     }
   }, [effectiveText, editorRef, showToast, isPanelOpen, closePanel]);
 
-  const handleSelectInstruction = useCallback((text: string) => {
-    setInstruction(text);
-  }, []);
-
   // Empty desk
   if (deskSources.length === 0) {
     return (
@@ -188,52 +185,48 @@ export function DeskTab() {
       {/* Zone A: Instruction controls — fixed at top, capped at 50% */}
       <div className="shrink-0 max-h-[50%] overflow-y-auto border-b border-gray-200">
         <div className="px-4 pt-4">
-          <label
-            htmlFor="desk-instruction-textarea"
-            className="text-xs font-medium text-gray-500 mb-1.5 block"
-          >
+          <label className="text-xs font-medium text-gray-500 mb-1.5 block">
             Instruction
           </label>
 
-          {/* Default instruction chips */}
+          {/* Instruction list (replaces chips + saved picker) */}
           <div className="mb-3">
-            <InstructionSetPicker
+            <InstructionList
+              instructions={deskInstructions}
               type="desk"
-              selectedInstruction={instruction}
-              onSelect={handleSelectInstruction}
-              onCustom={() => {
-                textareaRef.current?.focus();
+              onSelect={(inst) => {
+                setInstruction(inst.instructionText);
               }}
+              onCreate={createInstruction}
+              onUpdate={updateInstruction}
+              onDelete={removeInstruction}
+              onTouch={touchInstructionLastUsed}
+              isLoading={isLoadingInstructions}
               disabled={isAnyAnalyzing}
+              variant="primary"
             />
           </div>
 
           {/* Freeform instruction textarea */}
-          <textarea
-            ref={textareaRef}
-            id="desk-instruction-textarea"
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-            disabled={isAnyAnalyzing}
-            className="w-full p-3 text-sm border border-gray-200 rounded-lg resize-none
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                       disabled:opacity-50 disabled:cursor-not-allowed"
-            rows={3}
-            placeholder="Or type a custom instruction..."
-            maxLength={2000}
-          />
-
-          {/* Saved instructions picker */}
-          <div className="mt-2 pb-3">
-            <InstructionPicker
-              instructions={deskInstructions}
-              type="desk"
-              onSelect={handleSelectInstruction}
-              onCreate={async (input) => {
-                await createInstruction(input);
-              }}
-              onUpdate={updateInstruction}
-              onRemove={removeInstruction}
+          <div className="pb-3">
+            <label
+              htmlFor="desk-instruction-textarea"
+              className="text-xs font-medium text-gray-500 mb-1.5 block"
+            >
+              Or write your own
+            </label>
+            <textarea
+              ref={textareaRef}
+              id="desk-instruction-textarea"
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              disabled={isAnyAnalyzing}
+              className="w-full p-3 text-sm border border-gray-200 rounded-lg resize-none
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              rows={3}
+              placeholder="Type a custom instruction..."
+              maxLength={2000}
             />
           </div>
         </div>

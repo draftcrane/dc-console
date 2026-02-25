@@ -4,8 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import type { AIRewriteResult, SheetState } from "@/hooks/use-ai-rewrite";
 import { StreamingResponse } from "./streaming-response";
 import { useSourcesContext } from "@/contexts/sources-context";
-import { InstructionPicker } from "@/components/sources/instruction-picker";
-import { CHAPTER_INSTRUCTIONS } from "@/components/instruction-set-picker";
+import { InstructionList } from "@/components/instruction-list";
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -58,8 +57,14 @@ export function ChapterEditorPanel({
   onGoDeeper,
   onRewriteWithInstruction,
 }: ChapterEditorPanelProps) {
-  const { chapterInstructions, createInstruction, updateInstruction, removeInstruction } =
-    useSourcesContext();
+  const {
+    chapterInstructions,
+    isLoadingInstructions,
+    createInstruction,
+    updateInstruction,
+    removeInstruction,
+    touchInstructionLastUsed,
+  } = useSourcesContext();
 
   const [editedInstruction, setEditedInstruction] = useState("");
   const [hasUserEdited, setHasUserEdited] = useState(false);
@@ -227,35 +232,21 @@ export function ChapterEditorPanel({
           </div>
         )}
 
-        {/* Instruction chips - unified from CHAPTER_INSTRUCTIONS (#358) */}
+        {/* Instruction list (replaces chips + saved picker) */}
         {hasSelectedText && (
           <div>
-            <div
-              className="flex flex-wrap gap-1.5"
-              role="listbox"
-              aria-label="Rewrite instructions"
-            >
-              {CHAPTER_INSTRUCTIONS.map((inst) => (
-                <button
-                  key={inst.label}
-                  type="button"
-                  role="option"
-                  aria-selected={editedInstruction === inst.instructionText}
-                  onClick={() => handleChipSelect(inst.instructionText)}
-                  disabled={isStreaming}
-                  className={`h-9 px-3 text-xs font-medium rounded-full transition-colors
-                             min-h-[36px] border
-                             ${
-                               editedInstruction === inst.instructionText
-                                 ? "bg-[var(--dc-color-interactive-escalation-subtle)] text-[var(--dc-color-interactive-escalation)] border-[var(--dc-color-interactive-escalation-border)]"
-                                 : "bg-white text-[var(--dc-color-text-secondary)] border-[var(--dc-color-border-strong)] hover:bg-[var(--dc-color-interactive-escalation-subtle)] hover:border-[var(--dc-color-interactive-escalation-border)]"
-                             }
-                             disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {inst.label}
-                </button>
-              ))}
-            </div>
+            <InstructionList
+              instructions={chapterInstructions}
+              type="chapter"
+              onSelect={(inst) => handleChipSelect(inst.instructionText)}
+              onCreate={createInstruction}
+              onUpdate={updateInstruction}
+              onDelete={removeInstruction}
+              onTouch={touchInstructionLastUsed}
+              isLoading={isLoadingInstructions}
+              disabled={isStreaming}
+              variant="escalation"
+            />
           </div>
         )}
 
@@ -266,7 +257,7 @@ export function ChapterEditorPanel({
               htmlFor="editor-panel-instruction"
               className="text-xs font-medium text-[var(--dc-color-text-muted)] mb-1.5 block"
             >
-              Custom instruction
+              Or write your own
             </label>
             <div className="flex gap-2">
               <textarea
@@ -284,7 +275,7 @@ export function ChapterEditorPanel({
                            disabled:opacity-50 disabled:cursor-not-allowed
                            placeholder:text-[var(--dc-color-text-placeholder)]"
                 rows={2}
-                placeholder="Type an instruction or select a chip above..."
+                placeholder="Type an instruction..."
               />
               <button
                 type="button"
@@ -306,21 +297,6 @@ export function ChapterEditorPanel({
                   />
                 </svg>
               </button>
-            </div>
-            <div className="mt-1.5">
-              <InstructionPicker
-                instructions={chapterInstructions}
-                type="chapter"
-                onSelect={(text) => {
-                  setEditedInstruction(text);
-                  setHasUserEdited(true);
-                }}
-                onCreate={async (input) => {
-                  await createInstruction(input);
-                }}
-                onUpdate={updateInstruction}
-                onRemove={removeInstruction}
-              />
             </div>
           </div>
         )}
