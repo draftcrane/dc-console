@@ -5,12 +5,10 @@ import { EditorToolbar } from "@/components/editor/editor-toolbar";
 /**
  * Tests for EditorToolbar — the top toolbar for the writing environment.
  *
- * Contains: ProjectSwitcher, SaveIndicator, AI Rewrite button,
- * ExportMenu, SettingsMenu.
+ * Contains: ProjectSwitcher, SaveIndicator, Editor panel toggle,
+ * Library toggle, ExportMenu, SettingsMenu.
  *
  * Mock strategy: We mock all child components to isolate toolbar behavior.
- * The key behavior to test is the conditional rendering of the AI Rewrite button
- * based on selectionWordCount and aiSheetState.
  */
 
 // Mock SourcesContext used by toolbar for Sources toggle button
@@ -70,9 +68,6 @@ function makeProps(overrides?: Partial<React.ComponentProps<typeof EditorToolbar
     onSaveRetry: vi.fn(),
     viewMode: "chapter" as const,
     onViewModeChange: vi.fn(),
-    selectionWordCount: 0,
-    aiSheetState: "idle" as const,
-    onOpenAiRewrite: vi.fn(),
     projectId: "proj-1",
     activeChapterId: "ch-1",
     getToken: vi.fn().mockResolvedValue("token"),
@@ -121,43 +116,31 @@ describe("EditorToolbar", () => {
   });
 
   // ────────────────────────────────────────────
-  // AI Rewrite button conditional rendering
+  // Editor Panel toggle button
   // ────────────────────────────────────────────
 
-  it("does not show AI Rewrite button when no text is selected", () => {
-    render(<EditorToolbar {...makeProps({ selectionWordCount: 0 })} />);
+  it("renders Editor panel toggle button when onToggleEditorPanel is provided", () => {
+    render(<EditorToolbar {...makeProps({ onToggleEditorPanel: vi.fn() })} />);
 
-    expect(screen.queryByLabelText("AI Rewrite selected text")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Open editor panel")).toBeInTheDocument();
   });
 
-  it("shows AI Rewrite button when text is selected and sheet is idle", () => {
-    render(<EditorToolbar {...makeProps({ selectionWordCount: 5, aiSheetState: "idle" })} />);
+  it("calls onToggleEditorPanel when Editor button is clicked", () => {
+    const onToggleEditorPanel = vi.fn();
+    render(<EditorToolbar {...makeProps({ onToggleEditorPanel })} />);
 
-    expect(screen.getByLabelText("AI Rewrite selected text")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Open editor panel"));
+    expect(onToggleEditorPanel).toHaveBeenCalledTimes(1);
   });
 
-  it("does not show AI Rewrite button when sheet is streaming", () => {
-    render(<EditorToolbar {...makeProps({ selectionWordCount: 5, aiSheetState: "streaming" })} />);
-
-    expect(screen.queryByLabelText("AI Rewrite selected text")).not.toBeInTheDocument();
-  });
-
-  it("does not show AI Rewrite button when sheet is complete", () => {
-    render(<EditorToolbar {...makeProps({ selectionWordCount: 5, aiSheetState: "complete" })} />);
-
-    expect(screen.queryByLabelText("AI Rewrite selected text")).not.toBeInTheDocument();
-  });
-
-  it("calls onOpenAiRewrite when AI Rewrite button is clicked", () => {
-    const onOpenAiRewrite = vi.fn();
+  it("shows active state when editor panel is open", () => {
     render(
       <EditorToolbar
-        {...makeProps({ selectionWordCount: 5, aiSheetState: "idle", onOpenAiRewrite })}
+        {...makeProps({ isEditorPanelOpen: true, onToggleEditorPanel: vi.fn() })}
       />,
     );
 
-    fireEvent.click(screen.getByLabelText("AI Rewrite selected text"));
-    expect(onOpenAiRewrite).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText("Close editor panel")).toBeInTheDocument();
   });
 
   // ────────────────────────────────────────────

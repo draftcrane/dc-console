@@ -1,9 +1,23 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import type { AIRewriteResult } from "@/components/editor/ai-rewrite-sheet";
 
 export type SheetState = "idle" | "streaming" | "complete";
+
+export interface AIRewriteResult {
+  /** AI interaction ID from the API */
+  interactionId: string;
+  /** The original selected text before AI rewrite */
+  originalText: string;
+  /** The AI-generated rewrite suggestion */
+  rewriteText: string;
+  /** The instruction the user gave to the AI */
+  instruction: string;
+  /** Which attempt number this is (1-based) */
+  attemptNumber: number;
+  /** Which AI tier produced this result */
+  tier: "edge" | "frontier";
+}
 
 interface UseAIRewriteOptions {
   /** Function to get the auth token */

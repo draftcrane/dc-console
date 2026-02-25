@@ -144,35 +144,35 @@ describe("EditorPanelOverlay", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("has role=dialog for overlay panel", () => {
+  it("has role=complementary for non-modal overlay (allows editor text selection)", () => {
     render(
       <EditorPanelOverlay isOpen={true} onClose={vi.fn()}>
         <div>Content</div>
       </EditorPanelOverlay>,
     );
-    expect(screen.getByRole("dialog", { name: "Chapter editor" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("complementary", { name: "Chapter editor" }),
+    ).toBeInTheDocument();
   });
 
-  it("has aria-modal=true for overlay panel", () => {
+  it("does not have aria-modal (non-modal panel)", () => {
     render(
       <EditorPanelOverlay isOpen={true} onClose={vi.fn()}>
         <div>Content</div>
       </EditorPanelOverlay>,
     );
-    expect(screen.getByRole("dialog")).toHaveAttribute("aria-modal", "true");
+    const panel = screen.getByRole("complementary", { name: "Chapter editor" });
+    expect(panel).not.toHaveAttribute("aria-modal");
   });
 
-  it("calls onClose when backdrop is clicked", () => {
+  it("calls onClose when close button is clicked", () => {
     const onClose = vi.fn();
-    const { container } = render(
+    render(
       <EditorPanelOverlay isOpen={true} onClose={onClose}>
         <div>Content</div>
       </EditorPanelOverlay>,
     );
-    // Click the backdrop (first child is the backdrop div)
-    const backdrop = container.querySelector("[aria-hidden='true']");
-    expect(backdrop).toBeInTheDocument();
-    fireEvent.click(backdrop!);
+    fireEvent.click(screen.getByLabelText("Close editor panel"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

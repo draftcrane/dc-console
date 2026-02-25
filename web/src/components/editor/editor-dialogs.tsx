@@ -2,13 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import type { ProjectData } from "@/types/editor";
-import type { AIRewriteResult } from "./ai-rewrite-sheet";
-import type { SheetState } from "@/hooks/use-ai-rewrite";
 import { DeleteProjectDialog } from "@/components/project/delete-project-dialog";
 import { RenameProjectDialog } from "@/components/project/rename-project-dialog";
 import { DuplicateProjectDialog } from "@/components/project/duplicate-project-dialog";
 import { DeleteChapterDialog } from "@/components/project/delete-chapter-dialog";
-import { AIRewriteSheet } from "./ai-rewrite-sheet";
 
 interface EditorDialogsProps {
   projectData: ProjectData | null;
@@ -35,15 +32,6 @@ interface EditorDialogsProps {
   chapterToDelete: string | null;
   onDeleteChapter: () => Promise<void>;
   onCloseDeleteChapterDialog: () => void;
-
-  // AI Rewrite
-  aiSheetState: SheetState;
-  aiCurrentResult: AIRewriteResult | null;
-  aiErrorMessage: string | null;
-  onAIAccept: (result: AIRewriteResult) => Promise<void>;
-  onAIRetry: (result: AIRewriteResult, instruction: string) => Promise<void>;
-  onAIDiscard: (result: AIRewriteResult) => Promise<void>;
-  onGoDeeper: (result: AIRewriteResult) => void;
 }
 
 /**
@@ -73,13 +61,6 @@ export function EditorDialogs({
   chapterToDelete,
   onDeleteChapter,
   onCloseDeleteChapterDialog,
-  aiSheetState,
-  aiCurrentResult,
-  aiErrorMessage,
-  onAIAccept,
-  onAIRetry,
-  onAIDiscard,
-  onGoDeeper,
 }: EditorDialogsProps) {
   const router = useRouter();
 
@@ -131,15 +112,6 @@ export function EditorDialogs({
         onCancel={onCloseDeleteChapterDialog}
       />
 
-      <AIRewriteSheet
-        sheetState={aiSheetState}
-        result={aiCurrentResult}
-        errorMessage={aiErrorMessage}
-        onAccept={onAIAccept}
-        onRetry={onAIRetry}
-        onDiscard={onAIDiscard}
-        onGoDeeper={onGoDeeper}
-      />
     </>
   );
 }
