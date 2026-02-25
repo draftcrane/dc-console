@@ -1,3 +1,8 @@
+---
+name: sod
+description: Start of Day
+---
+
 # /sod - Start of Day
 
 This command prepares your session using MCP tools to validate context, show work priorities, and ensure you're ready to code.
