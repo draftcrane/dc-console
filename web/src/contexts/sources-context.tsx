@@ -205,11 +205,7 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
       ]);
     },
     removeInstruction: async (id) => {
-      await Promise.allSettled([
-        deskHook.remove(id),
-        chapterHook.remove(id),
-        bookHook.remove(id),
-      ]);
+      await Promise.allSettled([deskHook.remove(id), chapterHook.remove(id), bookHook.remove(id)]);
     },
     touchInstructionLastUsed: (id) => {
       // Route to the hook that owns this instruction

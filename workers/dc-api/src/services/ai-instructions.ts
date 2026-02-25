@@ -68,7 +68,11 @@ const VALID_TYPES = ["desk", "book", "chapter"];
  * Default instructions seeded for new users.
  * 5 chapter + 4 desk + 4 book = 13 total.
  */
-const DEFAULT_INSTRUCTIONS: Array<{ label: string; instructionText: string; type: "desk" | "book" | "chapter" }> = [
+const DEFAULT_INSTRUCTIONS: Array<{
+  label: string;
+  instructionText: string;
+  type: "desk" | "book" | "chapter";
+}> = [
   // Chapter (5)
   {
     label: "Simpler language",

@@ -14,19 +14,64 @@ import { StreamingResponse } from "@/components/editor/streaming-response";
  * - StreamingResponse (reusable streaming text display)
  */
 
-// Mock SourcesContext used by ChapterEditorPanel for instruction picker
+// Mock SourcesContext used by ChapterEditorPanel for instruction list
 vi.mock("@/contexts/sources-context", () => ({
   useSourcesContext: () => ({
-    rewriteInstructions: [],
+    chapterInstructions: [
+      {
+        id: "inst-1",
+        userId: "user-1",
+        label: "Simpler language",
+        instructionText: "Rewrite using simpler vocabulary.",
+        type: "chapter",
+        lastUsedAt: null,
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+      },
+      {
+        id: "inst-2",
+        userId: "user-1",
+        label: "More concise",
+        instructionText: "Make this more concise.",
+        type: "chapter",
+        lastUsedAt: null,
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+      },
+    ],
+    isLoadingInstructions: false,
     createInstruction: vi.fn(),
     updateInstruction: vi.fn(),
     removeInstruction: vi.fn(),
+    touchInstructionLastUsed: vi.fn(),
   }),
 }));
 
-// Mock InstructionPicker to avoid its internal dependencies
-vi.mock("@/components/sources/instruction-picker", () => ({
-  InstructionPicker: () => <div data-testid="instruction-picker">Saved Instructions</div>,
+// Mock InstructionList to avoid its internal dependencies (useToast)
+vi.mock("@/components/instruction-list", () => ({
+  InstructionList: ({
+    instructions,
+    onSelect,
+    disabled,
+  }: {
+    instructions: Array<{ id: string; label: string; instructionText: string }>;
+    onSelect: (inst: { id: string; label: string; instructionText: string }) => void;
+    disabled?: boolean;
+  }) => (
+    <div data-testid="instruction-list" role="listbox" aria-label="chapter instructions">
+      {instructions.map((inst) => (
+        <button
+          key={inst.id}
+          role="option"
+          aria-selected={false}
+          onClick={() => !disabled && onSelect(inst)}
+          disabled={disabled}
+        >
+          {inst.label}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 // ─────────────────────────────────────────────────────────────────
@@ -218,7 +263,7 @@ describe("ChapterEditorPanel", () => {
 
   // ── With selected text ──
 
-  it("shows instruction chips when text is selected", () => {
+  it("shows instruction list when text is selected", () => {
     render(
       <ChapterEditorPanel
         sheetState="idle"
@@ -230,11 +275,9 @@ describe("ChapterEditorPanel", () => {
         onDiscard={vi.fn()}
       />,
     );
+    expect(screen.getByTestId("instruction-list")).toBeInTheDocument();
     expect(screen.getByText("Simpler language")).toBeInTheDocument();
     expect(screen.getByText("More concise")).toBeInTheDocument();
-    expect(screen.getByText("More conversational")).toBeInTheDocument();
-    expect(screen.getByText("More direct")).toBeInTheDocument();
-    expect(screen.getByText("Expand")).toBeInTheDocument();
   });
 
   it("shows freeform instruction field when text is selected", () => {
@@ -249,7 +292,7 @@ describe("ChapterEditorPanel", () => {
         onDiscard={vi.fn()}
       />,
     );
-    expect(screen.getByLabelText("Custom instruction")).toBeInTheDocument();
+    expect(screen.getByLabelText("Or write your own")).toBeInTheDocument();
   });
 
   it("shows selected text disclosure", () => {
@@ -422,9 +465,9 @@ describe("ChapterEditorPanel", () => {
     expect(screen.getByText("Connection error. Please try again.")).toBeInTheDocument();
   });
 
-  // ── Instruction chips ──
+  // ── Instruction list ──
 
-  it("shows instruction picker for saved instructions", () => {
+  it("shows instruction list for saved instructions", () => {
     render(
       <ChapterEditorPanel
         sheetState="idle"
@@ -436,7 +479,7 @@ describe("ChapterEditorPanel", () => {
         onDiscard={vi.fn()}
       />,
     );
-    expect(screen.getByTestId("instruction-picker")).toBeInTheDocument();
+    expect(screen.getByTestId("instruction-list")).toBeInTheDocument();
   });
 
   // ── Attempt number ──
@@ -456,9 +499,10 @@ describe("ChapterEditorPanel", () => {
     expect(screen.getByText("Attempt 3")).toBeInTheDocument();
   });
 
-  // ── Chip selection ──
+  // ── Instruction selection ──
 
-  it("highlights selected chip", () => {
+  it("triggers rewrite when instruction is selected", () => {
+    const onRewriteWithInstruction = vi.fn();
     render(
       <ChapterEditorPanel
         sheetState="idle"
@@ -468,10 +512,10 @@ describe("ChapterEditorPanel", () => {
         onAccept={vi.fn()}
         onRetry={vi.fn()}
         onDiscard={vi.fn()}
+        onRewriteWithInstruction={onRewriteWithInstruction}
       />,
     );
-    const chip = screen.getByText("More concise");
-    fireEvent.click(chip);
-    expect(chip).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByText("More concise"));
+    expect(onRewriteWithInstruction).toHaveBeenCalledWith("Make this more concise.");
   });
 });

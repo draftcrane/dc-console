@@ -185,9 +185,7 @@ export function DeskTab() {
       {/* Zone A: Instruction controls — fixed at top, capped at 50% */}
       <div className="shrink-0 max-h-[50%] overflow-y-auto border-b border-gray-200">
         <div className="px-4 pt-4">
-          <label className="text-xs font-medium text-gray-500 mb-1.5 block">
-            Instruction
-          </label>
+          <label className="text-xs font-medium text-gray-500 mb-1.5 block">Instruction</label>
 
           {/* Instruction list (replaces chips + saved picker) */}
           <div className="mb-3">
