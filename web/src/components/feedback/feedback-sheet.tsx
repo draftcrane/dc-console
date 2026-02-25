@@ -17,7 +17,7 @@ interface FeedbackSheetProps {
 /**
  * FeedbackSheet - Bottom sheet for submitting bug reports and feature suggestions (#338).
  *
- * Follows the AIRewriteSheet pattern:
+ * Follows the standard bottom sheet pattern:
  * - Fixed bottom-0, rounded-t-2xl, max-h-[80vh]
  * - Backdrop with click-to-close
  * - Focus trap (Tab/Shift+Tab cycle, Escape to close)
