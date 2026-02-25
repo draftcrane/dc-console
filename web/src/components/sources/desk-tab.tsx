@@ -28,7 +28,7 @@ export function DeskTab() {
     isAnalysisComplete,
     analysisError,
     resetAnalysis,
-    analysisInstructions,
+    deskInstructions,
     createInstruction,
     updateInstruction,
     removeInstruction,
@@ -226,8 +226,8 @@ export function DeskTab() {
           {/* Saved instructions picker */}
           <div className="mt-2 pb-3">
             <InstructionPicker
-              instructions={analysisInstructions}
-              type="analysis"
+              instructions={deskInstructions}
+              type="desk"
               onSelect={handleSelectInstruction}
               onCreate={async (input) => {
                 await createInstruction(input);

@@ -58,7 +58,7 @@ export function ChapterEditorPanel({
   onGoDeeper,
   onRewriteWithInstruction,
 }: ChapterEditorPanelProps) {
-  const { rewriteInstructions, createInstruction, updateInstruction, removeInstruction } =
+  const { chapterInstructions, createInstruction, updateInstruction, removeInstruction } =
     useSourcesContext();
 
   const [editedInstruction, setEditedInstruction] = useState("");
@@ -309,8 +309,8 @@ export function ChapterEditorPanel({
             </div>
             <div className="mt-1.5">
               <InstructionPicker
-                instructions={rewriteInstructions}
-                type="rewrite"
+                instructions={chapterInstructions}
+                type="chapter"
                 onSelect={(text) => {
                   setEditedInstruction(text);
                   setHasUserEdited(true);

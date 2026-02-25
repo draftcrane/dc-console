@@ -70,7 +70,7 @@ export function AIRewriteSheet({
   onDiscard,
   onGoDeeper,
 }: AIRewriteSheetProps) {
-  const { rewriteInstructions, createInstruction, updateInstruction, removeInstruction } =
+  const { chapterInstructions, createInstruction, updateInstruction, removeInstruction } =
     useSourcesContext();
   const sheetRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLTextAreaElement>(null);
@@ -360,8 +360,8 @@ export function AIRewriteSheet({
             {/* Saved instructions picker (for user's custom saved instructions) */}
             <div className="mt-1.5">
               <InstructionPicker
-                instructions={rewriteInstructions}
-                type="rewrite"
+                instructions={chapterInstructions}
+                type="chapter"
                 onSelect={(text) => {
                   setEditedInstruction(text);
                   setHasUserEdited(true);

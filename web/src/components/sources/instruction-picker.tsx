@@ -5,12 +5,12 @@ import type { AIInstruction } from "@/hooks/use-ai-instructions";
 
 interface InstructionPickerProps {
   instructions: AIInstruction[];
-  type: "analysis" | "rewrite";
+  type: "desk" | "book" | "chapter";
   onSelect: (instructionText: string) => void;
   onCreate: (input: {
     label: string;
     instructionText: string;
-    type: "analysis" | "rewrite";
+    type: "desk" | "book" | "chapter";
   }) => Promise<void>;
   onUpdate?: (id: string, input: { label?: string; instructionText?: string }) => Promise<void>;
   onRemove?: (id: string) => Promise<void>;
