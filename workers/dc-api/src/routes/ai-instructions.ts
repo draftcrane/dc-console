@@ -1,11 +1,12 @@
 /**
- * AI Instructions routes — CRUD for saved analysis/rewrite instructions.
+ * AI Instructions routes — CRUD for saved instructions.
  *
  * Routes:
- * - GET    /instructions           — List (optional ?type=analysis|rewrite)
+ * - GET    /instructions           — List (optional ?type=desk|book|chapter)
  * - POST   /instructions           — Create {label, instructionText, type}
  * - PATCH  /instructions/:id       — Update {label?, instructionText?}
  * - DELETE /instructions/:id       — Delete
+ * - POST   /instructions/:id/touch — Update last_used_at timestamp
  *
  * All routes require authentication (enforced globally in index.ts).
  * Mounted under /ai in index.ts, so full paths are /ai/instructions/...
@@ -28,7 +29,7 @@ aiInstructions.use("*", standardRateLimit);
 /**
  * GET /instructions
  * List instructions for the authenticated user.
- * Optional query param: ?type=analysis|rewrite
+ * Optional query param: ?type=desk|book|chapter
  */
 aiInstructions.get("/instructions", async (c) => {
   const { userId } = c.get("auth");
@@ -64,7 +65,7 @@ aiInstructions.post("/instructions", async (c) => {
   const instruction = await service.create(userId, {
     label: body.label,
     instructionText: body.instructionText,
-    type: body.type as "analysis" | "rewrite",
+    type: body.type as "desk" | "book" | "chapter",
   });
 
   return c.json({ instruction }, 201);
@@ -110,6 +111,20 @@ aiInstructions.delete("/instructions/:id", async (c) => {
 
   const service = new AIInstructionsService(c.env.DB);
   await service.delete(userId, id);
+
+  return c.json({ success: true });
+});
+
+/**
+ * POST /instructions/:id/touch
+ * Update last_used_at timestamp for recents tracking.
+ */
+aiInstructions.post("/instructions/:id/touch", async (c) => {
+  const { userId } = c.get("auth");
+  const id = c.req.param("id");
+
+  const service = new AIInstructionsService(c.env.DB);
+  await service.touchLastUsed(userId, id);
 
   return c.json({ success: true });
 });

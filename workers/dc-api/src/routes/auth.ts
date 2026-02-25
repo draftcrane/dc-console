@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../types/index.js";
 import { validationError } from "../middleware/index.js";
 import { Webhook } from "svix";
+import { AIInstructionsService } from "../services/ai-instructions.js";
 
 const auth = new Hono<{ Bindings: Env }>();
 
@@ -39,7 +40,39 @@ auth.post("/webhook", async (c) => {
   const { type, data } = payload;
 
   switch (type) {
-    case "user.created":
+    case "user.created": {
+      const { id, email_addresses, first_name, last_name } = data;
+      const primaryEmail = email_addresses?.find(
+        (e) => e.id === data.primary_email_address_id,
+      )?.email_address;
+      const displayName =
+        [first_name, last_name].filter(Boolean).join(" ") || primaryEmail || "User";
+
+      if (!primaryEmail) {
+        console.error("User has no primary email:", id);
+        return c.json({ received: true, warning: "No primary email" });
+      }
+
+      // Upsert user
+      await c.env.DB.prepare(
+        `INSERT INTO users (id, email, display_name, updated_at)
+         VALUES (?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+         ON CONFLICT (id) DO UPDATE SET
+           email = excluded.email,
+           display_name = excluded.display_name,
+           updated_at = excluded.updated_at`,
+      )
+        .bind(id, primaryEmail, displayName)
+        .run();
+
+      // Seed default instructions for new user
+      const instructionsService = new AIInstructionsService(c.env.DB);
+      await instructionsService.seedDefaultInstructions(id);
+
+      console.log(`User created: ${id}`);
+      break;
+    }
+
     case "user.updated": {
       const { id, email_addresses, first_name, last_name } = data;
       const primaryEmail = email_addresses?.find(
@@ -65,7 +98,7 @@ auth.post("/webhook", async (c) => {
         .bind(id, primaryEmail, displayName)
         .run();
 
-      console.log(`User ${type === "user.created" ? "created" : "updated"}: ${id}`);
+      console.log(`User updated: ${id}`);
       break;
     }
 
@@ -75,6 +108,7 @@ auth.post("/webhook", async (c) => {
       // Cascade delete: remove all dependent records before deleting user
       // Drive files are untouched per PRD Section 17 (Account deletion)
       await c.env.DB.batch([
+        c.env.DB.prepare("DELETE FROM ai_instructions WHERE user_id = ?").bind(id),
         c.env.DB.prepare("DELETE FROM ai_interactions WHERE user_id = ?").bind(id),
         c.env.DB.prepare("DELETE FROM export_jobs WHERE user_id = ?").bind(id),
         c.env.DB.prepare(
