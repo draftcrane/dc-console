@@ -219,49 +219,138 @@
 }
 
 @theme inline {
-  /* Base colors */
+  /* ================================================================
+   * BASE / LEGACY COLORS
+   * ================================================================ */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted-foreground: #6b7280;
   --color-border: #e5e7eb;
 
-  /* Font families */
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-lora);
+  /* ================================================================
+   * SHORTHAND ALIASES
+   * Enable concise utilities: bg-surface-secondary, text-primary, etc.
+   * ================================================================ */
+  --color-surface-secondary: var(--dc-color-surface-secondary);
+  --color-surface-tertiary: var(--dc-color-surface-tertiary);
+  --color-primary: var(--dc-color-interactive-primary);
+  --color-primary-hover: var(--dc-color-interactive-primary-hover);
+  --color-destructive: var(--dc-color-interactive-destructive);
 
-  /* DC semantic color utilities */
+  /* ================================================================
+   * FONT FAMILIES
+   * Utilities: font-sans, font-serif, font-mono
+   * ================================================================ */
+  --font-sans: var(--dc-font-sans);
+  --font-mono: var(--dc-font-mono);
+  --font-serif: var(--dc-font-serif);
+
+  /* ================================================================
+   * DC SEMANTIC COLORS — TEXT
+   * Utilities: text-dc-text-primary, text-dc-text-secondary, etc.
+   * ================================================================ */
   --color-dc-text-primary: var(--dc-color-text-primary);
   --color-dc-text-secondary: var(--dc-color-text-secondary);
   --color-dc-text-muted: var(--dc-color-text-muted);
+  --color-dc-text-placeholder: var(--dc-color-text-placeholder);
   --color-dc-text-inverse: var(--dc-color-text-inverse);
 
+  /* ================================================================
+   * DC SEMANTIC COLORS — SURFACES
+   * Utilities: bg-dc-surface-primary, bg-dc-surface-overlay, etc.
+   * ================================================================ */
   --color-dc-surface-primary: var(--dc-color-surface-primary);
   --color-dc-surface-secondary: var(--dc-color-surface-secondary);
   --color-dc-surface-tertiary: var(--dc-color-surface-tertiary);
   --color-dc-surface-overlay: var(--dc-color-surface-overlay);
 
+  /* ================================================================
+   * DC SEMANTIC COLORS — BORDERS
+   * Utilities: border-dc-border-default, ring-dc-border-focus, etc.
+   * ================================================================ */
   --color-dc-border-default: var(--dc-color-border-default);
   --color-dc-border-subtle: var(--dc-color-border-subtle);
   --color-dc-border-strong: var(--dc-color-border-strong);
   --color-dc-border-focus: var(--dc-color-border-focus);
 
+  /* ================================================================
+   * DC SEMANTIC COLORS — INTERACTIVE: PRIMARY (Blue)
+   * Utilities: bg-dc-interactive-primary, hover:bg-dc-interactive-primary-hover, etc.
+   * ================================================================ */
   --color-dc-interactive-primary: var(--dc-color-interactive-primary);
+  --color-dc-interactive-primary-subtle: var(--dc-color-interactive-primary-subtle);
+  --color-dc-interactive-primary-on-subtle: var(--dc-color-interactive-primary-on-subtle);
   --color-dc-interactive-primary-hover: var(--dc-color-interactive-primary-hover);
   --color-dc-interactive-primary-active: var(--dc-color-interactive-primary-active);
   --color-dc-interactive-primary-border: var(--dc-color-interactive-primary-border);
+
+  /* ================================================================
+   * DC SEMANTIC COLORS — INTERACTIVE: ESCALATION (Violet)
+   * Utilities: bg-dc-interactive-escalation, text-dc-interactive-escalation, etc.
+   * ================================================================ */
+  --color-dc-interactive-escalation: var(--dc-color-interactive-escalation);
+  --color-dc-interactive-escalation-subtle: var(--dc-color-interactive-escalation-subtle);
+  --color-dc-interactive-escalation-hover: var(--dc-color-interactive-escalation-hover);
+  --color-dc-interactive-escalation-border: var(--dc-color-interactive-escalation-border);
+
+  /* ================================================================
+   * DC SEMANTIC COLORS — INTERACTIVE: DESTRUCTIVE
+   * Utilities: bg-dc-interactive-destructive, hover:bg-dc-interactive-destructive-hover, etc.
+   * ================================================================ */
   --color-dc-interactive-destructive: var(--dc-color-interactive-destructive);
+  --color-dc-interactive-destructive-hover: var(--dc-color-interactive-destructive-hover);
+  --color-dc-interactive-destructive-subtle: var(--dc-color-interactive-destructive-subtle);
 
+  /* ================================================================
+   * DC SEMANTIC COLORS — STATUS
+   * Utilities: text-dc-status-error, bg-dc-error-bg, etc.
+   * ================================================================ */
   --color-dc-status-error: var(--dc-color-status-error);
+  --color-dc-error-bg: var(--dc-color-error-bg);
   --color-dc-status-success: var(--dc-color-status-success);
-  --color-dc-status-warning: var(--dc-color-status-warning);
-
-  --color-dc-feedback-active: var(--dc-color-feedback-type-active-bg);
+  --color-dc-success-bg: var(--dc-color-success-bg);
   --color-dc-success-subtle: var(--dc-color-status-success-subtle);
-  --color-dc-success: var(--dc-color-status-success);
-  --color-dc-onboarding-backdrop: var(--dc-color-onboarding-backdrop);
+  --color-dc-status-warning: var(--dc-color-status-warning);
+  --color-dc-status-warning-bg: var(--dc-color-status-warning-bg);
 
-  /* DC spacing utilities */
+  /* ================================================================
+   * DC SEMANTIC COLORS — FEEDBACK (#344, #367)
+   * Utilities: bg-dc-feedback-surface, border-dc-feedback-border, etc.
+   * ================================================================ */
+  --color-dc-feedback-surface: var(--dc-color-feedback-surface);
+  --color-dc-feedback-border: var(--dc-color-feedback-border);
+  --color-dc-feedback-active: var(--dc-color-feedback-type-active-bg);
+  --color-dc-feedback-active-text: var(--dc-color-feedback-type-active-text);
+  --color-dc-feedback-inactive-bg: var(--dc-color-feedback-type-inactive-bg);
+  --color-dc-feedback-inactive-text: var(--dc-color-feedback-type-inactive-text);
+  --color-dc-feedback-success-bg: var(--dc-color-feedback-success-bg);
+  --color-dc-feedback-success-icon: var(--dc-color-feedback-success-icon);
+  --color-dc-feedback-success-text: var(--dc-color-feedback-success-text);
+
+  /* ================================================================
+   * DC SEMANTIC COLORS — ONBOARDING (#344)
+   * Utilities: bg-dc-onboarding-card-bg, border-dc-onboarding-card-border, etc.
+   * ================================================================ */
+  --color-dc-onboarding-card-bg: var(--dc-color-onboarding-card-bg);
+  --color-dc-onboarding-card-border: var(--dc-color-onboarding-card-border);
+  --color-dc-onboarding-backdrop: var(--dc-color-onboarding-backdrop);
+  --color-dc-onboarding-dot-active: var(--dc-color-onboarding-dot-active);
+  --color-dc-onboarding-dot-inactive: var(--dc-color-onboarding-dot-inactive);
+  --color-dc-onboarding-arrow: var(--dc-color-onboarding-arrow);
+
+  /* ================================================================
+   * DC SEMANTIC COLORS — HELP PAGE (#344)
+   * Utilities: bg-dc-help-accordion-bg, hover:bg-dc-help-accordion-hover, etc.
+   * ================================================================ */
+  --color-dc-help-accordion-bg: var(--dc-color-help-accordion-bg);
+  --color-dc-help-accordion-hover: var(--dc-color-help-accordion-hover);
+  --color-dc-help-accordion-border: var(--dc-color-help-accordion-border);
+  --color-dc-help-section-heading: var(--dc-color-help-section-heading);
+
+  /* ================================================================
+   * DC SPACING
+   * Utilities: p-dc-xs, gap-dc-md, m-dc-xl, etc.
+   * ================================================================ */
   --spacing-dc-xs: var(--dc-spacing-xs);
   --spacing-dc-sm: var(--dc-spacing-sm);
   --spacing-dc-md: var(--dc-spacing-md);
@@ -270,19 +359,26 @@
   --spacing-dc-2xl: var(--dc-spacing-2xl);
   --spacing-dc-3xl: var(--dc-spacing-3xl);
 
-  /* DC border radius utilities */
+  /* ================================================================
+   * DC BORDER RADIUS
+   * Utilities: rounded-dc-sm, rounded-dc-lg, rounded-dc-full, etc.
+   * ================================================================ */
   --radius-dc-sm: var(--dc-radius-sm);
   --radius-dc-md: var(--dc-radius-md);
   --radius-dc-lg: var(--dc-radius-lg);
   --radius-dc-xl: var(--dc-radius-xl);
   --radius-dc-full: var(--dc-radius-full);
 
-  /* DC shadow utilities */
+  /* ================================================================
+   * DC SHADOWS
+   * Utilities: shadow-dc-sm, shadow-dc-lg, shadow-dc-tooltip, etc.
+   * ================================================================ */
   --shadow-dc-sm: var(--dc-shadow-sm);
   --shadow-dc-md: var(--dc-shadow-md);
   --shadow-dc-lg: var(--dc-shadow-lg);
   --shadow-dc-xl: var(--dc-shadow-xl);
   --shadow-dc-tooltip: var(--dc-shadow-tooltip);
+  --shadow-dc-onboarding-card: var(--dc-shadow-onboarding-card);
 }
 
 body {
