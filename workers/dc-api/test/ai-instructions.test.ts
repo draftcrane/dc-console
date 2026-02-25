@@ -21,8 +21,8 @@ describe("AIInstructionsService", () => {
     });
 
     it("returns all instructions for a user", async () => {
-      await seedAIInstruction(userId, { label: "Summarize", type: "analysis" });
-      await seedAIInstruction(userId, { label: "Concise", type: "rewrite" });
+      await seedAIInstruction(userId, { label: "Summarize", type: "desk" });
+      await seedAIInstruction(userId, { label: "Concise", type: "chapter" });
 
       const result = await service.list(userId);
       expect(result).toHaveLength(2);
@@ -31,21 +31,30 @@ describe("AIInstructionsService", () => {
     });
 
     it("filters by type", async () => {
-      await seedAIInstruction(userId, { label: "Summarize", type: "analysis" });
-      await seedAIInstruction(userId, { label: "Concise", type: "rewrite" });
+      await seedAIInstruction(userId, { label: "Summarize", type: "desk" });
+      await seedAIInstruction(userId, { label: "Concise", type: "chapter" });
 
-      const analysisOnly = await service.list(userId, "analysis");
-      expect(analysisOnly).toHaveLength(1);
-      expect(analysisOnly[0].label).toBe("Summarize");
+      const deskOnly = await service.list(userId, "desk");
+      expect(deskOnly).toHaveLength(1);
+      expect(deskOnly[0].label).toBe("Summarize");
 
-      const rewriteOnly = await service.list(userId, "rewrite");
-      expect(rewriteOnly).toHaveLength(1);
-      expect(rewriteOnly[0].label).toBe("Concise");
+      const chapterOnly = await service.list(userId, "chapter");
+      expect(chapterOnly).toHaveLength(1);
+      expect(chapterOnly[0].label).toBe("Concise");
+    });
+
+    it("filters by book type", async () => {
+      await seedAIInstruction(userId, { label: "Find redundancies", type: "book" });
+      await seedAIInstruction(userId, { label: "Summarize", type: "desk" });
+
+      const bookOnly = await service.list(userId, "book");
+      expect(bookOnly).toHaveLength(1);
+      expect(bookOnly[0].label).toBe("Find redundancies");
     });
 
     it("ignores invalid type filter and returns all", async () => {
-      await seedAIInstruction(userId, { label: "A", type: "analysis" });
-      await seedAIInstruction(userId, { label: "B", type: "rewrite" });
+      await seedAIInstruction(userId, { label: "A", type: "desk" });
+      await seedAIInstruction(userId, { label: "B", type: "chapter" });
 
       const result = await service.list(userId, "invalid");
       expect(result).toHaveLength(2);
@@ -71,14 +80,15 @@ describe("AIInstructionsService", () => {
       const result = await service.create(userId, {
         label: "Summarize key points",
         instructionText: "Extract the key points from this document.",
-        type: "analysis",
+        type: "desk",
       });
 
       expect(result.id).toBeTruthy();
       expect(result.userId).toBe(userId);
       expect(result.label).toBe("Summarize key points");
       expect(result.instructionText).toBe("Extract the key points from this document.");
-      expect(result.type).toBe("analysis");
+      expect(result.type).toBe("desk");
+      expect(result.lastUsedAt).toBeNull();
       expect(result.createdAt).toBeTruthy();
     });
 
@@ -86,7 +96,7 @@ describe("AIInstructionsService", () => {
       const result = await service.create(userId, {
         label: "  Trimmed Label  ",
         instructionText: "  Trimmed text  ",
-        type: "rewrite",
+        type: "chapter",
       });
 
       expect(result.label).toBe("Trimmed Label");
@@ -98,7 +108,7 @@ describe("AIInstructionsService", () => {
         service.create(userId, {
           label: "",
           instructionText: "Some text",
-          type: "analysis",
+          type: "desk",
         }),
       ).rejects.toThrow("Label is required");
     });
@@ -108,7 +118,7 @@ describe("AIInstructionsService", () => {
         service.create(userId, {
           label: "   ",
           instructionText: "Some text",
-          type: "analysis",
+          type: "desk",
         }),
       ).rejects.toThrow("Label is required");
     });
@@ -118,7 +128,7 @@ describe("AIInstructionsService", () => {
         service.create(userId, {
           label: "a".repeat(101),
           instructionText: "Some text",
-          type: "analysis",
+          type: "desk",
         }),
       ).rejects.toThrow("Label must be at most 100 characters");
     });
@@ -128,7 +138,7 @@ describe("AIInstructionsService", () => {
         service.create(userId, {
           label: "Valid",
           instructionText: "",
-          type: "analysis",
+          type: "desk",
         }),
       ).rejects.toThrow("Instruction text is required");
     });
@@ -138,7 +148,7 @@ describe("AIInstructionsService", () => {
         service.create(userId, {
           label: "Valid",
           instructionText: "a".repeat(2001),
-          type: "analysis",
+          type: "desk",
         }),
       ).rejects.toThrow("Instruction text must be at most 2000 characters");
     });
@@ -148,9 +158,9 @@ describe("AIInstructionsService", () => {
         service.create(userId, {
           label: "Valid",
           instructionText: "Some text",
-          type: "invalid" as "analysis",
+          type: "invalid" as "desk",
         }),
-      ).rejects.toThrow("Type must be 'analysis' or 'rewrite'");
+      ).rejects.toThrow("Type must be 'desk', 'book', or 'chapter'");
     });
   });
 
@@ -245,6 +255,75 @@ describe("AIInstructionsService", () => {
       // Verify the instruction still exists for the owner
       const remaining = await service.list(userId);
       expect(remaining).toHaveLength(1);
+    });
+  });
+
+  describe("touchLastUsed", () => {
+    it("updates last_used_at timestamp", async () => {
+      const created = await seedAIInstruction(userId);
+
+      // Verify initially null
+      const before = await service.list(userId);
+      expect(before[0].lastUsedAt).toBeNull();
+
+      await service.touchLastUsed(userId, created.id);
+
+      const after = await service.list(userId);
+      expect(after[0].lastUsedAt).toBeTruthy();
+    });
+
+    it("enforces ownership", async () => {
+      const otherUser = await seedUser({ id: "other-user" });
+      const created = await seedAIInstruction(userId);
+
+      await expect(service.touchLastUsed(otherUser.id, created.id)).rejects.toThrow(
+        "Instruction not found",
+      );
+    });
+
+    it("rejects nonexistent instruction", async () => {
+      await expect(service.touchLastUsed(userId, "nonexistent")).rejects.toThrow(
+        "Instruction not found",
+      );
+    });
+  });
+
+  describe("seedDefaultInstructions", () => {
+    it("seeds 13 default instructions", async () => {
+      await service.seedDefaultInstructions(userId);
+
+      const all = await service.list(userId);
+      expect(all).toHaveLength(13);
+    });
+
+    it("seeds correct type distribution", async () => {
+      await service.seedDefaultInstructions(userId);
+
+      const chapter = await service.list(userId, "chapter");
+      const desk = await service.list(userId, "desk");
+      const book = await service.list(userId, "book");
+
+      expect(chapter).toHaveLength(5);
+      expect(desk).toHaveLength(4);
+      expect(book).toHaveLength(4);
+    });
+
+    it("is idempotent on second call", async () => {
+      await service.seedDefaultInstructions(userId);
+      await service.seedDefaultInstructions(userId);
+
+      const all = await service.list(userId);
+      expect(all).toHaveLength(13);
+    });
+
+    it("skips seeding if user already has instructions", async () => {
+      await seedAIInstruction(userId, { label: "Custom" });
+
+      await service.seedDefaultInstructions(userId);
+
+      const all = await service.list(userId);
+      expect(all).toHaveLength(1);
+      expect(all[0].label).toBe("Custom");
     });
   });
 });

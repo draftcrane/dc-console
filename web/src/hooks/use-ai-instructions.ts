@@ -10,7 +10,8 @@ export interface AIInstruction {
   userId: string;
   label: string;
   instructionText: string;
-  type: "analysis" | "rewrite";
+  type: "desk" | "book" | "chapter";
+  lastUsedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -18,7 +19,7 @@ export interface AIInstruction {
 interface CreateInstructionInput {
   label: string;
   instructionText: string;
-  type: "analysis" | "rewrite";
+  type: "desk" | "book" | "chapter";
 }
 
 interface UpdateInstructionInput {
@@ -32,14 +33,15 @@ interface UseAIInstructionsReturn {
   create: (input: CreateInstructionInput) => Promise<AIInstruction>;
   update: (id: string, input: UpdateInstructionInput) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  touchLastUsed: (id: string) => void;
   refetch: () => Promise<void>;
 }
 
 /**
- * Hook to manage AI instructions (analysis + rewrite).
+ * Hook to manage AI instructions (desk, book, chapter).
  * Accepts optional type filter to scope fetched instructions.
  */
-export function useAIInstructions(type?: "analysis" | "rewrite"): UseAIInstructionsReturn {
+export function useAIInstructions(type?: "desk" | "book" | "chapter"): UseAIInstructionsReturn {
   const { getToken } = useAuth();
   const [instructions, setInstructions] = useState<AIInstruction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,12 +152,34 @@ export function useAIInstructions(type?: "analysis" | "rewrite"): UseAIInstructi
     [getToken, instructions],
   );
 
+  const touchLastUsed = useCallback(
+    (id: string) => {
+      // Optimistic: update local state immediately
+      const now = new Date().toISOString();
+      setInstructions((prev) =>
+        prev.map((inst) => (inst.id === id ? { ...inst, lastUsedAt: now } : inst)),
+      );
+
+      // Fire-and-forget API call
+      getToken().then((token) => {
+        fetch(`${API_URL}/ai/instructions/${id}/touch`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {
+          // Silent failure — recents is non-critical
+        });
+      });
+    },
+    [getToken],
+  );
+
   return {
     instructions,
     isLoading,
     create,
     update,
     remove,
+    touchLastUsed,
     refetch: fetchInstructions,
   };
 }

@@ -69,19 +69,21 @@ interface SourcesContextValue {
   deepAnalysis: UseDeepAnalysisReturn;
 
   // AI Instructions
-  analysisInstructions: AIInstruction[];
-  rewriteInstructions: AIInstruction[];
+  deskInstructions: AIInstruction[];
+  chapterInstructions: AIInstruction[];
+  bookInstructions: AIInstruction[];
   isLoadingInstructions: boolean;
   createInstruction: (input: {
     label: string;
     instructionText: string;
-    type: "analysis" | "rewrite";
+    type: "desk" | "book" | "chapter";
   }) => Promise<AIInstruction>;
   updateInstruction: (
     id: string,
     input: { label?: string; instructionText?: string },
   ) => Promise<void>;
   removeInstruction: (id: string) => Promise<void>;
+  touchInstructionLastUsed: (id: string) => void;
 
   // Drive OAuth (initiates Google OAuth - never shows user-level account data)
   connectDrive: (loginHint?: string, projectId?: string) => Promise<void>;
@@ -138,8 +140,9 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
   const sourcesData = useSources(projectId);
   const deepAnalysis = useDeepAnalysis(projectId);
   const analysis = useSourceAnalysis(deepAnalysis.startJob);
-  const analysisInstructions = useAIInstructions("analysis");
-  const rewriteInstructions = useAIInstructions("rewrite");
+  const deskHook = useAIInstructions("desk");
+  const chapterHook = useAIInstructions("chapter");
+  const bookHook = useAIInstructions("book");
   // Disable auto-fetch: user-level account data is NEVER surfaced in project UI.
   // We only need the connect function to initiate OAuth.
   const driveAccountsHook = useDriveAccounts({ enabled: false });
@@ -184,24 +187,38 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
     deepAnalysis,
 
     // Instructions
-    analysisInstructions: analysisInstructions.instructions,
-    rewriteInstructions: rewriteInstructions.instructions,
-    isLoadingInstructions: analysisInstructions.isLoading || rewriteInstructions.isLoading,
+    deskInstructions: deskHook.instructions,
+    chapterInstructions: chapterHook.instructions,
+    bookInstructions: bookHook.instructions,
+    isLoadingInstructions: deskHook.isLoading || chapterHook.isLoading || bookHook.isLoading,
     createInstruction: async (input) => {
-      if (input.type === "analysis") {
-        return analysisInstructions.create(input);
-      }
-      return rewriteInstructions.create(input);
+      if (input.type === "desk") return deskHook.create(input);
+      if (input.type === "book") return bookHook.create(input);
+      return chapterHook.create(input);
     },
     updateInstruction: async (id, input) => {
-      // Try both - only one will have the ID
+      // Try all three — only one will have the ID
       await Promise.allSettled([
-        analysisInstructions.update(id, input),
-        rewriteInstructions.update(id, input),
+        deskHook.update(id, input),
+        chapterHook.update(id, input),
+        bookHook.update(id, input),
       ]);
     },
     removeInstruction: async (id) => {
-      await Promise.allSettled([analysisInstructions.remove(id), rewriteInstructions.remove(id)]);
+      await Promise.allSettled([deskHook.remove(id), chapterHook.remove(id), bookHook.remove(id)]);
+    },
+    touchInstructionLastUsed: (id) => {
+      // Route to the hook that owns this instruction
+      const allInstructions = [
+        ...deskHook.instructions,
+        ...chapterHook.instructions,
+        ...bookHook.instructions,
+      ];
+      const instruction = allInstructions.find((inst) => inst.id === id);
+      if (!instruction) return;
+      if (instruction.type === "desk") deskHook.touchLastUsed(id);
+      else if (instruction.type === "book") bookHook.touchLastUsed(id);
+      else chapterHook.touchLastUsed(id);
     },
 
     // Drive OAuth (initiates Google OAuth - never shows user-level account data)

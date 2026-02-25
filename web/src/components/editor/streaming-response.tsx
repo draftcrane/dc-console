@@ -8,8 +8,7 @@ import { useEffect, useRef } from "react";
  * ARIA: Uses aria-busy during streaming, aria-live="polite" for screen reader
  * announcements when content changes.
  *
- * Extracted from the ai-rewrite-sheet pattern for reuse across editor panel modes
- * (Chapter, Book, Library analysis).
+ * Reusable across editor panel modes (Chapter, Book, Library analysis).
  */
 
 interface StreamingResponseProps {
