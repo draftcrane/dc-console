@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 
 /**
  * EditorPanel — Left-side persistent panel shell for the writing environment.
@@ -37,11 +37,14 @@ interface EditorPanelProps {
  * Hidden on portrait (< 1024px). Use EditorPanelOverlay for portrait.
  */
 export function EditorPanel({ isOpen, onClose, children }: EditorPanelProps) {
-  if (!isOpen) return null;
+  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
+
+  if (!shouldRender) return null;
 
   return (
     <div
-      className="hidden lg:flex editor-panel w-[320px] h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] shrink-0"
+      className={`hidden lg:flex editor-panel w-[320px] h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] shrink-0
+                  ${isClosing ? "editor-panel-slide-out" : "editor-panel-slide-in"}`}
       role="complementary"
       aria-label="Chapter editor"
     >
@@ -77,14 +80,17 @@ export function EditorPanel({ isOpen, onClose, children }: EditorPanelProps) {
  * Full-screen overlay with backdrop, slides in from the left.
  */
 export function EditorPanelOverlay({ isOpen, onClose, children }: EditorPanelProps) {
-  if (!isOpen) return null;
+  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
+
+  if (!shouldRender) return null;
 
   return (
     <>
       {/* Panel — non-modal so users can still select text in the editor */}
       <div
-        className="editor-panel-overlay fixed inset-y-0 left-0 z-50 w-full max-w-[380px]
-                   bg-[var(--color-background)] shadow-xl editor-panel-slide-in flex flex-col lg:hidden"
+        className={`editor-panel-overlay fixed inset-y-0 left-0 z-50 w-full max-w-[380px]
+                   bg-[var(--color-background)] shadow-xl flex flex-col lg:hidden
+                   ${isClosing ? "editor-panel-slide-out" : "editor-panel-slide-in"}`}
         role="complementary"
         aria-label="Chapter editor"
       >
@@ -117,4 +123,30 @@ export function EditorPanelOverlay({ isOpen, onClose, children }: EditorPanelPro
       </div>
     </>
   );
+}
+
+/**
+ * Delayed unmount hook — keeps component in DOM during exit animation (#391).
+ *
+ * On open: renders immediately via synchronous state update in render.
+ * On close: keeps rendered for durationMs (exit animation), then unmounts.
+ * `isClosing` is derived from `shouldRender && !isOpen`.
+ */
+function useDelayedUnmount(isOpen: boolean, durationMs: number) {
+  const [shouldRender, setShouldRender] = useState(isOpen);
+
+  // Synchronous open: set shouldRender during render (no effect needed)
+  if (isOpen && !shouldRender) {
+    setShouldRender(true);
+  }
+
+  // Delayed close: unmount after exit animation completes
+  useEffect(() => {
+    if (!isOpen && shouldRender) {
+      const timer = setTimeout(() => setShouldRender(false), durationMs);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, shouldRender, durationMs]);
+
+  return { shouldRender, isClosing: shouldRender && !isOpen };
 }
