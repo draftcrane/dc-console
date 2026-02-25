@@ -227,9 +227,9 @@ describe("ChapterEditorPanel", () => {
         onDiscard={vi.fn()}
       />,
     );
-    expect(screen.getByText("Simpler")).toBeInTheDocument();
-    expect(screen.getByText("Concise")).toBeInTheDocument();
-    expect(screen.getByText("Conversational")).toBeInTheDocument();
+    expect(screen.getByText("Simpler language")).toBeInTheDocument();
+    expect(screen.getByText("More concise")).toBeInTheDocument();
+    expect(screen.getByText("More conversational")).toBeInTheDocument();
     expect(screen.getByText("More direct")).toBeInTheDocument();
     expect(screen.getByText("Expand")).toBeInTheDocument();
   });
@@ -467,7 +467,7 @@ describe("ChapterEditorPanel", () => {
         onDiscard={vi.fn()}
       />,
     );
-    const chip = screen.getByText("Concise");
+    const chip = screen.getByText("More concise");
     fireEvent.click(chip);
     expect(chip).toHaveAttribute("aria-selected", "true");
   });
