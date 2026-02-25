@@ -6,21 +6,7 @@ import type { SheetState } from "@/hooks/use-ai-rewrite";
 import { StreamingResponse } from "./streaming-response";
 import { useSourcesContext } from "@/contexts/sources-context";
 import { InstructionPicker } from "@/components/sources/instruction-picker";
-
-/**
- * Default instruction chips for Chapter mode.
- *
- * Per Issue #321, the Chapter set has 5 default chips plus Custom.
- * "Stronger" is pending resolution — using "More direct" as interim.
- * Each chip maps to a system prompt instruction.
- */
-const DEFAULT_CHIPS = [
-  { id: "simpler", label: "Simpler", instruction: "Use simpler language" },
-  { id: "concise", label: "Concise", instruction: "Make this more concise" },
-  { id: "conversational", label: "Conversational", instruction: "Make this more conversational" },
-  { id: "direct", label: "More direct", instruction: "Make this more direct and assertive" },
-  { id: "expand", label: "Expand", instruction: "Expand on this with more detail" },
-] as const;
+import { CHAPTER_INSTRUCTIONS } from "@/components/instruction-set-picker";
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -239,7 +225,7 @@ export function ChapterEditorPanel({
           </div>
         )}
 
-        {/* Instruction chips */}
+        {/* Instruction chips - unified from CHAPTER_INSTRUCTIONS (#358) */}
         {hasSelectedText && (
           <div>
             <div
@@ -247,24 +233,24 @@ export function ChapterEditorPanel({
               role="listbox"
               aria-label="Rewrite instructions"
             >
-              {DEFAULT_CHIPS.map((chip) => (
+              {CHAPTER_INSTRUCTIONS.map((inst) => (
                 <button
-                  key={chip.id}
+                  key={inst.label}
                   type="button"
                   role="option"
-                  aria-selected={editedInstruction === chip.instruction}
-                  onClick={() => handleChipSelect(chip.instruction)}
+                  aria-selected={editedInstruction === inst.instructionText}
+                  onClick={() => handleChipSelect(inst.instructionText)}
                   disabled={isStreaming}
                   className={`h-8 px-3 text-xs font-medium rounded-full transition-colors
                              min-h-[32px] border
                              ${
-                               editedInstruction === chip.instruction
+                               editedInstruction === inst.instructionText
                                  ? "bg-[var(--dc-color-interactive-escalation-subtle)] text-[var(--dc-color-interactive-escalation)] border-[var(--dc-color-interactive-escalation-border)]"
                                  : "bg-white text-[var(--dc-color-text-secondary)] border-[var(--dc-color-border-strong)] hover:bg-[var(--dc-color-interactive-escalation-subtle)] hover:border-[var(--dc-color-interactive-escalation-border)]"
                              }
                              disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {chip.label}
+                  {inst.label}
                 </button>
               ))}
             </div>

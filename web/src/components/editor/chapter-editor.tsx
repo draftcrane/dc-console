@@ -39,8 +39,10 @@ interface ChapterEditorProps {
   onEditorReady?: (editor: Editor) => void;
   /** Callback when selection word count changes (0 when no selection) */
   onSelectionWordCountChange?: (selectionWordCount: number) => void;
-  /** Callback when cursor/selection changes — used to track last cursor position for clip insertion */
+  /** Callback when cursor/selection changes - used to track last cursor position for clip insertion */
   onSelectionUpdate?: () => void;
+  /** Callback when editor loses focus (#357) */
+  onBlur?: () => void;
 }
 
 /**
@@ -71,6 +73,7 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
       onEditorReady,
       onSelectionWordCountChange,
       onSelectionUpdate,
+      onBlur,
     },
     ref,
   ) {
@@ -110,6 +113,9 @@ export const ChapterEditor = forwardRef<ChapterEditorHandle, ChapterEditorProps>
       },
       onSelectionUpdate: () => {
         onSelectionUpdate?.();
+      },
+      onBlur: () => {
+        onBlur?.();
       },
     });
 

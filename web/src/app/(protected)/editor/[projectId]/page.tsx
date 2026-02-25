@@ -121,6 +121,20 @@ function EditorPageInner() {
     setEditorSelectedText(selected.trim() ? selected : "");
   }, []);
 
+  // Clear stale selected text when editor loses focus (#357)
+  // Without this, clicking outside the editor leaves editorSelectedText
+  // set from the previous selection, causing the instruction panel to
+  // show "Selected text" when nothing is visually selected.
+  const handleEditorBlur = useCallback(() => {
+    // Small delay so clicks on panel buttons can read the selection first
+    setTimeout(() => {
+      const editor = editorRef.current?.getEditor();
+      if (!editor?.isFocused) {
+        setEditorSelectedText("");
+      }
+    }, 200);
+  }, []);
+
   const handleToggleEditorPanel = useCallback(() => {
     setEditorPanelOpen((prev) => !prev);
   }, []);
@@ -320,6 +334,7 @@ function EditorPageInner() {
             onContentChange={handleContentChange}
             onSelectionWordCountChange={handleSelectionWordCountChange}
             onSelectionUpdate={handleEditorSelectionUpdate}
+            onBlur={handleEditorBlur}
             activeChapter={activeChapter}
             editingTitle={editingTitle}
             titleValue={titleValue}
