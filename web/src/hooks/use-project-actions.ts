@@ -136,10 +136,14 @@ export function useProjectActions({ getToken, projectId }: UseProjectActionsOpti
           return null;
         }
 
-        const result = (await response.json()) as { id: string };
+        const result = (await response.json()) as { id: string; project?: ProjectSummary };
 
-        // Refresh project list so new copy appears
-        await fetchProjects();
+        // Optimistic: append from response if available, otherwise refetch
+        if (result.project) {
+          setProjects((prev) => [...prev, result.project!]);
+        } else {
+          await fetchProjects();
+        }
 
         return result.id;
       } catch (err) {

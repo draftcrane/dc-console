@@ -85,45 +85,69 @@ export function useAIInstructions(type?: "analysis" | "rewrite"): UseAIInstructi
         );
       }
       const data = await response.json();
-      await fetchInstructions();
-      return data.instruction;
+      const created = data.instruction as AIInstruction;
+      // Optimistic: append to local state from response
+      setInstructions((prev) => [...prev, created]);
+      return created;
     },
-    [getToken, fetchInstructions],
+    [getToken],
   );
 
   const update = useCallback(
     async (id: string, input: UpdateInstructionInput): Promise<void> => {
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/ai/instructions/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(input),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(
-          (data as { error?: string } | null)?.error || "Failed to update instruction",
-        );
+      // Optimistic: update local state immediately
+      setInstructions((prev) =>
+        prev.map((inst) => (inst.id === id ? { ...inst, ...input } : inst)),
+      );
+
+      try {
+        const token = await getToken();
+        const response = await fetch(`${API_URL}/ai/instructions/${id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(input),
+        });
+        if (!response.ok) {
+          // Rollback: refetch on failure
+          await fetchInstructions();
+          const data = await response.json().catch(() => null);
+          throw new Error(
+            (data as { error?: string } | null)?.error || "Failed to update instruction",
+          );
+        }
+      } catch (err) {
+        await fetchInstructions();
+        throw err;
       }
-      await fetchInstructions();
     },
     [getToken, fetchInstructions],
   );
 
   const remove = useCallback(
     async (id: string): Promise<void> => {
-      const token = await getToken();
-      const response = await fetch(`${API_URL}/ai/instructions/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Failed to delete instruction");
-      await fetchInstructions();
+      // Optimistic: remove from local state immediately
+      const previous = instructions;
+      setInstructions((prev) => prev.filter((inst) => inst.id !== id));
+
+      try {
+        const token = await getToken();
+        const response = await fetch(`${API_URL}/ai/instructions/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          setInstructions(previous);
+          throw new Error("Failed to delete instruction");
+        }
+      } catch (err) {
+        setInstructions(previous);
+        throw err;
+      }
     },
-    [getToken, fetchInstructions],
+    [getToken, instructions],
   );
 
   return {

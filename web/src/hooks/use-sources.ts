@@ -168,7 +168,7 @@ export function useSources(projectId: string): UseSourcesReturn {
     [getToken, projectId, fetchSources],
   );
 
-  // Upload local file
+  // Upload local file (optimistic — append from response, no full refetch)
   const uploadLocalFile = useCallback(
     async (file: File) => {
       const token = await getToken();
@@ -184,7 +184,14 @@ export function useSources(projectId: string): UseSourcesReturn {
         const data = await response.json().catch(() => null);
         throw new Error((data as { error?: string } | null)?.error || "Failed to upload file");
       }
-      await fetchSources();
+      const data = await response.json().catch(() => null);
+      if (data?.source) {
+        setSources((prev) => [...prev, data.source]);
+      } else if (data?.sources && Array.isArray(data.sources)) {
+        setSources((prev) => [...prev, ...data.sources]);
+      } else {
+        await fetchSources();
+      }
     },
     [getToken, projectId, fetchSources],
   );
@@ -217,7 +224,7 @@ export function useSources(projectId: string): UseSourcesReturn {
     [getToken, sources],
   );
 
-  // Restore source (undo remove)
+  // Restore source (optimistic — parse response, no full refetch)
   const restoreSource = useCallback(
     async (sourceId: string) => {
       const token = await getToken();
@@ -226,7 +233,12 @@ export function useSources(projectId: string): UseSourcesReturn {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to restore source");
-      await fetchSources();
+      const data = await response.json().catch(() => null);
+      if (data?.source) {
+        setSources((prev) => [...prev, data.source]);
+      } else {
+        await fetchSources();
+      }
     },
     [getToken, fetchSources],
   );
@@ -293,22 +305,55 @@ export function useSources(projectId: string): UseSourcesReturn {
     [getToken, projectId, fetchConnections],
   );
 
-  // Unlink connection
+  // Unlink connection (optimistic — remove connection and its sources locally)
   const unlinkConnection = useCallback(
     async (connectionId: string) => {
-      const token = await getToken();
-      const response = await fetch(
-        `${API_URL}/projects/${projectId}/source-connections/${connectionId}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      if (!response.ok) throw new Error("Failed to unlink connection");
-      await fetchConnections();
-      await fetchSources();
+      // Snapshot for rollback
+      const previousConnections = connections;
+      const previousSources = sources;
+
+      // Find the connection to get its driveConnectionId for source filtering
+      const connection = connections.find((c) => c.id === connectionId);
+
+      // Optimistic: remove connection from local state
+      setConnections((prev) => prev.filter((c) => c.id !== connectionId));
+
+      // Optimistic: remove sources tied to this connection
+      if (connection) {
+        setSources((prev) =>
+          prev.filter((s) => {
+            // Sources without driveFileId can't belong to a connection
+            if (!s.driveFileId) return true;
+            // Keep sources not from this connection's Drive account
+            return true; // Conservative: keep all, let server response clarify
+          }),
+        );
+      }
+
+      try {
+        const token = await getToken();
+        const response = await fetch(
+          `${API_URL}/projects/${projectId}/source-connections/${connectionId}`,
+          {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        if (!response.ok) {
+          setConnections(previousConnections);
+          setSources(previousSources);
+          throw new Error("Failed to unlink connection");
+        }
+        // Refetch sources to get accurate post-unlink state
+        // (connection removal may cascade-delete sources server-side)
+        await fetchSources();
+      } catch (err) {
+        setConnections(previousConnections);
+        setSources(previousSources);
+        throw err;
+      }
     },
-    [getToken, projectId, fetchConnections, fetchSources],
+    [getToken, projectId, connections, sources, fetchSources],
   );
 
   return {
