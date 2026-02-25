@@ -138,7 +138,10 @@ function EditorPageInner() {
   }, [editorPanelOpen]);
 
   const handleToggleEditorPanel = useCallback(() => {
-    setEditorPanelOpen((prev) => !prev);
+    setEditorPanelOpen((prev) => {
+      if (!prev) setSidebarCollapsed(true);
+      return !prev;
+    });
   }, []);
 
   // --- Chapter management ---

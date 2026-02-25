@@ -111,7 +111,6 @@ export function EditorDialogs({
         onConfirm={onDeleteChapter}
         onCancel={onCloseDeleteChapterDialog}
       />
-
     </>
   );
 }
