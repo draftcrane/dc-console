@@ -78,6 +78,7 @@ export function resetOnboarding(): void {
  */
 export function OnboardingTooltips() {
   const [currentStep, setCurrentStep] = useState<number | null>(null);
+  const [isExiting, setIsExiting] = useState(false);
 
   // Check localStorage on mount - only show if not completed
   useEffect(() => {
@@ -93,30 +94,50 @@ export function OnboardingTooltips() {
     }
   }, []);
 
-  const handleNext = useCallback(() => {
-    setCurrentStep((prev) => {
-      if (prev === null) return null;
-      if (prev >= STEPS.length - 1) {
-        // Mark onboarding as complete
-        try {
-          localStorage.setItem(ONBOARDING_KEY, "true");
-        } catch {
-          // Silently fail if localStorage unavailable
-        }
-        return null;
-      }
-      return prev + 1;
-    });
+  /** Whether to skip animation delays for prefers-reduced-motion */
+  const prefersReducedMotion = useCallback(() => {
+    return (
+      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
   }, []);
 
+  const handleNext = useCallback(() => {
+    if (isExiting) return;
+    const delay = prefersReducedMotion() ? 0 : 150;
+
+    setIsExiting(true);
+    setTimeout(() => {
+      setCurrentStep((prev) => {
+        if (prev === null) return null;
+        if (prev >= STEPS.length - 1) {
+          try {
+            localStorage.setItem(ONBOARDING_KEY, "true");
+          } catch {
+            // Silently fail if localStorage unavailable
+          }
+          return null;
+        }
+        return prev + 1;
+      });
+      setIsExiting(false);
+    }, delay);
+  }, [isExiting, prefersReducedMotion]);
+
   const handleSkip = useCallback(() => {
-    try {
-      localStorage.setItem(ONBOARDING_KEY, "true");
-    } catch {
-      // Silently fail
-    }
-    setCurrentStep(null);
-  }, []);
+    if (isExiting) return;
+    const delay = prefersReducedMotion() ? 0 : 150;
+
+    setIsExiting(true);
+    setTimeout(() => {
+      try {
+        localStorage.setItem(ONBOARDING_KEY, "true");
+      } catch {
+        // Silently fail
+      }
+      setCurrentStep(null);
+      setIsExiting(false);
+    }, delay);
+  }, [isExiting, prefersReducedMotion]);
 
   if (currentStep === null || currentStep >= STEPS.length) {
     return null;
@@ -140,7 +161,8 @@ export function OnboardingTooltips() {
 
       {/* Tooltip card */}
       <div
-        className={`pointer-events-auto absolute ${positionClasses} tooltip-enter`}
+        key={currentStep}
+        className={`pointer-events-auto absolute ${positionClasses} ${isExiting ? "tooltip-exit" : "tooltip-enter"}`}
         role="dialog"
         aria-label={`Tip ${currentStep + 1} of ${STEPS.length}`}
         aria-live="polite"
