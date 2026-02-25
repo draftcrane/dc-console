@@ -65,12 +65,12 @@ export function WorkspaceToggle({ value, onChange, className = "" }: WorkspaceTo
       role="radiogroup"
       aria-label="Workspace view"
       onKeyDown={handleKeyDown}
-      className={`relative flex items-center h-9 p-0.5 rounded-lg bg-gray-100 ${className}`}
+      className={`relative flex items-center h-11 p-0.5 rounded-lg bg-[var(--dc-color-surface-tertiary)] ${className}`}
     >
       {/* Sliding indicator */}
       <div
         className={`absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-md bg-white shadow-sm
-                   transition-transform duration-200 ease-out
+                   transition-transform duration-200 ease-in-out motion-reduce:transition-none
                    ${value === "book" ? "translate-x-[calc(100%+4px)]" : "translate-x-0"}`}
         aria-hidden="true"
       />
@@ -107,10 +107,10 @@ function ToggleOption({ label, value, isSelected, onSelect }: ToggleOptionProps)
       aria-checked={isSelected}
       tabIndex={isSelected ? 0 : -1}
       onClick={onSelect}
-      className={`relative z-10 flex items-center justify-center px-3 h-8 min-w-[60px]
+      className={`relative z-10 flex items-center justify-center px-3 h-10 min-w-[72px]
                  text-sm font-medium rounded-md transition-colors duration-200
                  focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1
-                 ${isSelected ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                 ${isSelected ? "text-foreground" : "text-[var(--dc-color-text-secondary)] hover:text-foreground"}`}
       aria-label={`${label} view${isSelected ? " (selected)" : ""}`}
       data-view={value}
     >

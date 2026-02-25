@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useSourcesContext } from "@/contexts/sources-context";
 import { InstructionPicker } from "./instruction-picker";
 import { InstructionSetPicker, DESK_INSTRUCTIONS } from "@/components/instruction-set-picker";
@@ -10,9 +10,13 @@ import { useToast } from "@/components/toast";
 /**
  * Desk tab — tagged documents workspace with multi-select AI analysis.
  *
- * Shows documents the user has "checked out" from the Library (tagged via bookmark).
- * Users select one or more documents, write an instruction, and run AI analysis.
- * Results can be copied or inserted into the current chapter.
+ * Layout (Option B — Controls Top):
+ *   Zone A: Instruction controls (fixed top, capped 50%)
+ *   Zone B: Document list + analysis results (flex-grows)
+ *   Zone C: Action bar (pinned bottom)
+ *
+ * Instruction controls sit at the top for spatial stability and
+ * predictable virtual keyboard behavior on iPad.
  */
 export function DeskTab() {
   const {
@@ -39,6 +43,8 @@ export function DeskTab() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [instruction, setInstruction] = useState(DESK_INSTRUCTIONS[0].instructionText);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const analysisRef = useRef<HTMLDivElement>(null);
+  const hasScrolledToResults = useRef(false);
 
   // Merge inline + deep analysis state
   const isDeepProcessing =
@@ -52,6 +58,7 @@ export function DeskTab() {
   const deskSources = useMemo(() => sources.filter((s) => s.status === "active"), [sources]);
 
   const allSelected = deskSources.length > 0 && selectedIds.size === deskSources.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < deskSources.length;
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -72,6 +79,25 @@ export function DeskTab() {
       setSelectedIds(new Set(deskSources.map((s) => s.id)));
     }
   }, [allSelected, deskSources]);
+
+  // Reset scroll flag when analysis resets
+  useEffect(() => {
+    if (!isAnalyzing && !isDeepProcessing && !effectiveText) {
+      hasScrolledToResults.current = false;
+    }
+  }, [isAnalyzing, isDeepProcessing, effectiveText]);
+
+  // Scroll to results on first content chunk
+  useEffect(() => {
+    if (effectiveText && !hasScrolledToResults.current && analysisRef.current) {
+      hasScrolledToResults.current = true;
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      analysisRef.current.scrollIntoView({
+        behavior: prefersReducedMotion ? "instant" : "smooth",
+        block: "nearest",
+      });
+    }
+  }, [effectiveText]);
 
   const handleUntag = useCallback(
     async (sourceId: string, title: string) => {
@@ -159,18 +185,78 @@ export function DeskTab() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Document list - scrolls independently, capped at 40% height (#359) */}
-      <div className="shrink-0 max-h-[40%] overflow-auto border-b border-gray-200">
+      {/* Zone A: Instruction controls — fixed at top, capped at 50% */}
+      <div className="shrink-0 max-h-[50%] overflow-y-auto border-b border-gray-200">
+        <div className="px-4 pt-4">
+          <label
+            htmlFor="desk-instruction-textarea"
+            className="text-xs font-medium text-gray-500 mb-1.5 block"
+          >
+            Instruction
+          </label>
+
+          {/* Default instruction chips */}
+          <div className="mb-3">
+            <InstructionSetPicker
+              type="desk"
+              selectedInstruction={instruction}
+              onSelect={handleSelectInstruction}
+              onCustom={() => {
+                textareaRef.current?.focus();
+              }}
+              disabled={isAnyAnalyzing}
+            />
+          </div>
+
+          {/* Freeform instruction textarea */}
+          <textarea
+            ref={textareaRef}
+            id="desk-instruction-textarea"
+            value={instruction}
+            onChange={(e) => setInstruction(e.target.value)}
+            disabled={isAnyAnalyzing}
+            className="w-full p-3 text-sm border border-gray-200 rounded-lg resize-none
+                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+            rows={3}
+            placeholder="Or type a custom instruction..."
+            maxLength={2000}
+          />
+
+          {/* Saved instructions picker */}
+          <div className="mt-2 pb-3">
+            <InstructionPicker
+              instructions={analysisInstructions}
+              type="analysis"
+              onSelect={handleSelectInstruction}
+              onCreate={async (input) => {
+                await createInstruction(input);
+              }}
+              onUpdate={updateInstruction}
+              onRemove={removeInstruction}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Zone B: Document list + analysis results — flex-grows to fill remaining space */}
+      <div className="flex-1 overflow-y-auto min-h-0">
         {/* Document list header */}
         <div className="px-4 py-2 border-b border-gray-100 flex items-center gap-2 sticky top-0 bg-white z-10">
           <button
             onClick={toggleSelectAll}
+            role="checkbox"
+            aria-checked={allSelected ? "true" : someSelected ? "mixed" : "false"}
             className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700
                        transition-colors min-h-[32px]"
           >
             <span
               className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
-                allSelected ? "bg-blue-600 border-blue-600" : "border-gray-300"
+                allSelected
+                  ? "bg-blue-600 border-blue-600"
+                  : someSelected
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-gray-300"
               }`}
             >
               {allSelected && (
@@ -188,6 +274,16 @@ export function DeskTab() {
                   />
                 </svg>
               )}
+              {someSelected && !allSelected && (
+                <svg
+                  className="w-3 h-3 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 12h14" />
+                </svg>
+              )}
             </span>
             {allSelected ? "Deselect all" : "Select all"}
           </button>
@@ -196,6 +292,13 @@ export function DeskTab() {
               ? `${selectedIds.size} selected`
               : `${deskSources.length} on desk`}
           </span>
+        </div>
+
+        {/* SR-only status for document/selection count */}
+        <div className="sr-only" aria-live="polite" role="status">
+          {selectedIds.size > 0
+            ? `${selectedIds.size} of ${deskSources.length} documents selected`
+            : `${deskSources.length} documents on desk`}
         </div>
 
         {/* Document rows */}
@@ -210,6 +313,8 @@ export function DeskTab() {
                 {/* Checkbox + title (tap to select) */}
                 <button
                   onClick={() => toggleSelect(source.id)}
+                  role="checkbox"
+                  aria-checked={isSelected}
                   className="flex items-center gap-2 flex-1 min-w-0 px-4 min-h-[44px] cursor-pointer"
                 >
                   <span
@@ -276,113 +381,65 @@ export function DeskTab() {
             );
           })}
         </div>
-      </div>
 
-      {/* Instruction + analysis area - scrolls independently */}
-      <div className="flex-1 overflow-auto min-h-0">
-        <div className="px-4 py-4 space-y-4">
-          {/* Instruction area */}
-          <div>
-            <label className="text-xs font-medium text-gray-500 mb-1.5 block">Instruction</label>
-
-            {/* Default instruction chips */}
-            <div className="mb-3">
-              <InstructionSetPicker
-                type="desk"
-                selectedInstruction={instruction}
-                onSelect={handleSelectInstruction}
-                onCustom={() => {
-                  textareaRef.current?.focus();
-                }}
-                disabled={isAnyAnalyzing}
-              />
+        {/* Deep analysis progress */}
+        {isDeepProcessing && deepAnalysis.totalBatches > 0 && (
+          <div className="px-4 py-4 space-y-2">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>
+                Analyzing{" "}
+                {deepAnalysis.totalBatches > 1
+                  ? `${deepAnalysis.totalBatches} batches`
+                  : "documents"}
+                ...
+              </span>
+              <span>
+                {deepAnalysis.completedBatches} of {deepAnalysis.totalBatches}
+              </span>
             </div>
-
-            {/* Freeform instruction textarea */}
-            <textarea
-              ref={textareaRef}
-              value={instruction}
-              onChange={(e) => setInstruction(e.target.value)}
-              disabled={isAnyAnalyzing}
-              className="w-full p-3 text-sm border border-gray-200 rounded-lg resize-none
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                         disabled:opacity-50 disabled:cursor-not-allowed"
-              rows={3}
-              placeholder="Or type a custom instruction..."
-              maxLength={2000}
-            />
-
-            {/* Saved instructions picker (for user's custom saved instructions) */}
-            <div className="mt-2">
-              <InstructionPicker
-                instructions={analysisInstructions}
-                type="analysis"
-                onSelect={handleSelectInstruction}
-                onCreate={async (input) => {
-                  await createInstruction(input);
+            <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.max(5, (deepAnalysis.completedBatches / deepAnalysis.totalBatches) * 100)}%`,
                 }}
-                onUpdate={updateInstruction}
-                onRemove={removeInstruction}
               />
             </div>
           </div>
+        )}
 
-          {/* Deep analysis progress */}
-          {isDeepProcessing && deepAnalysis.totalBatches > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span>
-                  Analyzing{" "}
-                  {deepAnalysis.totalBatches > 1
-                    ? `${deepAnalysis.totalBatches} batches`
-                    : "documents"}
-                  ...
-                </span>
-                <span>
-                  {deepAnalysis.completedBatches} of {deepAnalysis.totalBatches}
-                </span>
-              </div>
-              <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                  style={{
-                    width: `${Math.max(5, (deepAnalysis.completedBatches / deepAnalysis.totalBatches) * 100)}%`,
-                  }}
+        {/* Analysis result / streaming response */}
+        {(effectiveText || isAnalyzing || effectiveError) && (
+          <div ref={analysisRef} className="px-4 py-4 space-y-2">
+            <h3 className="text-xs font-medium text-gray-500">Analysis</h3>
+            <div
+              className="p-3 bg-gray-50 rounded-lg text-sm text-gray-900 leading-relaxed whitespace-pre-wrap min-h-[60px]"
+              aria-live={isAnyAnalyzing ? "off" : "polite"}
+            >
+              {effectiveText}
+              {isAnalyzing && (
+                <span
+                  className="inline-block w-0.5 h-4 bg-blue-600 ml-0.5 align-text-bottom animate-pulse"
+                  aria-hidden="true"
                 />
-              </div>
+              )}
+              {effectiveError && (
+                <div className="mt-2">
+                  <p className="text-xs text-red-600 mb-1">{effectiveError}</p>
+                  <button
+                    onClick={handleRetry}
+                    className="text-xs text-blue-600 hover:text-blue-700 min-h-[32px]"
+                  >
+                    Tap to retry
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Analysis result / streaming response */}
-          {(effectiveText || isAnalyzing || effectiveError) && (
-            <div className="space-y-2">
-              <h3 className="text-xs font-medium text-gray-500">Analysis</h3>
-              <div className="p-3 bg-gray-50 rounded-lg text-sm text-gray-900 leading-relaxed whitespace-pre-wrap min-h-[60px]">
-                {effectiveText}
-                {isAnalyzing && (
-                  <span
-                    className="inline-block w-0.5 h-4 bg-blue-600 ml-0.5 align-text-bottom animate-pulse"
-                    aria-hidden="true"
-                  />
-                )}
-                {effectiveError && (
-                  <div className="mt-2">
-                    <p className="text-xs text-red-600 mb-1">{effectiveError}</p>
-                    <button
-                      onClick={handleRetry}
-                      className="text-xs text-blue-600 hover:text-blue-700 min-h-[32px]"
-                    >
-                      Tap to retry
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Fixed action bar - always visible at bottom (#359) */}
+      {/* Zone C: Action bar — pinned at bottom */}
       <div className="px-4 py-3 border-t border-gray-100 flex gap-2 shrink-0">
         {effectiveComplete && effectiveText && !effectiveError ? (
           <>
@@ -405,6 +462,7 @@ export function DeskTab() {
           <button
             onClick={handleAnalyze}
             disabled={selectedIds.size === 0 || !instruction.trim() || isAnyAnalyzing}
+            aria-busy={isAnyAnalyzing}
             className="w-full h-10 rounded-lg bg-blue-600 text-sm font-medium text-white
                        hover:bg-blue-700 transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed
