@@ -28,17 +28,17 @@ const STEPS: OnboardingStep[] = [
   },
   {
     key: "sidebar",
-    text: "Use the sidebar to switch between chapters or add new ones.",
+    text: "Your chapters live here. Switch between them, add new ones, or drag to reorder.",
     target: "sidebar",
   },
   {
     key: "sources",
-    text: "Add documents from Google Drive or your device.",
+    text: "Your documents are here \u2014 anything you have added from Google Drive or your device.",
     target: "sources",
   },
   {
     key: "ai",
-    text: "Select any text to get AI suggestions for rewriting.",
+    text: "Your Editor is here. Select any text, then tap Editor for a rewrite.",
     target: "text-selection",
   },
 ];

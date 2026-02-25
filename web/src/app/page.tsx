@@ -21,19 +21,20 @@ export default function LandingPage() {
           DraftCrane
         </h1>
 
-        {/* Tagline */}
+        {/* Tagline — seeds Author/Editor metaphor (#387) */}
         <p className="mb-8 font-serif text-xl leading-relaxed text-gray-600">
           Write your book.
           <br />
           Keep your files.
           <br />
-          Get AI help when you need it.
+          Work with an Editor who gets it.
         </p>
 
-        {/* Description - author-friendly language, no tech jargon */}
+        {/* Description — author-friendly language, introduces Editor role */}
         <p className="mb-10 max-w-md text-lg leading-relaxed text-gray-500">
-          A quiet place to write and organize your nonfiction book, chapter by chapter. When you are
-          ready, export to PDF or EPUB. Your chapters stay in your Google Drive, always yours.
+          A quiet place to write your nonfiction book, chapter by chapter. When your prose needs
+          tightening, your Editor is one tap away &mdash; select text, ask for a rewrite, and decide
+          what stays. Your chapters live in your Google Drive, always yours.
         </p>
 
         {/* CTA Button - 44pt minimum touch target for iPad */}
