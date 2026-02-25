@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useBackup } from "@/hooks/use-backup";
+import { useDropdown } from "@/hooks/use-dropdown";
 import { useExportPreferences } from "@/hooks/use-export-preferences";
 import type { SourceConnection } from "@/hooks/use-sources";
 import { ExportDestinationPicker, type ExportDestination } from "./export-destination-picker";
@@ -57,11 +58,10 @@ export function ExportMenu({
   apiUrl,
   connections = [],
 }: ExportMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isOpen, ref: menuRef, toggle, close } = useDropdown();
   const [state, setState] = useState<ExportState>({ phase: "idle" });
   const [driveState, setDriveState] = useState<DriveState>({ phase: "idle" });
   const [deliveryPhase, setDeliveryPhase] = useState<DeliveryPhase>("none");
-  const menuRef = useRef<HTMLDivElement>(null);
   const { downloadBackup, isDownloading } = useBackup();
   const {
     preference,
@@ -69,34 +69,6 @@ export function ExportMenu({
     save: savePreference,
     clear: clearPreference,
   } = useExportPreferences(projectId);
-
-  // Close menu on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [isOpen]);
-
-  // Close menu on Escape
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [isOpen]);
 
   /**
    * Save the completed export to Google Drive.
@@ -243,7 +215,7 @@ export function ExportMenu({
 
   const handleExport = useCallback(
     async (scope: "book" | "chapter", format: ExportFormat = "pdf") => {
-      setIsOpen(false);
+      close();
       setState({ phase: "exporting", scope });
       setDriveState({ phase: "idle" });
       setDeliveryPhase("none");
@@ -330,7 +302,7 @@ export function ExportMenu({
         });
       }
     },
-    [projectId, activeChapterId, getToken, apiUrl, preference, isPreferenceLoading, applyDefault],
+    [projectId, activeChapterId, getToken, apiUrl, preference, isPreferenceLoading, applyDefault, close],
   );
 
   /**
@@ -435,7 +407,7 @@ export function ExportMenu({
       <button
         onClick={() => {
           if (isExporting) return;
-          setIsOpen(!isOpen);
+          toggle();
         }}
         disabled={isExporting}
         className="min-h-[44px] px-3 text-sm rounded-lg hover:bg-[var(--dc-color-surface-tertiary)] transition-colors min-w-[44px]
@@ -575,7 +547,7 @@ export function ExportMenu({
           {/* Export destination settings */}
           <button
             onClick={() => {
-              setIsOpen(false);
+              close();
               setDeliveryPhase("destination-settings");
             }}
             className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors
@@ -606,7 +578,7 @@ export function ExportMenu({
 
           <button
             onClick={() => {
-              setIsOpen(false);
+              close();
               downloadBackup(projectId);
             }}
             disabled={isDownloading}

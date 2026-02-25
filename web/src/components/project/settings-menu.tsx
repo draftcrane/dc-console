@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import Link from "next/link";
+import { useDropdown } from "@/hooks/use-dropdown";
 
 interface SettingsMenuProps {
   /** Open rename book dialog */
@@ -31,46 +32,20 @@ export function SettingsMenu({
   onSignOut,
   isSigningOut,
 }: SettingsMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const { isOpen, ref: menuRef, toggle, close } = useDropdown();
 
-  // Close on outside click (US-023)
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [isOpen]);
-
-  // Close on Escape (US-023)
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
-    }
-  }, [isOpen]);
-
-  const handleMenuItem = useCallback((action: () => void) => {
-    setIsOpen(false);
-    action();
-  }, []);
+  const handleMenuItem = useCallback(
+    (action: () => void) => {
+      close();
+      action();
+    },
+    [close],
+  );
 
   return (
     <div className="relative" ref={menuRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggle}
         className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-[var(--dc-color-surface-tertiary)] transition-colors"
         aria-label="Settings"
         aria-expanded={isOpen}
@@ -163,7 +138,7 @@ export function SettingsMenu({
           {/* Help & Support (#340) */}
           <Link
             href="/help"
-            onClick={() => setIsOpen(false)}
+            onClick={close}
             className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100
                        transition-colors min-h-[44px] flex items-center gap-2"
             role="menuitem"
