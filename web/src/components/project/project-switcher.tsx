@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useDropdown } from "@/hooks/use-dropdown";
 
 interface Project {
   id: string;
@@ -29,35 +29,10 @@ interface ProjectSwitcherProps {
  */
 export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherProps) {
   const router = useRouter();
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Close on escape
-  useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, []);
+  const { isOpen, ref: dropdownRef, toggle, close } = useDropdown();
 
   function handleProjectSelect(projectId: string) {
-    setIsOpen(false);
+    close();
     if (projectId !== currentProject.id) {
       router.push(`/editor/${projectId}`);
     }
@@ -67,7 +42,7 @@ export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherPro
     <div className="relative" ref={dropdownRef}>
       {/* Trigger button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggle}
         className="flex items-center gap-2 h-11 px-3 rounded-lg hover:bg-gray-100 transition-colors max-w-[280px]"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
@@ -132,7 +107,7 @@ export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherPro
           {/* New project link */}
           <Link
             href="/setup"
-            onClick={() => setIsOpen(false)}
+            onClick={close}
             className="w-full px-4 py-3 text-left flex items-center gap-2 min-h-[48px]
                        hover:bg-gray-50 transition-colors text-blue-600"
           >
