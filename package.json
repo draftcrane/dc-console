@@ -12,10 +12,14 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "oauth:check": "bash scripts/oauth-readiness.sh",
-    "pdf:check": "bash scripts/browser-rendering-readiness.sh"
+    "pdf:check": "bash scripts/browser-rendering-readiness.sh",
+    "verify": "npm run typecheck && npm run format:check && npm run lint && npm run test",
+    "prepare": "node -e \"if(process.env.CI)process.exit(0)\" && husky"
   },
   "devDependencies": {
     "docx": "^9.5.3",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.4.0",
     "mammoth": "^1.11.0",
     "pdf-lib": "^1.17.1",
     "prettier": "^3.5.0",
