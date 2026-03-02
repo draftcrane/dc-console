@@ -62,7 +62,6 @@ describe('useProjectActions', () => {
       await waitFor(() => {
         expect(result.current.isLoadingProjects).toBe(false)
       })
-
       ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ ok: true })
 
       let success: boolean | undefined
