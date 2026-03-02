@@ -541,31 +541,31 @@ The instruction list supports full keyboard navigation for accessibility (WCAG 2
 ```typescript
 interface InstructionListProps {
   /** Which context this list serves -- determines instruction pool and behavior */
-  context: "desk" | "chapter" | "book";
+  context: 'desk' | 'chapter' | 'book'
 
   /** Instructions to display (fetched from API, filtered by context) */
-  instructions: AIInstruction[];
+  instructions: AIInstruction[]
 
   /** Whether instructions are still loading */
-  isLoading: boolean;
+  isLoading: boolean
 
   /** Called when the user selects an instruction */
-  onSelect: (instruction: AIInstruction) => void;
+  onSelect: (instruction: AIInstruction) => void
 
   /** Called to create a new instruction */
-  onCreate: (input: { label: string; instructionText: string }) => Promise<void>;
+  onCreate: (input: { label: string; instructionText: string }) => Promise<void>
 
   /** Called to update an existing instruction */
-  onUpdate: (id: string, input: { label?: string; instructionText?: string }) => Promise<void>;
+  onUpdate: (id: string, input: { label?: string; instructionText?: string }) => Promise<void>
 
   /** Called to delete an instruction */
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>
 
   /** Whether the list is disabled (e.g., during streaming) */
-  disabled?: boolean;
+  disabled?: boolean
 
   /** Color zone for active states -- determines which accent color to use */
-  zone: "library" | "editor";
+  zone: 'library' | 'editor'
 }
 ```
 
