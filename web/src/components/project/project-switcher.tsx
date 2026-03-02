@@ -1,20 +1,20 @@
-"use client";
+'use client'
 
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useDropdown } from "@/hooks/use-dropdown";
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useDropdown } from '@/hooks/use-dropdown'
 
 interface Project {
-  id: string;
-  title: string;
-  wordCount: number;
+  id: string
+  title: string
+  wordCount: number
 }
 
 interface ProjectSwitcherProps {
   /** Currently active project */
-  currentProject: Project;
+  currentProject: Project
   /** All available projects */
-  projects: Project[];
+  projects: Project[]
 }
 
 /**
@@ -28,13 +28,13 @@ interface ProjectSwitcherProps {
  * - Touch targets minimum 44x44pt
  */
 export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherProps) {
-  const router = useRouter();
-  const { isOpen, ref: dropdownRef, toggle, close } = useDropdown();
+  const router = useRouter()
+  const { isOpen, ref: dropdownRef, toggle, close } = useDropdown()
 
   function handleProjectSelect(projectId: string) {
-    close();
+    close()
     if (projectId !== currentProject.id) {
-      router.push(`/editor/${projectId}`);
+      router.push(`/editor/${projectId}`)
     }
   }
 
@@ -49,7 +49,7 @@ export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherPro
       >
         <span className="text-sm font-medium text-foreground truncate">{currentProject.title}</span>
         <svg
-          className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -71,7 +71,7 @@ export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherPro
               onClick={() => handleProjectSelect(project.id)}
               className={`w-full px-4 py-3 text-left flex items-center justify-between min-h-[48px]
                          hover:bg-[var(--dc-color-surface-secondary)] transition-colors
-                         ${project.id === currentProject.id ? "bg-[var(--dc-color-interactive-primary-subtle)]" : ""}`}
+                         ${project.id === currentProject.id ? 'bg-[var(--dc-color-interactive-primary-subtle)]' : ''}`}
               role="option"
               aria-selected={project.id === currentProject.id}
             >
@@ -124,7 +124,7 @@ export function ProjectSwitcher({ currentProject, projects }: ProjectSwitcherPro
         </div>
       )}
     </div>
-  );
+  )
 }
 
-export default ProjectSwitcher;
+export default ProjectSwitcher

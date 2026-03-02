@@ -1,8 +1,8 @@
-import { Hono } from "hono";
-import type { Env } from "../types/index.js";
-import { feedbackRateLimit } from "../middleware/rate-limit.js";
-import { validationError } from "../middleware/error-handler.js";
-import { FeedbackService } from "../services/feedback.js";
+import { Hono } from 'hono'
+import type { Env } from '../types/index.js'
+import { feedbackRateLimit } from '../middleware/rate-limit.js'
+import { validationError } from '../middleware/error-handler.js'
+import { FeedbackService } from '../services/feedback.js'
 
 /**
  * Feedback API routes (#341)
@@ -12,9 +12,9 @@ import { FeedbackService } from "../services/feedback.js";
  *
  * All routes require authentication (enforced globally in index.ts).
  */
-const feedback = new Hono<{ Bindings: Env }>();
+const feedback = new Hono<{ Bindings: Env }>()
 
-feedback.use("*", feedbackRateLimit);
+feedback.use('*', feedbackRateLimit)
 
 /**
  * POST /feedback
@@ -23,30 +23,30 @@ feedback.use("*", feedbackRateLimit);
  * Body: { type: "bug" | "suggestion", description: string, context?: object }
  * Returns 201 with { id, type, status, createdAt }
  */
-feedback.post("/", async (c) => {
-  const { userId } = c.get("auth");
+feedback.post('/', async (c) => {
+  const { userId } = c.get('auth')
   const body = (await c.req.json().catch(() => ({}))) as {
-    type?: string;
-    description?: string;
-    context?: Record<string, unknown>;
-  };
+    type?: string
+    description?: string
+    context?: Record<string, unknown>
+  }
 
   if (!body.type) {
-    validationError("type is required");
+    validationError('type is required')
   }
   if (!body.description) {
-    validationError("description is required");
+    validationError('description is required')
   }
 
-  const service = new FeedbackService(c.env.DB);
+  const service = new FeedbackService(c.env.DB)
   const result = await service.createFeedback(userId, {
     type: body.type,
     description: body.description,
     context: body.context ?? {},
-  });
+  })
 
-  return c.json(result, 201);
-});
+  return c.json(result, 201)
+})
 
 /**
  * GET /feedback
@@ -54,16 +54,16 @@ feedback.post("/", async (c) => {
  *
  * Query params: cursor (string), limit (number, max 50)
  */
-feedback.get("/", async (c) => {
-  const { userId } = c.get("auth");
-  const cursor = c.req.query("cursor") || undefined;
-  const limitParam = c.req.query("limit");
-  const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+feedback.get('/', async (c) => {
+  const { userId } = c.get('auth')
+  const cursor = c.req.query('cursor') || undefined
+  const limitParam = c.req.query('limit')
+  const limit = limitParam ? parseInt(limitParam, 10) : undefined
 
-  const service = new FeedbackService(c.env.DB);
-  const result = await service.listFeedback(userId, { cursor, limit });
+  const service = new FeedbackService(c.env.DB)
+  const result = await service.listFeedback(userId, { cursor, limit })
 
-  return c.json(result);
-});
+  return c.json(result)
+})
 
-export { feedback };
+export { feedback }

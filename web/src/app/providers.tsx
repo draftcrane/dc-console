@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import { useEffect } from "react";
-import { ClerkProvider } from "@clerk/nextjs";
-import { initErrorStore } from "@/lib/error-store";
+import { useEffect } from 'react'
+import { ClerkProvider } from '@clerk/nextjs'
+import { initErrorStore } from '@/lib/error-store'
 
 interface ProvidersProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 /**
@@ -27,8 +27,8 @@ export function Providers({ children }: ProvidersProps) {
   // Install global error listeners once on mount.
   // initErrorStore is idempotent so multiple calls are harmless.
   useEffect(() => {
-    initErrorStore();
-  }, []);
+    initErrorStore()
+  }, [])
 
   return (
     <ClerkProvider
@@ -39,5 +39,5 @@ export function Providers({ children }: ProvidersProps) {
     >
       {children}
     </ClerkProvider>
-  );
+  )
 }

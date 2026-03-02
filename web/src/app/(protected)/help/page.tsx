@@ -1,30 +1,30 @@
-"use client";
+'use client'
 
-import { useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { ToastProvider } from "@/components/toast";
-import { AccordionSection } from "@/components/help/accordion-section";
-import { FeedbackSheet } from "@/components/feedback/feedback-sheet";
-import { resetOnboarding } from "@/components/editor/onboarding-tooltips";
+import { useState, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { ToastProvider } from '@/components/toast'
+import { AccordionSection } from '@/components/help/accordion-section'
+import { FeedbackSheet } from '@/components/feedback/feedback-sheet'
+import { resetOnboarding } from '@/components/editor/onboarding-tooltips'
 
 // === FAQ Data ===
 
 interface QAPair {
-  q: string;
-  a: string;
+  q: string
+  a: string
 }
 
 interface FAQSection {
-  id: string;
-  title: string;
-  icon: React.ReactNode;
-  items: QAPair[];
+  id: string
+  title: string
+  icon: React.ReactNode
+  items: QAPair[]
 }
 
 const FAQ_SECTIONS: FAQSection[] = [
   {
-    id: "getting-started",
-    title: "Getting Started",
+    id: 'getting-started',
+    title: 'Getting Started',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -37,7 +37,7 @@ const FAQ_SECTIONS: FAQSection[] = [
     ),
     items: [
       {
-        q: "How do I create a new book?",
+        q: 'How do I create a new book?',
         a: 'From the dashboard, tap "New Book." Give it a title and your first chapter will be ready to go.',
       },
       {
@@ -45,14 +45,14 @@ const FAQ_SECTIONS: FAQSection[] = [
         a: 'Yes. On the dashboard, tap "Import from a backup file" and select a DraftCrane backup (.zip). Your chapters and settings will be restored.',
       },
       {
-        q: "How many books can I have?",
-        a: "As many as you need. Each book has its own chapters, sources, and settings.",
+        q: 'How many books can I have?',
+        a: 'As many as you need. Each book has its own chapters, sources, and settings.',
       },
     ],
   },
   {
-    id: "writing-editing",
-    title: "Writing & Editing",
+    id: 'writing-editing',
+    title: 'Writing & Editing',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -65,26 +65,26 @@ const FAQ_SECTIONS: FAQSection[] = [
     ),
     items: [
       {
-        q: "Does my work save automatically?",
-        a: "Yes. DraftCrane saves your chapters automatically as you type. You never need to press a save button.",
+        q: 'Does my work save automatically?',
+        a: 'Yes. DraftCrane saves your chapters automatically as you type. You never need to press a save button.',
       },
       {
-        q: "How do I add a new chapter?",
+        q: 'How do I add a new chapter?',
         a: 'In the sidebar, tap the "+" button at the bottom of your chapter list. You can rename it by tapping the title.',
       },
       {
-        q: "How do I reorder chapters?",
-        a: "Press and hold a chapter in the sidebar, then drag it to a new position. The order updates immediately.",
+        q: 'How do I reorder chapters?',
+        a: 'Press and hold a chapter in the sidebar, then drag it to a new position. The order updates immediately.',
       },
       {
-        q: "Can I rename my book?",
+        q: 'Can I rename my book?',
         a: 'Open the settings menu (gear icon in the toolbar), then tap "Rename Book."',
       },
     ],
   },
   {
-    id: "ai-features",
-    title: "AI Writing Partner",
+    id: 'ai-features',
+    title: 'AI Writing Partner',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -97,11 +97,11 @@ const FAQ_SECTIONS: FAQSection[] = [
     ),
     items: [
       {
-        q: "How do I use the AI rewrite feature?",
+        q: 'How do I use the AI rewrite feature?',
         a: 'Select a passage of text in your chapter. A toolbar will appear with an "AI Rewrite" option. Choose an instruction or write your own, and the AI will suggest a revision.',
       },
       {
-        q: "Will the AI change my text without asking?",
+        q: 'Will the AI change my text without asking?',
         a: 'Never. The AI only suggests rewrites. You always choose "Use This" to accept or "Discard" to keep your original text.',
       },
       {
@@ -111,8 +111,8 @@ const FAQ_SECTIONS: FAQSection[] = [
     ],
   },
   {
-    id: "sources-research",
-    title: "Sources & Research",
+    id: 'sources-research',
+    title: 'Sources & Research',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -125,22 +125,22 @@ const FAQ_SECTIONS: FAQSection[] = [
     ),
     items: [
       {
-        q: "How do I add source documents?",
-        a: "Tap the Library icon in the toolbar. You can connect Google Drive or upload files directly from your device.",
+        q: 'How do I add source documents?',
+        a: 'Tap the Library icon in the toolbar. You can connect Google Drive or upload files directly from your device.',
       },
       {
-        q: "What file types are supported?",
-        a: "PDF, Word documents (.docx), plain text files, and Google Docs via Drive.",
+        q: 'What file types are supported?',
+        a: 'PDF, Word documents (.docx), plain text files, and Google Docs via Drive.',
       },
       {
-        q: "Can I reference sources while I write?",
-        a: "Yes. Your sources are available in the side panel so you can read them alongside your chapter.",
+        q: 'Can I reference sources while I write?',
+        a: 'Yes. Your sources are available in the side panel so you can read them alongside your chapter.',
       },
     ],
   },
   {
-    id: "exporting",
-    title: "Exporting Your Work",
+    id: 'exporting',
+    title: 'Exporting Your Work',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -153,22 +153,22 @@ const FAQ_SECTIONS: FAQSection[] = [
     ),
     items: [
       {
-        q: "How do I export my book?",
-        a: "From the editor, open the settings menu and choose your export format. Your book will be compiled and downloaded.",
+        q: 'How do I export my book?',
+        a: 'From the editor, open the settings menu and choose your export format. Your book will be compiled and downloaded.',
       },
       {
-        q: "Can I back up my work?",
-        a: "Yes. Export a backup file (.zip) from the settings menu. This includes all chapters and can be re-imported later.",
+        q: 'Can I back up my work?',
+        a: 'Yes. Export a backup file (.zip) from the settings menu. This includes all chapters and can be re-imported later.',
       },
       {
-        q: "Will I lose my formatting when I export?",
-        a: "No. Headings, bold, italic, lists, and block quotes are all preserved in every export format.",
+        q: 'Will I lose my formatting when I export?',
+        a: 'No. Headings, bold, italic, lists, and block quotes are all preserved in every export format.',
       },
     ],
   },
   {
-    id: "account",
-    title: "Account & Privacy",
+    id: 'account',
+    title: 'Account & Privacy',
     icon: (
       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -181,20 +181,20 @@ const FAQ_SECTIONS: FAQSection[] = [
     ),
     items: [
       {
-        q: "How do I sign out?",
-        a: "Tap your profile icon in the top right, or use the settings menu inside the editor.",
+        q: 'How do I sign out?',
+        a: 'Tap your profile icon in the top right, or use the settings menu inside the editor.',
       },
       {
-        q: "Is my writing private?",
-        a: "Yes. Your chapters are stored securely and are only accessible when you are signed in. No one else can see your work.",
+        q: 'Is my writing private?',
+        a: 'Yes. Your chapters are stored securely and are only accessible when you are signed in. No one else can see your work.',
       },
       {
-        q: "How do I delete my account?",
+        q: 'How do I delete my account?',
         a: 'Contact us using the "Report a problem" button below. We will process your request and remove all your data.',
       },
     ],
   },
-];
+]
 
 // === Component ===
 
@@ -203,49 +203,49 @@ export default function HelpPage() {
     <ToastProvider>
       <HelpPageContent />
     </ToastProvider>
-  );
+  )
 }
 
 function HelpPageContent() {
-  const router = useRouter();
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const accordionRef = useRef<HTMLDivElement>(null);
+  const router = useRouter()
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const accordionRef = useRef<HTMLDivElement>(null)
 
   /** ArrowUp/Down/Home/End navigation between accordion section headers */
   const handleAccordionKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const container = accordionRef.current;
-    if (!container) return;
+    const container = accordionRef.current
+    if (!container) return
 
-    const headers = Array.from(container.querySelectorAll<HTMLElement>("h3 > button"));
-    const currentIndex = headers.indexOf(e.target as HTMLElement);
-    if (currentIndex === -1) return;
+    const headers = Array.from(container.querySelectorAll<HTMLElement>('h3 > button'))
+    const currentIndex = headers.indexOf(e.target as HTMLElement)
+    if (currentIndex === -1) return
 
-    let nextIndex: number | null = null;
+    let nextIndex: number | null = null
     switch (e.key) {
-      case "ArrowDown":
-        nextIndex = (currentIndex + 1) % headers.length;
-        break;
-      case "ArrowUp":
-        nextIndex = (currentIndex - 1 + headers.length) % headers.length;
-        break;
-      case "Home":
-        nextIndex = 0;
-        break;
-      case "End":
-        nextIndex = headers.length - 1;
-        break;
+      case 'ArrowDown':
+        nextIndex = (currentIndex + 1) % headers.length
+        break
+      case 'ArrowUp':
+        nextIndex = (currentIndex - 1 + headers.length) % headers.length
+        break
+      case 'Home':
+        nextIndex = 0
+        break
+      case 'End':
+        nextIndex = headers.length - 1
+        break
       default:
-        return;
+        return
     }
 
-    e.preventDefault();
-    headers[nextIndex].focus();
-  }, []);
+    e.preventDefault()
+    headers[nextIndex].focus()
+  }, [])
 
   const handleReplayTour = () => {
-    resetOnboarding();
-    router.push("/dashboard");
-  };
+    resetOnboarding()
+    router.push('/dashboard')
+  }
 
   return (
     <div className="mx-auto max-w-[640px] px-4 py-8 pb-[env(safe-area-inset-bottom)]">
@@ -305,5 +305,5 @@ function HelpPageContent() {
       {/* Feedback Sheet */}
       <FeedbackSheet isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </div>
-  );
+  )
 }

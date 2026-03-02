@@ -1,25 +1,25 @@
-"use client";
+'use client'
 
-import { useState, useCallback } from "react";
+import { useState, useCallback } from 'react'
 
 interface Chapter {
-  id: string;
-  title: string;
+  id: string
+  title: string
 }
 
 interface UseEditorTitleOptions {
-  activeChapter: Chapter | undefined;
-  activeChapterId: string | null;
-  handleChapterRename: (chapterId: string, newTitle: string) => Promise<void>;
+  activeChapter: Chapter | undefined
+  activeChapterId: string | null
+  handleChapterRename: (chapterId: string, newTitle: string) => Promise<void>
 }
 
 interface UseEditorTitleReturn {
-  editingTitle: boolean;
-  titleValue: string;
-  setTitleValue: (value: string) => void;
-  handleTitleEdit: () => void;
-  handleTitleSave: () => Promise<void>;
-  setEditingTitle: (editing: boolean) => void;
+  editingTitle: boolean
+  titleValue: string
+  setTitleValue: (value: string) => void
+  handleTitleEdit: () => void
+  handleTitleSave: () => Promise<void>
+  setEditingTitle: (editing: boolean) => void
 }
 
 /**
@@ -30,25 +30,25 @@ export function useEditorTitle({
   activeChapterId,
   handleChapterRename,
 }: UseEditorTitleOptions): UseEditorTitleReturn {
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleValue, setTitleValue] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleValue, setTitleValue] = useState('')
 
   const handleTitleEdit = useCallback(() => {
     if (activeChapter) {
-      setTitleValue(activeChapter.title);
-      setEditingTitle(true);
+      setTitleValue(activeChapter.title)
+      setEditingTitle(true)
     }
-  }, [activeChapter]);
+  }, [activeChapter])
 
   const handleTitleSave = useCallback(async () => {
     if (!activeChapterId) {
-      setEditingTitle(false);
-      return;
+      setEditingTitle(false)
+      return
     }
 
-    await handleChapterRename(activeChapterId, titleValue);
-    setEditingTitle(false);
-  }, [activeChapterId, titleValue, handleChapterRename]);
+    await handleChapterRename(activeChapterId, titleValue)
+    setEditingTitle(false)
+  }, [activeChapterId, titleValue, handleChapterRename])
 
   return {
     editingTitle,
@@ -57,5 +57,5 @@ export function useEditorTitle({
     handleTitleEdit,
     handleTitleSave,
     setEditingTitle,
-  };
+  }
 }

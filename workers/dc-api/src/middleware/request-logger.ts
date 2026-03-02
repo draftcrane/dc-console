@@ -1,10 +1,10 @@
-import type { MiddlewareHandler } from "hono";
-import { ulid } from "ulidx";
-import type { Env } from "../types/index.js";
+import type { MiddlewareHandler } from 'hono'
+import { ulid } from 'ulidx'
+import type { Env } from '../types/index.js'
 
-declare module "hono" {
+declare module 'hono' {
   interface ContextVariableMap {
-    requestId: string;
+    requestId: string
   }
 }
 
@@ -18,17 +18,17 @@ declare module "hono" {
  * Stored in Hono context as `requestId` for use by error handler and other middleware.
  */
 export const requestLogger: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
-  const requestId = ulid();
-  const start = Date.now();
+  const requestId = ulid()
+  const start = Date.now()
 
-  c.set("requestId", requestId);
-  c.header("X-Request-ID", requestId);
+  c.set('requestId', requestId)
+  c.header('X-Request-ID', requestId)
 
-  await next();
+  await next()
 
-  const duration = Date.now() - start;
-  const auth = c.get("auth");
-  const status = c.res.status;
+  const duration = Date.now() - start
+  const auth = c.get('auth')
+  const status = c.res.status
 
   console.log(
     JSON.stringify({
@@ -38,12 +38,12 @@ export const requestLogger: MiddlewareHandler<{ Bindings: Env }> = async (c, nex
       path: c.req.path,
       status,
       duration_ms: duration,
-    }),
-  );
+    })
+  )
 
   // Log non-2xx responses to KV for post-session review (7-day TTL)
   if (status >= 400) {
-    const errorKey = `error:${Date.now()}:${requestId}`;
+    const errorKey = `error:${Date.now()}:${requestId}`
     c.env.CACHE.put(
       errorKey,
       JSON.stringify({
@@ -55,9 +55,9 @@ export const requestLogger: MiddlewareHandler<{ Bindings: Env }> = async (c, nex
         duration_ms: duration,
         timestamp: new Date().toISOString(),
       }),
-      { expirationTtl: 604800 }, // 7 days
+      { expirationTtl: 604800 } // 7 days
     ).catch(() => {
       // KV write failure is non-blocking
-    });
+    })
   }
-};
+}

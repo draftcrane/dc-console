@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react'
 
 interface RenameProjectDialogProps {
   /** Whether the dialog is open */
-  isOpen: boolean;
+  isOpen: boolean
   /** Current project title (pre-fills the input) */
-  projectTitle: string;
+  projectTitle: string
   /** Called when the user confirms with the new title */
-  onConfirm: (newTitle: string) => Promise<void>;
+  onConfirm: (newTitle: string) => Promise<void>
   /** Called when the user cancels */
-  onCancel: () => void;
+  onCancel: () => void
 }
 
 /**
@@ -27,25 +27,25 @@ export function RenameProjectDialog({
   onConfirm,
   onCancel,
 }: RenameProjectDialogProps) {
-  const [value, setValue] = useState(projectTitle);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [value, setValue] = useState(projectTitle)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Sync input value when dialog opens with a new title
   useEffect(() => {
     if (isOpen) {
-      setValue(projectTitle);
+      setValue(projectTitle)
     }
-  }, [isOpen, projectTitle]);
+  }, [isOpen, projectTitle])
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   async function handleSubmit() {
-    if (!value.trim()) return;
-    setIsSubmitting(true);
+    if (!value.trim()) return
+    setIsSubmitting(true)
     try {
-      await onConfirm(value.trim());
+      await onConfirm(value.trim())
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
   }
 
@@ -68,8 +68,8 @@ export function RenameProjectDialog({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") handleSubmit();
-            if (e.key === "Escape") onCancel();
+            if (e.key === 'Enter') handleSubmit()
+            if (e.key === 'Escape') onCancel()
           }}
           className="w-full px-3 py-2 border border-[var(--dc-color-border-strong)] rounded-lg text-sm
                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -93,10 +93,10 @@ export function RenameProjectDialog({
                        hover:bg-gray-800 transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Saving..." : "Save"}
+            {isSubmitting ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
     </div>
-  );
+  )
 }

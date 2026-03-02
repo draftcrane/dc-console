@@ -1,33 +1,33 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useSyncExternalStore } from "react";
+import { useState, useEffect, useSyncExternalStore } from 'react'
 
 /**
  * Subscribe to the `prefers-reduced-motion` media query via useSyncExternalStore.
  * Returns true when the user prefers reduced motion.
  */
 function subscribeToReducedMotion(callback: () => void) {
-  if (typeof window === "undefined" || !window.matchMedia) return () => {};
-  const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
-  mql.addEventListener("change", callback);
-  return () => mql.removeEventListener("change", callback);
+  if (typeof window === 'undefined' || !window.matchMedia) return () => {}
+  const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
+  mql.addEventListener('change', callback)
+  return () => mql.removeEventListener('change', callback)
 }
 
 function getReducedMotionSnapshot(): boolean {
-  if (typeof window === "undefined" || !window.matchMedia) return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 function getReducedMotionServerSnapshot(): boolean {
-  return false;
+  return false
 }
 
 function usePrefersReducedMotion(): boolean {
   return useSyncExternalStore(
     subscribeToReducedMotion,
     getReducedMotionSnapshot,
-    getReducedMotionServerSnapshot,
-  );
+    getReducedMotionServerSnapshot
+  )
 }
 
 /**
@@ -54,27 +54,27 @@ function usePrefersReducedMotion(): boolean {
  * ```
  */
 export function useDelayedUnmount(isOpen: boolean, durationMs: number) {
-  const [shouldRender, setShouldRender] = useState(isOpen);
-  const prefersReducedMotion = usePrefersReducedMotion();
+  const [shouldRender, setShouldRender] = useState(isOpen)
+  const prefersReducedMotion = usePrefersReducedMotion()
 
   // Synchronous open: set shouldRender during render (no effect needed)
   if (isOpen && !shouldRender) {
-    setShouldRender(true);
+    setShouldRender(true)
   }
 
   // Stable reference for the delayed close effect
-  const effectiveDuration = prefersReducedMotion ? 0 : durationMs;
+  const effectiveDuration = prefersReducedMotion ? 0 : durationMs
 
   // Delayed close: unmount after exit animation completes
   useEffect(() => {
     if (!isOpen && shouldRender) {
-      const timer = setTimeout(() => setShouldRender(false), effectiveDuration);
-      return () => clearTimeout(timer);
+      const timer = setTimeout(() => setShouldRender(false), effectiveDuration)
+      return () => clearTimeout(timer)
     }
-  }, [isOpen, shouldRender, effectiveDuration]);
+  }, [isOpen, shouldRender, effectiveDuration])
 
   return {
     shouldRender,
     isClosing: shouldRender && !isOpen,
-  };
+  }
 }

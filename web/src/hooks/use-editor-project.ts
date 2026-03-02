@@ -1,24 +1,24 @@
-"use client";
+'use client'
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import type { ProjectData } from "@/types/editor";
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import type { ProjectData } from '@/types/editor'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 interface UseEditorProjectOptions {
-  projectId: string;
-  getToken: () => Promise<string | null>;
+  projectId: string
+  getToken: () => Promise<string | null>
 }
 
 interface UseEditorProjectReturn {
-  projectData: ProjectData | null;
-  setProjectData: React.Dispatch<React.SetStateAction<ProjectData | null>>;
-  activeChapterId: string | null;
-  setActiveChapterId: (id: string | null) => void;
-  isLoading: boolean;
-  error: string | null;
-  fetchProjectData: () => Promise<void>;
+  projectData: ProjectData | null
+  setProjectData: React.Dispatch<React.SetStateAction<ProjectData | null>>
+  activeChapterId: string | null
+  setActiveChapterId: (id: string | null) => void
+  isLoading: boolean
+  error: string | null
+  fetchProjectData: () => Promise<void>
 }
 
 /**
@@ -30,54 +30,54 @@ export function useEditorProject({
   projectId,
   getToken,
 }: UseEditorProjectOptions): UseEditorProjectReturn {
-  const router = useRouter();
+  const router = useRouter()
 
-  const [projectData, setProjectData] = useState<ProjectData | null>(null);
-  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [projectData, setProjectData] = useState<ProjectData | null>(null)
+  const [activeChapterId, setActiveChapterId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Use a ref to track activeChapterId to avoid re-creating fetchProjectData
   // every time activeChapterId changes (which would cause an infinite loop
   // via the useEffect that triggers fetchProjectData).
-  const activeChapterIdRef = useRef(activeChapterId);
+  const activeChapterIdRef = useRef(activeChapterId)
   useEffect(() => {
-    activeChapterIdRef.current = activeChapterId;
-  }, [activeChapterId]);
+    activeChapterIdRef.current = activeChapterId
+  }, [activeChapterId])
 
   const fetchProjectData = useCallback(async () => {
     try {
-      const token = await getToken();
+      const token = await getToken()
 
       const projectResponse = await fetch(`${API_URL}/projects/${projectId}`, {
         headers: { Authorization: `Bearer ${token}` },
-      });
+      })
 
       if (!projectResponse.ok) {
         if (projectResponse.status === 404) {
-          router.push("/dashboard");
-          return;
+          router.push('/dashboard')
+          return
         }
-        throw new Error("Failed to load project");
+        throw new Error('Failed to load project')
       }
 
-      const data: ProjectData = await projectResponse.json();
-      setProjectData(data);
+      const data: ProjectData = await projectResponse.json()
+      setProjectData(data)
 
       if (data.chapters.length > 0 && !activeChapterIdRef.current) {
-        const sortedChapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
-        setActiveChapterId(sortedChapters[0].id);
+        const sortedChapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder)
+        setActiveChapterId(sortedChapters[0].id)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [getToken, projectId, router]);
+  }, [getToken, projectId, router])
 
   useEffect(() => {
-    fetchProjectData();
-  }, [fetchProjectData]);
+    fetchProjectData()
+  }, [fetchProjectData])
 
   return {
     projectData,
@@ -87,5 +87,5 @@ export function useEditorProject({
     isLoading,
     error,
     fetchProjectData,
-  };
+  }
 }

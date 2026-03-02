@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import fs from "fs";
-import path from "path";
+import { describe, it, expect } from 'vitest'
+import fs from 'fs'
+import path from 'path'
 
 /**
  * Regression test for issue #119: EditorPage TDZ crash
@@ -16,21 +16,21 @@ import path from "path";
  *
  * This test validates that ordering invariant.
  */
-describe("EditorPage initialization order (#119 TDZ regression)", () => {
+describe('EditorPage initialization order (#119 TDZ regression)', () => {
   const editorPagePath = path.resolve(
     __dirname,
-    "../../src/app/(protected)/editor/[projectId]/page.tsx",
-  );
-  const pageSource = fs.readFileSync(editorPagePath, "utf-8");
+    '../../src/app/(protected)/editor/[projectId]/page.tsx'
+  )
+  const pageSource = fs.readFileSync(editorPagePath, 'utf-8')
 
-  it("useEditorProject is called before useProjectActions in the page", () => {
-    const useEditorProjectPos = pageSource.indexOf("useEditorProject(");
-    expect(useEditorProjectPos).toBeGreaterThan(-1);
+  it('useEditorProject is called before useProjectActions in the page', () => {
+    const useEditorProjectPos = pageSource.indexOf('useEditorProject(')
+    expect(useEditorProjectPos).toBeGreaterThan(-1)
 
-    const useProjectActionsPos = pageSource.indexOf("useProjectActions(");
-    expect(useProjectActionsPos).toBeGreaterThan(-1);
+    const useProjectActionsPos = pageSource.indexOf('useProjectActions(')
+    expect(useProjectActionsPos).toBeGreaterThan(-1)
 
     // useEditorProject must be called BEFORE useProjectActions
-    expect(useEditorProjectPos).toBeLessThan(useProjectActionsPos);
-  });
-});
+    expect(useEditorProjectPos).toBeLessThan(useProjectActionsPos)
+  })
+})

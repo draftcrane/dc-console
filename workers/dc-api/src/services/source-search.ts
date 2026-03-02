@@ -5,25 +5,25 @@
  * Falls back to LIKE-based search on `source_materials` if FTS is unavailable.
  */
 
-import { notFound, validationError } from "../middleware/error-handler.js";
+import { notFound, validationError } from '../middleware/error-handler.js'
 
 /** A single search result */
 export interface SourceSearchResult {
-  sourceId: string;
-  title: string;
-  snippet: string;
+  sourceId: string
+  title: string
+  snippet: string
 }
 
 /** Response shape for the search endpoint */
 export interface SourceSearchResponse {
-  results: SourceSearchResult[];
+  results: SourceSearchResult[]
 }
 
 /** Maximum number of results to return */
-const MAX_RESULTS = 20;
+const MAX_RESULTS = 20
 
 /** Minimum query length */
-const MIN_QUERY_LENGTH = 2;
+const MIN_QUERY_LENGTH = 2
 
 export class SourceSearchService {
   constructor(private readonly db: D1Database) {}
@@ -38,33 +38,33 @@ export class SourceSearchService {
    */
   async search(userId: string, projectId: string, query: string): Promise<SourceSearchResponse> {
     // Validate query
-    const trimmedQuery = query.trim();
+    const trimmedQuery = query.trim()
     if (trimmedQuery.length < MIN_QUERY_LENGTH) {
-      validationError(`Search query must be at least ${MIN_QUERY_LENGTH} characters`);
+      validationError(`Search query must be at least ${MIN_QUERY_LENGTH} characters`)
     }
 
     // Verify project ownership
     const project = await this.db
       .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
       .bind(projectId, userId)
-      .first<{ id: string }>();
+      .first<{ id: string }>()
 
     if (!project) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
 
     // Try FTS5 first, fall back to LIKE for FTS-specific failures only
     try {
-      return await this.ftsSearch(projectId, trimmedQuery);
+      return await this.ftsSearch(projectId, trimmedQuery)
     } catch (error) {
       if (
         error instanceof Error &&
-        (error.message.includes("no such table") || error.message.includes("fts5"))
+        (error.message.includes('no such table') || error.message.includes('fts5'))
       ) {
         // FTS table missing or FTS syntax issue -- fall back to LIKE search
-        return await this.likeSearch(projectId, trimmedQuery);
+        return await this.likeSearch(projectId, trimmedQuery)
       }
-      throw error; // Unexpected error, don't swallow it
+      throw error // Unexpected error, don't swallow it
     }
   }
 
@@ -76,10 +76,10 @@ export class SourceSearchService {
   private async ftsSearch(projectId: string, query: string): Promise<SourceSearchResponse> {
     // Escape FTS5 special characters and wrap terms in double quotes for safety.
     // This prevents FTS syntax errors from user input.
-    const safeQuery = this.sanitizeFtsQuery(query);
+    const safeQuery = this.sanitizeFtsQuery(query)
 
     if (!safeQuery) {
-      return { results: [] };
+      return { results: [] }
     }
 
     const result = await this.db
@@ -95,18 +95,18 @@ export class SourceSearchService {
           AND sm.project_id = ?
           AND sm.status != 'archived'
         ORDER BY fts.rank
-        LIMIT ?`,
+        LIMIT ?`
       )
       .bind(safeQuery, projectId, MAX_RESULTS)
-      .all<{ sourceId: string; title: string; snippet: string; rank: number }>();
+      .all<{ sourceId: string; title: string; snippet: string; rank: number }>()
 
     const results: SourceSearchResult[] = (result.results ?? []).map((row) => ({
       sourceId: row.sourceId,
       title: row.title,
       snippet: this.stripHtmlTags(row.snippet),
-    }));
+    }))
 
-    return { results };
+    return { results }
   }
 
   /**
@@ -116,8 +116,8 @@ export class SourceSearchService {
    */
   private async likeSearch(projectId: string, query: string): Promise<SourceSearchResponse> {
     // Escape SQL LIKE wildcards in user input to prevent pattern injection
-    const escaped = query.replace(/%/g, "\\%").replace(/_/g, "\\_");
-    const likePattern = `%${escaped}%`;
+    const escaped = query.replace(/%/g, '\\%').replace(/_/g, '\\_')
+    const likePattern = `%${escaped}%`
 
     // Search titles from source_materials (always available)
     const result = await this.db
@@ -130,18 +130,18 @@ export class SourceSearchService {
           AND sm.status != 'archived'
           AND sm.title LIKE ? ESCAPE '\\'
         ORDER BY sm.sort_order ASC
-        LIMIT ?`,
+        LIMIT ?`
       )
       .bind(projectId, likePattern, MAX_RESULTS)
-      .all<{ sourceId: string; title: string }>();
+      .all<{ sourceId: string; title: string }>()
 
     const results: SourceSearchResult[] = (result.results ?? []).map((row) => ({
       sourceId: row.sourceId,
       title: row.title,
       snippet: row.title,
-    }));
+    }))
 
-    return { results };
+    return { results }
   }
 
   /**
@@ -156,12 +156,12 @@ export class SourceSearchService {
       .filter((t) => t.length > 0)
       .map((t) => {
         // Remove any existing double quotes from the term
-        const clean = t.replace(/"/g, "");
-        return clean.length > 0 ? `"${clean}"` : "";
+        const clean = t.replace(/"/g, '')
+        return clean.length > 0 ? `"${clean}"` : ''
       })
-      .filter((t) => t.length > 0);
+      .filter((t) => t.length > 0)
 
-    return terms.join(" ");
+    return terms.join(' ')
   }
 
   /**
@@ -170,6 +170,6 @@ export class SourceSearchService {
    * want to remove for the API response (the frontend handles highlighting).
    */
   private stripHtmlTags(html: string): string {
-    return html.replace(/<[^>]*>/g, "");
+    return html.replace(/<[^>]*>/g, '')
   }
 }

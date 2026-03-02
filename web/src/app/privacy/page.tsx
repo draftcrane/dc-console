@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: "Privacy Policy - DraftCrane",
-  description: "How DraftCrane handles your data, manuscripts, and Google Drive access.",
-};
+  title: 'Privacy Policy - DraftCrane',
+  description: 'How DraftCrane handles your data, manuscripts, and Google Drive access.',
+}
 
 /**
  * Privacy Policy page.
@@ -93,10 +93,10 @@ export default function PrivacyPolicyPage() {
               Google Drive Access
             </h2>
             <p>
-              DraftCrane requests the{" "}
+              DraftCrane requests the{' '}
               <code className="rounded bg-[var(--dc-color-surface-tertiary)] px-1.5 py-0.5 text-sm">
                 drive.file
-              </code>{" "}
+              </code>{' '}
               scope from Google. This is the most restrictive file-access scope available. It means:
             </p>
             <ul className="mt-3 list-disc space-y-2 pl-6">
@@ -180,7 +180,7 @@ export default function PrivacyPolicyPage() {
               DraftCrane uses Clerk as its authentication provider. When you sign in, Clerk handles
               your credentials securely. DraftCrane never sees or stores your password. If you sign
               in with Google, the OAuth flow is handled by Clerk and Google directly. For details on
-              how Clerk handles your authentication data, see{" "}
+              how Clerk handles your authentication data, see{' '}
               <a
                 href="https://clerk.com/privacy"
                 target="_blank"
@@ -259,7 +259,7 @@ export default function PrivacyPolicyPage() {
               Contact
             </h2>
             <p>
-              If you have questions about this privacy policy or your data, contact us at{" "}
+              If you have questions about this privacy policy or your data, contact us at{' '}
               <a
                 href="mailto:privacy@draftcrane.app"
                 className="text-[var(--dc-color-text-primary)] underline hover:text-[var(--dc-color-text-secondary)]"
@@ -284,5 +284,5 @@ export default function PrivacyPolicyPage() {
         </footer>
       </article>
     </div>
-  );
+  )
 }

@@ -37,11 +37,11 @@ export function WorkspaceToggle({
 ```typescript
 interface WorkspaceToggleProps {
   /** Current active view */
-  activeView: "chapter" | "book";
+  activeView: 'chapter' | 'book'
   /** Callback when view changes */
-  onViewChange: (view: "chapter" | "book") => void;
+  onViewChange: (view: 'chapter' | 'book') => void
   /** Optional: disable interaction during transitions */
-  disabled?: boolean;
+  disabled?: boolean
 }
 ```
 
@@ -298,28 +298,28 @@ When toggling between Chapter and Book view:
 Use `next/navigation` with shallow routing:
 
 ```typescript
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 
 function useWorkspaceView() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-  const currentView = (searchParams.get("view") === "book" ? "book" : "chapter") as
-    | "chapter"
-    | "book";
+  const currentView = (searchParams.get('view') === 'book' ? 'book' : 'chapter') as
+    | 'chapter'
+    | 'book'
 
-  const setView = (view: "chapter" | "book") => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (view === "chapter") {
-      params.delete("view"); // Chapter is default, no param needed
+  const setView = (view: 'chapter' | 'book') => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (view === 'chapter') {
+      params.delete('view') // Chapter is default, no param needed
     } else {
-      params.set("view", view);
+      params.set('view', view)
     }
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
-  };
+    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+  }
 
-  return { currentView, setView };
+  return { currentView, setView }
 }
 ```
 
@@ -478,14 +478,14 @@ Based on issue #318:
 ## Appendix A: Full Component Implementation Skeleton
 
 ```tsx
-"use client";
+'use client'
 
-import { useCallback } from "react";
+import { useCallback } from 'react'
 
 interface WorkspaceToggleProps {
-  activeView: "chapter" | "book";
-  onViewChange: (view: "chapter" | "book") => void;
-  disabled?: boolean;
+  activeView: 'chapter' | 'book'
+  onViewChange: (view: 'chapter' | 'book') => void
+  disabled?: boolean
 }
 
 export function WorkspaceToggle({
@@ -495,14 +495,14 @@ export function WorkspaceToggle({
 }: WorkspaceToggleProps) {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (disabled) return;
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        e.preventDefault();
-        onViewChange(activeView === "chapter" ? "book" : "chapter");
+      if (disabled) return
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        e.preventDefault()
+        onViewChange(activeView === 'chapter' ? 'book' : 'chapter')
       }
     },
-    [activeView, onViewChange, disabled],
-  );
+    [activeView, onViewChange, disabled]
+  )
 
   return (
     <div
@@ -513,17 +513,17 @@ export function WorkspaceToggle({
     >
       <button
         role="radio"
-        aria-checked={activeView === "chapter"}
+        aria-checked={activeView === 'chapter'}
         aria-label="Chapter view"
-        onClick={() => !disabled && onViewChange("chapter")}
+        onClick={() => !disabled && onViewChange('chapter')}
         disabled={disabled}
         className={`
           flex items-center gap-1.5 h-7 px-3 rounded-md text-sm font-medium
           transition-colors duration-150
           ${
-            activeView === "chapter"
-              ? "bg-white text-gray-900 shadow-sm border border-gray-200"
-              : "text-gray-500 hover:text-gray-700"
+            activeView === 'chapter'
+              ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+              : 'text-gray-500 hover:text-gray-700'
           }
         `}
       >
@@ -532,17 +532,17 @@ export function WorkspaceToggle({
       </button>
       <button
         role="radio"
-        aria-checked={activeView === "book"}
+        aria-checked={activeView === 'book'}
         aria-label="Book view"
-        onClick={() => !disabled && onViewChange("book")}
+        onClick={() => !disabled && onViewChange('book')}
         disabled={disabled}
         className={`
           flex items-center gap-1.5 h-7 px-3 rounded-md text-sm font-medium
           transition-colors duration-150
           ${
-            activeView === "book"
-              ? "bg-white text-gray-900 shadow-sm border border-gray-200"
-              : "text-gray-500 hover:text-gray-700"
+            activeView === 'book'
+              ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+              : 'text-gray-500 hover:text-gray-700'
           }
         `}
       >
@@ -550,7 +550,7 @@ export function WorkspaceToggle({
         <span className="hidden sm:inline">Book</span>
       </button>
     </div>
-  );
+  )
 }
 
 function ChapterIcon({ className }: { className?: string }) {
@@ -559,7 +559,7 @@ function ChapterIcon({ className }: { className?: string }) {
       <rect x="3" y="2" width="10" height="12" rx="1" stroke="currentColor" strokeWidth="1.5" />
       <path d="M5 5H11M5 7.5H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
-  );
+  )
 }
 
 function BookIcon({ className }: { className?: string }) {
@@ -572,7 +572,7 @@ function BookIcon({ className }: { className?: string }) {
         strokeWidth="1.5"
       />
     </svg>
-  );
+  )
 }
 ```
 
@@ -607,7 +607,7 @@ interface EditorToolbarProps {
   // ... existing props
 
   // Workspace view (#318)
-  activeView: "chapter" | "book";
-  onViewChange: (view: "chapter" | "book") => void;
+  activeView: 'chapter' | 'book'
+  onViewChange: (view: 'chapter' | 'book') => void
 }
 ```

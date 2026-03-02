@@ -26,30 +26,30 @@
 
 export interface Chunk {
   /** Composite key: sourceId:chunkIndex */
-  id: string;
+  id: string
   /** Source material ID */
-  sourceId: string;
+  sourceId: string
   /** Human-readable source title */
-  sourceTitle: string;
+  sourceTitle: string
   /** Heading hierarchy, e.g. ["Chapter 3", "Methodology"] or ["Section 2 of 8"] */
-  headingChain: string[];
+  headingChain: string[]
   /** Plain text content (HTML stripped) */
-  text: string;
+  text: string
   /** HTML fragment for display */
-  html: string;
+  html: string
   /** Word count of text field */
-  wordCount: number;
+  wordCount: number
   /** Character offset in original HTML */
-  startOffset: number;
+  startOffset: number
   /** Character offset in original HTML */
-  endOffset: number;
+  endOffset: number
 }
 
 export interface ChunkingOptions {
-  targetWords?: number;
-  maxWords?: number;
-  minWords?: number;
-  overlapSentences?: number;
+  targetWords?: number
+  maxWords?: number
+  minWords?: number
+  overlapSentences?: number
 }
 
 const DEFAULT_OPTIONS: Required<ChunkingOptions> = {
@@ -57,7 +57,7 @@ const DEFAULT_OPTIONS: Required<ChunkingOptions> = {
   maxWords: 400,
   minWords: 50,
   overlapSentences: 2,
-};
+}
 
 // ---------------------------------------------------------------------------
 // HTML parsing helpers
@@ -66,21 +66,21 @@ const DEFAULT_OPTIONS: Required<ChunkingOptions> = {
 /** Strip HTML tags and decode basic entities */
 export function stripHtml(html: string): string {
   return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 export function countWords(text: string): number {
-  const cleaned = text.trim();
-  if (!cleaned) return 0;
-  return cleaned.split(/\s+/).filter(Boolean).length;
+  const cleaned = text.trim()
+  if (!cleaned) return 0
+  return cleaned.split(/\s+/).filter(Boolean).length
 }
 
 /**
@@ -88,23 +88,23 @@ export function countWords(text: string): number {
  * Returns non-empty trimmed sentences.
  */
 export function splitSentences(text: string): string[] {
-  if (!text.trim()) return [];
+  if (!text.trim()) return []
 
   // Protect common abbreviations from being split on
   const protected_ = text
     .replace(
       /\b(Dr|Mr|Mrs|Ms|Prof|Jr|Sr|Inc|Ltd|Corp|Co|vs|etc|al|ed|vol|Rev|Gen|Gov)\./g,
-      "$1\u0000",
+      '$1\u0000'
     )
-    .replace(/\b([A-Z])\./g, "$1\u0000")
-    .replace(/(\d)\./g, "$1\u0000")
-    .replace(/\be\.g\./g, "e\u0000g\u0000")
-    .replace(/\bi\.e\./g, "i\u0000e\u0000")
-    .replace(/\bp\.\s/g, "p\u0000 ");
+    .replace(/\b([A-Z])\./g, '$1\u0000')
+    .replace(/(\d)\./g, '$1\u0000')
+    .replace(/\be\.g\./g, 'e\u0000g\u0000')
+    .replace(/\bi\.e\./g, 'i\u0000e\u0000')
+    .replace(/\bp\.\s/g, 'p\u0000 ')
 
-  const parts = protected_.split(/(?<=[.!?]["')\]]?)\s+(?=[A-Z"(])/);
+  const parts = protected_.split(/(?<=[.!?]["')\]]?)\s+(?=[A-Z"(])/)
 
-  return parts.map((s) => s.replace(/\u0000/g, ".").trim()).filter((s) => s.length > 0);
+  return parts.map((s) => s.replace(/\u0000/g, '.').trim()).filter((s) => s.length > 0)
 }
 
 // ---------------------------------------------------------------------------
@@ -112,33 +112,33 @@ export function splitSentences(text: string): string[] {
 // ---------------------------------------------------------------------------
 
 interface HtmlElement {
-  tag: string;
-  content: string; // raw HTML content
-  text: string; // plain text
-  isHeading: boolean;
-  headingLevel: number;
+  tag: string
+  content: string // raw HTML content
+  text: string // plain text
+  isHeading: boolean
+  headingLevel: number
 }
 
 /** Parse HTML into a sequence of block-level elements */
 function parseHtmlElements(html: string): HtmlElement[] {
-  const elements: HtmlElement[] = [];
-  const blockRegex = /<(h[1-6]|p|li|table|ul|ol|blockquote)(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi;
+  const elements: HtmlElement[] = []
+  const blockRegex = /<(h[1-6]|p|li|table|ul|ol|blockquote)(?:\s[^>]*)?>[\s\S]*?<\/\1>/gi
 
-  let match: RegExpExecArray | null;
+  let match: RegExpExecArray | null
   while ((match = blockRegex.exec(html)) !== null) {
-    const tag = match[0].match(/^<(\w+)/)?.[1]?.toLowerCase() || "";
-    const content = match[0];
-    const text = stripHtml(content);
+    const tag = match[0].match(/^<(\w+)/)?.[1]?.toLowerCase() || ''
+    const content = match[0]
+    const text = stripHtml(content)
 
-    if (!text.trim()) continue;
+    if (!text.trim()) continue
 
-    const isHeading = /^h[1-6]$/.test(tag);
-    const headingLevel = isHeading ? parseInt(tag[1]) : 0;
+    const isHeading = /^h[1-6]$/.test(tag)
+    const headingLevel = isHeading ? parseInt(tag[1]) : 0
 
-    elements.push({ tag, content, text, isHeading, headingLevel });
+    elements.push({ tag, content, text, isHeading, headingLevel })
   }
 
-  return elements;
+  return elements
 }
 
 // ---------------------------------------------------------------------------
@@ -146,10 +146,10 @@ function parseHtmlElements(html: string): HtmlElement[] {
 // ---------------------------------------------------------------------------
 
 interface DetectedSection {
-  heading: string | null;
-  elements: HtmlElement[];
-  position: number;
-  totalSections: number;
+  heading: string | null
+  elements: HtmlElement[]
+  position: number
+  totalSections: number
 }
 
 /**
@@ -158,23 +158,23 @@ interface DetectedSection {
  * - Short lines (<10 words) not ending with a period, followed by longer content
  */
 function detectFlatHtmlSections(elements: HtmlElement[]): DetectedSection[] {
-  const sections: DetectedSection[] = [];
-  let currentHeading: string | null = null;
-  let currentElements: HtmlElement[] = [];
+  const sections: DetectedSection[] = []
+  let currentHeading: string | null = null
+  let currentElements: HtmlElement[] = []
 
   for (let i = 0; i < elements.length; i++) {
-    const el = elements[i];
-    const words = el.text.split(/\s+/).filter(Boolean);
-    const wordCount = words.length;
-    const isShort = wordCount < 10;
-    const isAllCaps = el.text === el.text.toUpperCase() && /[A-Z]/.test(el.text);
-    const endsWithPeriod = /[.!?]$/.test(el.text.trim());
-    const nextEl = i + 1 < elements.length ? elements[i + 1] : null;
+    const el = elements[i]
+    const words = el.text.split(/\s+/).filter(Boolean)
+    const wordCount = words.length
+    const isShort = wordCount < 10
+    const isAllCaps = el.text === el.text.toUpperCase() && /[A-Z]/.test(el.text)
+    const endsWithPeriod = /[.!?]$/.test(el.text.trim())
+    const nextEl = i + 1 < elements.length ? elements[i + 1] : null
     const nextIsLonger = nextEl
       ? nextEl.text.split(/\s+/).filter(Boolean).length > wordCount
-      : false;
+      : false
 
-    const looksLikeHeading = isShort && (isAllCaps || (!endsWithPeriod && nextIsLonger));
+    const looksLikeHeading = isShort && (isAllCaps || (!endsWithPeriod && nextIsLonger))
 
     if (looksLikeHeading) {
       if (currentElements.length > 0) {
@@ -183,12 +183,12 @@ function detectFlatHtmlSections(elements: HtmlElement[]): DetectedSection[] {
           elements: [...currentElements],
           position: sections.length,
           totalSections: 0,
-        });
+        })
       }
-      currentHeading = el.text;
-      currentElements = [];
+      currentHeading = el.text
+      currentElements = []
     } else {
-      currentElements.push(el);
+      currentElements.push(el)
     }
   }
 
@@ -198,14 +198,14 @@ function detectFlatHtmlSections(elements: HtmlElement[]): DetectedSection[] {
       elements: [...currentElements],
       position: sections.length,
       totalSections: 0,
-    });
+    })
   }
 
   for (const section of sections) {
-    section.totalSections = sections.length;
+    section.totalSections = sections.length
   }
 
-  return sections;
+  return sections
 }
 
 // ---------------------------------------------------------------------------
@@ -217,73 +217,73 @@ function detectFlatHtmlSections(elements: HtmlElement[]): DetectedSection[] {
  * Shared core used by both structured and flat chunking modes.
  */
 class ChunkAccumulator {
-  private chunks: Chunk[] = [];
-  private currentSentences: string[] = [];
-  private currentWordCount = 0;
-  private lastChunkOverlap = "";
-  private startOffset = 0;
+  private chunks: Chunk[] = []
+  private currentSentences: string[] = []
+  private currentWordCount = 0
+  private lastChunkOverlap = ''
+  private startOffset = 0
 
   constructor(
     private sourceId: string,
     private sourceTitle: string,
     private headingChainFn: () => string[],
-    private opts: Required<ChunkingOptions>,
+    private opts: Required<ChunkingOptions>
   ) {}
 
   /** Add sentences from an element, splitting at sentence boundaries as needed */
   addElement(text: string, offset: number): void {
-    const sentences = splitSentences(text);
+    const sentences = splitSentences(text)
 
     for (const sentence of sentences) {
-      const sentenceWords = countWords(sentence);
+      const sentenceWords = countWords(sentence)
 
       // If adding this sentence exceeds max and we have content, flush first
       if (
         this.currentWordCount + sentenceWords > this.opts.maxWords &&
         this.currentSentences.length > 0
       ) {
-        this.flush(offset);
+        this.flush(offset)
       }
 
       if (this.currentSentences.length === 0) {
-        this.startOffset = offset;
+        this.startOffset = offset
       }
 
-      this.currentSentences.push(sentence);
-      this.currentWordCount += sentenceWords;
+      this.currentSentences.push(sentence)
+      this.currentWordCount += sentenceWords
 
       // If we've hit the target, flush
       if (this.currentWordCount >= this.opts.targetWords) {
-        this.flush(offset);
+        this.flush(offset)
       }
     }
   }
 
   /** Force flush at a section/heading boundary */
   flushAtBoundary(offset: number): void {
-    this.flush(offset);
+    this.flush(offset)
   }
 
   /** Get all accumulated chunks */
   getChunks(): Chunk[] {
-    return this.chunks;
+    return this.chunks
   }
 
   private flush(endOffset: number): void {
-    if (this.currentSentences.length === 0) return;
+    if (this.currentSentences.length === 0) return
 
-    const text = this.currentSentences.join(" ");
-    const wordCount = countWords(text);
+    const text = this.currentSentences.join(' ')
+    const wordCount = countWords(text)
 
     if (wordCount < this.opts.minWords && this.chunks.length > 0) {
       // Too small -- merge with previous chunk
-      const prev = this.chunks[this.chunks.length - 1];
-      prev.text += " " + text;
-      prev.html += " " + text;
-      prev.wordCount = countWords(prev.text);
-      prev.endOffset = endOffset;
+      const prev = this.chunks[this.chunks.length - 1]
+      prev.text += ' ' + text
+      prev.html += ' ' + text
+      prev.wordCount = countWords(prev.text)
+      prev.endOffset = endOffset
     } else if (wordCount > 0) {
-      const fullText = this.lastChunkOverlap ? this.lastChunkOverlap + " " + text : text;
+      const fullText = this.lastChunkOverlap ? this.lastChunkOverlap + ' ' + text : text
 
       this.chunks.push({
         id: `${this.sourceId}:${this.chunks.length}`,
@@ -295,14 +295,14 @@ class ChunkAccumulator {
         wordCount: countWords(fullText),
         startOffset: this.startOffset,
         endOffset,
-      });
+      })
     }
 
     // Overlap: last N sentences for continuity
-    this.lastChunkOverlap = this.currentSentences.slice(-this.opts.overlapSentences).join(" ");
+    this.lastChunkOverlap = this.currentSentences.slice(-this.opts.overlapSentences).join(' ')
 
-    this.currentSentences = [];
-    this.currentWordCount = 0;
+    this.currentSentences = []
+    this.currentWordCount = 0
   }
 }
 
@@ -318,43 +318,43 @@ export function chunkStructuredHtml(
   sourceId: string,
   sourceTitle: string,
   html: string,
-  options?: ChunkingOptions,
+  options?: ChunkingOptions
 ): Chunk[] {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
-  const elements = parseHtmlElements(html);
+  const opts = { ...DEFAULT_OPTIONS, ...options }
+  const elements = parseHtmlElements(html)
 
-  const headingStack: { level: number; text: string }[] = [];
+  const headingStack: { level: number; text: string }[] = []
 
   const accumulator = new ChunkAccumulator(
     sourceId,
     sourceTitle,
     () => headingStack.map((h) => h.text),
-    opts,
-  );
+    opts
+  )
 
-  let offset = 0;
+  let offset = 0
   for (const element of elements) {
     if (element.isHeading) {
       // Flush before heading change
-      accumulator.flushAtBoundary(offset);
+      accumulator.flushAtBoundary(offset)
 
       // Update heading stack
       while (
         headingStack.length > 0 &&
         headingStack[headingStack.length - 1].level >= element.headingLevel
       ) {
-        headingStack.pop();
+        headingStack.pop()
       }
-      headingStack.push({ level: element.headingLevel, text: element.text });
+      headingStack.push({ level: element.headingLevel, text: element.text })
     } else {
-      accumulator.addElement(element.text, offset);
+      accumulator.addElement(element.text, offset)
     }
-    offset += element.content.length;
+    offset += element.content.length
   }
 
   // Flush remaining
-  accumulator.flushAtBoundary(offset);
-  return accumulator.getChunks();
+  accumulator.flushAtBoundary(offset)
+  return accumulator.getChunks()
 }
 
 /**
@@ -365,37 +365,37 @@ export function chunkFlatHtml(
   sourceId: string,
   sourceTitle: string,
   html: string,
-  options?: ChunkingOptions,
+  options?: ChunkingOptions
 ): Chunk[] {
-  const opts = { ...DEFAULT_OPTIONS, ...options };
-  const elements = parseHtmlElements(html);
-  const sections = detectFlatHtmlSections(elements);
+  const opts = { ...DEFAULT_OPTIONS, ...options }
+  const elements = parseHtmlElements(html)
+  const sections = detectFlatHtmlSections(elements)
 
-  let currentHeadingChain: string[] = [];
+  let currentHeadingChain: string[] = []
 
   const accumulator = new ChunkAccumulator(
     sourceId,
     sourceTitle,
     () => [...currentHeadingChain],
-    opts,
-  );
+    opts
+  )
 
   for (const section of sections) {
     if (section.heading) {
-      currentHeadingChain = [section.heading];
+      currentHeadingChain = [section.heading]
     } else {
-      currentHeadingChain = [`Section ${section.position + 1} of ${section.totalSections}`];
+      currentHeadingChain = [`Section ${section.position + 1} of ${section.totalSections}`]
     }
 
-    accumulator.flushAtBoundary(0);
+    accumulator.flushAtBoundary(0)
 
     for (const element of section.elements) {
-      accumulator.addElement(element.text, 0);
+      accumulator.addElement(element.text, 0)
     }
   }
 
-  accumulator.flushAtBoundary(0);
-  return accumulator.getChunks();
+  accumulator.flushAtBoundary(0)
+  return accumulator.getChunks()
 }
 
 /**
@@ -411,22 +411,22 @@ export function chunkHtml(
   sourceId: string,
   sourceTitle: string,
   html: string,
-  htmlType: "structured" | "flat",
-  options?: ChunkingOptions,
+  htmlType: 'structured' | 'flat',
+  options?: ChunkingOptions
 ): Chunk[] {
-  if (htmlType === "structured") {
-    return chunkStructuredHtml(sourceId, sourceTitle, html, options);
+  if (htmlType === 'structured') {
+    return chunkStructuredHtml(sourceId, sourceTitle, html, options)
   }
-  return chunkFlatHtml(sourceId, sourceTitle, html, options);
+  return chunkFlatHtml(sourceId, sourceTitle, html, options)
 }
 
 /**
  * Determine HTML type from MIME type.
  * PDF produces flat HTML; everything else produces structured HTML.
  */
-export function htmlTypeFromMime(mimeType: string): "structured" | "flat" {
-  if (mimeType === "application/pdf") {
-    return "flat";
+export function htmlTypeFromMime(mimeType: string): 'structured' | 'flat' {
+  if (mimeType === 'application/pdf') {
+    return 'flat'
   }
-  return "structured";
+  return 'structured'
 }

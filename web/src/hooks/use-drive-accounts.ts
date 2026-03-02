@@ -1,19 +1,19 @@
-"use client";
+'use client'
 
-import { useAuth } from "@clerk/nextjs";
-import { useState, useEffect, useCallback } from "react";
+import { useAuth } from '@clerk/nextjs'
+import { useState, useEffect, useCallback } from 'react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 export interface DriveAccount {
-  id: string;
-  email: string;
-  connectedAt: string;
+  id: string
+  email: string
+  connectedAt: string
 }
 
 interface UseDriveAccountsOptions {
   /** Whether to fetch on mount. Defaults to true. */
-  enabled?: boolean;
+  enabled?: boolean
 }
 
 /**
@@ -24,111 +24,111 @@ interface UseDriveAccountsOptions {
  * Only connection metadata (id, email, connectedAt) is returned.
  */
 export function useDriveAccounts(options: UseDriveAccountsOptions = {}) {
-  const { enabled = true } = options;
-  const { getToken } = useAuth();
-  const [accounts, setAccounts] = useState<DriveAccount[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { enabled = true } = options
+  const { getToken } = useAuth()
+  const [accounts, setAccounts] = useState<DriveAccount[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchAccounts = useCallback(async () => {
     try {
-      setIsLoading(true);
-      setError(null);
-      const token = await getToken();
+      setIsLoading(true)
+      setError(null)
+      const token = await getToken()
       const response = await fetch(`${API_URL}/drive/connection`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      });
+      })
 
       if (!response.ok) {
-        throw new Error("Failed to fetch Drive connections");
+        throw new Error('Failed to fetch Drive connections')
       }
 
-      const data = await response.json();
-      setAccounts(data.connections || []);
+      const data = await response.json()
+      setAccounts(data.connections || [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-      setAccounts([]);
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      setAccounts([])
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [getToken]);
+  }, [getToken])
 
   useEffect(() => {
     if (enabled) {
-      fetchAccounts();
+      fetchAccounts()
     }
-  }, [enabled, fetchAccounts]);
+  }, [enabled, fetchAccounts])
 
   /** Initiate Google OAuth flow. Optional loginHint pre-selects the account. Optional projectId for auto-link on return. */
   const connect = useCallback(
     async (loginHint?: string, projectId?: string) => {
       try {
-        const token = await getToken();
-        const params = new URLSearchParams();
-        if (loginHint) params.set("loginHint", loginHint);
-        if (projectId) params.set("projectId", projectId);
-        const qs = params.toString();
-        const url = qs ? `${API_URL}/drive/authorize?${qs}` : `${API_URL}/drive/authorize`;
+        const token = await getToken()
+        const params = new URLSearchParams()
+        if (loginHint) params.set('loginHint', loginHint)
+        if (projectId) params.set('projectId', projectId)
+        const qs = params.toString()
+        const url = qs ? `${API_URL}/drive/authorize?${qs}` : `${API_URL}/drive/authorize`
 
         const response = await fetch(url, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
+        })
 
         if (!response.ok) {
-          throw new Error("Failed to get authorization URL");
+          throw new Error('Failed to get authorization URL')
         }
 
-        const { authorizationUrl } = await response.json();
+        const { authorizationUrl } = await response.json()
 
         // Validate URL points to Google OAuth before redirecting
         if (
-          typeof authorizationUrl !== "string" ||
-          !authorizationUrl.startsWith("https://accounts.google.com/")
+          typeof authorizationUrl !== 'string' ||
+          !authorizationUrl.startsWith('https://accounts.google.com/')
         ) {
-          throw new Error("Invalid authorization URL");
+          throw new Error('Invalid authorization URL')
         }
 
-        window.location.href = authorizationUrl;
+        window.location.href = authorizationUrl
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to connect");
+        setError(err instanceof Error ? err.message : 'Failed to connect')
       }
     },
-    [getToken],
-  );
+    [getToken]
+  )
 
   /** Disconnect a specific Google Drive account by connection ID. */
   const disconnect = useCallback(
     async (connectionId: string) => {
       try {
-        const token = await getToken();
+        const token = await getToken()
         const response = await fetch(`${API_URL}/drive/connection/${connectionId}`, {
-          method: "DELETE",
+          method: 'DELETE',
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
+        })
 
         if (!response.ok) {
-          throw new Error("Failed to disconnect Google Drive");
+          throw new Error('Failed to disconnect Google Drive')
         }
 
         // Refresh connections
-        await fetchAccounts();
+        await fetchAccounts()
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to disconnect");
-        throw err;
+        setError(err instanceof Error ? err.message : 'Failed to disconnect')
+        throw err
       }
     },
-    [getToken, fetchAccounts],
-  );
+    [getToken, fetchAccounts]
+  )
 
   // Backward compatibility: synthesize connected/email from first account
-  const connected = accounts.length > 0;
-  const email = accounts[0]?.email;
+  const connected = accounts.length > 0
+  const email = accounts[0]?.email
 
   return {
     accounts,
@@ -139,5 +139,5 @@ export function useDriveAccounts(options: UseDriveAccountsOptions = {}) {
     connect,
     disconnect,
     refetch: fetchAccounts,
-  };
+  }
 }

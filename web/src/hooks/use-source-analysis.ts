@@ -1,32 +1,32 @@
-"use client";
+'use client'
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { useAuth } from "@clerk/nextjs";
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useAuth } from '@clerk/nextjs'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 /** Timeout for analysis requests (30s) */
-const ANALYSIS_TIMEOUT_MS = 30_000;
+const ANALYSIS_TIMEOUT_MS = 30_000
 
 interface AsyncJobResponse {
-  async: true;
-  jobId: string;
-  totalBatches: number;
-  estimatedTokens: number;
+  async: true
+  jobId: string
+  totalBatches: number
+  estimatedTokens: number
 }
 
 export interface UseSourceAnalysisReturn {
-  analyze: (projectId: string, sourceIds: string[], instruction: string) => void;
-  streamingText: string;
-  isStreaming: boolean;
-  isComplete: boolean;
-  error: string | null;
-  reset: () => void;
-  abort: () => void;
+  analyze: (projectId: string, sourceIds: string[], instruction: string) => void
+  streamingText: string
+  isStreaming: boolean
+  isComplete: boolean
+  error: string | null
+  reset: () => void
+  abort: () => void
 }
 
 export interface AsyncJobCallback {
-  (projectId: string, jobId: string, totalBatches: number): void;
+  (projectId: string, jobId: string, totalBatches: number): void
 }
 
 /**
@@ -44,146 +44,144 @@ export interface AsyncJobCallback {
  * - Sets error with retry affordance message
  */
 export function useSourceAnalysis(onAsyncJob?: AsyncJobCallback): UseSourceAnalysisReturn {
-  const { getToken } = useAuth();
-  const [streamingText, setStreamingText] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { getToken } = useAuth()
+  const [streamingText, setStreamingText] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [isComplete, setIsComplete] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const textRef = useRef("");
-  const rafRef = useRef<number | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const textRef = useRef('')
+  const rafRef = useRef<number | null>(null)
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      abortControllerRef.current?.abort();
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
+      abortControllerRef.current?.abort()
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
 
   const scheduleUpdate = useCallback(() => {
-    if (rafRef.current) return;
+    if (rafRef.current) return
     rafRef.current = requestAnimationFrame(() => {
-      setStreamingText(textRef.current);
-      rafRef.current = null;
-    });
-  }, []);
+      setStreamingText(textRef.current)
+      rafRef.current = null
+    })
+  }, [])
 
   const analyze = useCallback(
     async (projectId: string, sourceIds: string[], instruction: string) => {
       // Abort any existing request
-      abortControllerRef.current?.abort();
+      abortControllerRef.current?.abort()
       if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
       }
 
-      const abortController = new AbortController();
-      abortControllerRef.current = abortController;
+      const abortController = new AbortController()
+      abortControllerRef.current = abortController
 
       // Set up timeout
       const timeout = setTimeout(() => {
-        abortController.abort();
-      }, ANALYSIS_TIMEOUT_MS);
+        abortController.abort()
+      }, ANALYSIS_TIMEOUT_MS)
 
       // Reset state
-      textRef.current = "";
-      setStreamingText("");
-      setIsStreaming(true);
-      setIsComplete(false);
-      setError(null);
+      textRef.current = ''
+      setStreamingText('')
+      setIsStreaming(true)
+      setIsComplete(false)
+      setError(null)
 
       try {
-        const token = await getToken();
+        const token = await getToken()
         if (!token) {
-          setError("Authentication required");
-          setIsStreaming(false);
-          clearTimeout(timeout);
-          return;
+          setError('Authentication required')
+          setIsStreaming(false)
+          clearTimeout(timeout)
+          return
         }
 
         const response = await fetch(`${API_URL}/projects/${projectId}/research/analyze`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ sourceIds, instruction }),
           signal: abortController.signal,
-        });
+        })
 
         if (!response.ok) {
           if (response.status === 429) {
-            setError("Rate limit reached. Please wait a moment.");
+            setError('Rate limit reached. Please wait a moment.')
           } else {
-            const body = await response.json().catch(() => null);
-            setError(
-              (body as { error?: string } | null)?.error || "Analysis failed. Tap to retry.",
-            );
+            const body = await response.json().catch(() => null)
+            setError((body as { error?: string } | null)?.error || 'Analysis failed. Tap to retry.')
           }
-          setIsStreaming(false);
-          clearTimeout(timeout);
-          return;
+          setIsStreaming(false)
+          clearTimeout(timeout)
+          return
         }
 
         // Check if the response is an async job (JSON) vs inline SSE
-        const contentType = response.headers.get("Content-Type") || "";
-        if (contentType.includes("application/json")) {
-          const asyncResponse = (await response.json()) as AsyncJobResponse;
+        const contentType = response.headers.get('Content-Type') || ''
+        if (contentType.includes('application/json')) {
+          const asyncResponse = (await response.json()) as AsyncJobResponse
           if (asyncResponse.async && onAsyncJob) {
-            onAsyncJob(projectId, asyncResponse.jobId, asyncResponse.totalBatches);
+            onAsyncJob(projectId, asyncResponse.jobId, asyncResponse.totalBatches)
           }
-          setIsStreaming(false);
-          clearTimeout(timeout);
-          return;
+          setIsStreaming(false)
+          clearTimeout(timeout)
+          return
         }
 
-        const reader = response.body?.getReader();
+        const reader = response.body?.getReader()
         if (!reader) {
-          setError("No response received");
-          setIsStreaming(false);
-          clearTimeout(timeout);
-          return;
+          setError('No response received')
+          setIsStreaming(false)
+          clearTimeout(timeout)
+          return
         }
 
-        const decoder = new TextDecoder();
-        let buffer = "";
+        const decoder = new TextDecoder()
+        let buffer = ''
 
         while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+          const { done, value } = await reader.read()
+          if (done) break
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
 
           for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const data = line.slice(6).trim();
-            if (!data) continue;
+            if (!line.startsWith('data: ')) continue
+            const data = line.slice(6).trim()
+            if (!data) continue
 
             try {
               const event = JSON.parse(data) as {
-                type: string;
-                text?: string;
-                message?: string;
-              };
-
-              if (event.type === "token" && event.text) {
-                textRef.current += event.text;
-                scheduleUpdate();
+                type: string
+                text?: string
+                message?: string
               }
 
-              if (event.type === "error" && event.message) {
-                setError(event.message);
-                setIsStreaming(false);
-                setIsComplete(true);
-                clearTimeout(timeout);
-                return;
+              if (event.type === 'token' && event.text) {
+                textRef.current += event.text
+                scheduleUpdate()
               }
 
-              if (event.type === "done") {
+              if (event.type === 'error' && event.message) {
+                setError(event.message)
+                setIsStreaming(false)
+                setIsComplete(true)
+                clearTimeout(timeout)
+                return
+              }
+
+              if (event.type === 'done') {
                 // Handled below after loop
               }
             } catch {
@@ -194,66 +192,66 @@ export function useSourceAnalysis(onAsyncJob?: AsyncJobCallback): UseSourceAnaly
 
         // Ensure final text is flushed
         if (rafRef.current) {
-          cancelAnimationFrame(rafRef.current);
-          rafRef.current = null;
+          cancelAnimationFrame(rafRef.current)
+          rafRef.current = null
         }
-        setStreamingText(textRef.current);
-        setIsStreaming(false);
-        setIsComplete(true);
-        clearTimeout(timeout);
+        setStreamingText(textRef.current)
+        setIsStreaming(false)
+        setIsComplete(true)
+        clearTimeout(timeout)
       } catch (err) {
-        clearTimeout(timeout);
-        if ((err as Error).name === "AbortError") {
+        clearTimeout(timeout)
+        if ((err as Error).name === 'AbortError') {
           // Preserve partial text
           if (rafRef.current) {
-            cancelAnimationFrame(rafRef.current);
-            rafRef.current = null;
+            cancelAnimationFrame(rafRef.current)
+            rafRef.current = null
           }
-          setStreamingText(textRef.current);
-          setIsStreaming(false);
+          setStreamingText(textRef.current)
+          setIsStreaming(false)
 
           if (textRef.current) {
             // Partial result — determine if it was a timeout or user abort
-            setError("Analysis timed out. Tap to retry.");
-            setIsComplete(true);
+            setError('Analysis timed out. Tap to retry.')
+            setIsComplete(true)
           } else {
             // No text yet — silent abort
-            setError(null);
-            setIsComplete(false);
+            setError(null)
+            setIsComplete(false)
           }
-          return;
+          return
         }
-        console.error("Analysis streaming error:", err);
+        console.error('Analysis streaming error:', err)
         // Preserve any partial text
         if (rafRef.current) {
-          cancelAnimationFrame(rafRef.current);
-          rafRef.current = null;
+          cancelAnimationFrame(rafRef.current)
+          rafRef.current = null
         }
-        setStreamingText(textRef.current);
-        setError("Connection lost. Tap to retry.");
-        setIsStreaming(false);
-        setIsComplete(true);
+        setStreamingText(textRef.current)
+        setError('Connection lost. Tap to retry.')
+        setIsStreaming(false)
+        setIsComplete(true)
       }
     },
-    [getToken, scheduleUpdate, onAsyncJob],
-  );
+    [getToken, scheduleUpdate, onAsyncJob]
+  )
 
   const reset = useCallback(() => {
-    abortControllerRef.current?.abort();
+    abortControllerRef.current?.abort()
     if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
     }
-    textRef.current = "";
-    setStreamingText("");
-    setIsStreaming(false);
-    setIsComplete(false);
-    setError(null);
-  }, []);
+    textRef.current = ''
+    setStreamingText('')
+    setIsStreaming(false)
+    setIsComplete(false)
+    setError(null)
+  }, [])
 
   const abort = useCallback(() => {
-    abortControllerRef.current?.abort();
-  }, []);
+    abortControllerRef.current?.abort()
+  }, [])
 
   return {
     analyze,
@@ -263,5 +261,5 @@ export function useSourceAnalysis(onAsyncJob?: AsyncJobCallback): UseSourceAnaly
     error,
     reset,
     abort,
-  };
+  }
 }

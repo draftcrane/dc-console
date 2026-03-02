@@ -76,8 +76,8 @@ npm install @tiptap/react @tiptap/starter-kit @tiptap/extension-placeholder
 ### Required Extensions
 
 ```typescript
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
+import StarterKit from '@tiptap/starter-kit'
+import Placeholder from '@tiptap/extension-placeholder'
 
 // StarterKit includes: Bold, Italic, Heading, BulletList, OrderedList, Blockquote, History
 ```
@@ -97,16 +97,16 @@ Add to `app/layout.tsx`:
 
 ```typescript
 useEffect(() => {
-  if (typeof window !== "undefined" && window.visualViewport) {
-    const viewport = window.visualViewport;
+  if (typeof window !== 'undefined' && window.visualViewport) {
+    const viewport = window.visualViewport
     const handleResize = () => {
-      const keyboardHeight = window.innerHeight - viewport.height;
-      document.documentElement.style.setProperty("--keyboard-height", `${keyboardHeight}px`);
-    };
-    viewport.addEventListener("resize", handleResize);
-    return () => viewport.removeEventListener("resize", handleResize);
+      const keyboardHeight = window.innerHeight - viewport.height
+      document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`)
+    }
+    viewport.addEventListener('resize', handleResize)
+    return () => viewport.removeEventListener('resize', handleResize)
   }
-}, []);
+}, [])
 ```
 
 ### Google Docs Paste Handler
@@ -115,13 +115,13 @@ Google Docs wraps content in `<b id="docs-internal-guid-...">` with inline style
 
 ```typescript
 const handlePaste = (view: EditorView, event: ClipboardEvent) => {
-  const html = event.clipboardData?.getData("text/html");
-  if (html?.includes("docs-internal-guid")) {
+  const html = event.clipboardData?.getData('text/html')
+  if (html?.includes('docs-internal-guid')) {
     // Transform Google Docs HTML to semantic marks
     // See implementation in editor component
   }
-  return false; // Let Tiptap handle normal paste
-};
+  return false // Let Tiptap handle normal paste
+}
 ```
 
 ### 8-Point iPad Safari Test Protocol

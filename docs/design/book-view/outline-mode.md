@@ -175,8 +175,8 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
-} from "@dnd-kit/core";
-import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+} from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 ```
 
 **Sensor configuration:**
@@ -275,25 +275,25 @@ The outline uses `role="tree"` with chapters as `role="treeitem"`:
 ```typescript
 interface BookOutlineProps {
   /** List of chapters with metadata */
-  chapters: ChapterOutlineData[];
+  chapters: ChapterOutlineData[]
   /** Callback when chapter order changes */
-  onReorder: (chapterIds: string[]) => Promise<void>;
+  onReorder: (chapterIds: string[]) => Promise<void>
   /** Callback when user taps a chapter to edit it */
-  onChapterSelect: (chapterId: string) => void;
+  onChapterSelect: (chapterId: string) => void
   /** Currently selected chapter (for highlighting) */
-  selectedChapterId?: string;
+  selectedChapterId?: string
 }
 
 interface ChapterOutlineData {
-  id: string;
-  title: string;
-  wordCount: number;
-  summary: string | null;
-  status: ChapterStatus;
-  sortOrder: number;
+  id: string
+  title: string
+  wordCount: number
+  summary: string | null
+  status: ChapterStatus
+  sortOrder: number
 }
 
-type ChapterStatus = "draft" | "review" | "complete" | "needs-work";
+type ChapterStatus = 'draft' | 'review' | 'complete' | 'needs-work'
 ```
 
 **File location:** `web/src/components/book/book-outline.tsx`
@@ -304,14 +304,14 @@ type ChapterStatus = "draft" | "review" | "complete" | "needs-work";
 
 ```typescript
 interface ChapterCardProps {
-  chapter: ChapterOutlineData;
-  index: number;
-  totalChapters: number;
-  isSelected: boolean;
-  onSelect: () => void;
-  isDragging: boolean;
-  isDragOverlay: boolean;
-  dragListeners?: Record<string, unknown>;
+  chapter: ChapterOutlineData
+  index: number
+  totalChapters: number
+  isSelected: boolean
+  onSelect: () => void
+  isDragging: boolean
+  isDragOverlay: boolean
+  dragListeners?: Record<string, unknown>
 }
 ```
 

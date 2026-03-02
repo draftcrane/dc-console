@@ -1,17 +1,17 @@
-"use client";
+'use client'
 
-import { useEffect } from "react";
+import { useEffect } from 'react'
 
 export default function EditorError({
   error,
   reset,
 }: {
-  error: Error & { digest?: string };
-  reset: () => void;
+  error: Error & { digest?: string }
+  reset: () => void
 }) {
   useEffect(() => {
-    console.error("Editor error boundary caught:", error);
-  }, [error]);
+    console.error('Editor error boundary caught:', error)
+  }, [error])
 
   return (
     <div className="flex h-[calc(100dvh-3.5rem)] items-center justify-center p-4">
@@ -26,5 +26,5 @@ export default function EditorError({
         </button>
       </div>
     </div>
-  );
+  )
 }

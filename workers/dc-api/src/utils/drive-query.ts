@@ -1,4 +1,4 @@
-import { AppError } from "../middleware/error-handler.js";
+import { AppError } from '../middleware/error-handler.js'
 
 /**
  * Validate a Google Drive file/folder ID.
@@ -8,13 +8,13 @@ import { AppError } from "../middleware/error-handler.js";
  * in routes and services automatically surface a client-friendly 4xx response
  * instead of a generic 5xx.
  */
-const DRIVE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+const DRIVE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/
 
 export function validateDriveId(id: string): string {
   if (!id || !DRIVE_ID_PATTERN.test(id)) {
-    throw new AppError(400, "VALIDATION_ERROR", "Invalid Google Drive ID format");
+    throw new AppError(400, 'VALIDATION_ERROR', 'Invalid Google Drive ID format')
   }
-  return id;
+  return id
 }
 
 /**
@@ -22,5 +22,5 @@ export function validateDriveId(id: string): string {
  * Single quotes are the delimiter in Drive queries, so they must be escaped.
  */
 export function escapeDriveQuery(value: string): string {
-  return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
 }

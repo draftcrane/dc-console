@@ -1,19 +1,19 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { useToast } from "@/components/toast";
-import { useFeedbackContext } from "@/hooks/use-feedback-context";
-import { useFocusTrap } from "@/hooks/use-focus-trap";
-import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useAuth } from '@clerk/nextjs'
+import { useToast } from '@/components/toast'
+import { useFeedbackContext } from '@/hooks/use-feedback-context'
+import { useFocusTrap } from '@/hooks/use-focus-trap'
+import { useDelayedUnmount } from '@/hooks/use-delayed-unmount'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
-type FeedbackType = "bug" | "suggestion";
+type FeedbackType = 'bug' | 'suggestion'
 
 interface FeedbackSheetProps {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen: boolean
+  onClose: () => void
 }
 
 /**
@@ -31,65 +31,65 @@ interface FeedbackSheetProps {
  * Context is auto-captured at submission time via useFeedbackContext().
  */
 export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
-  const { getToken } = useAuth();
-  const { showToast } = useToast();
-  const { collectContext } = useFeedbackContext();
-  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
+  const { getToken } = useAuth()
+  const { showToast } = useToast()
+  const { collectContext } = useFeedbackContext()
+  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200)
 
-  const sheetRef = useFocusTrap({ isOpen, onEscape: onClose });
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const sheetRef = useFocusTrap({ isOpen, onEscape: onClose })
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const [type, setType] = useState<FeedbackType | null>(null);
-  const [description, setDescription] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isLandscape, setIsLandscape] = useState(false);
+  const [type, setType] = useState<FeedbackType | null>(null)
+  const [description, setDescription] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isLandscape, setIsLandscape] = useState(false)
 
   // Track landscape/portrait for side sheet vs bottom sheet
   useEffect(() => {
-    const query = window.matchMedia("(min-width: 1024px)");
-    setIsLandscape(query.matches);
-    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches);
-    query.addEventListener("change", handler);
-    return () => query.removeEventListener("change", handler);
-  }, []);
+    const query = window.matchMedia('(min-width: 1024px)')
+    setIsLandscape(query.matches)
+    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches)
+    query.addEventListener('change', handler)
+    return () => query.removeEventListener('change', handler)
+  }, [])
 
   // Reset state when sheet opens
   useEffect(() => {
     if (isOpen) {
-      setType(null);
-      setDescription("");
-      setError(null);
-      setIsSubmitting(false);
+      setType(null)
+      setDescription('')
+      setError(null)
+      setIsSubmitting(false)
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   // Body scroll lock
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = 'hidden'
     } else {
-      document.body.style.overflow = "";
+      document.body.style.overflow = ''
     }
     return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
 
   const handleSubmit = useCallback(async () => {
-    if (!type || description.trim().length < 10) return;
+    if (!type || description.trim().length < 10) return
 
-    setIsSubmitting(true);
-    setError(null);
+    setIsSubmitting(true)
+    setError(null)
 
     try {
-      const token = await getToken();
-      const context = collectContext();
+      const token = await getToken()
+      const context = collectContext()
 
       const response = await fetch(`${API_URL}/feedback`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
@@ -97,31 +97,31 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
           description: description.trim(),
           context,
         }),
-      });
+      })
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error((data as { error?: string }).error || "Failed to submit feedback");
+        const data = await response.json().catch(() => ({}))
+        throw new Error((data as { error?: string }).error || 'Failed to submit feedback')
       }
 
-      onClose();
-      showToast("Thanks for your feedback");
+      onClose()
+      showToast('Thanks for your feedback')
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  }, [type, description, getToken, collectContext, onClose, showToast]);
+  }, [type, description, getToken, collectContext, onClose, showToast])
 
-  if (!shouldRender) return null;
+  if (!shouldRender) return null
 
-  const canSubmit = type !== null && description.trim().length >= 10 && !isSubmitting;
+  const canSubmit = type !== null && description.trim().length >= 10 && !isSubmitting
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-black/30 ${isClosing ? "backdrop-fade-out" : "backdrop-fade-in"}`}
+        className={`fixed inset-0 z-40 bg-black/30 ${isClosing ? 'backdrop-fade-out' : 'backdrop-fade-in'}`}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -134,8 +134,8 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
         aria-label="Report a problem"
         className={
           isLandscape
-            ? `fixed inset-y-0 right-0 z-50 w-full max-w-[380px] bg-[var(--dc-color-surface-primary)] rounded-l-2xl shadow-2xl border-l border-gray-200 flex flex-col ${isClosing ? "sheet-slide-right-out" : "sheet-slide-right"}`
-            : `fixed bottom-0 left-0 right-0 z-50 bg-[var(--dc-color-surface-primary)] rounded-t-2xl shadow-2xl border-t border-gray-200 max-h-[80vh] flex flex-col ${isClosing ? "sheet-slide-down" : "sheet-slide-up"}`
+            ? `fixed inset-y-0 right-0 z-50 w-full max-w-[380px] bg-[var(--dc-color-surface-primary)] rounded-l-2xl shadow-2xl border-l border-gray-200 flex flex-col ${isClosing ? 'sheet-slide-right-out' : 'sheet-slide-right'}`
+            : `fixed bottom-0 left-0 right-0 z-50 bg-[var(--dc-color-surface-primary)] rounded-t-2xl shadow-2xl border-t border-gray-200 max-h-[80vh] flex flex-col ${isClosing ? 'sheet-slide-down' : 'sheet-slide-up'}`
         }
       >
         {/* Drag handle — portrait only */}
@@ -188,17 +188,17 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
               <button
                 type="button"
                 role="radio"
-                aria-checked={type === "bug"}
+                aria-checked={type === 'bug'}
                 onClick={() => {
-                  setType("bug");
+                  setType('bug')
                   // Focus textarea after selecting type
-                  requestAnimationFrame(() => textareaRef.current?.focus());
+                  requestAnimationFrame(() => textareaRef.current?.focus())
                 }}
                 className={`flex items-center gap-2 rounded-lg border p-3 min-h-[44px] text-sm font-medium
                            transition-colors ${
-                             type === "bug"
-                               ? "border-red-200 bg-red-50 text-red-600"
-                               : "border-[var(--dc-color-border-strong)] text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-secondary)]"
+                             type === 'bug'
+                               ? 'border-red-200 bg-red-50 text-red-600'
+                               : 'border-[var(--dc-color-border-strong)] text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-secondary)]'
                            }`}
               >
                 {/* Bug icon */}
@@ -223,16 +223,16 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
               <button
                 type="button"
                 role="radio"
-                aria-checked={type === "suggestion"}
+                aria-checked={type === 'suggestion'}
                 onClick={() => {
-                  setType("suggestion");
-                  requestAnimationFrame(() => textareaRef.current?.focus());
+                  setType('suggestion')
+                  requestAnimationFrame(() => textareaRef.current?.focus())
                 }}
                 className={`flex items-center gap-2 rounded-lg border p-3 min-h-[44px] text-sm font-medium
                            transition-colors ${
-                             type === "suggestion"
-                               ? "border-blue-200 bg-blue-50 text-blue-600"
-                               : "border-[var(--dc-color-border-strong)] text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-secondary)]"
+                             type === 'suggestion'
+                               ? 'border-blue-200 bg-blue-50 text-blue-600'
+                               : 'border-[var(--dc-color-border-strong)] text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-secondary)]'
                            }`}
               >
                 {/* Lightbulb icon */}
@@ -270,9 +270,9 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
               onChange={(e) => setDescription(e.target.value)}
               disabled={isSubmitting}
               placeholder={
-                type === "bug"
-                  ? "What happened? What did you expect?"
-                  : "What would make DraftCrane better for you?"
+                type === 'bug'
+                  ? 'What happened? What did you expect?'
+                  : 'What would make DraftCrane better for you?'
               }
               maxLength={2000}
               className="w-full min-h-[120px] rounded-lg border border-[var(--dc-color-border-strong)] p-3 text-base leading-relaxed
@@ -280,7 +280,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
                          disabled:opacity-50 disabled:cursor-not-allowed
                          resize-none"
-              style={{ fontSize: "16px" }}
+              style={{ fontSize: '16px' }}
             />
             {/* Character count hint */}
             {description.length > 0 && description.trim().length < 10 && (
@@ -326,7 +326,7 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
                        hover:bg-gray-800 transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Sending..." : "Send Report"}
+            {isSubmitting ? 'Sending...' : 'Send Report'}
           </button>
         </div>
 
@@ -334,5 +334,5 @@ export function FeedbackSheet({ isOpen, onClose }: FeedbackSheetProps) {
         <div className="h-[env(safe-area-inset-bottom)]" />
       </div>
     </>
-  );
+  )
 }

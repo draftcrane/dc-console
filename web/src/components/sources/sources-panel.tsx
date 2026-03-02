@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
-import { useEffect, useMemo, useRef } from "react";
-import { useSourcesContext } from "@/contexts/sources-context";
-import { LibraryTab } from "./library-tab";
-import { DeskTab } from "./desk-tab";
-import type { SourcesTab } from "@/hooks/use-sources-panel";
+import { useEffect, useMemo, useRef } from 'react'
+import { useSourcesContext } from '@/contexts/sources-context'
+import { LibraryTab } from './library-tab'
+import { DeskTab } from './desk-tab'
+import type { SourcesTab } from '@/hooks/use-sources-panel'
 
 /**
  * Main Sources panel container.
@@ -12,37 +12,37 @@ import type { SourcesTab } from "@/hooks/use-sources-panel";
  * Width: w-[320px] on desktop, full on overlay.
  */
 export function SourcesPanel() {
-  const { activeTab, setActiveTab, closePanel, isPanelOpen, sources } = useSourcesContext();
-  const triggerRef = useRef<Element | null>(null);
-  const prevIsOpenRef = useRef(false);
+  const { activeTab, setActiveTab, closePanel, isPanelOpen, sources } = useSourcesContext()
+  const triggerRef = useRef<Element | null>(null)
+  const prevIsOpenRef = useRef(false)
 
   // Focus management: capture trigger on open, restore on close (#330)
   useEffect(() => {
-    const wasOpen = prevIsOpenRef.current;
-    prevIsOpenRef.current = isPanelOpen;
+    const wasOpen = prevIsOpenRef.current
+    prevIsOpenRef.current = isPanelOpen
 
     if (isPanelOpen && !wasOpen) {
-      triggerRef.current = document.activeElement;
+      triggerRef.current = document.activeElement
     } else if (!isPanelOpen && wasOpen) {
-      const trigger = triggerRef.current;
-      triggerRef.current = null;
+      const trigger = triggerRef.current
+      triggerRef.current = null
       if (trigger instanceof HTMLElement) {
-        trigger.focus();
+        trigger.focus()
       }
     }
-  }, [isPanelOpen]);
+  }, [isPanelOpen])
 
-  const deskCount = useMemo(() => sources.filter((s) => s.status === "active").length, [sources]);
+  const deskCount = useMemo(() => sources.filter((s) => s.status === 'active').length, [sources])
 
   const tabs: { id: SourcesTab; label: string }[] = useMemo(
     () => [
-      { id: "library", label: "Library" },
-      { id: "desk", label: deskCount > 0 ? `Desk (${deskCount})` : "Desk" },
+      { id: 'library', label: 'Library' },
+      { id: 'desk', label: deskCount > 0 ? `Desk (${deskCount})` : 'Desk' },
     ],
-    [deskCount],
-  );
+    [deskCount]
+  )
 
-  if (!isPanelOpen) return null;
+  if (!isPanelOpen) return null
 
   return (
     <div className="hidden lg:flex sources-panel w-[320px] h-full flex-col border-l border-border bg-background shrink-0">
@@ -56,8 +56,8 @@ export function SourcesPanel() {
               className={`h-8 px-3 text-xs font-medium rounded-md transition-colors min-h-[32px]
                          ${
                            activeTab === tab.id
-                             ? "bg-[var(--dc-color-interactive-primary-subtle)] text-[var(--dc-color-interactive-primary-on-subtle)]"
-                             : "text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-primary)] hover:bg-[var(--dc-color-surface-secondary)]"
+                             ? 'bg-[var(--dc-color-interactive-primary-subtle)] text-[var(--dc-color-interactive-primary-on-subtle)]'
+                             : 'text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-primary)] hover:bg-[var(--dc-color-surface-secondary)]'
                          }`}
               aria-selected={activeTab === tab.id}
               role="tab"
@@ -85,9 +85,9 @@ export function SourcesPanel() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto flex flex-col">
-        {activeTab === "library" && <LibraryTab />}
-        {activeTab === "desk" && <DeskTab />}
+        {activeTab === 'library' && <LibraryTab />}
+        {activeTab === 'desk' && <DeskTab />}
       </div>
     </div>
-  );
+  )
 }

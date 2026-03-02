@@ -6,12 +6,12 @@
  */
 
 export interface Chapter {
-  id: string;
-  title: string;
-  sortOrder: number;
-  wordCount: number;
-  version: number;
-  status: string;
+  id: string
+  title: string
+  sortOrder: number
+  wordCount: number
+  version: number
+  status: string
 }
 
 /**
@@ -20,11 +20,11 @@ export interface Chapter {
  * NOT a nested { project, chapters } structure.
  */
 export interface ProjectData {
-  id: string;
-  title: string;
-  description?: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  chapters: Chapter[];
+  id: string
+  title: string
+  description?: string
+  status: string
+  createdAt: string
+  updatedAt: string
+  chapters: Chapter[]
 }

@@ -1,24 +1,24 @@
-"use client";
+'use client'
 
-import { Sidebar, SidebarOverlay, type ChapterData } from "@/components/layout/sidebar";
+import { Sidebar, SidebarOverlay, type ChapterData } from '@/components/layout/sidebar'
 
 interface EditorSidebarProps {
-  chapters: ChapterData[];
-  activeChapterId: string | undefined;
-  onChapterSelect: (chapterId: string) => Promise<void>;
-  onAddChapter: () => Promise<void>;
-  onDeleteChapter: (chapterId: string) => void;
-  onChapterRename: (chapterId: string, newTitle: string) => Promise<void>;
-  onChapterReorder: (chapterIds: string[]) => Promise<void>;
-  totalWordCount: number;
-  activeChapterWordCount: number;
+  chapters: ChapterData[]
+  activeChapterId: string | undefined
+  onChapterSelect: (chapterId: string) => Promise<void>
+  onAddChapter: () => Promise<void>
+  onDeleteChapter: (chapterId: string) => void
+  onChapterRename: (chapterId: string, newTitle: string) => Promise<void>
+  onChapterReorder: (chapterIds: string[]) => Promise<void>
+  totalWordCount: number
+  activeChapterWordCount: number
   /** Desktop sidebar collapsed state */
-  sidebarCollapsed: boolean;
-  onToggleSidebarCollapsed: () => void;
+  sidebarCollapsed: boolean
+  onToggleSidebarCollapsed: () => void
   /** Mobile overlay state */
-  mobileOverlayOpen: boolean;
-  onOpenMobileOverlay: () => void;
-  onCloseMobileOverlay: () => void;
+  mobileOverlayOpen: boolean
+  onOpenMobileOverlay: () => void
+  onCloseMobileOverlay: () => void
 }
 
 /**
@@ -55,7 +55,7 @@ export function EditorSidebar({
     onChapterReorder,
     totalWordCount,
     activeChapterWordCount,
-  };
+  }
 
   return (
     <>
@@ -77,5 +77,5 @@ export function EditorSidebar({
         </SidebarOverlay>
       </div>
     </>
-  );
+  )
 }

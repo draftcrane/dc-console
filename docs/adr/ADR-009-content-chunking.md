@@ -76,15 +76,15 @@ Based on spike Phase 1 evaluation (885 chunks, 132/132 checks pass):
 
 ```typescript
 interface Chunk {
-  id: string; // sourceId:chunkIndex
-  sourceId: string;
-  sourceTitle: string;
-  headingChain: string[]; // ["Chapter 3", "Methodology"] or ["Section 2 of 8"]
-  text: string; // Plain text (HTML stripped)
-  html: string; // HTML fragment
-  wordCount: number;
-  startOffset: number; // Character offset in original
-  endOffset: number;
+  id: string // sourceId:chunkIndex
+  sourceId: string
+  sourceTitle: string
+  headingChain: string[] // ["Chapter 3", "Methodology"] or ["Section 2 of 8"]
+  text: string // Plain text (HTML stripped)
+  html: string // HTML fragment
+  wordCount: number
+  startOffset: number // Character offset in original
+  endOffset: number
 }
 ```
 
@@ -192,17 +192,17 @@ In `ai-rewrite.ts`, the `buildSystemPrompt()` function gains a source context se
 export function buildSystemPrompt(input: RewriteInput, sourceContext?: string): string {
   const parts = [
     // ... existing prompt ...
-  ];
+  ]
 
   if (sourceContext?.trim()) {
     parts.push(
-      "",
-      "RELEVANT SOURCE MATERIAL (for reference only — do not copy verbatim):",
-      sourceContext,
-    );
+      '',
+      'RELEVANT SOURCE MATERIAL (for reference only — do not copy verbatim):',
+      sourceContext
+    )
   }
 
-  return parts.join("\n");
+  return parts.join('\n')
 }
 ```
 

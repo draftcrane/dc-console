@@ -12,33 +12,33 @@
  * 4. Stream via AIProvider.streamCompletion() → SSE events
  */
 
-import type { AIProvider, AIStreamEvent } from "./ai-provider.js";
-import { chunkHtml, htmlTypeFromMime, stripHtml, type Chunk } from "./chunking.js";
-import { notFound, validationError } from "../middleware/error-handler.js";
+import type { AIProvider, AIStreamEvent } from './ai-provider.js'
+import { chunkHtml, htmlTypeFromMime, stripHtml, type Chunk } from './chunking.js'
+import { notFound, validationError } from '../middleware/error-handler.js'
 
 // ── Types ──
 
 export interface AnalysisInput {
-  sourceIds: string[];
-  instruction: string;
+  sourceIds: string[]
+  instruction: string
 }
 
 export interface AnalysisStreamResult {
-  stream: ReadableStream<Uint8Array>;
+  stream: ReadableStream<Uint8Array>
 }
 
 // ── Constants ──
 
-const MAX_INSTRUCTION_LENGTH = 2000;
+const MAX_INSTRUCTION_LENGTH = 2000
 /** Max total characters of source text to include in prompt */
-const MAX_SOURCE_CHARS = 100000;
+const MAX_SOURCE_CHARS = 100000
 
 // ── Source Content Loading ──
 
 interface LoadedSourceContent {
-  html: string;
-  title: string;
-  mimeType: string;
+  html: string
+  title: string
+  mimeType: string
 }
 
 /**
@@ -49,7 +49,7 @@ export async function loadSourceContent(
   db: D1Database,
   bucket: R2Bucket,
   userId: string,
-  sourceId: string,
+  sourceId: string
 ): Promise<LoadedSourceContent> {
   // Verify ownership and get metadata
   const row = await db
@@ -57,41 +57,41 @@ export async function loadSourceContent(
       `SELECT sm.id, sm.title, sm.mime_type, sm.r2_key, sm.cached_at
        FROM source_materials sm
        JOIN projects p ON p.id = sm.project_id
-       WHERE sm.id = ? AND p.user_id = ? AND sm.status = 'active'`,
+       WHERE sm.id = ? AND p.user_id = ? AND sm.status = 'active'`
     )
     .bind(sourceId, userId)
     .first<{
-      id: string;
-      title: string;
-      mime_type: string;
-      r2_key: string | null;
-      cached_at: string | null;
-    }>();
+      id: string
+      title: string
+      mime_type: string
+      r2_key: string | null
+      cached_at: string | null
+    }>()
 
   if (!row) {
-    notFound("Source not found");
+    notFound('Source not found')
   }
 
   if (!row.cached_at) {
-    validationError("Source content has not been cached yet. Please view the source first.");
+    validationError('Source content has not been cached yet. Please view the source first.')
   }
 
-  const r2Key = row.r2_key || `sources/${sourceId}/content.html`;
-  const object = await bucket.get(r2Key);
+  const r2Key = row.r2_key || `sources/${sourceId}/content.html`
+  const object = await bucket.get(r2Key)
   if (!object) {
-    throw new Error("Source content not found in storage");
+    throw new Error('Source content not found in storage')
   }
 
-  const html = await object.text();
+  const html = await object.text()
   if (!html.trim()) {
-    validationError("Source has no content to analyze");
+    validationError('Source has no content to analyze')
   }
 
   return {
     html,
     title: row.title,
-    mimeType: row.mime_type || "text/plain",
-  };
+    mimeType: row.mime_type || 'text/plain',
+  }
 }
 
 // ── Prompt Building ──
@@ -102,11 +102,11 @@ Rules:
 - Focus on the source material provided. Do not introduce outside knowledge.
 - Use markdown formatting for readability (headings, bullet points, bold for emphasis).
 - When citing from the source, use direct quotes with context.
-- Keep your response focused and actionable for a book author.`;
+- Keep your response focused and actionable for a book author.`
 
 interface SourceChunks {
-  title: string;
-  chunks: Chunk[];
+  title: string
+  chunks: Chunk[]
 }
 
 /**
@@ -114,39 +114,39 @@ interface SourceChunks {
  * Character budget is distributed equally across sources so all get representation.
  */
 export function buildAnalysisUserMessage(instruction: string, sources: SourceChunks[]): string {
-  const parts: string[] = [];
-  const budgetPerSource = Math.floor(MAX_SOURCE_CHARS / sources.length);
+  const parts: string[] = []
+  const budgetPerSource = Math.floor(MAX_SOURCE_CHARS / sources.length)
 
   for (let i = 0; i < sources.length; i++) {
-    const source = sources[i];
+    const source = sources[i]
     if (sources.length > 1) {
-      parts.push(`## Source ${i + 1}: "${source.title}"\n`);
+      parts.push(`## Source ${i + 1}: "${source.title}"\n`)
     } else {
-      parts.push(`## Source: "${source.title}"\n`);
+      parts.push(`## Source: "${source.title}"\n`)
     }
 
-    let totalChars = 0;
+    let totalChars = 0
     for (const chunk of source.chunks) {
-      const text = stripHtml(chunk.html);
+      const text = stripHtml(chunk.html)
       if (totalChars + text.length > budgetPerSource) {
-        const remaining = budgetPerSource - totalChars;
+        const remaining = budgetPerSource - totalChars
         if (remaining > 100) {
-          parts.push(text.slice(0, remaining) + "...");
+          parts.push(text.slice(0, remaining) + '...')
         }
-        break;
+        break
       }
       if (chunk.headingChain.length > 0) {
-        parts.push(`### ${chunk.headingChain.join(" > ")}\n`);
+        parts.push(`### ${chunk.headingChain.join(' > ')}\n`)
       }
-      parts.push(text);
-      parts.push("");
-      totalChars += text.length;
+      parts.push(text)
+      parts.push('')
+      totalChars += text.length
     }
   }
 
-  parts.push(`\n## Instruction\n\n${instruction}`);
+  parts.push(`\n## Instruction\n\n${instruction}`)
 
-  return parts.join("\n");
+  return parts.join('\n')
 }
 
 // ── Service ──
@@ -155,32 +155,32 @@ export class AIAnalysisService {
   constructor(
     private readonly db: D1Database,
     private readonly bucket: R2Bucket,
-    private readonly aiProvider: AIProvider,
+    private readonly aiProvider: AIProvider
   ) {}
 
   /** Max sources per analysis request */
-  static readonly MAX_SOURCES = 10;
+  static readonly MAX_SOURCES = 10
 
   /**
    * Validate analysis input. Returns error message or null.
    */
   validateInput(input: AnalysisInput): string | null {
     if (!input.sourceIds || input.sourceIds.length === 0) {
-      return "At least one source is required";
+      return 'At least one source is required'
     }
     if (input.sourceIds.length > AIAnalysisService.MAX_SOURCES) {
-      return `Select up to ${AIAnalysisService.MAX_SOURCES} documents for analysis`;
+      return `Select up to ${AIAnalysisService.MAX_SOURCES} documents for analysis`
     }
     if (input.sourceIds.some((id) => !id?.trim())) {
-      return "Invalid source ID";
+      return 'Invalid source ID'
     }
     if (!input.instruction?.trim()) {
-      return "instruction is required";
+      return 'instruction is required'
     }
     if (input.instruction.length > MAX_INSTRUCTION_LENGTH) {
-      return `instruction must be at most ${MAX_INSTRUCTION_LENGTH} characters`;
+      return `instruction must be at most ${MAX_INSTRUCTION_LENGTH} characters`
     }
-    return null;
+    return null
   }
 
   /**
@@ -190,59 +190,59 @@ export class AIAnalysisService {
    */
   async streamAnalysis(userId: string, input: AnalysisInput): Promise<AnalysisStreamResult> {
     // 1. Load and verify all source contents
-    const loadedSources: SourceChunks[] = [];
+    const loadedSources: SourceChunks[] = []
     for (const sourceId of input.sourceIds) {
-      const source = await loadSourceContent(this.db, this.bucket, userId, sourceId);
-      const htmlType = htmlTypeFromMime(source.mimeType);
-      const chunks = chunkHtml(sourceId, source.title, source.html, htmlType);
+      const source = await loadSourceContent(this.db, this.bucket, userId, sourceId)
+      const htmlType = htmlTypeFromMime(source.mimeType)
+      const chunks = chunkHtml(sourceId, source.title, source.html, htmlType)
       if (chunks.length > 0) {
-        loadedSources.push({ title: source.title, chunks });
+        loadedSources.push({ title: source.title, chunks })
       }
     }
 
     if (loadedSources.length === 0) {
-      validationError("Selected sources have no analyzable content");
+      validationError('Selected sources have no analyzable content')
     }
 
     // 2. Build prompt with all sources
-    const userMessage = buildAnalysisUserMessage(input.instruction, loadedSources);
+    const userMessage = buildAnalysisUserMessage(input.instruction, loadedSources)
 
     // 3. Stream via AIProvider
     const aiStream = await this.aiProvider.streamCompletion(ANALYSIS_SYSTEM_PROMPT, userMessage, {
       maxTokens: 4096,
-    });
+    })
 
     // 4. Transform AIStreamEvents into SSE-formatted bytes
-    const encoder = new TextEncoder();
+    const encoder = new TextEncoder()
 
     const sseTransform = new TransformStream<AIStreamEvent, Uint8Array>({
       start(controller) {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "start" })}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'start' })}\n\n`))
       },
 
       transform(event, controller) {
         switch (event.type) {
-          case "token":
+          case 'token':
             controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: "token", text: event.text })}\n\n`),
-            );
-            break;
-          case "done":
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "done" })}\n\n`));
-            break;
-          case "error":
+              encoder.encode(`data: ${JSON.stringify({ type: 'token', text: event.text })}\n\n`)
+            )
+            break
+          case 'done':
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done' })}\n\n`))
+            break
+          case 'error':
             controller.enqueue(
               encoder.encode(
-                `data: ${JSON.stringify({ type: "error", message: event.message })}\n\n`,
-              ),
-            );
-            break;
+                `data: ${JSON.stringify({ type: 'error', message: event.message })}\n\n`
+              )
+            )
+            break
         }
       },
-    });
+    })
 
-    const stream = aiStream.pipeThrough(sseTransform);
+    const stream = aiStream.pipeThrough(sseTransform)
 
-    return { stream };
+    return { stream }
   }
 }

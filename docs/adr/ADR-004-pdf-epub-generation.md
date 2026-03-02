@@ -206,7 +206,7 @@ A single HTML+CSS template drives both PDF and EPUB output. The template produce
 }
 
 body {
-  font-family: "Georgia", "Times New Roman", serif;
+  font-family: 'Georgia', 'Times New Roman', serif;
   font-size: 11pt;
   line-height: 1.5;
   color: #1a1a1a;

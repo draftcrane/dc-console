@@ -1,4 +1,4 @@
-import { Node, mergeAttributes } from "@tiptap/core";
+import { Node, mergeAttributes } from '@tiptap/core'
 
 /**
  * FootnoteContent - Block node for individual footnote entries rendered at the
@@ -18,10 +18,10 @@ import { Node, mergeAttributes } from "@tiptap/core";
  * so the label cannot be rendered as a sibling DOM element in renderHTML.
  */
 export const FootnoteContent = Node.create({
-  name: "footnoteContent",
+  name: 'footnoteContent',
 
-  group: "block",
-  content: "inline*",
+  group: 'block',
+  content: 'inline*',
 
   // Not draggable, not isolating - allow normal text editing within
   draggable: false,
@@ -31,33 +31,33 @@ export const FootnoteContent = Node.create({
     return {
       footnoteId: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-footnote-id"),
+        parseHTML: (element) => element.getAttribute('data-footnote-id'),
         renderHTML: (attributes) => ({
-          "data-footnote-id": attributes.footnoteId as string,
+          'data-footnote-id': attributes.footnoteId as string,
         }),
       },
       label: {
-        default: "0",
-        parseHTML: (element) => element.getAttribute("data-footnote-label") || "0",
+        default: '0',
+        parseHTML: (element) => element.getAttribute('data-footnote-label') || '0',
         renderHTML: (attributes) => ({
-          "data-footnote-label": attributes.label as string,
+          'data-footnote-label': attributes.label as string,
         }),
       },
-    };
+    }
   },
 
   parseHTML() {
     return [
       {
-        tag: "div.footnote-content[data-footnote-id]",
+        tag: 'div.footnote-content[data-footnote-id]',
       },
-    ];
+    ]
   },
 
   renderHTML({ HTMLAttributes }) {
     // The label is stored as data-footnote-label and rendered via CSS ::before.
     // ProseMirror requires the content hole (0) to be the sole child of its parent,
     // so we cannot place a sibling <span> alongside it here.
-    return ["div", mergeAttributes(HTMLAttributes, { class: "footnote-content" }), 0];
+    return ['div', mergeAttributes(HTMLAttributes, { class: 'footnote-content' }), 0]
   },
-});
+})

@@ -1,42 +1,42 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback } from "react";
-import { useBackup } from "@/hooks/use-backup";
-import { useDropdown } from "@/hooks/use-dropdown";
-import { useExportPreferences } from "@/hooks/use-export-preferences";
-import type { SourceConnection } from "@/hooks/use-sources";
-import { ExportDestinationPicker, type ExportDestination } from "./export-destination-picker";
+import { useState, useEffect, useCallback } from 'react'
+import { useBackup } from '@/hooks/use-backup'
+import { useDropdown } from '@/hooks/use-dropdown'
+import { useExportPreferences } from '@/hooks/use-export-preferences'
+import type { SourceConnection } from '@/hooks/use-sources'
+import { ExportDestinationPicker, type ExportDestination } from './export-destination-picker'
 
-type ExportFormat = "pdf" | "epub";
+type ExportFormat = 'pdf' | 'epub'
 
 type DriveState =
-  | { phase: "idle" }
-  | { phase: "saving" }
-  | { phase: "saved"; driveFileId: string; webViewLink: string; folderPath?: string }
-  | { phase: "error"; message: string };
+  | { phase: 'idle' }
+  | { phase: 'saving' }
+  | { phase: 'saved'; driveFileId: string; webViewLink: string; folderPath?: string }
+  | { phase: 'error'; message: string }
 
 type ExportState =
-  | { phase: "idle" }
-  | { phase: "exporting"; scope: "book" | "chapter" }
-  | { phase: "complete"; fileName: string; downloadUrl: string; jobId: string }
-  | { phase: "error"; message: string };
+  | { phase: 'idle' }
+  | { phase: 'exporting'; scope: 'book' | 'chapter' }
+  | { phase: 'complete'; fileName: string; downloadUrl: string; jobId: string }
+  | { phase: 'error'; message: string }
 
 /** Phase of post-export delivery flow */
 type DeliveryPhase =
-  | "none"
-  | "auto-delivered"
-  | "picker-open"
-  | "destination-settings"
-  | "resolving-default";
+  | 'none'
+  | 'auto-delivered'
+  | 'picker-open'
+  | 'destination-settings'
+  | 'resolving-default'
 
 interface ExportMenuProps {
-  projectId: string;
-  projectTitle?: string;
-  activeChapterId: string | null;
-  getToken: () => Promise<string | null>;
-  apiUrl: string;
+  projectId: string
+  projectTitle?: string
+  activeChapterId: string | null
+  getToken: () => Promise<string | null>
+  apiUrl: string
   /** Project-scoped Drive connections. When empty, "Save to Drive" is hidden. */
-  connections?: SourceConnection[];
+  connections?: SourceConnection[]
 }
 
 /**
@@ -52,23 +52,23 @@ interface ExportMenuProps {
  */
 export function ExportMenu({
   projectId,
-  projectTitle = "Book",
+  projectTitle = 'Book',
   activeChapterId,
   getToken,
   apiUrl,
   connections = [],
 }: ExportMenuProps) {
-  const { isOpen, ref: menuRef, toggle, close } = useDropdown();
-  const [state, setState] = useState<ExportState>({ phase: "idle" });
-  const [driveState, setDriveState] = useState<DriveState>({ phase: "idle" });
-  const [deliveryPhase, setDeliveryPhase] = useState<DeliveryPhase>("none");
-  const { downloadBackup, isDownloading } = useBackup();
+  const { isOpen, ref: menuRef, toggle, close } = useDropdown()
+  const [state, setState] = useState<ExportState>({ phase: 'idle' })
+  const [driveState, setDriveState] = useState<DriveState>({ phase: 'idle' })
+  const [deliveryPhase, setDeliveryPhase] = useState<DeliveryPhase>('none')
+  const { downloadBackup, isDownloading } = useBackup()
   const {
     preference,
     isLoading: isPreferenceLoading,
     save: savePreference,
     clear: clearPreference,
-  } = useExportPreferences(projectId);
+  } = useExportPreferences(projectId)
 
   /**
    * Save the completed export to Google Drive.
@@ -76,230 +76,229 @@ export function ExportMenu({
    */
   const handleSaveToDrive = useCallback(
     async (connectionId?: string, folderId?: string) => {
-      if (state.phase !== "complete") return false;
+      if (state.phase !== 'complete') return false
 
-      setDriveState({ phase: "saving" });
+      setDriveState({ phase: 'saving' })
 
       try {
-        const token = await getToken();
+        const token = await getToken()
         if (!token) {
-          setDriveState({ phase: "error", message: "Authentication required" });
-          return false;
+          setDriveState({ phase: 'error', message: 'Authentication required' })
+          return false
         }
 
         const response = await fetch(`${apiUrl}/exports/${state.jobId}/to-drive`, {
-          method: "POST",
+          method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({ connectionId, folderId }),
-        });
+        })
 
         if (!response.ok) {
-          const body = await response.json().catch(() => null);
-          const msg =
-            (body as { error?: string } | null)?.error || "Failed to save to Google Drive";
-          setDriveState({ phase: "error", message: msg });
-          return false;
+          const body = await response.json().catch(() => null)
+          const msg = (body as { error?: string } | null)?.error || 'Failed to save to Google Drive'
+          setDriveState({ phase: 'error', message: msg })
+          return false
         }
 
         const result = (await response.json()) as {
-          driveFileId: string;
-          fileName: string;
-          webViewLink: string;
-        };
+          driveFileId: string
+          fileName: string
+          webViewLink: string
+        }
 
         setDriveState({
-          phase: "saved",
+          phase: 'saved',
           driveFileId: result.driveFileId,
           webViewLink: result.webViewLink,
-        });
-        return true;
+        })
+        return true
       } catch (err) {
         setDriveState({
-          phase: "error",
-          message: err instanceof Error ? err.message : "Failed to save to Google Drive",
-        });
-        return false;
+          phase: 'error',
+          message: err instanceof Error ? err.message : 'Failed to save to Google Drive',
+        })
+        return false
       }
     },
-    [state, getToken, apiUrl],
-  );
+    [state, getToken, apiUrl]
+  )
 
   /**
    * Apply a saved default preference after export completes.
    */
   const applyDefault = useCallback(
     async (fileName: string, downloadUrl: string, jobId: string) => {
-      if (!preference) return false;
+      if (!preference) return false
 
       // Check for stale Drive default (connection removed)
-      if (preference.destinationType === "drive" && !preference.driveConnectionId) {
+      if (preference.destinationType === 'drive' && !preference.driveConnectionId) {
         // Stale — fall back to picker
-        return false;
+        return false
       }
 
-      if (preference.destinationType === "device") {
-        const token = await getToken();
+      if (preference.destinationType === 'device') {
+        const token = await getToken()
         if (!token) {
-          return false;
+          return false
         }
-        const delivered = await triggerDownload(downloadUrl, fileName, token);
+        const delivered = await triggerDownload(downloadUrl, fileName, token)
         if (!delivered) {
-          return false;
+          return false
         }
-        setDeliveryPhase("auto-delivered");
-        return true;
+        setDeliveryPhase('auto-delivered')
+        return true
       }
 
-      if (preference.destinationType === "drive" && preference.driveConnectionId) {
+      if (preference.destinationType === 'drive' && preference.driveConnectionId) {
         // Verify connection still exists
-        const conn = connections.find((c) => c.driveConnectionId === preference.driveConnectionId);
+        const conn = connections.find((c) => c.driveConnectionId === preference.driveConnectionId)
         if (!conn) {
           // Connection removed — stale
-          return false;
+          return false
         }
 
-        setDriveState({ phase: "saving" });
+        setDriveState({ phase: 'saving' })
 
         try {
-          const token = await getToken();
+          const token = await getToken()
           if (!token) {
-            setDriveState({ phase: "idle" });
-            return false;
+            setDriveState({ phase: 'idle' })
+            return false
           }
-          setDeliveryPhase("auto-delivered");
+          setDeliveryPhase('auto-delivered')
 
           const response = await fetch(`${apiUrl}/exports/${jobId}/to-drive`, {
-            method: "POST",
+            method: 'POST',
             headers: {
               Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify({
               connectionId: preference.driveConnectionId,
               folderId: preference.driveFolderId || undefined,
             }),
-          });
+          })
 
           if (!response.ok) {
             // Folder might be deleted — fall back to picker
-            setDriveState({ phase: "idle" });
-            return false;
+            setDriveState({ phase: 'idle' })
+            return false
           }
 
           const result = (await response.json()) as {
-            driveFileId: string;
-            fileName: string;
-            webViewLink: string;
-          };
+            driveFileId: string
+            fileName: string
+            webViewLink: string
+          }
 
           setDriveState({
-            phase: "saved",
+            phase: 'saved',
             driveFileId: result.driveFileId,
             webViewLink: result.webViewLink,
             folderPath: preference.driveFolderPath || undefined,
-          });
-          return true;
+          })
+          return true
         } catch {
-          setDriveState({ phase: "idle" });
-          return false;
+          setDriveState({ phase: 'idle' })
+          return false
         }
       }
 
-      return false;
+      return false
     },
-    [preference, connections, getToken, apiUrl],
-  );
+    [preference, connections, getToken, apiUrl]
+  )
 
   const handleExport = useCallback(
-    async (scope: "book" | "chapter", format: ExportFormat = "pdf") => {
-      close();
-      setState({ phase: "exporting", scope });
-      setDriveState({ phase: "idle" });
-      setDeliveryPhase("none");
+    async (scope: 'book' | 'chapter', format: ExportFormat = 'pdf') => {
+      close()
+      setState({ phase: 'exporting', scope })
+      setDriveState({ phase: 'idle' })
+      setDeliveryPhase('none')
 
       try {
-        const token = await getToken();
+        const token = await getToken()
         if (!token) {
-          setState({ phase: "error", message: "Authentication required" });
-          return;
+          setState({ phase: 'error', message: 'Authentication required' })
+          return
         }
 
         const url =
-          scope === "book"
+          scope === 'book'
             ? `${apiUrl}/projects/${projectId}/export`
-            : `${apiUrl}/projects/${projectId}/chapters/${activeChapterId}/export`;
+            : `${apiUrl}/projects/${projectId}/chapters/${activeChapterId}/export`
 
         const response = await fetch(url, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ format }),
-        });
+        })
 
         if (!response.ok) {
           if (response.status === 429) {
             setState({
-              phase: "error",
-              message: "Export rate limit reached. Please wait a moment.",
-            });
-            return;
+              phase: 'error',
+              message: 'Export rate limit reached. Please wait a moment.',
+            })
+            return
           }
-          const body = await response.json().catch(() => null);
-          const msg = (body as { error?: string } | null)?.error || "Export failed";
-          setState({ phase: "error", message: msg });
-          return;
+          const body = await response.json().catch(() => null)
+          const msg = (body as { error?: string } | null)?.error || 'Export failed'
+          setState({ phase: 'error', message: msg })
+          return
         }
 
         const result = (await response.json()) as {
-          jobId: string;
-          status: string;
-          fileName: string | null;
-          downloadUrl: string | null;
-          error: string | null;
-        };
+          jobId: string
+          status: string
+          fileName: string | null
+          downloadUrl: string | null
+          error: string | null
+        }
 
-        if (result.status === "failed") {
+        if (result.status === 'failed') {
           setState({
-            phase: "error",
-            message: result.error || "Export failed",
-          });
-          return;
+            phase: 'error',
+            message: result.error || 'Export failed',
+          })
+          return
         }
 
         if (result.downloadUrl && result.fileName) {
           setState({
-            phase: "complete",
+            phase: 'complete',
             fileName: result.fileName,
             downloadUrl: result.downloadUrl,
             jobId: result.jobId,
-          });
+          })
 
-          setDeliveryPhase("resolving-default");
+          setDeliveryPhase('resolving-default')
 
           // Check for saved default preference
           if (!isPreferenceLoading && preference) {
-            const applied = await applyDefault(result.fileName, result.downloadUrl, result.jobId);
-            if (applied) return;
+            const applied = await applyDefault(result.fileName, result.downloadUrl, result.jobId)
+            if (applied) return
             // If failed (stale), fall through to picker
           }
 
           if (!isPreferenceLoading) {
             // No default (or stale default) -> always show picker for explicit consent
-            setDeliveryPhase("picker-open");
+            setDeliveryPhase('picker-open')
           }
         } else {
-          setState({ phase: "error", message: "Export completed but no download available" });
+          setState({ phase: 'error', message: 'Export completed but no download available' })
         }
       } catch (err) {
         setState({
-          phase: "error",
-          message: err instanceof Error ? err.message : "Export failed",
-        });
+          phase: 'error',
+          message: err instanceof Error ? err.message : 'Export failed',
+        })
       }
     },
     [
@@ -311,15 +310,15 @@ export function ExportMenu({
       isPreferenceLoading,
       applyDefault,
       close,
-    ],
-  );
+    ]
+  )
 
   /**
    * Handle destination selection from the picker.
    */
   const handleDestinationSave = useCallback(
     async (destination: ExportDestination, rememberDefault: boolean) => {
-      setDeliveryPhase("none");
+      setDeliveryPhase('none')
 
       if (rememberDefault) {
         await savePreference({
@@ -327,75 +326,75 @@ export function ExportMenu({
           driveConnectionId: destination.connectionId,
           driveFolderId: destination.folderId,
           driveFolderPath: destination.folderPath,
-        });
+        })
       }
 
-      if (state.phase !== "complete") return;
+      if (state.phase !== 'complete') return
 
-      if (destination.type === "device") {
-        const token = await getToken();
+      if (destination.type === 'device') {
+        const token = await getToken()
         if (!token) {
-          setDeliveryPhase("picker-open");
-          return;
+          setDeliveryPhase('picker-open')
+          return
         }
-        const delivered = await triggerDownload(state.downloadUrl, state.fileName, token);
-        setDeliveryPhase(delivered ? "auto-delivered" : "picker-open");
-      } else if (destination.type === "drive" && destination.connectionId) {
-        const saved = await handleSaveToDrive(destination.connectionId, destination.folderId);
-        setDeliveryPhase(saved ? "auto-delivered" : "picker-open");
+        const delivered = await triggerDownload(state.downloadUrl, state.fileName, token)
+        setDeliveryPhase(delivered ? 'auto-delivered' : 'picker-open')
+      } else if (destination.type === 'drive' && destination.connectionId) {
+        const saved = await handleSaveToDrive(destination.connectionId, destination.folderId)
+        setDeliveryPhase(saved ? 'auto-delivered' : 'picker-open')
       }
     },
-    [state, getToken, savePreference, handleSaveToDrive],
-  );
+    [state, getToken, savePreference, handleSaveToDrive]
+  )
 
   /**
    * Handle destination clear from edit mode.
    */
   const handleClearDefault = useCallback(async () => {
-    await clearPreference();
-    setDeliveryPhase("none");
-  }, [clearPreference]);
+    await clearPreference()
+    setDeliveryPhase('none')
+  }, [clearPreference])
 
   const handleDismiss = useCallback(() => {
-    setState({ phase: "idle" });
-    setDriveState({ phase: "idle" });
-    setDeliveryPhase("none");
-  }, []);
+    setState({ phase: 'idle' })
+    setDriveState({ phase: 'idle' })
+    setDeliveryPhase('none')
+  }, [])
 
   /**
    * If export completed before preferences finished loading, resolve delivery
    * once preference fetch settles.
    */
   useEffect(() => {
-    if (state.phase !== "complete") return;
-    if (deliveryPhase !== "resolving-default") return;
-    if (isPreferenceLoading) return;
-    const completedState = state;
+    if (state.phase !== 'complete') return
+    if (deliveryPhase !== 'resolving-default') return
+    if (isPreferenceLoading) return
+    const completedState = state
 
-    let cancelled = false;
+    let cancelled = false
 
     async function resolveDelayedDefault() {
       if (preference) {
         const applied = await applyDefault(
           completedState.fileName,
           completedState.downloadUrl,
-          completedState.jobId,
-        );
-        if (cancelled || applied) return;
+          completedState.jobId
+        )
+        if (cancelled || applied) return
       }
       if (!cancelled) {
-        setDeliveryPhase("picker-open");
+        setDeliveryPhase('picker-open')
       }
     }
 
-    void resolveDelayedDefault();
+    void resolveDelayedDefault()
 
     return () => {
-      cancelled = true;
-    };
-  }, [state, deliveryPhase, isPreferenceLoading, preference, applyDefault]);
+      cancelled = true
+    }
+  }, [state, deliveryPhase, isPreferenceLoading, preference, applyDefault])
 
-  const isExporting = state.phase === "exporting" || isDownloading;
+  const isExporting = state.phase === 'exporting' || isDownloading
 
   // Build current default for edit mode
   const currentDefault: ExportDestination | null = preference
@@ -408,15 +407,15 @@ export function ExportMenu({
         folderId: preference.driveFolderId || undefined,
         folderPath: preference.driveFolderPath || undefined,
       }
-    : null;
+    : null
 
   return (
     <div className="relative" ref={menuRef}>
       {/* Export button */}
       <button
         onClick={() => {
-          if (isExporting) return;
-          toggle();
+          if (isExporting) return
+          toggle()
         }}
         disabled={isExporting}
         className="min-h-[44px] px-3 text-sm rounded-lg hover:bg-[var(--dc-color-surface-tertiary)] transition-colors min-w-[44px]
@@ -446,7 +445,7 @@ export function ExportMenu({
             <span>Exporting...</span>
           </>
         ) : (
-          "Export"
+          'Export'
         )}
       </button>
 
@@ -458,7 +457,7 @@ export function ExportMenu({
           aria-label="Export options"
         >
           <button
-            onClick={() => handleExport("book", "pdf")}
+            onClick={() => handleExport('book', 'pdf')}
             className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2"
             role="menuitem"
@@ -480,7 +479,7 @@ export function ExportMenu({
           </button>
 
           <button
-            onClick={() => handleExport("book", "epub")}
+            onClick={() => handleExport('book', 'epub')}
             className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2"
             role="menuitem"
@@ -504,7 +503,7 @@ export function ExportMenu({
           <div className="border-t border-gray-100 my-1" role="separator" />
 
           <button
-            onClick={() => handleExport("chapter", "pdf")}
+            onClick={() => handleExport('chapter', 'pdf')}
             disabled={!activeChapterId}
             className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2
@@ -528,7 +527,7 @@ export function ExportMenu({
           </button>
 
           <button
-            onClick={() => handleExport("chapter", "epub")}
+            onClick={() => handleExport('chapter', 'epub')}
             disabled={!activeChapterId}
             className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2
@@ -556,8 +555,8 @@ export function ExportMenu({
           {/* Export destination settings */}
           <button
             onClick={() => {
-              close();
-              setDeliveryPhase("destination-settings");
+              close()
+              setDeliveryPhase('destination-settings')
             }}
             className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-h-[44px] flex items-center gap-2"
@@ -587,8 +586,8 @@ export function ExportMenu({
 
           <button
             onClick={() => {
-              close();
-              downloadBackup(projectId);
+              close()
+              downloadBackup(projectId)
             }}
             disabled={isDownloading}
             className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--dc-color-surface-secondary)] transition-colors
@@ -609,28 +608,28 @@ export function ExportMenu({
                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
               />
             </svg>
-            {isDownloading ? "Saving..." : "Save to Files"}
+            {isDownloading ? 'Saving...' : 'Save to Files'}
           </button>
         </div>
       )}
 
       {/* Destination picker (post-export or settings) */}
-      {(deliveryPhase === "picker-open" || deliveryPhase === "destination-settings") &&
-        state.phase === "complete" && (
+      {(deliveryPhase === 'picker-open' || deliveryPhase === 'destination-settings') &&
+        state.phase === 'complete' && (
           <ExportDestinationPicker
             fileName={state.fileName}
             connections={connections}
             projectTitle={projectTitle}
-            currentDefault={deliveryPhase === "destination-settings" ? currentDefault : null}
-            editMode={deliveryPhase === "destination-settings"}
+            currentDefault={deliveryPhase === 'destination-settings' ? currentDefault : null}
+            editMode={deliveryPhase === 'destination-settings'}
             onSave={handleDestinationSave}
             onClear={handleClearDefault}
-            onDismiss={() => setDeliveryPhase("none")}
+            onDismiss={() => setDeliveryPhase('none')}
           />
         )}
 
       {/* Destination settings (when no export is active) */}
-      {deliveryPhase === "destination-settings" && state.phase !== "complete" && (
+      {deliveryPhase === 'destination-settings' && state.phase !== 'complete' && (
         <ExportDestinationPicker
           fileName=""
           connections={connections}
@@ -644,17 +643,17 @@ export function ExportMenu({
                 driveConnectionId: destination.connectionId,
                 driveFolderId: destination.folderId,
                 driveFolderPath: destination.folderPath,
-              });
+              })
             }
-            setDeliveryPhase("none");
+            setDeliveryPhase('none')
           }}
           onClear={handleClearDefault}
-          onDismiss={() => setDeliveryPhase("none")}
+          onDismiss={() => setDeliveryPhase('none')}
         />
       )}
 
       {/* Confirmation toast (auto-delivered with default) */}
-      {state.phase === "complete" && deliveryPhase === "auto-delivered" && (
+      {state.phase === 'complete' && deliveryPhase === 'auto-delivered' && (
         <div className="fixed bottom-4 right-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3 shadow-lg z-50 max-w-sm">
           <div className="flex items-start gap-3">
             <svg
@@ -671,16 +670,16 @@ export function ExportMenu({
               />
             </svg>
             <div className="flex-1 min-w-0">
-              {driveState.phase === "saving" ? (
+              {driveState.phase === 'saving' ? (
                 <p className="text-sm font-medium text-green-800">Saving to Google Drive...</p>
-              ) : driveState.phase === "saved" ? (
+              ) : driveState.phase === 'saved' ? (
                 <>
                   <p className="text-sm font-medium text-green-800">Saved to Google Drive</p>
                   {driveState.folderPath && (
                     <p className="text-xs text-green-600 mt-0.5">{driveState.folderPath}</p>
                   )}
                 </>
-              ) : driveState.phase === "error" ? (
+              ) : driveState.phase === 'error' ? (
                 <>
                   <p className="text-sm font-medium text-red-800">Save failed</p>
                   <p className="text-xs text-red-600 mt-0.5">{driveState.message}</p>
@@ -692,7 +691,7 @@ export function ExportMenu({
                 </>
               )}
               <button
-                onClick={() => setDeliveryPhase("picker-open")}
+                onClick={() => setDeliveryPhase('picker-open')}
                 className="text-xs text-blue-600 hover:text-blue-700 mt-1 min-h-[32px]"
               >
                 Change
@@ -717,7 +716,7 @@ export function ExportMenu({
       )}
 
       {/* Recovery toast: export complete but picker was dismissed */}
-      {state.phase === "complete" && deliveryPhase === "none" && (
+      {state.phase === 'complete' && deliveryPhase === 'none' && (
         <div className="fixed bottom-4 right-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 shadow-lg z-50 max-w-sm">
           <div className="flex items-start gap-3">
             <svg
@@ -737,7 +736,7 @@ export function ExportMenu({
               <p className="text-sm font-medium text-blue-800">Export ready</p>
               <p className="text-xs text-blue-600 truncate mt-0.5">{state.fileName}</p>
               <button
-                onClick={() => setDeliveryPhase("picker-open")}
+                onClick={() => setDeliveryPhase('picker-open')}
                 className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-1 min-h-[32px]"
               >
                 Choose destination
@@ -761,7 +760,7 @@ export function ExportMenu({
         </div>
       )}
 
-      {state.phase === "error" && (
+      {state.phase === 'error' && (
         <div className="fixed bottom-4 right-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3 shadow-lg z-50 max-w-sm">
           <div className="flex items-start gap-3">
             <svg
@@ -799,7 +798,7 @@ export function ExportMenu({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 /**
@@ -813,43 +812,43 @@ export function ExportMenu({
 async function triggerDownload(
   downloadUrl: string,
   fileName: string,
-  token: string,
+  token: string
 ): Promise<boolean> {
   try {
     const response = await fetch(downloadUrl, {
       headers: { Authorization: `Bearer ${token}` },
-    });
+    })
 
-    if (!response.ok) return false;
+    if (!response.ok) return false
 
     // Determine the correct MIME type from the response or file extension
     const contentType =
-      response.headers.get("Content-Type") ||
-      (fileName.endsWith(".epub") ? "application/epub+zip" : "application/pdf");
+      response.headers.get('Content-Type') ||
+      (fileName.endsWith('.epub') ? 'application/epub+zip' : 'application/pdf')
 
-    const arrayBuffer = await response.arrayBuffer();
-    const blob = new Blob([arrayBuffer], { type: contentType });
-    const blobUrl = URL.createObjectURL(blob);
+    const arrayBuffer = await response.arrayBuffer()
+    const blob = new Blob([arrayBuffer], { type: contentType })
+    const blobUrl = URL.createObjectURL(blob)
 
-    const link = document.createElement("a");
-    link.href = blobUrl;
-    link.download = fileName;
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = fileName
     // Set type attribute to help Safari identify the file type
-    link.type = contentType;
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
+    link.type = contentType
+    link.style.display = 'none'
+    document.body.appendChild(link)
+    link.click()
 
     // Cleanup after a delay to ensure the download has started
     setTimeout(() => {
-      URL.revokeObjectURL(blobUrl);
-      document.body.removeChild(link);
-    }, 5000);
-    return true;
+      URL.revokeObjectURL(blobUrl)
+      document.body.removeChild(link)
+    }, 5000)
+    return true
   } catch {
     // Download trigger failed silently - user can still use the Download button
-    return false;
+    return false
   }
 }
 
-export default ExportMenu;
+export default ExportMenu

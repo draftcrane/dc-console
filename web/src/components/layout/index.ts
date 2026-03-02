@@ -5,8 +5,8 @@
  */
 
 // Sidebar
-export { Sidebar, SidebarOverlay } from "./sidebar";
-export type { SidebarProps, ChapterData } from "./sidebar";
+export { Sidebar, SidebarOverlay } from './sidebar'
+export type { SidebarProps, ChapterData } from './sidebar'
 
 // WorkspaceShell - CSS Grid Layout System (#316)
 export {
@@ -20,5 +20,5 @@ export {
   SidebarPill,
   StandaloneWorkspaceShell,
   useWorkspaceShell,
-} from "./workspace-shell";
-export type { Breakpoint, PanelMode, PanelState, WorkspaceLayoutState } from "./workspace-shell";
+} from './workspace-shell'
+export type { Breakpoint, PanelMode, PanelState, WorkspaceLayoutState } from './workspace-shell'

@@ -18,7 +18,7 @@
  * even with large system prompts and output generation.
  */
 
-import type { Chunk } from "./chunking.js";
+import type { Chunk } from './chunking.js'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -29,20 +29,20 @@ import type { Chunk } from "./chunking.js";
  * Based on GPT tokenizer analysis: 1 word ~= 1.33 tokens on average.
  * Conservative (overestimates) to avoid exceeding limits.
  */
-const TOKENS_PER_WORD = 1.33;
+const TOKENS_PER_WORD = 1.33
 
 /** Default token budget for source context in prompts (per ADR-009) */
-export const DEFAULT_SOURCE_TOKEN_BUDGET = 8192;
+export const DEFAULT_SOURCE_TOKEN_BUDGET = 8192
 
 /** Default maximum number of chunks to include in a prompt */
-export const DEFAULT_MAX_CHUNKS = 8;
+export const DEFAULT_MAX_CHUNKS = 8
 
 /** Model context window sizes */
 export const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
-  "gpt-4o": 128_000,
-  "gpt-4o-mini": 128_000,
-  "@cf/mistralai/mistral-small-3.1-24b-instruct": 128_000,
-};
+  'gpt-4o': 128_000,
+  'gpt-4o-mini': 128_000,
+  '@cf/mistralai/mistral-small-3.1-24b-instruct': 128_000,
+}
 
 // ---------------------------------------------------------------------------
 // Token estimation
@@ -53,9 +53,9 @@ export const MODEL_CONTEXT_WINDOWS: Record<string, number> = {
  * Uses word count * tokens-per-word ratio as a fast approximation.
  */
 export function estimateTokens(text: string): number {
-  if (!text.trim()) return 0;
-  const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-  return Math.ceil(wordCount * TOKENS_PER_WORD);
+  if (!text.trim()) return 0
+  const wordCount = text.trim().split(/\s+/).filter(Boolean).length
+  return Math.ceil(wordCount * TOKENS_PER_WORD)
 }
 
 /**
@@ -64,11 +64,11 @@ export function estimateTokens(text: string): number {
  */
 export function estimateChunkTokens(chunk: Chunk): number {
   // Metadata overhead: [Source: "title" (id: sourceId), Section: "heading"]
-  const section = chunk.headingChain.length > 0 ? chunk.headingChain.join(" > ") : "Full document";
-  const header = `[Source: "${chunk.sourceTitle}" (id: ${chunk.sourceId}), Section: "${section}"]`;
-  const separator = "\n\n---\n\n";
+  const section = chunk.headingChain.length > 0 ? chunk.headingChain.join(' > ') : 'Full document'
+  const header = `[Source: "${chunk.sourceTitle}" (id: ${chunk.sourceId}), Section: "${section}"]`
+  const separator = '\n\n---\n\n'
 
-  return estimateTokens(header) + estimateTokens(chunk.text) + estimateTokens(separator);
+  return estimateTokens(header) + estimateTokens(chunk.text) + estimateTokens(separator)
 }
 
 // ---------------------------------------------------------------------------
@@ -77,20 +77,20 @@ export function estimateChunkTokens(chunk: Chunk): number {
 
 export interface TokenBudget {
   /** Maximum tokens for source context */
-  sourceContextBudget: number;
+  sourceContextBudget: number
   /** Maximum number of chunks to include */
-  maxChunks: number;
+  maxChunks: number
 }
 
 export interface BudgetResult {
   /** Chunks selected within budget */
-  selectedChunks: Chunk[];
+  selectedChunks: Chunk[]
   /** Total estimated tokens for selected chunks */
-  totalTokens: number;
+  totalTokens: number
   /** Number of chunks excluded due to budget */
-  excludedCount: number;
+  excludedCount: number
   /** Whether the budget was fully utilized (all candidate chunks fit) */
-  budgetExhausted: boolean;
+  budgetExhausted: boolean
 }
 
 /**
@@ -106,37 +106,37 @@ export interface BudgetResult {
  */
 export function selectChunksWithinBudget(
   chunks: Chunk[],
-  budget?: Partial<TokenBudget>,
+  budget?: Partial<TokenBudget>
 ): BudgetResult {
   const effectiveBudget: TokenBudget = {
     sourceContextBudget: budget?.sourceContextBudget ?? DEFAULT_SOURCE_TOKEN_BUDGET,
     maxChunks: budget?.maxChunks ?? DEFAULT_MAX_CHUNKS,
-  };
+  }
 
-  const selected: Chunk[] = [];
-  let totalTokens = 0;
-  let excludedCount = 0;
+  const selected: Chunk[] = []
+  let totalTokens = 0
+  let excludedCount = 0
 
   for (const chunk of chunks) {
     if (selected.length >= effectiveBudget.maxChunks) {
-      excludedCount = chunks.length - selected.length;
-      break;
+      excludedCount = chunks.length - selected.length
+      break
     }
 
-    const chunkTokens = estimateChunkTokens(chunk);
+    const chunkTokens = estimateChunkTokens(chunk)
 
     if (totalTokens + chunkTokens > effectiveBudget.sourceContextBudget) {
-      excludedCount = chunks.length - selected.length;
-      break;
+      excludedCount = chunks.length - selected.length
+      break
     }
 
-    selected.push(chunk);
-    totalTokens += chunkTokens;
+    selected.push(chunk)
+    totalTokens += chunkTokens
   }
 
   // Count remaining if we haven't counted yet
   if (excludedCount === 0 && selected.length < chunks.length) {
-    excludedCount = chunks.length - selected.length;
+    excludedCount = chunks.length - selected.length
   }
 
   return {
@@ -144,7 +144,7 @@ export function selectChunksWithinBudget(
     totalTokens,
     excludedCount,
     budgetExhausted: selected.length < chunks.length,
-  };
+  }
 }
 
 /**
@@ -158,16 +158,16 @@ export function selectChunksWithinBudget(
  * @returns Deduplicated chunks preserving original order
  */
 export function deduplicateChunks(chunks: Chunk[]): Chunk[] {
-  const seen = new Set<string>();
-  const result: Chunk[] = [];
+  const seen = new Set<string>()
+  const result: Chunk[] = []
 
   for (const chunk of chunks) {
-    if (seen.has(chunk.id)) continue;
-    seen.add(chunk.id);
-    result.push(chunk);
+    if (seen.has(chunk.id)) continue
+    seen.add(chunk.id)
+    result.push(chunk)
   }
 
-  return result;
+  return result
 }
 
 /**
@@ -178,9 +178,9 @@ export function sortChunksByDocumentOrder(chunks: Chunk[]): Chunk[] {
   return [...chunks].sort((a, b) => {
     // Primary: group by source
     if (a.sourceId !== b.sourceId) {
-      return a.sourceId.localeCompare(b.sourceId);
+      return a.sourceId.localeCompare(b.sourceId)
     }
     // Secondary: document order (by start offset)
-    return a.startOffset - b.startOffset;
-  });
+    return a.startOffset - b.startOffset
+  })
 }

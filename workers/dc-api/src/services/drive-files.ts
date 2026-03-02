@@ -12,35 +12,35 @@
  * - File metadata retrieval, export, download
  */
 
-import { validateDriveId, escapeDriveQuery } from "../utils/drive-query.js";
+import { validateDriveId, escapeDriveQuery } from '../utils/drive-query.js'
 
 /** Google Drive file metadata */
 export interface DriveFile {
-  id: string;
-  name: string;
-  mimeType: string;
-  webViewLink?: string;
-  createdTime?: string;
-  modifiedTime?: string;
-  size?: string;
+  id: string
+  name: string
+  mimeType: string
+  webViewLink?: string
+  createdTime?: string
+  modifiedTime?: string
+  size?: string
 }
 
 /** Google Drive folder create response */
 interface DriveFolderResponse {
-  id: string;
-  name: string;
-  mimeType: string;
-  webViewLink: string;
+  id: string
+  name: string
+  mimeType: string
+  webViewLink: string
 }
 
 interface DriveListResponse {
-  files?: DriveFile[];
-  nextPageToken?: string;
+  files?: DriveFile[]
+  nextPageToken?: string
 }
 
-const GOOGLE_DRIVE_API = "https://www.googleapis.com/drive/v3";
-const GOOGLE_DOC_MIME_TYPE = "application/vnd.google-apps.document";
-const GOOGLE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
+const GOOGLE_DRIVE_API = 'https://www.googleapis.com/drive/v3'
+const GOOGLE_DOC_MIME_TYPE = 'application/vnd.google-apps.document'
+const GOOGLE_FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder'
 
 /**
  * DriveFileService handles all Google Drive file and folder operations.
@@ -57,24 +57,24 @@ export class DriveFileService {
    */
   async createFolder(accessToken: string, folderName: string): Promise<DriveFolderResponse> {
     const response = await fetch(`${GOOGLE_DRIVE_API}/files`, {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         name: folderName,
-        mimeType: "application/vnd.google-apps.folder",
+        mimeType: 'application/vnd.google-apps.folder',
       }),
-    });
+    })
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Folder creation failed:", error);
-      throw new Error("Failed to create Drive folder");
+      const error = await response.text()
+      console.error('Folder creation failed:', error)
+      throw new Error('Failed to create Drive folder')
     }
 
-    const folder = (await response.json()) as DriveFile;
+    const folder = (await response.json()) as DriveFile
 
     // Get the webViewLink by fetching with fields
     const detailResponse = await fetch(
@@ -83,8 +83,8 @@ export class DriveFileService {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      },
-    );
+      }
+    )
 
     if (!detailResponse.ok) {
       // Return basic info if detail fetch fails
@@ -93,10 +93,10 @@ export class DriveFileService {
         name: folder.name,
         mimeType: folder.mimeType,
         webViewLink: `https://drive.google.com/drive/folders/${folder.id}`,
-      };
+      }
     }
 
-    return detailResponse.json() as Promise<DriveFolderResponse>;
+    return detailResponse.json() as Promise<DriveFolderResponse>
   }
 
   /**
@@ -108,8 +108,8 @@ export class DriveFileService {
    * @returns Array of file metadata
    */
   async listFolderChildren(accessToken: string, folderId: string): Promise<DriveFile[]> {
-    const result = await this.listFolderChildrenPage(accessToken, folderId);
-    return result.files;
+    const result = await this.listFolderChildrenPage(accessToken, folderId)
+    return result.files
   }
 
   /**
@@ -118,41 +118,41 @@ export class DriveFileService {
   async listFolderChildrenPage(
     accessToken: string,
     folderId: string,
-    options: { pageSize?: number; pageToken?: string } = {},
+    options: { pageSize?: number; pageToken?: string } = {}
   ): Promise<{ files: DriveFile[]; nextPageToken?: string }> {
     const params = new URLSearchParams({
       q: `'${validateDriveId(folderId)}' in parents and trashed = false`,
-      fields: "files(id,name,mimeType,webViewLink,createdTime,modifiedTime)",
-      orderBy: "modifiedTime desc",
-    });
+      fields: 'files(id,name,mimeType,webViewLink,createdTime,modifiedTime)',
+      orderBy: 'modifiedTime desc',
+    })
     if (options.pageSize) {
-      params.set("pageSize", String(options.pageSize));
+      params.set('pageSize', String(options.pageSize))
     }
     if (options.pageToken) {
-      params.set("pageToken", options.pageToken);
+      params.set('pageToken', options.pageToken)
     }
 
     const response = await fetch(`${GOOGLE_DRIVE_API}/files?${params.toString()}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    });
+    })
 
     if (!response.ok) {
-      const errorBody = await response.text();
+      const errorBody = await response.text()
       console.error(
-        `List folder failed: Status ${response.status} ${response.statusText || ""}, Body: ${errorBody}`,
-      );
-      if (response.status === 403 && errorBody.includes("insufficientPermissions")) {
-        throw new Error("Google Drive permission update required. Reconnect Drive.");
+        `List folder failed: Status ${response.status} ${response.statusText || ''}, Body: ${errorBody}`
+      )
+      if (response.status === 403 && errorBody.includes('insufficientPermissions')) {
+        throw new Error('Google Drive permission update required. Reconnect Drive.')
       }
       throw new Error(
-        `Failed to list folder contents: ${response.status} ${response.statusText || ""}`,
-      );
+        `Failed to list folder contents: ${response.status} ${response.statusText || ''}`
+      )
     }
 
-    const data = (await response.json()) as { files: DriveFile[]; nextPageToken?: string };
-    return { files: data.files || [], nextPageToken: data.nextPageToken };
+    const data = (await response.json()) as { files: DriveFile[]; nextPageToken?: string }
+    return { files: data.files || [], nextPageToken: data.nextPageToken }
   }
 
   /**
@@ -161,60 +161,60 @@ export class DriveFileService {
   async browseFolder(
     accessToken: string,
     folderId: string,
-    options: { pageSize?: number; pageToken?: string; foldersOnly?: boolean } = {},
+    options: { pageSize?: number; pageToken?: string; foldersOnly?: boolean } = {}
   ): Promise<{ files: DriveFile[]; nextPageToken?: string }> {
-    let mimeTypeQuery: string;
+    let mimeTypeQuery: string
 
     if (options.foldersOnly) {
       // Folder picker mode: only return folders
-      mimeTypeQuery = `mimeType = 'application/vnd.google-apps.folder'`;
+      mimeTypeQuery = `mimeType = 'application/vnd.google-apps.folder'`
     } else {
       const supportedMimeTypes = [
-        "application/vnd.google-apps.folder",
-        "application/vnd.google-apps.document",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/pdf",
-        "text/plain",
-        "text/markdown",
-      ];
-      mimeTypeQuery = supportedMimeTypes.map((type) => `mimeType = '${type}'`).join(" or ");
+        'application/vnd.google-apps.folder',
+        'application/vnd.google-apps.document',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/pdf',
+        'text/plain',
+        'text/markdown',
+      ]
+      mimeTypeQuery = supportedMimeTypes.map((type) => `mimeType = '${type}'`).join(' or ')
     }
 
-    const query = `'${validateDriveId(folderId)}' in parents and trashed = false and (${mimeTypeQuery})`;
+    const query = `'${validateDriveId(folderId)}' in parents and trashed = false and (${mimeTypeQuery})`
 
     const params = new URLSearchParams({
       q: query,
-      fields: "files(id,name,mimeType,iconLink,webViewLink,createdTime,modifiedTime,size)",
-      orderBy: "folder,name",
-    });
+      fields: 'files(id,name,mimeType,iconLink,webViewLink,createdTime,modifiedTime,size)',
+      orderBy: 'folder,name',
+    })
     if (options.pageSize) {
-      params.set("pageSize", String(options.pageSize));
+      params.set('pageSize', String(options.pageSize))
     }
     if (options.pageToken) {
-      params.set("pageToken", options.pageToken);
+      params.set('pageToken', options.pageToken)
     }
 
     const response = await fetch(`${GOOGLE_DRIVE_API}/files?${params.toString()}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    });
+    })
 
     if (!response.ok) {
-      const errorBody = await response.text();
+      const errorBody = await response.text()
       console.error(
-        `Browse folder failed: Status ${response.status} ${response.statusText || ""}, Body: ${errorBody}`,
-      );
-      if (response.status === 403 && errorBody.includes("insufficientPermissions")) {
-        throw new Error("Google Drive permission update required. Reconnect Drive.");
+        `Browse folder failed: Status ${response.status} ${response.statusText || ''}, Body: ${errorBody}`
+      )
+      if (response.status === 403 && errorBody.includes('insufficientPermissions')) {
+        throw new Error('Google Drive permission update required. Reconnect Drive.')
       }
       throw new Error(
-        `Failed to browse folder contents: ${response.status} ${response.statusText || ""}`,
-      );
+        `Failed to browse folder contents: ${response.status} ${response.statusText || ''}`
+      )
     }
 
-    const data = (await response.json()) as { files: DriveFile[]; nextPageToken?: string };
-    return { files: data.files || [], nextPageToken: data.nextPageToken };
+    const data = (await response.json()) as { files: DriveFile[]; nextPageToken?: string }
+    return { files: data.files || [], nextPageToken: data.nextPageToken }
   }
 
   /**
@@ -226,74 +226,74 @@ export class DriveFileService {
     accessToken: string,
     folderIds: string[],
     maxDocs: number,
-    excludedFolderIds?: Set<string>,
+    excludedFolderIds?: Set<string>
   ): Promise<DriveFile[]> {
-    const pending = [...new Set(folderIds.map((id) => validateDriveId(id)))];
-    const visitedFolders = new Set<string>();
-    const seenDocs = new Set<string>();
-    const docs: DriveFile[] = [];
+    const pending = [...new Set(folderIds.map((id) => validateDriveId(id)))]
+    const visitedFolders = new Set<string>()
+    const seenDocs = new Set<string>()
+    const docs: DriveFile[] = []
 
     while (pending.length > 0) {
-      const folderId = pending.shift();
+      const folderId = pending.shift()
       if (!folderId || visitedFolders.has(folderId)) {
-        continue;
+        continue
       }
-      visitedFolders.add(folderId);
+      visitedFolders.add(folderId)
 
-      let pageToken: string | undefined;
+      let pageToken: string | undefined
       do {
         const params = new URLSearchParams({
           q: `'${folderId}' in parents and trashed = false and (mimeType = '${GOOGLE_DOC_MIME_TYPE}' or mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' or mimeType = 'application/pdf' or mimeType = 'text/plain' or mimeType = 'text/markdown' or mimeType = '${GOOGLE_FOLDER_MIME_TYPE}')`,
-          fields: "nextPageToken,files(id,name,mimeType)",
-          pageSize: "1000",
-        });
+          fields: 'nextPageToken,files(id,name,mimeType)',
+          pageSize: '1000',
+        })
         if (pageToken) {
-          params.set("pageToken", pageToken);
+          params.set('pageToken', pageToken)
         }
 
         const response = await fetch(`${GOOGLE_DRIVE_API}/files?${params.toString()}`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
-        });
+        })
 
         if (!response.ok) {
-          const errorBody = await response.text();
+          const errorBody = await response.text()
           console.error(
-            `Recursive folder list failed: Status ${response.status} ${response.statusText || ""}, Body: ${errorBody}`,
-          );
-          throw new Error("Failed to list selected folder contents from Drive");
+            `Recursive folder list failed: Status ${response.status} ${response.statusText || ''}, Body: ${errorBody}`
+          )
+          throw new Error('Failed to list selected folder contents from Drive')
         }
 
-        const data = (await response.json()) as DriveListResponse;
-        const files = data.files || [];
+        const data = (await response.json()) as DriveListResponse
+        const files = data.files || []
         for (const file of files) {
-          if (!file.id || !file.mimeType) continue;
+          if (!file.id || !file.mimeType) continue
 
           if (file.mimeType === GOOGLE_FOLDER_MIME_TYPE) {
             if (!visitedFolders.has(file.id) && !excludedFolderIds?.has(file.id)) {
-              pending.push(file.id);
+              pending.push(file.id)
             }
-            continue;
+            continue
           }
 
           if (seenDocs.has(file.id)) {
-            continue;
+            continue
           }
 
-          docs.push(file);
-          seenDocs.add(file.id);
+          docs.push(file)
+          seenDocs.add(file.id)
 
           if (docs.length > maxDocs) {
-            throw new Error("MAX_DOCS_EXCEEDED");
+            throw new Error('MAX_DOCS_EXCEEDED')
           }
         }
 
-        pageToken = data.nextPageToken;
-      } while (pageToken);
+        pageToken = data.nextPageToken
+      } while (pageToken)
     }
 
-    return docs;
+    return docs
   }
 
   /**
@@ -308,21 +308,21 @@ export class DriveFileService {
     // Search for existing folder at root
     const searchParams = new URLSearchParams({
       q: `'root' in parents and name = '${escapeDriveQuery(folderName)}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-      fields: "files(id,name)",
-    });
+      fields: 'files(id,name)',
+    })
 
     const searchResponse = await fetch(`${GOOGLE_DRIVE_API}/files?${searchParams.toString()}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-    });
+    })
 
     if (searchResponse.ok) {
-      const data = (await searchResponse.json()) as { files: DriveFile[] };
-      if (data.files?.length > 0) return data.files[0].id;
+      const data = (await searchResponse.json()) as { files: DriveFile[] }
+      if (data.files?.length > 0) return data.files[0].id
     }
 
     // Create new folder at root
-    const folder = await this.createFolder(accessToken, folderName);
-    return folder.id;
+    const folder = await this.createFolder(accessToken, folderName)
+    return folder.id
   }
 
   /**
@@ -337,49 +337,49 @@ export class DriveFileService {
   async findOrCreateSubfolder(
     accessToken: string,
     parentFolderId: string,
-    folderName: string,
+    folderName: string
   ): Promise<string> {
     // Search for existing subfolder
     const searchParams = new URLSearchParams({
       q: `'${validateDriveId(parentFolderId)}' in parents and name = '${escapeDriveQuery(folderName)}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-      fields: "files(id,name)",
-    });
+      fields: 'files(id,name)',
+    })
 
     const searchResponse = await fetch(`${GOOGLE_DRIVE_API}/files?${searchParams.toString()}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    });
+    })
 
     if (searchResponse.ok) {
-      const data = (await searchResponse.json()) as { files: DriveFile[] };
+      const data = (await searchResponse.json()) as { files: DriveFile[] }
       if (data.files && data.files.length > 0) {
-        return data.files[0].id;
+        return data.files[0].id
       }
     }
 
     // Create the subfolder
     const createResponse = await fetch(`${GOOGLE_DRIVE_API}/files`, {
-      method: "POST",
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         name: folderName,
-        mimeType: "application/vnd.google-apps.folder",
+        mimeType: 'application/vnd.google-apps.folder',
         parents: [parentFolderId],
       }),
-    });
+    })
 
     if (!createResponse.ok) {
-      const error = await createResponse.text();
-      console.error("Subfolder creation failed:", error);
-      throw new Error(`Failed to create ${folderName} subfolder in Drive`);
+      const error = await createResponse.text()
+      console.error('Subfolder creation failed:', error)
+      throw new Error(`Failed to create ${folderName} subfolder in Drive`)
     }
 
-    const folder = (await createResponse.json()) as DriveFile;
-    return folder.id;
+    const folder = (await createResponse.json()) as DriveFile
+    return folder.id
   }
 
   /**
@@ -398,56 +398,56 @@ export class DriveFileService {
     parentFolderId: string,
     fileName: string,
     mimeType: string,
-    data: ArrayBuffer,
+    data: ArrayBuffer
   ): Promise<DriveFile> {
     // Use multipart upload for files with metadata
-    const boundary = "---DraftCraneUploadBoundary";
+    const boundary = '---DraftCraneUploadBoundary'
     const metadata = JSON.stringify({
       name: fileName,
       parents: [parentFolderId],
-    });
+    })
 
     // Build multipart body
-    const encoder = new TextEncoder();
+    const encoder = new TextEncoder()
     const metadataPart = encoder.encode(
-      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
-    );
-    const filePart = encoder.encode(`--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`);
-    const fileData = new Uint8Array(data);
-    const closingBoundary = encoder.encode(`\r\n--${boundary}--`);
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`
+    )
+    const filePart = encoder.encode(`--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`)
+    const fileData = new Uint8Array(data)
+    const closingBoundary = encoder.encode(`\r\n--${boundary}--`)
 
     // Concatenate all parts
     const bodyLength =
-      metadataPart.length + filePart.length + fileData.length + closingBoundary.length;
-    const body = new Uint8Array(bodyLength);
-    let offset = 0;
-    body.set(metadataPart, offset);
-    offset += metadataPart.length;
-    body.set(filePart, offset);
-    offset += filePart.length;
-    body.set(fileData, offset);
-    offset += fileData.length;
-    body.set(closingBoundary, offset);
+      metadataPart.length + filePart.length + fileData.length + closingBoundary.length
+    const body = new Uint8Array(bodyLength)
+    let offset = 0
+    body.set(metadataPart, offset)
+    offset += metadataPart.length
+    body.set(filePart, offset)
+    offset += filePart.length
+    body.set(fileData, offset)
+    offset += fileData.length
+    body.set(closingBoundary, offset)
 
     const uploadResponse = await fetch(
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink",
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webViewLink',
       {
-        method: "POST",
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          "Content-Type": `multipart/related; boundary=${boundary}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`,
         },
         body: body,
-      },
-    );
+      }
+    )
 
     if (!uploadResponse.ok) {
-      const error = await uploadResponse.text();
-      console.error("Drive file upload failed:", error);
-      throw new Error("Failed to upload file to Google Drive");
+      const error = await uploadResponse.text()
+      console.error('Drive file upload failed:', error)
+      throw new Error('Failed to upload file to Google Drive')
     }
 
-    return uploadResponse.json() as Promise<DriveFile>;
+    return uploadResponse.json() as Promise<DriveFile>
   }
 
   /**
@@ -458,20 +458,20 @@ export class DriveFileService {
    * @param fileId - The Drive file ID to trash
    */
   async trashFile(accessToken: string, fileId: string): Promise<void> {
-    validateDriveId(fileId);
+    validateDriveId(fileId)
     const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}`, {
-      method: "PATCH",
+      method: 'PATCH',
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({ trashed: true }),
-    });
+    })
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Drive file trash failed:", error);
-      throw new Error("Failed to trash Drive file");
+      const error = await response.text()
+      console.error('Drive file trash failed:', error)
+      throw new Error('Failed to trash Drive file')
     }
   }
 
@@ -484,20 +484,20 @@ export class DriveFileService {
    * @param newName - The new file name
    */
   async renameFile(accessToken: string, fileId: string, newName: string): Promise<void> {
-    validateDriveId(fileId);
+    validateDriveId(fileId)
     const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}`, {
-      method: "PATCH",
+      method: 'PATCH',
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({ name: newName }),
-    });
+    })
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Drive file rename failed:", error);
-      throw new Error("Failed to rename Drive file");
+      const error = await response.text()
+      console.error('Drive file rename failed:', error)
+      throw new Error('Failed to rename Drive file')
     }
   }
 
@@ -514,27 +514,27 @@ export class DriveFileService {
     accessToken: string,
     fileId: string,
     mimeType: string,
-    data: string | ArrayBuffer,
+    data: string | ArrayBuffer
   ): Promise<void> {
-    validateDriveId(fileId);
-    const body = typeof data === "string" ? new TextEncoder().encode(data) : data;
+    validateDriveId(fileId)
+    const body = typeof data === 'string' ? new TextEncoder().encode(data) : data
 
     const response = await fetch(
       `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
       {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          "Content-Type": mimeType,
+          'Content-Type': mimeType,
         },
         body,
-      },
-    );
+      }
+    )
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Drive file update failed:", error);
-      throw new Error("Failed to update file in Google Drive");
+      const error = await response.text()
+      console.error('Drive file update failed:', error)
+      throw new Error('Failed to update file in Google Drive')
     }
   }
 
@@ -546,21 +546,21 @@ export class DriveFileService {
    * @returns File metadata (id, name, mimeType, size, modifiedTime)
    */
   async getFileMetadata(accessToken: string, fileId: string): Promise<DriveFile> {
-    validateDriveId(fileId);
-    const fields = "id,name,mimeType,size,modifiedTime";
+    validateDriveId(fileId)
+    const fields = 'id,name,mimeType,size,modifiedTime'
     const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}?fields=${fields}`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    });
+    })
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Get file metadata failed:", error);
-      throw new Error("Failed to get file metadata from Drive");
+      const error = await response.text()
+      console.error('Get file metadata failed:', error)
+      throw new Error('Failed to get file metadata from Drive')
     }
 
-    return response.json() as Promise<DriveFile>;
+    return response.json() as Promise<DriveFile>
   }
 
   /**
@@ -574,37 +574,37 @@ export class DriveFileService {
    * @throws Error if the exported file exceeds 5MB
    */
   async exportFile(accessToken: string, fileId: string, mimeType: string): Promise<string> {
-    validateDriveId(fileId);
-    const params = new URLSearchParams({ mimeType });
+    validateDriveId(fileId)
+    const params = new URLSearchParams({ mimeType })
     const response = await fetch(
       `${GOOGLE_DRIVE_API}/files/${fileId}/export?${params.toString()}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },
-      },
-    );
+      }
+    )
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("File export failed:", error);
-      throw new Error("Failed to export file from Drive");
+      const error = await response.text()
+      console.error('File export failed:', error)
+      throw new Error('Failed to export file from Drive')
     }
 
     // Reject files larger than 5MB to prevent memory issues
-    const contentLength = response.headers.get("Content-Length");
+    const contentLength = response.headers.get('Content-Length')
     if (contentLength && parseInt(contentLength, 10) > 5 * 1024 * 1024) {
-      throw new Error("FILE_TOO_LARGE");
+      throw new Error('FILE_TOO_LARGE')
     }
 
-    const text = await response.text();
+    const text = await response.text()
 
     // Double-check after reading (Content-Length may not always be present)
     if (text.length > 5 * 1024 * 1024) {
-      throw new Error("FILE_TOO_LARGE");
+      throw new Error('FILE_TOO_LARGE')
     }
 
-    return text;
+    return text
   }
 
   /**
@@ -620,35 +620,35 @@ export class DriveFileService {
   async downloadFile(
     accessToken: string,
     fileId: string,
-    maxBytes = 20 * 1024 * 1024,
+    maxBytes = 20 * 1024 * 1024
   ): Promise<ArrayBuffer> {
-    validateDriveId(fileId);
+    validateDriveId(fileId)
     const response = await fetch(`${GOOGLE_DRIVE_API}/files/${fileId}?alt=media`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    });
+    })
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("File download failed:", error);
-      throw new Error("Failed to download file from Drive");
+      const error = await response.text()
+      console.error('File download failed:', error)
+      throw new Error('Failed to download file from Drive')
     }
 
     // Reject files larger than maxBytes to prevent memory issues (Workers have 128MB limit)
-    const contentLength = response.headers.get("Content-Length");
+    const contentLength = response.headers.get('Content-Length')
     if (contentLength && parseInt(contentLength, 10) > maxBytes) {
-      throw new Error("FILE_TOO_LARGE");
+      throw new Error('FILE_TOO_LARGE')
     }
 
-    const buffer = await response.arrayBuffer();
+    const buffer = await response.arrayBuffer()
 
     // Double-check after reading (Content-Length may not always be present)
     if (buffer.byteLength > maxBytes) {
-      throw new Error("FILE_TOO_LARGE");
+      throw new Error('FILE_TOO_LARGE')
     }
 
-    return buffer;
+    return buffer
   }
 
   /**
@@ -657,41 +657,41 @@ export class DriveFileService {
    */
   async getFileContent(
     accessToken: string,
-    fileId: string,
-  ): Promise<{ content: string; format: "html" | "text" }> {
-    validateDriveId(fileId);
-    const meta = await this.getFileMetadata(accessToken, fileId);
+    fileId: string
+  ): Promise<{ content: string; format: 'html' | 'text' }> {
+    validateDriveId(fileId)
+    const meta = await this.getFileMetadata(accessToken, fileId)
 
     switch (meta.mimeType) {
       case GOOGLE_DOC_MIME_TYPE: {
-        const content = await this.exportFile(accessToken, fileId, "text/html");
-        return { content, format: "html" };
+        const content = await this.exportFile(accessToken, fileId, 'text/html')
+        return { content, format: 'html' }
       }
 
-      case "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
-        const buffer = await this.downloadFile(accessToken, fileId);
-        const mammoth = await import("mammoth");
-        const result = await mammoth.default.convertToHtml({ arrayBuffer: buffer });
-        return { content: result.value, format: "html" };
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
+        const buffer = await this.downloadFile(accessToken, fileId)
+        const mammoth = await import('mammoth')
+        const result = await mammoth.default.convertToHtml({ arrayBuffer: buffer })
+        return { content: result.value, format: 'html' }
       }
 
-      case "application/pdf": {
-        const buffer = await this.downloadFile(accessToken, fileId);
-        const { extractText, getDocumentProxy } = await import("unpdf");
-        const doc = await getDocumentProxy(new Uint8Array(buffer));
-        const { text } = await extractText(doc, { mergePages: true });
-        return { content: text, format: "text" };
+      case 'application/pdf': {
+        const buffer = await this.downloadFile(accessToken, fileId)
+        const { extractText, getDocumentProxy } = await import('unpdf')
+        const doc = await getDocumentProxy(new Uint8Array(buffer))
+        const { text } = await extractText(doc, { mergePages: true })
+        return { content: text, format: 'text' }
       }
 
-      case "text/plain":
-      case "text/markdown": {
-        const buffer = await this.downloadFile(accessToken, fileId);
-        const content = new TextDecoder().decode(buffer);
-        return { content, format: "text" };
+      case 'text/plain':
+      case 'text/markdown': {
+        const buffer = await this.downloadFile(accessToken, fileId)
+        const content = new TextDecoder().decode(buffer)
+        return { content, format: 'text' }
       }
 
       default:
-        throw new Error(`Unsupported file type: ${meta.mimeType}`);
+        throw new Error(`Unsupported file type: ${meta.mimeType}`)
     }
   }
 }

@@ -1,14 +1,14 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useSourcesContext } from "@/contexts/sources-context";
-import { EmptyState } from "./empty-state";
-import { useToast } from "@/components/toast";
-import type { SourceContentResult } from "@/hooks/use-sources";
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSourcesContext } from '@/contexts/sources-context'
+import { EmptyState } from './empty-state'
+import { useToast } from '@/components/toast'
+import type { SourceContentResult } from '@/hooks/use-sources'
 
 interface SourceDetailViewProps {
   /** Called when user taps back to return to the source list */
-  onBack: () => void;
+  onBack: () => void
 }
 
 /**
@@ -24,115 +24,115 @@ interface SourceDetailViewProps {
  */
 export function SourceDetailView({ onBack }: SourceDetailViewProps) {
   const { selectedSourceId, sources, getContent, editorRef, closePanel, isPanelOpen } =
-    useSourcesContext();
+    useSourcesContext()
 
-  const { showToast } = useToast();
-  const [content, setContent] = useState<SourceContentResult | null>(null);
-  const [isLoading, setIsLoading] = useState(!!selectedSourceId);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedText, setSelectedText] = useState("");
-  const contentRef = useRef<HTMLDivElement>(null);
+  const { showToast } = useToast()
+  const [content, setContent] = useState<SourceContentResult | null>(null)
+  const [isLoading, setIsLoading] = useState(!!selectedSourceId)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedText, setSelectedText] = useState('')
+  const contentRef = useRef<HTMLDivElement>(null)
 
-  const source = sources.find((s) => s.id === selectedSourceId);
+  const source = sources.find((s) => s.id === selectedSourceId)
 
   // Adjust loading/content state when source changes (React render-phase pattern)
-  const [prevSourceId, setPrevSourceId] = useState(selectedSourceId);
+  const [prevSourceId, setPrevSourceId] = useState(selectedSourceId)
   if (selectedSourceId !== prevSourceId) {
-    setPrevSourceId(selectedSourceId);
+    setPrevSourceId(selectedSourceId)
     if (!selectedSourceId) {
-      setContent(null);
-      setIsLoading(false);
-      setError(null);
+      setContent(null)
+      setIsLoading(false)
+      setError(null)
     } else {
-      setIsLoading(true);
-      setError(null);
+      setIsLoading(true)
+      setError(null)
     }
   }
 
   // Fetch content when source changes
   useEffect(() => {
-    if (!selectedSourceId) return;
+    if (!selectedSourceId) return
 
-    let cancelled = false;
+    let cancelled = false
 
     getContent(selectedSourceId)
       .then((result) => {
         if (!cancelled) {
-          setContent(result);
-          setIsLoading(false);
+          setContent(result)
+          setIsLoading(false)
         }
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load content");
-          setIsLoading(false);
+          setError(err instanceof Error ? err.message : 'Failed to load content')
+          setIsLoading(false)
         }
-      });
+      })
 
     return () => {
-      cancelled = true;
-    };
-  }, [selectedSourceId, getContent]);
+      cancelled = true
+    }
+  }, [selectedSourceId, getContent])
 
   // Listen for text selection (selectionchange is more reliable on iPad than mouseup)
   useEffect(() => {
     const handleSelectionChange = () => {
-      const selection = document.getSelection();
+      const selection = document.getSelection()
       if (!selection || selection.isCollapsed) {
-        setSelectedText("");
-        return;
+        setSelectedText('')
+        return
       }
 
       // Only track selection within our content area
       if (contentRef.current && contentRef.current.contains(selection.anchorNode)) {
-        setSelectedText(selection.toString());
+        setSelectedText(selection.toString())
       }
-    };
+    }
 
-    document.addEventListener("selectionchange", handleSelectionChange);
-    return () => document.removeEventListener("selectionchange", handleSelectionChange);
-  }, []);
+    document.addEventListener('selectionchange', handleSelectionChange)
+    return () => document.removeEventListener('selectionchange', handleSelectionChange)
+  }, [])
 
   const insertContent = useCallback(
     (html: string) => {
-      const editor = editorRef.current?.getEditor();
-      if (!editor) return;
+      const editor = editorRef.current?.getEditor()
+      if (!editor) return
 
-      const { from, to } = editor.state.selection;
-      const hasSelection = from !== to;
-      const hasCursor = from === to && from > 0;
+      const { from, to } = editor.state.selection
+      const hasSelection = from !== to
+      const hasCursor = from === to && from > 0
 
       if (hasCursor || hasSelection) {
         // Insert at cursor/replace selection
-        editor.chain().focus().insertContent(html).run();
-        showToast("Inserted at cursor");
+        editor.chain().focus().insertContent(html).run()
+        showToast('Inserted at cursor')
       } else {
         // Append to end
-        editor.chain().focus("end").insertContent(html).run();
-        showToast("Added to end of chapter");
+        editor.chain().focus('end').insertContent(html).run()
+        showToast('Added to end of chapter')
       }
 
       // On portrait (overlay), close panel so user sees result
-      const isPortrait = window.matchMedia("(max-width: 1023px)").matches;
+      const isPortrait = window.matchMedia('(max-width: 1023px)').matches
       if (isPortrait && isPanelOpen) {
-        closePanel();
+        closePanel()
       }
     },
-    [editorRef, showToast, isPanelOpen, closePanel],
-  );
+    [editorRef, showToast, isPanelOpen, closePanel]
+  )
 
   const handleInsertSelected = useCallback(() => {
-    if (!selectedText) return;
-    insertContent(`<p>${selectedText}</p>`);
+    if (!selectedText) return
+    insertContent(`<p>${selectedText}</p>`)
     // Clear selection
-    document.getSelection()?.removeAllRanges();
-    setSelectedText("");
-  }, [selectedText, insertContent]);
+    document.getSelection()?.removeAllRanges()
+    setSelectedText('')
+  }, [selectedText, insertContent])
 
   const handleInsertAll = useCallback(() => {
-    if (!content?.content) return;
-    insertContent(content.content);
-  }, [content, insertContent]);
+    if (!content?.content) return
+    insertContent(content.content)
+  }, [content, insertContent])
 
   // Empty state: no source selected
   if (!selectedSourceId || !source) {
@@ -150,11 +150,11 @@ export function SourceDetailView({ onBack }: SourceDetailViewProps) {
         }
         message="Select a source to view its content"
         action={{
-          label: "Back to Library",
+          label: 'Back to Library',
           onClick: onBack,
         }}
       />
-    );
+    )
   }
 
   return (
@@ -242,5 +242,5 @@ export function SourceDetailView({ onBack }: SourceDetailViewProps) {
         </div>
       )}
     </div>
-  );
+  )
 }

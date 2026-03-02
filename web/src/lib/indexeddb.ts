@@ -11,45 +11,45 @@
  * Value: { chapterId, content, updatedAt, version }
  */
 
-const DB_NAME = "draftcrane_autosave";
-const DB_VERSION = 1;
-const STORE_NAME = "drafts";
+const DB_NAME = 'draftcrane_autosave'
+const DB_VERSION = 1
+const STORE_NAME = 'drafts'
 
 export interface DraftEntry {
-  chapterId: string;
-  content: string;
-  updatedAt: number; // Unix timestamp ms
-  version: number;
+  chapterId: string
+  content: string
+  updatedAt: number // Unix timestamp ms
+  version: number
 }
 
-let dbPromise: Promise<IDBDatabase> | null = null;
+let dbPromise: Promise<IDBDatabase> | null = null
 
 function getDB(): Promise<IDBDatabase> {
-  if (dbPromise) return dbPromise;
+  if (dbPromise) return dbPromise
 
   dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
-    if (typeof window === "undefined" || !window.indexedDB) {
-      reject(new Error("IndexedDB not available"));
-      return;
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      reject(new Error('IndexedDB not available'))
+      return
     }
 
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(DB_NAME, DB_VERSION)
 
     request.onupgradeneeded = () => {
-      const db = request.result;
+      const db = request.result
       if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "chapterId" });
+        db.createObjectStore(STORE_NAME, { keyPath: 'chapterId' })
       }
-    };
+    }
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => resolve(request.result)
     request.onerror = () => {
-      dbPromise = null;
-      reject(request.error);
-    };
-  });
+      dbPromise = null
+      reject(request.error)
+    }
+  })
 
-  return dbPromise;
+  return dbPromise
 }
 
 /**
@@ -58,17 +58,17 @@ function getDB(): Promise<IDBDatabase> {
  */
 export async function saveDraft(entry: DraftEntry): Promise<void> {
   try {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    store.put(entry);
+    const db = await getDB()
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    store.put(entry)
     await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
   } catch (err) {
     // IndexedDB failures are non-fatal; log and continue
-    console.warn("IndexedDB saveDraft failed:", err);
+    console.warn('IndexedDB saveDraft failed:', err)
   }
 }
 
@@ -78,17 +78,17 @@ export async function saveDraft(entry: DraftEntry): Promise<void> {
  */
 export async function loadDraft(chapterId: string): Promise<DraftEntry | null> {
   try {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.get(chapterId);
+    const db = await getDB()
+    const tx = db.transaction(STORE_NAME, 'readonly')
+    const store = tx.objectStore(STORE_NAME)
+    const request = store.get(chapterId)
     return new Promise<DraftEntry | null>((resolve, reject) => {
-      request.onsuccess = () => resolve((request.result as DraftEntry) ?? null);
-      request.onerror = () => reject(request.error);
-    });
+      request.onsuccess = () => resolve((request.result as DraftEntry) ?? null)
+      request.onerror = () => reject(request.error)
+    })
   } catch (err) {
-    console.warn("IndexedDB loadDraft failed:", err);
-    return null;
+    console.warn('IndexedDB loadDraft failed:', err)
+    return null
   }
 }
 
@@ -97,16 +97,16 @@ export async function loadDraft(chapterId: string): Promise<DraftEntry | null> {
  */
 export async function deleteDraft(chapterId: string): Promise<void> {
   try {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    store.delete(chapterId);
+    const db = await getDB()
+    const tx = db.transaction(STORE_NAME, 'readwrite')
+    const store = tx.objectStore(STORE_NAME)
+    store.delete(chapterId)
     await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
   } catch (err) {
-    console.warn("IndexedDB deleteDraft failed:", err);
+    console.warn('IndexedDB deleteDraft failed:', err)
   }
 }
 
@@ -122,29 +122,29 @@ export async function clearAllDrafts(): Promise<void> {
   // Close the existing connection if open, so the deleteDatabase call can proceed
   if (dbPromise) {
     try {
-      const db = await dbPromise;
-      db.close();
+      const db = await dbPromise
+      db.close()
     } catch {
       // Connection may already be closed or failed to open
     }
-    dbPromise = null;
+    dbPromise = null
   }
 
   return new Promise<void>((resolve) => {
-    if (typeof window === "undefined" || !window.indexedDB) {
-      resolve();
-      return;
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      resolve()
+      return
     }
 
-    const request = indexedDB.deleteDatabase(DB_NAME);
-    request.onsuccess = () => resolve();
+    const request = indexedDB.deleteDatabase(DB_NAME)
+    request.onsuccess = () => resolve()
     request.onerror = () => {
-      console.warn("IndexedDB clearAllDrafts: deleteDatabase failed");
-      resolve(); // Non-fatal: proceed with sign-out even if DB cleanup fails
-    };
+      console.warn('IndexedDB clearAllDrafts: deleteDatabase failed')
+      resolve() // Non-fatal: proceed with sign-out even if DB cleanup fails
+    }
     request.onblocked = () => {
-      console.warn("IndexedDB clearAllDrafts: deleteDatabase blocked");
-      resolve(); // Non-fatal: proceed with sign-out even if DB is blocked
-    };
-  });
+      console.warn('IndexedDB clearAllDrafts: deleteDatabase blocked')
+      resolve() // Non-fatal: proceed with sign-out even if DB is blocked
+    }
+  })
 }

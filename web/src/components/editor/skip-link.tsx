@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 /**
  * SkipLink - Visually hidden link that appears on focus for keyboard users.
@@ -17,17 +17,17 @@
  */
 export function SkipLink() {
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    const target = document.getElementById("writing-area");
+    e.preventDefault()
+    const target = document.getElementById('writing-area')
     if (target) {
-      target.focus({ preventScroll: false });
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      target.focus({ preventScroll: false })
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-  };
+  }
 
   return (
     <a href="#writing-area" onClick={handleClick} className="skip-link">
       Skip to writing area
     </a>
-  );
+  )
 }

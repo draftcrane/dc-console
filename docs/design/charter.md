@@ -139,15 +139,15 @@ Every component must:
 ```typescript
 interface EditorPanelProps {
   /** Panel variant based on workspace mode */
-  variant: "chapter" | "book";
+  variant: 'chapter' | 'book'
   /** Whether the panel is open */
-  isOpen: boolean;
+  isOpen: boolean
   /** Close the panel */
-  onClose: () => void;
+  onClose: () => void
   /** Width in pixels (desktop only, resizable) */
-  width?: number;
+  width?: number
   /** Called when width changes via resize handle */
-  onWidthChange?: (width: number) => void;
+  onWidthChange?: (width: number) => void
 }
 ```
 

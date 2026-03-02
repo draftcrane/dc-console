@@ -325,12 +325,12 @@ The two panel toggles share identical structure but diverge in color strategy. T
 
 ```typescript
 interface PanelToggleButtonProps {
-  label: string;
-  icon: React.ReactNode;
-  isOpen: boolean;
-  onToggle: () => void;
-  zone: "editor" | "library";
-  shortcutHint?: string;
+  label: string
+  icon: React.ReactNode
+  isOpen: boolean
+  onToggle: () => void
+  zone: 'editor' | 'library'
+  shortcutHint?: string
 }
 ```
 
@@ -350,7 +350,7 @@ The panel shell is view-mode agnostic. Content is provided by variant-specific c
 
 ```tsx
 <EditorPanel isOpen={isEditorPanelOpen} onClose={closeEditorPanel} variant={viewMode}>
-  {viewMode === "chapter" ? (
+  {viewMode === 'chapter' ? (
     <ChapterEditorContent {...chapterEditorProps} />
   ) : (
     <BookEditorContent {...bookEditorProps} />

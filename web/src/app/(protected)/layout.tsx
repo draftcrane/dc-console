@@ -1,10 +1,10 @@
-import { auth } from "@clerk/nextjs/server";
-import { UserButton } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
-import Link from "next/link";
+import { auth } from '@clerk/nextjs/server'
+import { UserButton } from '@clerk/nextjs'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
 
 interface ProtectedLayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 /**
@@ -28,10 +28,10 @@ interface ProtectedLayoutProps {
  * - Account for safe-area-inset for Safari toolbar
  */
 export default async function ProtectedLayout({ children }: ProtectedLayoutProps) {
-  const { userId } = await auth();
+  const { userId } = await auth()
 
   if (!userId) {
-    redirect("/sign-in");
+    redirect('/sign-in')
   }
 
   return (
@@ -71,8 +71,8 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
             <UserButton
               appearance={{
                 elements: {
-                  avatarBox: "h-9 w-9",
-                  userButtonTrigger: "h-11 w-11 flex items-center justify-center",
+                  avatarBox: 'h-9 w-9',
+                  userButtonTrigger: 'h-11 w-11 flex items-center justify-center',
                 },
               }}
             />
@@ -83,5 +83,5 @@ export default async function ProtectedLayout({ children }: ProtectedLayoutProps
       {/* Main content area */}
       <main className="flex-1 pb-[env(safe-area-inset-bottom)]">{children}</main>
     </div>
-  );
+  )
 }

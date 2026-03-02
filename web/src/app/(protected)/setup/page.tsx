@@ -1,8 +1,8 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 
 /**
  * Book Setup Screen
@@ -19,60 +19,60 @@ import { useAuth } from "@clerk/nextjs";
  * - Description max 1000 chars
  */
 export default function SetupPage() {
-  const router = useRouter();
-  const { getToken } = useAuth();
+  const router = useRouter()
+  const { getToken } = useAuth()
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const titleLength = title.length;
-  const descriptionLength = description.length;
+  const titleLength = title.length
+  const descriptionLength = description.length
 
-  const isValid = title.trim().length > 0 && titleLength <= 500 && descriptionLength <= 1000;
+  const isValid = title.trim().length > 0 && titleLength <= 500 && descriptionLength <= 1000
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+    e.preventDefault()
 
-    if (!isValid || isSubmitting) return;
+    if (!isValid || isSubmitting) return
 
-    setIsSubmitting(true);
-    setError(null);
+    setIsSubmitting(true)
+    setError(null)
 
     try {
-      const token = await getToken();
+      const token = await getToken()
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/projects`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || undefined,
         }),
-      });
+      })
 
       if (!response.ok) {
         const data = (await response.json().catch(() => null)) as {
-          error?: string;
-          requestId?: string;
-        } | null;
-        const base = data?.error || "Failed to create project";
-        const withRequest = data?.requestId ? `${base} (request ${data.requestId})` : base;
-        throw new Error(withRequest);
+          error?: string
+          requestId?: string
+        } | null
+        const base = data?.error || 'Failed to create project'
+        const withRequest = data?.requestId ? `${base} (request ${data.requestId})` : base
+        throw new Error(withRequest)
       }
 
-      const project = await response.json();
+      const project = await response.json()
 
       // Go straight to the editor
-      router.push(`/editor/${project.id}`);
+      router.push(`/editor/${project.id}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
   }
 
@@ -114,7 +114,7 @@ export default function SetupPage() {
               </p>
               <span
                 id="title-count"
-                className={`tabular-nums ${titleLength > 450 ? "text-amber-500" : "text-muted-foreground"} ${titleLength > 500 ? "text-red-500" : ""}`}
+                className={`tabular-nums ${titleLength > 450 ? 'text-amber-500' : 'text-muted-foreground'} ${titleLength > 500 ? 'text-red-500' : ''}`}
               >
                 {titleLength}/500
               </span>
@@ -142,7 +142,7 @@ export default function SetupPage() {
             <div className="flex justify-end">
               <span
                 id="description-count"
-                className={`text-sm tabular-nums ${descriptionLength > 900 ? "text-amber-500" : "text-muted-foreground"} ${descriptionLength > 1000 ? "text-red-500" : ""}`}
+                className={`text-sm tabular-nums ${descriptionLength > 900 ? 'text-amber-500' : 'text-muted-foreground'} ${descriptionLength > 1000 ? 'text-red-500' : ''}`}
               >
                 {descriptionLength}/1000
               </span>
@@ -168,7 +168,7 @@ export default function SetupPage() {
                        disabled:opacity-50 disabled:cursor-not-allowed
                        transition-all"
           >
-            {isSubmitting ? "Creating..." : "Create Book"}
+            {isSubmitting ? 'Creating...' : 'Create Book'}
           </button>
         </form>
 
@@ -177,5 +177,5 @@ export default function SetupPage() {
         </p>
       </div>
     </div>
-  );
+  )
 }

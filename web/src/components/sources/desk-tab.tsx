@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { useSourcesContext } from "@/contexts/sources-context";
-import { InstructionList } from "@/components/instruction-list";
-import { EmptyState } from "./empty-state";
-import { useToast } from "@/components/toast";
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useSourcesContext } from '@/contexts/sources-context'
+import { InstructionList } from '@/components/instruction-list'
+import { EmptyState } from './empty-state'
+import { useToast } from '@/components/toast'
 
 /**
  * Desk tab — tagged documents workspace with multi-select AI analysis.
@@ -38,128 +38,127 @@ export function DeskTab() {
     isPanelOpen,
     closePanel,
     deepAnalysis,
-  } = useSourcesContext();
+  } = useSourcesContext()
 
-  const { showToast } = useToast();
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [instruction, setInstruction] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const analysisRef = useRef<HTMLDivElement>(null);
-  const hasScrolledToResults = useRef(false);
+  const { showToast } = useToast()
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [instruction, setInstruction] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const analysisRef = useRef<HTMLDivElement>(null)
+  const hasScrolledToResults = useRef(false)
 
   // Merge inline + deep analysis state
-  const isDeepProcessing =
-    deepAnalysis.status === "pending" || deepAnalysis.status === "processing";
-  const isAnyAnalyzing = isAnalyzing || isDeepProcessing;
-  const effectiveText = analysisText || deepAnalysis.resultText || "";
-  const effectiveComplete = isAnalysisComplete || deepAnalysis.status === "completed";
-  const effectiveError = analysisError || deepAnalysis.error;
+  const isDeepProcessing = deepAnalysis.status === 'pending' || deepAnalysis.status === 'processing'
+  const isAnyAnalyzing = isAnalyzing || isDeepProcessing
+  const effectiveText = analysisText || deepAnalysis.resultText || ''
+  const effectiveComplete = isAnalysisComplete || deepAnalysis.status === 'completed'
+  const effectiveError = analysisError || deepAnalysis.error
 
   // Only active (tagged) sources appear on the desk
-  const deskSources = useMemo(() => sources.filter((s) => s.status === "active"), [sources]);
+  const deskSources = useMemo(() => sources.filter((s) => s.status === 'active'), [sources])
 
-  const allSelected = deskSources.length > 0 && selectedIds.size === deskSources.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < deskSources.length;
+  const allSelected = deskSources.length > 0 && selectedIds.size === deskSources.length
+  const someSelected = selectedIds.size > 0 && selectedIds.size < deskSources.length
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
-      const next = new Set(prev);
+      const next = new Set(prev)
       if (next.has(id)) {
-        next.delete(id);
+        next.delete(id)
       } else {
-        next.add(id);
+        next.add(id)
       }
-      return next;
-    });
-  }, []);
+      return next
+    })
+  }, [])
 
   const toggleSelectAll = useCallback(() => {
     if (allSelected) {
-      setSelectedIds(new Set());
+      setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(deskSources.map((s) => s.id)));
+      setSelectedIds(new Set(deskSources.map((s) => s.id)))
     }
-  }, [allSelected, deskSources]);
+  }, [allSelected, deskSources])
 
   // Reset scroll flag when analysis resets
   useEffect(() => {
     if (!isAnalyzing && !isDeepProcessing && !effectiveText) {
-      hasScrolledToResults.current = false;
+      hasScrolledToResults.current = false
     }
-  }, [isAnalyzing, isDeepProcessing, effectiveText]);
+  }, [isAnalyzing, isDeepProcessing, effectiveText])
 
   // Scroll to results on first content chunk
   useEffect(() => {
     if (effectiveText && !hasScrolledToResults.current && analysisRef.current) {
-      hasScrolledToResults.current = true;
-      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      hasScrolledToResults.current = true
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       analysisRef.current.scrollIntoView({
-        behavior: prefersReducedMotion ? "instant" : "smooth",
-        block: "nearest",
-      });
+        behavior: prefersReducedMotion ? 'instant' : 'smooth',
+        block: 'nearest',
+      })
     }
-  }, [effectiveText]);
+  }, [effectiveText])
 
   const handleUntag = useCallback(
     async (sourceId: string, title: string) => {
       try {
-        await removeSource(sourceId);
+        await removeSource(sourceId)
         setSelectedIds((prev) => {
-          const next = new Set(prev);
-          next.delete(sourceId);
-          return next;
-        });
-        showToast(`Removed "${title}" from desk`);
+          const next = new Set(prev)
+          next.delete(sourceId)
+          return next
+        })
+        showToast(`Removed "${title}" from desk`)
       } catch (err) {
-        console.error("Failed to remove from desk:", err);
+        console.error('Failed to remove from desk:', err)
       }
     },
-    [removeSource, showToast],
-  );
+    [removeSource, showToast]
+  )
 
   const handleAnalyze = useCallback(() => {
-    const ids = Array.from(selectedIds);
-    if (ids.length === 0 || !instruction.trim()) return;
-    analyze(projectId, ids, instruction);
-  }, [selectedIds, instruction, projectId, analyze]);
+    const ids = Array.from(selectedIds)
+    if (ids.length === 0 || !instruction.trim()) return
+    analyze(projectId, ids, instruction)
+  }, [selectedIds, instruction, projectId, analyze])
 
   const handleRetry = useCallback(() => {
-    resetAnalysis();
-    deepAnalysis.reset();
-    handleAnalyze();
-  }, [resetAnalysis, deepAnalysis, handleAnalyze]);
+    resetAnalysis()
+    deepAnalysis.reset()
+    handleAnalyze()
+  }, [resetAnalysis, deepAnalysis, handleAnalyze])
 
   const handleCopy = useCallback(async () => {
-    if (!effectiveText) return;
+    if (!effectiveText) return
     try {
-      await navigator.clipboard.writeText(effectiveText);
-      showToast("Copied to clipboard");
+      await navigator.clipboard.writeText(effectiveText)
+      showToast('Copied to clipboard')
     } catch {
-      showToast("Failed to copy");
+      showToast('Failed to copy')
     }
-  }, [effectiveText, showToast]);
+  }, [effectiveText, showToast])
 
   const handleInsert = useCallback(() => {
-    if (!effectiveText) return;
-    const editor = editorRef.current?.getEditor();
-    if (!editor) return;
+    if (!effectiveText) return
+    const editor = editorRef.current?.getEditor()
+    if (!editor) return
 
-    const { from, to } = editor.state.selection;
-    const hasCursor = from === to && from > 0;
+    const { from, to } = editor.state.selection
+    const hasCursor = from === to && from > 0
 
     if (hasCursor) {
-      editor.chain().focus().insertContent(`<p>${effectiveText}</p>`).run();
-      showToast("Inserted at cursor");
+      editor.chain().focus().insertContent(`<p>${effectiveText}</p>`).run()
+      showToast('Inserted at cursor')
     } else {
-      editor.chain().focus("end").insertContent(`<p>${effectiveText}</p>`).run();
-      showToast("Added to end of chapter");
+      editor.chain().focus('end').insertContent(`<p>${effectiveText}</p>`).run()
+      showToast('Added to end of chapter')
     }
 
-    const isPortrait = window.matchMedia("(max-width: 1023px)").matches;
+    const isPortrait = window.matchMedia('(max-width: 1023px)').matches
     if (isPortrait && isPanelOpen) {
-      closePanel();
+      closePanel()
     }
-  }, [effectiveText, editorRef, showToast, isPanelOpen, closePanel]);
+  }, [effectiveText, editorRef, showToast, isPanelOpen, closePanel])
 
   // Empty desk
   if (deskSources.length === 0) {
@@ -177,7 +176,7 @@ export function DeskTab() {
         }
         message="Tag documents from the Library to work with them here."
       />
-    );
+    )
   }
 
   return (
@@ -195,7 +194,7 @@ export function DeskTab() {
               instructions={deskInstructions}
               type="desk"
               onSelect={(inst) => {
-                setInstruction(inst.instructionText);
+                setInstruction(inst.instructionText)
               }}
               onCreate={createInstruction}
               onUpdate={updateInstruction}
@@ -239,17 +238,17 @@ export function DeskTab() {
           <button
             onClick={toggleSelectAll}
             role="checkbox"
-            aria-checked={allSelected ? "true" : someSelected ? "mixed" : "false"}
+            aria-checked={allSelected ? 'true' : someSelected ? 'mixed' : 'false'}
             className="flex items-center gap-2 text-xs text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)]
                        transition-colors min-h-[32px]"
           >
             <span
               className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
                 allSelected
-                  ? "bg-blue-600 border-blue-600"
+                  ? 'bg-blue-600 border-blue-600'
                   : someSelected
-                    ? "bg-blue-600 border-blue-600"
-                    : "border-[var(--dc-color-border-strong)]"
+                    ? 'bg-blue-600 border-blue-600'
+                    : 'border-[var(--dc-color-border-strong)]'
               }`}
             >
               {allSelected && (
@@ -278,7 +277,7 @@ export function DeskTab() {
                 </svg>
               )}
             </span>
-            {allSelected ? "Deselect all" : "Select all"}
+            {allSelected ? 'Deselect all' : 'Select all'}
           </button>
           <span className="text-[10px] text-[var(--dc-color-text-placeholder)] ml-auto">
             {selectedIds.size > 0
@@ -297,7 +296,7 @@ export function DeskTab() {
         {/* Document rows */}
         <div>
           {deskSources.map((source) => {
-            const isSelected = selectedIds.has(source.id);
+            const isSelected = selectedIds.has(source.id)
             return (
               <div
                 key={source.id}
@@ -313,8 +312,8 @@ export function DeskTab() {
                   <span
                     className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
                       isSelected
-                        ? "bg-blue-600 border-blue-600"
-                        : "border-[var(--dc-color-border-strong)]"
+                        ? 'bg-blue-600 border-blue-600'
+                        : 'border-[var(--dc-color-border-strong)]'
                     }`}
                   >
                     {isSelected && (
@@ -373,7 +372,7 @@ export function DeskTab() {
                   </svg>
                 </button>
               </div>
-            );
+            )
           })}
         </div>
 
@@ -382,10 +381,10 @@ export function DeskTab() {
           <div className="px-4 py-4 space-y-2">
             <div className="flex items-center justify-between text-xs text-[var(--dc-color-text-muted)]">
               <span>
-                Analyzing{" "}
+                Analyzing{' '}
                 {deepAnalysis.totalBatches > 1
                   ? `${deepAnalysis.totalBatches} batches`
-                  : "documents"}
+                  : 'documents'}
                 ...
               </span>
               <span>
@@ -409,7 +408,7 @@ export function DeskTab() {
             <h3 className="text-xs font-medium text-[var(--dc-color-text-muted)]">Analysis</h3>
             <div
               className="p-3 bg-[var(--dc-color-surface-secondary)] rounded-lg text-sm text-[var(--dc-color-text-primary)] leading-relaxed whitespace-pre-wrap min-h-[60px]"
-              aria-live={isAnyAnalyzing ? "off" : "polite"}
+              aria-live={isAnyAnalyzing ? 'off' : 'polite'}
             >
               {effectiveText}
               {isAnalyzing && (
@@ -483,13 +482,13 @@ export function DeskTab() {
                 Analyzing...
               </>
             ) : selectedIds.size === 0 ? (
-              "Select documents to analyze"
+              'Select documents to analyze'
             ) : (
-              `Analyze ${selectedIds.size} document${selectedIds.size !== 1 ? "s" : ""}`
+              `Analyze ${selectedIds.size} document${selectedIds.size !== 1 ? 's' : ''}`
             )}
           </button>
         )}
       </div>
     </div>
-  );
+  )
 }

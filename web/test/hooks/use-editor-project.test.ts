@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { renderHook, act, waitFor } from '@testing-library/react'
 
 /**
  * Tests for useEditorProject — the project data fetching hook.
@@ -19,7 +19,7 @@ import { renderHook, act, waitFor } from "@testing-library/react";
 // because useEditorProject memoises fetchProjectData on [getToken, projectId, router].
 // An unstable router causes fetchProjectData to re-create every render,
 // which triggers the useEffect, causing an infinite loop.
-const mockPush = vi.fn();
+const mockPush = vi.fn()
 const mockRouter = {
   push: mockPush,
   replace: vi.fn(),
@@ -27,241 +27,241 @@ const mockRouter = {
   forward: vi.fn(),
   refresh: vi.fn(),
   prefetch: vi.fn(),
-};
-vi.mock("next/navigation", () => ({
+}
+vi.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
-}));
+}))
 
-import { useEditorProject } from "@/hooks/use-editor-project";
+import { useEditorProject } from '@/hooks/use-editor-project'
 
 function makeProjectResponse(overrides?: Record<string, unknown>) {
   return {
-    id: "proj-1",
-    title: "Test Project",
-    status: "active",
-    createdAt: "2025-01-01T00:00:00Z",
-    updatedAt: "2025-01-01T00:00:00Z",
+    id: 'proj-1',
+    title: 'Test Project',
+    status: 'active',
+    createdAt: '2025-01-01T00:00:00Z',
+    updatedAt: '2025-01-01T00:00:00Z',
     chapters: [
       {
-        id: "ch-2",
-        title: "Chapter 2",
+        id: 'ch-2',
+        title: 'Chapter 2',
         sortOrder: 2,
         wordCount: 200,
         version: 1,
-        status: "draft",
+        status: 'draft',
       },
       {
-        id: "ch-1",
-        title: "Chapter 1",
+        id: 'ch-1',
+        title: 'Chapter 1',
         sortOrder: 1,
         wordCount: 100,
         version: 1,
-        status: "draft",
+        status: 'draft',
       },
     ],
     ...overrides,
-  };
+  }
 }
 
-describe("useEditorProject", () => {
-  const originalFetch = global.fetch;
+describe('useEditorProject', () => {
+  const originalFetch = global.fetch
   // A stable getToken reference used across tests — avoids infinite re-render
   // loops caused by useCallback identity changes in useEditorProject.
-  const stableGetToken = vi.fn<() => Promise<string | null>>().mockResolvedValue("test-token");
+  const stableGetToken = vi.fn<() => Promise<string | null>>().mockResolvedValue('test-token')
 
   beforeEach(() => {
-    vi.restoreAllMocks();
-    mockPush.mockClear();
-    stableGetToken.mockResolvedValue("test-token");
-  });
+    vi.restoreAllMocks()
+    mockPush.mockClear()
+    stableGetToken.mockResolvedValue('test-token')
+  })
 
   afterEach(() => {
-    global.fetch = originalFetch;
-  });
+    global.fetch = originalFetch
+  })
 
   function makeOptions(overrides?: Record<string, unknown>) {
     return {
-      projectId: "proj-1" as string,
+      projectId: 'proj-1' as string,
       getToken: stableGetToken,
       ...overrides,
-    };
+    }
   }
 
-  it("starts in loading state", () => {
+  it('starts in loading state', () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(makeProjectResponse()),
-    });
+    })
 
-    const { result } = renderHook(() => useEditorProject(makeOptions()));
+    const { result } = renderHook(() => useEditorProject(makeOptions()))
 
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.projectData).toBeNull();
-    expect(result.current.error).toBeNull();
-  });
+    expect(result.current.isLoading).toBe(true)
+    expect(result.current.projectData).toBeNull()
+    expect(result.current.error).toBeNull()
+  })
 
-  it("fetches project data and sets it on mount", async () => {
+  it('fetches project data and sets it on mount', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(makeProjectResponse()),
-    });
+    })
 
-    const { result } = renderHook(() => useEditorProject(makeOptions()));
+    const { result } = renderHook(() => useEditorProject(makeOptions()))
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+      expect(result.current.isLoading).toBe(false)
+    })
 
-    expect(result.current.projectData).not.toBeNull();
-    expect(result.current.projectData!.id).toBe("proj-1");
-    expect(result.current.projectData!.title).toBe("Test Project");
-    expect(result.current.projectData!.chapters).toHaveLength(2);
-    expect(result.current.error).toBeNull();
-  });
+    expect(result.current.projectData).not.toBeNull()
+    expect(result.current.projectData!.id).toBe('proj-1')
+    expect(result.current.projectData!.title).toBe('Test Project')
+    expect(result.current.projectData!.chapters).toHaveLength(2)
+    expect(result.current.error).toBeNull()
+  })
 
-  it("auto-selects the first chapter by sortOrder when none is active", async () => {
+  it('auto-selects the first chapter by sortOrder when none is active', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(makeProjectResponse()),
-    });
+    })
 
-    const { result } = renderHook(() => useEditorProject(makeOptions()));
+    const { result } = renderHook(() => useEditorProject(makeOptions()))
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+      expect(result.current.isLoading).toBe(false)
+    })
 
     // ch-1 has sortOrder: 1, ch-2 has sortOrder: 2
-    expect(result.current.activeChapterId).toBe("ch-1");
-  });
+    expect(result.current.activeChapterId).toBe('ch-1')
+  })
 
-  it("does not override activeChapterId if already set on re-fetch", async () => {
+  it('does not override activeChapterId if already set on re-fetch', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(makeProjectResponse()),
-    });
+    })
 
-    const opts = makeOptions();
-    const { result } = renderHook(() => useEditorProject(opts));
+    const opts = makeOptions()
+    const { result } = renderHook(() => useEditorProject(opts))
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+      expect(result.current.isLoading).toBe(false)
+    })
 
     // First auto-selected chapter should be ch-1
-    expect(result.current.activeChapterId).toBe("ch-1");
+    expect(result.current.activeChapterId).toBe('ch-1')
 
     // Manually set a different chapter
     act(() => {
-      result.current.setActiveChapterId("ch-2");
-    });
-    expect(result.current.activeChapterId).toBe("ch-2");
+      result.current.setActiveChapterId('ch-2')
+    })
+    expect(result.current.activeChapterId).toBe('ch-2')
 
     // Trigger a re-fetch
     await act(async () => {
-      await result.current.fetchProjectData();
-    });
+      await result.current.fetchProjectData()
+    })
 
     // Should still be ch-2 because activeChapterIdRef was already set
-    expect(result.current.activeChapterId).toBe("ch-2");
-  });
+    expect(result.current.activeChapterId).toBe('ch-2')
+  })
 
-  it("redirects to /dashboard on 404 response", async () => {
+  it('redirects to /dashboard on 404 response', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 404,
-    });
+    })
 
-    const { result } = renderHook(() => useEditorProject(makeOptions()));
+    const { result } = renderHook(() => useEditorProject(makeOptions()))
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+      expect(result.current.isLoading).toBe(false)
+    })
 
-    expect(mockPush).toHaveBeenCalledWith("/dashboard");
-    expect(result.current.projectData).toBeNull();
-  });
+    expect(mockPush).toHaveBeenCalledWith('/dashboard')
+    expect(result.current.projectData).toBeNull()
+  })
 
-  it("sets error state on non-404 failure", async () => {
+  it('sets error state on non-404 failure', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
-    });
+    })
 
-    const { result } = renderHook(() => useEditorProject(makeOptions()));
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.error).toBe("Failed to load project");
-    expect(result.current.projectData).toBeNull();
-  });
-
-  it("sets error state on network failure", async () => {
-    global.fetch = vi.fn().mockRejectedValue(new Error("Network error"));
-
-    const { result } = renderHook(() => useEditorProject(makeOptions()));
+    const { result } = renderHook(() => useEditorProject(makeOptions()))
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+      expect(result.current.isLoading).toBe(false)
+    })
 
-    expect(result.current.error).toBe("Network error");
-  });
+    expect(result.current.error).toBe('Failed to load project')
+    expect(result.current.projectData).toBeNull()
+  })
 
-  it("does not auto-select a chapter when the project has no chapters", async () => {
+  it('sets error state on network failure', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new Error('Network error'))
+
+    const { result } = renderHook(() => useEditorProject(makeOptions()))
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.error).toBe('Network error')
+  })
+
+  it('does not auto-select a chapter when the project has no chapters', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(makeProjectResponse({ chapters: [] })),
-    });
+    })
 
-    const { result } = renderHook(() => useEditorProject(makeOptions()));
+    const { result } = renderHook(() => useEditorProject(makeOptions()))
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+      expect(result.current.isLoading).toBe(false)
+    })
 
-    expect(result.current.activeChapterId).toBeNull();
-  });
+    expect(result.current.activeChapterId).toBeNull()
+  })
 
-  it("sends Authorization header with token from getToken", async () => {
-    stableGetToken.mockResolvedValue("my-auth-token");
+  it('sends Authorization header with token from getToken', async () => {
+    stableGetToken.mockResolvedValue('my-auth-token')
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(makeProjectResponse()),
-    });
+    })
 
-    renderHook(() => useEditorProject(makeOptions()));
+    renderHook(() => useEditorProject(makeOptions()))
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalled();
-    });
+      expect(global.fetch).toHaveBeenCalled()
+    })
 
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/projects/proj-1"),
+      expect.stringContaining('/projects/proj-1'),
       expect.objectContaining({
-        headers: { Authorization: "Bearer my-auth-token" },
-      }),
-    );
-  });
+        headers: { Authorization: 'Bearer my-auth-token' },
+      })
+    )
+  })
 
-  it("setProjectData allows external mutation of project data", async () => {
+  it('setProjectData allows external mutation of project data', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(makeProjectResponse()),
-    });
+    })
 
-    const { result } = renderHook(() => useEditorProject(makeOptions()));
+    const { result } = renderHook(() => useEditorProject(makeOptions()))
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+      expect(result.current.isLoading).toBe(false)
+    })
 
     act(() => {
-      result.current.setProjectData((prev) => (prev ? { ...prev, title: "Updated Title" } : prev));
-    });
+      result.current.setProjectData((prev) => (prev ? { ...prev, title: 'Updated Title' } : prev))
+    })
 
-    expect(result.current.projectData!.title).toBe("Updated Title");
-  });
-});
+    expect(result.current.projectData!.title).toBe('Updated Title')
+  })
+})

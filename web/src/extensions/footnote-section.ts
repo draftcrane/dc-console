@@ -1,4 +1,4 @@
-import { Node, mergeAttributes } from "@tiptap/core";
+import { Node, mergeAttributes } from '@tiptap/core'
 
 /**
  * FootnoteSection - Block wrapper node that contains all FootnoteContent nodes.
@@ -12,10 +12,10 @@ import { Node, mergeAttributes } from "@tiptap/core";
  * groups all footnotes visually at the bottom of the chapter.
  */
 export const FootnoteSection = Node.create({
-  name: "footnoteSection",
+  name: 'footnoteSection',
 
-  group: "block",
-  content: "footnoteContent+",
+  group: 'block',
+  content: 'footnoteContent+',
 
   // The footnote section is not directly editable as a whole - users edit
   // individual footnoteContent nodes within it.
@@ -26,12 +26,12 @@ export const FootnoteSection = Node.create({
   parseHTML() {
     return [
       {
-        tag: "div.footnotes",
+        tag: 'div.footnotes',
       },
-    ];
+    ]
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ["div", mergeAttributes(HTMLAttributes, { class: "footnotes" }), 0];
+    return ['div', mergeAttributes(HTMLAttributes, { class: 'footnotes' }), 0]
   },
-});
+})

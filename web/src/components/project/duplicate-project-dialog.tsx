@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { useState } from "react";
+import { useState } from 'react'
 
 interface DuplicateProjectDialogProps {
   /** Whether the dialog is open */
-  isOpen: boolean;
+  isOpen: boolean
   /** Project title to display in the confirmation message */
-  projectTitle: string;
+  projectTitle: string
   /** Called when the user confirms duplication */
-  onConfirm: () => Promise<void>;
+  onConfirm: () => Promise<void>
   /** Called when the user cancels */
-  onCancel: () => void;
+  onCancel: () => void
 }
 
 /**
@@ -26,16 +26,16 @@ export function DuplicateProjectDialog({
   onConfirm,
   onCancel,
 }: DuplicateProjectDialogProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   async function handleConfirm() {
-    setIsSubmitting(true);
+    setIsSubmitting(true)
     try {
-      await onConfirm();
+      await onConfirm()
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
   }
 
@@ -73,10 +73,10 @@ export function DuplicateProjectDialog({
                        hover:bg-gray-800 transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Duplicating..." : "Duplicate"}
+            {isSubmitting ? 'Duplicating...' : 'Duplicate'}
           </button>
         </div>
       </div>
     </div>
-  );
+  )
 }

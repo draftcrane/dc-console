@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from 'next/link'
 
 /**
  * Landing Page for DraftCrane.
@@ -47,7 +47,7 @@ export default function LandingPage() {
 
         {/* Secondary link for existing users */}
         <p className="mt-6 text-sm text-[var(--dc-color-text-muted)]">
-          Already have an account?{" "}
+          Already have an account?{' '}
           <Link
             href="/sign-in"
             className="font-medium text-[var(--dc-color-text-secondary)] underline hover:text-[var(--dc-color-text-primary)]"
@@ -69,5 +69,5 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
-  );
+  )
 }

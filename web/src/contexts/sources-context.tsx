@@ -1,6 +1,6 @@
-"use client";
+'use client'
 
-import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import {
   useSources,
   type SourceMaterial,
@@ -8,144 +8,144 @@ import {
   type SearchResult,
   type SourceConnection,
   type AddSourceInput,
-} from "@/hooks/use-sources";
-import { useSourceAnalysis } from "@/hooks/use-source-analysis";
-import { useDeepAnalysis, type UseDeepAnalysisReturn } from "@/hooks/use-deep-analysis";
-import { useAIInstructions, type AIInstruction } from "@/hooks/use-ai-instructions";
-import { useSourcesPanel, type SourcesTab } from "@/hooks/use-sources-panel";
-import { useDriveAccounts } from "@/hooks/use-drive-accounts";
-import type { TextEditorHandle } from "@/components/editor/text-editor";
+} from '@/hooks/use-sources'
+import { useSourceAnalysis } from '@/hooks/use-source-analysis'
+import { useDeepAnalysis, type UseDeepAnalysisReturn } from '@/hooks/use-deep-analysis'
+import { useAIInstructions, type AIInstruction } from '@/hooks/use-ai-instructions'
+import { useSourcesPanel, type SourcesTab } from '@/hooks/use-sources-panel'
+import { useDriveAccounts } from '@/hooks/use-drive-accounts'
+import type { TextEditorHandle } from '@/components/editor/text-editor'
 
 // ── Context Value Type ──
 
 interface SourcesContextValue {
   // Panel state
-  activeTab: SourcesTab;
-  setActiveTab: (tab: SourcesTab) => void;
-  selectedSourceId: string | null;
-  selectSource: (sourceId: string | null) => void;
-  detailSourceId: string | null;
-  setDetailSourceId: (sourceId: string | null) => void;
-  openSourceReview: (sourceId: string) => void;
-  openSourceAnalysis: (sourceId: string) => void;
-  isPanelOpen: boolean;
-  togglePanel: () => void;
-  openPanel: () => void;
-  closePanel: () => void;
+  activeTab: SourcesTab
+  setActiveTab: (tab: SourcesTab) => void
+  selectedSourceId: string | null
+  selectSource: (sourceId: string | null) => void
+  detailSourceId: string | null
+  setDetailSourceId: (sourceId: string | null) => void
+  openSourceReview: (sourceId: string) => void
+  openSourceAnalysis: (sourceId: string) => void
+  isPanelOpen: boolean
+  togglePanel: () => void
+  openPanel: () => void
+  closePanel: () => void
 
   // Sources data
-  sources: SourceMaterial[];
-  isLoadingSources: boolean;
-  sourcesError: string | null;
-  getContent: (sourceId: string) => Promise<SourceContentResult>;
-  contentCache: Map<string, SourceContentResult>;
-  addDriveSources: (files: AddSourceInput[], connectionId?: string) => Promise<void>;
-  uploadLocalFile: (file: File) => Promise<void>;
-  removeSource: (sourceId: string) => Promise<void>;
-  restoreSource: (sourceId: string) => Promise<void>;
-  refetchSources: () => Promise<void>;
+  sources: SourceMaterial[]
+  isLoadingSources: boolean
+  sourcesError: string | null
+  getContent: (sourceId: string) => Promise<SourceContentResult>
+  contentCache: Map<string, SourceContentResult>
+  addDriveSources: (files: AddSourceInput[], connectionId?: string) => Promise<void>
+  uploadLocalFile: (file: File) => Promise<void>
+  removeSource: (sourceId: string) => Promise<void>
+  restoreSource: (sourceId: string) => Promise<void>
+  refetchSources: () => Promise<void>
 
   // Search
-  searchResults: SearchResult[] | null;
-  isSearching: boolean;
-  search: (query: string) => Promise<void>;
-  clearSearch: () => void;
+  searchResults: SearchResult[] | null
+  isSearching: boolean
+  search: (query: string) => Promise<void>
+  clearSearch: () => void
 
   // Connections
-  connections: SourceConnection[];
-  linkConnection: (driveConnectionId: string) => Promise<void>;
-  unlinkConnection: (connectionId: string) => Promise<void>;
+  connections: SourceConnection[]
+  linkConnection: (driveConnectionId: string) => Promise<void>
+  unlinkConnection: (connectionId: string) => Promise<void>
 
   // AI Analysis (inline SSE)
-  analyze: (projectId: string, sourceIds: string[], instruction: string) => void;
-  analysisText: string;
-  isAnalyzing: boolean;
-  isAnalysisComplete: boolean;
-  analysisError: string | null;
-  resetAnalysis: () => void;
-  abortAnalysis: () => void;
+  analyze: (projectId: string, sourceIds: string[], instruction: string) => void
+  analysisText: string
+  isAnalyzing: boolean
+  isAnalysisComplete: boolean
+  analysisError: string | null
+  resetAnalysis: () => void
+  abortAnalysis: () => void
 
   // Deep Analysis (async map-reduce)
-  deepAnalysis: UseDeepAnalysisReturn;
+  deepAnalysis: UseDeepAnalysisReturn
 
   // AI Instructions
-  deskInstructions: AIInstruction[];
-  chapterInstructions: AIInstruction[];
-  bookInstructions: AIInstruction[];
-  isLoadingInstructions: boolean;
+  deskInstructions: AIInstruction[]
+  chapterInstructions: AIInstruction[]
+  bookInstructions: AIInstruction[]
+  isLoadingInstructions: boolean
   createInstruction: (input: {
-    label: string;
-    instructionText: string;
-    type: "desk" | "book" | "chapter";
-  }) => Promise<AIInstruction>;
+    label: string
+    instructionText: string
+    type: 'desk' | 'book' | 'chapter'
+  }) => Promise<AIInstruction>
   updateInstruction: (
     id: string,
-    input: { label?: string; instructionText?: string },
-  ) => Promise<void>;
-  removeInstruction: (id: string) => Promise<void>;
-  touchInstructionLastUsed: (id: string) => void;
+    input: { label?: string; instructionText?: string }
+  ) => Promise<void>
+  removeInstruction: (id: string) => Promise<void>
+  touchInstructionLastUsed: (id: string) => void
 
   // Drive OAuth (initiates Google OAuth - never shows user-level account data)
-  connectDrive: (loginHint?: string, projectId?: string) => Promise<void>;
+  connectDrive: (loginHint?: string, projectId?: string) => Promise<void>
 
   // Editor ref (for content insertion)
-  editorRef: React.RefObject<TextEditorHandle | null>;
+  editorRef: React.RefObject<TextEditorHandle | null>
 
   // Project ID
-  projectId: string;
+  projectId: string
 }
 
-const SourcesContext = createContext<SourcesContextValue | null>(null);
+const SourcesContext = createContext<SourcesContextValue | null>(null)
 
 // ── Provider ──
 
 interface SourcesProviderProps {
-  projectId: string;
-  editorRef: React.RefObject<TextEditorHandle | null>;
-  children: ReactNode;
+  projectId: string
+  editorRef: React.RefObject<TextEditorHandle | null>
+  children: ReactNode
 }
 
 export function SourcesProvider({ projectId, editorRef, children }: SourcesProviderProps) {
   // Compose all hooks
-  const panel = useSourcesPanel();
+  const panel = useSourcesPanel()
 
   // Extract stable ref for the effect dependency (useCallback - identity-stable)
-  const { openPanel } = panel;
+  const { openPanel } = panel
 
   // Auto-open panel if returning from OAuth (sessionStorage signal or URL param fallback)
   useEffect(() => {
-    let shouldOpen = false;
+    let shouldOpen = false
     try {
-      if (sessionStorage.getItem("dc_open_sources_panel")) {
-        sessionStorage.removeItem("dc_open_sources_panel");
-        shouldOpen = true;
+      if (sessionStorage.getItem('dc_open_sources_panel')) {
+        sessionStorage.removeItem('dc_open_sources_panel')
+        shouldOpen = true
       }
     } catch {
       // sessionStorage unavailable
     }
     // URL param fallback for iPad Safari (sessionStorage can be lost on tab suspension)
-    if (!shouldOpen && typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("sources") === "open") {
-        shouldOpen = true;
+    if (!shouldOpen && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('sources') === 'open') {
+        shouldOpen = true
         // Clean URL without triggering navigation
-        window.history.replaceState({}, "", window.location.pathname);
+        window.history.replaceState({}, '', window.location.pathname)
       }
     }
     if (shouldOpen) {
-      openPanel();
+      openPanel()
     }
-  }, [openPanel]);
+  }, [openPanel])
 
-  const sourcesData = useSources(projectId);
-  const deepAnalysis = useDeepAnalysis(projectId);
-  const analysis = useSourceAnalysis(deepAnalysis.startJob);
-  const deskHook = useAIInstructions("desk");
-  const chapterHook = useAIInstructions("chapter");
-  const bookHook = useAIInstructions("book");
+  const sourcesData = useSources(projectId)
+  const deepAnalysis = useDeepAnalysis(projectId)
+  const analysis = useSourceAnalysis(deepAnalysis.startJob)
+  const deskHook = useAIInstructions('desk')
+  const chapterHook = useAIInstructions('chapter')
+  const bookHook = useAIInstructions('book')
   // Disable auto-fetch: user-level account data is NEVER surfaced in project UI.
   // We only need the connect function to initiate OAuth.
-  const driveAccountsHook = useDriveAccounts({ enabled: false });
+  const driveAccountsHook = useDriveAccounts({ enabled: false })
 
   const value: SourcesContextValue = {
     // Panel
@@ -192,9 +192,9 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
     bookInstructions: bookHook.instructions,
     isLoadingInstructions: deskHook.isLoading || chapterHook.isLoading || bookHook.isLoading,
     createInstruction: async (input) => {
-      if (input.type === "desk") return deskHook.create(input);
-      if (input.type === "book") return bookHook.create(input);
-      return chapterHook.create(input);
+      if (input.type === 'desk') return deskHook.create(input)
+      if (input.type === 'book') return bookHook.create(input)
+      return chapterHook.create(input)
     },
     updateInstruction: async (id, input) => {
       // Try all three — only one will have the ID
@@ -202,10 +202,10 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
         deskHook.update(id, input),
         chapterHook.update(id, input),
         bookHook.update(id, input),
-      ]);
+      ])
     },
     removeInstruction: async (id) => {
-      await Promise.allSettled([deskHook.remove(id), chapterHook.remove(id), bookHook.remove(id)]);
+      await Promise.allSettled([deskHook.remove(id), chapterHook.remove(id), bookHook.remove(id)])
     },
     touchInstructionLastUsed: (id) => {
       // Route to the hook that owns this instruction
@@ -213,12 +213,12 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
         ...deskHook.instructions,
         ...chapterHook.instructions,
         ...bookHook.instructions,
-      ];
-      const instruction = allInstructions.find((inst) => inst.id === id);
-      if (!instruction) return;
-      if (instruction.type === "desk") deskHook.touchLastUsed(id);
-      else if (instruction.type === "book") bookHook.touchLastUsed(id);
-      else chapterHook.touchLastUsed(id);
+      ]
+      const instruction = allInstructions.find((inst) => inst.id === id)
+      if (!instruction) return
+      if (instruction.type === 'desk') deskHook.touchLastUsed(id)
+      else if (instruction.type === 'book') bookHook.touchLastUsed(id)
+      else chapterHook.touchLastUsed(id)
     },
 
     // Drive OAuth (initiates Google OAuth - never shows user-level account data)
@@ -227,17 +227,17 @@ export function SourcesProvider({ projectId, editorRef, children }: SourcesProvi
     // Refs
     editorRef,
     projectId,
-  };
+  }
 
-  return <SourcesContext.Provider value={value}>{children}</SourcesContext.Provider>;
+  return <SourcesContext.Provider value={value}>{children}</SourcesContext.Provider>
 }
 
 // ── Hook ──
 
 export function useSourcesContext(): SourcesContextValue {
-  const context = useContext(SourcesContext);
+  const context = useContext(SourcesContext)
   if (!context) {
-    throw new Error("useSourcesContext must be used within a SourcesProvider");
+    throw new Error('useSourcesContext must be used within a SourcesProvider')
   }
-  return context;
+  return context
 }

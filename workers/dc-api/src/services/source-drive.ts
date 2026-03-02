@@ -9,17 +9,17 @@
  * - Fetching, sanitizing, and caching Google Docs content in R2
  */
 
-import { ulid } from "ulidx";
-import { notFound, validationError } from "../middleware/error-handler.js";
-import { countWords } from "../utils/word-count.js";
-import { sanitizeGoogleDocsHtml } from "../utils/html-sanitize.js";
-import type { DriveService } from "./drive.js";
+import { ulid } from 'ulidx'
+import { notFound, validationError } from '../middleware/error-handler.js'
+import { countWords } from '../utils/word-count.js'
+import { sanitizeGoogleDocsHtml } from '../utils/html-sanitize.js'
+import type { DriveService } from './drive.js'
 import {
   type AddSourceInput,
   type AddSourcesResult,
   type SourceMaterial,
   type SourceContentResult,
-} from "./source-types.js";
+} from './source-types.js'
 import {
   extractPlainTextFromHtml,
   extractFromDocx,
@@ -27,34 +27,34 @@ import {
   extractFromTxt,
   extractFromMarkdown,
   storeExtractionResult,
-} from "./text-extraction.js";
-import { resolveReadOnlyConnection } from "./drive-connection-resolver.js";
+} from './text-extraction.js'
+import { resolveReadOnlyConnection } from './drive-connection-resolver.js'
 
-const GOOGLE_DOC_MIME_TYPE = "application/vnd.google-apps.document";
-const GOOGLE_FOLDER_MIME_TYPE = "application/vnd.google-apps.folder";
+const GOOGLE_DOC_MIME_TYPE = 'application/vnd.google-apps.document'
+const GOOGLE_FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder'
 
 const ALLOWED_MIME_TYPES = new Set([
   GOOGLE_DOC_MIME_TYPE,
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/pdf",
-  "text/plain",
-  "text/markdown",
-]);
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/pdf',
+  'text/plain',
+  'text/markdown',
+])
 
 /** Map Drive MIME types to file extensions for extraction routing. */
 const MIME_TO_EXTENSION: Record<string, string> = {
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
-  "application/pdf": ".pdf",
-  "text/plain": ".txt",
-  "text/markdown": ".md",
-};
-const MAX_SOURCES_PER_REQUEST = 50;
-const MAX_EXPANDED_DOCS_PER_REQUEST = 200;
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/pdf': '.pdf',
+  'text/plain': '.txt',
+  'text/markdown': '.md',
+}
+const MAX_SOURCES_PER_REQUEST = 50
+const MAX_EXPANDED_DOCS_PER_REQUEST = 200
 
 export class SourceDriveService {
   constructor(
     private readonly db: D1Database,
-    private readonly bucket: R2Bucket,
+    private readonly bucket: R2Bucket
   ) {}
 
   /**
@@ -68,109 +68,107 @@ export class SourceDriveService {
     projectId: string,
     files: AddSourceInput[],
     driveService?: DriveService,
-    connectionId?: string,
+    connectionId?: string
   ): Promise<AddSourcesResult> {
     // Verify project ownership
     const project = await this.db
       .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
       .bind(projectId, userId)
-      .first<{ id: string }>();
+      .first<{ id: string }>()
 
     if (!project) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
 
     if (!files || files.length === 0) {
-      validationError("At least one file is required");
+      validationError('At least one file is required')
     }
 
     if (files.length > MAX_SOURCES_PER_REQUEST) {
-      validationError(`Maximum ${MAX_SOURCES_PER_REQUEST} files per request`);
+      validationError(`Maximum ${MAX_SOURCES_PER_REQUEST} files per request`)
     }
 
-    const selectedDocs = files.filter((f) => ALLOWED_MIME_TYPES.has(f.mimeType));
-    const selectedFolders = files.filter((f) => f.mimeType === GOOGLE_FOLDER_MIME_TYPE);
+    const selectedDocs = files.filter((f) => ALLOWED_MIME_TYPES.has(f.mimeType))
+    const selectedFolders = files.filter((f) => f.mimeType === GOOGLE_FOLDER_MIME_TYPE)
 
     // Expand selected folders into Google Docs (recursive).
-    let discoveredFromFolders: AddSourceInput[] = [];
+    let discoveredFromFolders: AddSourceInput[] = []
     if (selectedFolders.length > 0) {
       if (!driveService || !connectionId) {
-        throw new Error(
-          "DriveService and connectionId are required when adding folders as sources",
-        );
+        throw new Error('DriveService and connectionId are required when adding folders as sources')
       }
 
-      const tokens = await driveService.getValidTokensByConnection(connectionId);
+      const tokens = await driveService.getValidTokensByConnection(connectionId)
       if (!tokens) {
-        validationError("Google Drive is not connected. Connect Drive to add folder sources.");
+        validationError('Google Drive is not connected. Connect Drive to add folder sources.')
       }
 
       try {
         const docs = await driveService.listSupportedFilesInFoldersRecursive(
           tokens.accessToken,
           selectedFolders.map((f) => f.driveFileId),
-          MAX_EXPANDED_DOCS_PER_REQUEST,
-        );
+          MAX_EXPANDED_DOCS_PER_REQUEST
+        )
         discoveredFromFolders = docs.map((doc) => ({
           driveFileId: doc.id,
-          title: doc.name || "Untitled",
+          title: doc.name || 'Untitled',
           mimeType: doc.mimeType,
-        }));
+        }))
       } catch (err) {
-        if (err instanceof Error && err.message === "MAX_DOCS_EXCEEDED") {
-          validationError(`Maximum ${MAX_EXPANDED_DOCS_PER_REQUEST} docs may be imported at once`);
+        if (err instanceof Error && err.message === 'MAX_DOCS_EXCEEDED') {
+          validationError(`Maximum ${MAX_EXPANDED_DOCS_PER_REQUEST} docs may be imported at once`)
         }
-        throw err;
+        throw err
       }
     }
 
-    const docsToInsert = [...selectedDocs, ...discoveredFromFolders];
-    const docsById = new Map<string, AddSourceInput>();
+    const docsToInsert = [...selectedDocs, ...discoveredFromFolders]
+    const docsById = new Map<string, AddSourceInput>()
     for (const file of docsToInsert) {
       if (!docsById.has(file.driveFileId)) {
-        docsById.set(file.driveFileId, file);
+        docsById.set(file.driveFileId, file)
       }
     }
-    const uniqueDocsToInsert = Array.from(docsById.values());
+    const uniqueDocsToInsert = Array.from(docsById.values())
 
     // Get current max sort_order
     const maxSort = await this.db
       .prepare(
         `SELECT MAX(sort_order) as max_sort FROM source_materials
-         WHERE project_id = ? AND status = 'active'`,
+         WHERE project_id = ? AND status = 'active'`
       )
       .bind(projectId)
-      .first<{ max_sort: number | null }>();
+      .first<{ max_sort: number | null }>()
 
-    let sortOrder = (maxSort?.max_sort || 0) + 1;
-    const now = new Date().toISOString();
-    const created: SourceMaterial[] = [];
+    let sortOrder = (maxSort?.max_sort || 0) + 1
+    const now = new Date().toISOString()
+    const created: SourceMaterial[] = []
 
     for (const file of uniqueDocsToInsert) {
-      const id = ulid();
+      const id = ulid()
 
       // Check for existing source with same drive_file_id (partial unique index not usable with ON CONFLICT)
       const existing = await this.db
         .prepare(
-          `SELECT id, status FROM source_materials WHERE project_id = ? AND drive_file_id = ?`,
+          `SELECT id, status FROM source_materials WHERE project_id = ? AND drive_file_id = ?`
         )
         .bind(projectId, file.driveFileId)
-        .first<{ id: string; status: string }>();
+        .first<{ id: string; status: string }>()
 
       if (existing) {
-        if (existing.status === "archived") {
+        if (existing.status === 'archived') {
           // Re-activate previously removed source
           await this.db
             .prepare(
-              `UPDATE source_materials SET status = 'active', sort_order = ?, updated_at = ? WHERE id = ?`,
+              `UPDATE source_materials SET status = 'active', sort_order = ?, updated_at = ? WHERE id = ?`
             )
             .bind(sortOrder, now, existing.id)
-            .run();
+            .run()
 
           created.push({
             id: existing.id,
             projectId,
-            sourceType: "drive",
+            sourceType: 'drive',
             driveConnectionId: connectionId || null,
             driveFileId: file.driveFileId,
             title: file.title,
@@ -180,21 +178,21 @@ export class SourceDriveService {
             wordCount: 0,
             r2Key: null,
             cachedAt: null,
-            status: "active",
+            status: 'active',
             sortOrder,
             createdAt: now,
             updatedAt: now,
-          });
-          sortOrder++;
+          })
+          sortOrder++
         }
         // Already active — skip silently (true duplicate)
-        continue;
+        continue
       }
 
       await this.db
         .prepare(
           `INSERT INTO source_materials (id, project_id, source_type, drive_connection_id, drive_file_id, title, mime_type, sort_order, created_at, updated_at)
-           VALUES (?, ?, 'drive', ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, 'drive', ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           id,
@@ -205,14 +203,14 @@ export class SourceDriveService {
           file.mimeType,
           sortOrder,
           now,
-          now,
+          now
         )
-        .run();
+        .run()
 
       created.push({
         id,
         projectId,
-        sourceType: "drive",
+        sourceType: 'drive',
         driveConnectionId: connectionId || null,
         driveFileId: file.driveFileId,
         title: file.title,
@@ -222,12 +220,12 @@ export class SourceDriveService {
         wordCount: 0,
         r2Key: null,
         cachedAt: null,
-        status: "active",
+        status: 'active',
         sortOrder,
         createdAt: now,
         updatedAt: now,
-      });
-      sortOrder++;
+      })
+      sortOrder++
     }
 
     // Auto-link: ensure project_source_connections row exists for this connection
@@ -235,24 +233,24 @@ export class SourceDriveService {
       await this.db
         .prepare(
           `INSERT OR IGNORE INTO project_source_connections (id, project_id, drive_connection_id, created_at)
-           VALUES (lower(hex(randomblob(16))), ?, ?, ?)`,
+           VALUES (lower(hex(randomblob(16))), ?, ?, ?)`
         )
         .bind(projectId, connectionId, new Date().toISOString())
-        .run();
+        .run()
     }
 
     if (selectedFolders.length > 0) {
       console.info(
         JSON.stringify({
-          level: "info",
-          event: "sources_folder_expand_complete",
+          level: 'info',
+          event: 'sources_folder_expand_complete',
           user_id: userId,
           project_id: projectId,
           selected_folders: selectedFolders.length,
           docs_discovered: discoveredFromFolders.length,
           docs_inserted: created.length,
-        }),
-      );
+        })
+      )
       return {
         sources: created,
         expandedCounts: {
@@ -260,10 +258,10 @@ export class SourceDriveService {
           docsDiscovered: discoveredFromFolders.length,
           docsInserted: created.length,
         },
-      };
+      }
     }
 
-    return { sources: created };
+    return { sources: created }
   }
 
   /**
@@ -282,74 +280,74 @@ export class SourceDriveService {
     driveConnectionId: string | null,
     driveService: DriveService,
     sourceTitle?: string,
-    mimeType?: string,
+    mimeType?: string
   ): Promise<SourceContentResult> {
     // Resolve connection: prefer source-specific binding, reject ambiguous state
     const { tokens } = await resolveReadOnlyConnection(
       driveService.tokenService,
       userId,
-      driveConnectionId ?? undefined,
-    );
-    const accessToken = tokens.accessToken;
+      driveConnectionId ?? undefined
+    )
+    const accessToken = tokens.accessToken
 
-    const effectiveMimeType = mimeType || GOOGLE_DOC_MIME_TYPE;
-    const isGoogleDoc = effectiveMimeType === GOOGLE_DOC_MIME_TYPE;
+    const effectiveMimeType = mimeType || GOOGLE_DOC_MIME_TYPE
+    const isGoogleDoc = effectiveMimeType === GOOGLE_DOC_MIME_TYPE
 
-    let content: string;
-    let extractionResult;
+    let content: string
+    let extractionResult
 
     try {
       if (isGoogleDoc) {
         // Google Docs: export as HTML, sanitize, extract plain text
-        const rawHtml = await driveService.exportFile(accessToken, driveFileId, "text/html");
-        content = sanitizeGoogleDocsHtml(rawHtml);
-        extractionResult = extractPlainTextFromHtml(content);
+        const rawHtml = await driveService.exportFile(accessToken, driveFileId, 'text/html')
+        content = sanitizeGoogleDocsHtml(rawHtml)
+        extractionResult = extractPlainTextFromHtml(content)
       } else {
         // Binary files (DOCX, PDF, TXT, MD): download and extract
-        const buffer = await driveService.downloadFile(accessToken, driveFileId);
-        const extension = MIME_TO_EXTENSION[effectiveMimeType];
+        const buffer = await driveService.downloadFile(accessToken, driveFileId)
+        const extension = MIME_TO_EXTENSION[effectiveMimeType]
         if (!extension) {
-          throw new Error(`Unsupported MIME type for extraction: ${effectiveMimeType}`);
+          throw new Error(`Unsupported MIME type for extraction: ${effectiveMimeType}`)
         }
 
         switch (extension) {
-          case ".docx":
-            extractionResult = await extractFromDocx(buffer);
-            break;
-          case ".pdf":
-            extractionResult = await extractFromPdf(buffer);
-            break;
-          case ".txt":
-            extractionResult = extractFromTxt(buffer);
-            break;
-          case ".md":
-            extractionResult = extractFromMarkdown(buffer);
-            break;
+          case '.docx':
+            extractionResult = await extractFromDocx(buffer)
+            break
+          case '.pdf':
+            extractionResult = await extractFromPdf(buffer)
+            break
+          case '.txt':
+            extractionResult = extractFromTxt(buffer)
+            break
+          case '.md':
+            extractionResult = extractFromMarkdown(buffer)
+            break
           default:
-            throw new Error(`Unsupported extension: ${extension}`);
+            throw new Error(`Unsupported extension: ${extension}`)
         }
-        content = extractionResult.html;
+        content = extractionResult.html
       }
     } catch (err) {
       // Mark source as error state so UI can show appropriate message
       await this.db
         .prepare(`UPDATE source_materials SET status = 'error', updated_at = ? WHERE id = ?`)
         .bind(new Date().toISOString(), sourceId)
-        .run();
-      throw err;
+        .run()
+      throw err
     }
 
     // Get Drive file's modifiedTime for staleness tracking
-    let driveModifiedTime: string | null = null;
+    let driveModifiedTime: string | null = null
     try {
-      const metadata = await driveService.getFileMetadata(accessToken, driveFileId);
-      driveModifiedTime = metadata.modifiedTime ?? null;
+      const metadata = await driveService.getFileMetadata(accessToken, driveFileId)
+      driveModifiedTime = metadata.modifiedTime ?? null
     } catch {
       // Non-critical -- staleness detection just won't work until next fetch
     }
 
     // Resolve title for FTS indexing
-    const title = sourceTitle || "Untitled";
+    const title = sourceTitle || 'Untitled'
 
     // Store HTML + plain text in R2 and populate FTS index
     const { r2Key, cachedAt } = await storeExtractionResult(
@@ -357,8 +355,8 @@ export class SourceDriveService {
       title,
       extractionResult,
       this.bucket,
-      this.db,
-    );
+      this.db
+    )
 
     // Update D1 metadata
     await this.db
@@ -366,12 +364,12 @@ export class SourceDriveService {
         `UPDATE source_materials
          SET r2_key = ?, word_count = ?, cached_at = ?, drive_modified_time = ?,
              status = 'active', updated_at = ?
-         WHERE id = ?`,
+         WHERE id = ?`
       )
       .bind(r2Key, extractionResult.wordCount, cachedAt, driveModifiedTime, cachedAt, sourceId)
-      .run();
+      .run()
 
-    return { content, wordCount: extractionResult.wordCount, cachedAt };
+    return { content, wordCount: extractionResult.wordCount, cachedAt }
   }
 
   /**
@@ -381,15 +379,15 @@ export class SourceDriveService {
    * Table preserved for 90-day rollback window. See migration 0014.
    */
   async archiveByConnection(connectionId: string): Promise<void> {
-    const now = new Date().toISOString();
+    const now = new Date().toISOString()
 
     // Archive source materials
     await this.db
       .prepare(
         `UPDATE source_materials SET status = 'archived', updated_at = ?
-         WHERE drive_connection_id = ?`,
+         WHERE drive_connection_id = ?`
       )
       .bind(now, connectionId)
-      .run();
+      .run()
   }
 }

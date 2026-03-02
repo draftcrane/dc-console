@@ -1,35 +1,35 @@
-"use client";
+'use client'
 
-import { useState, useCallback } from "react";
-import { useDriveFiles, type DriveFile } from "@/hooks/use-drive-files";
+import { useState, useCallback } from 'react'
+import { useDriveFiles, type DriveFile } from '@/hooks/use-drive-files'
 
 interface DriveBrowserProps {
-  connectionId: string;
-  onReconnect?: () => void;
-  rootLabel?: string;
-  accountEmail?: string;
-  onDocumentTap: (file: DriveFile) => void;
+  connectionId: string
+  onReconnect?: () => void
+  rootLabel?: string
+  accountEmail?: string
+  onDocumentTap: (file: DriveFile) => void
   /** driveFileIds that are tagged (on the Desk) */
-  taggedFileIds: Set<string>;
+  taggedFileIds: Set<string>
   /** Tag a document (add to Desk) */
-  onTag: (file: DriveFile) => void;
+  onTag: (file: DriveFile) => void
   /** Untag a document (remove from Desk) */
-  onUntag: (file: DriveFile) => void;
+  onUntag: (file: DriveFile) => void
 }
 
 interface BreadcrumbItem {
-  id: string;
-  name: string;
+  id: string
+  name: string
 }
 
-const FOLDER_MIME = "application/vnd.google-apps.folder";
+const FOLDER_MIME = 'application/vnd.google-apps.folder'
 const SUPPORTED_MIMES = new Set([
-  "application/vnd.google-apps.document",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "text/plain",
-  "text/markdown",
-  "application/pdf",
-]);
+  'application/vnd.google-apps.document',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+  'text/markdown',
+  'application/pdf',
+])
 
 /**
  * DriveBrowser — pure folder/file browser. No selection, no linking.
@@ -46,58 +46,58 @@ export function DriveBrowser({
   onTag,
   onUntag,
 }: DriveBrowserProps) {
-  const [currentFolder, setCurrentFolder] = useState("root");
+  const [currentFolder, setCurrentFolder] = useState('root')
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([
-    { id: "root", name: rootLabel || "My Drive" },
-  ]);
+    { id: 'root', name: rootLabel || 'My Drive' },
+  ])
 
   const { files, isLoading, error, hasMore, loadMore } = useDriveFiles({
     connectionId,
     folderId: currentFolder,
-  });
+  })
 
   const navigateToFolder = useCallback((folderId: string, folderName: string) => {
-    setCurrentFolder(folderId);
-    setBreadcrumbs((prev) => [...prev, { id: folderId, name: folderName }]);
-  }, []);
+    setCurrentFolder(folderId)
+    setBreadcrumbs((prev) => [...prev, { id: folderId, name: folderName }])
+  }, [])
 
   const navigateToBreadcrumb = useCallback(
     (index: number) => {
-      setBreadcrumbs((prev) => prev.slice(0, index + 1));
-      setCurrentFolder(breadcrumbs[index].id);
+      setBreadcrumbs((prev) => prev.slice(0, index + 1))
+      setCurrentFolder(breadcrumbs[index].id)
     },
-    [breadcrumbs],
-  );
+    [breadcrumbs]
+  )
 
-  const folders = files.filter((f) => f.mimeType === FOLDER_MIME);
+  const folders = files.filter((f) => f.mimeType === FOLDER_MIME)
   const documents = files.filter(
-    (f) => f.mimeType !== FOLDER_MIME && SUPPORTED_MIMES.has(f.mimeType),
-  );
+    (f) => f.mimeType !== FOLDER_MIME && SUPPORTED_MIMES.has(f.mimeType)
+  )
   const unsupportedFiles = files.filter(
-    (f) => f.mimeType !== FOLDER_MIME && !SUPPORTED_MIMES.has(f.mimeType),
-  );
+    (f) => f.mimeType !== FOLDER_MIME && !SUPPORTED_MIMES.has(f.mimeType)
+  )
 
-  const isAtRoot = currentFolder === "root";
+  const isAtRoot = currentFolder === 'root'
 
   const getEmptyMessage = (): { title: string; detail?: string } => {
-    const hasUnsupported = unsupportedFiles.length > 0;
+    const hasUnsupported = unsupportedFiles.length > 0
     if (isAtRoot) {
       if (hasUnsupported) {
         return {
-          title: "No supported documents found",
-          detail: "Supported: Google Docs, Word, PDF, and text files.",
-        };
+          title: 'No supported documents found',
+          detail: 'Supported: Google Docs, Word, PDF, and text files.',
+        }
       }
-      return { title: "No documents found" };
+      return { title: 'No documents found' }
     }
     if (hasUnsupported) {
       return {
-        title: "No supported documents in this folder",
-        detail: "Supported: Google Docs, Word, PDF, and text files.",
-      };
+        title: 'No supported documents in this folder',
+        detail: 'Supported: Google Docs, Word, PDF, and text files.',
+      }
     }
-    return { title: "This folder is empty" };
-  };
+    return { title: 'This folder is empty' }
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -110,8 +110,8 @@ export function DriveBrowser({
               onClick={() => navigateToBreadcrumb(i)}
               className={`text-xs min-h-[32px] px-1 rounded transition-colors ${
                 i === breadcrumbs.length - 1
-                  ? "font-medium text-[var(--dc-color-text-primary)]"
-                  : "text-blue-600 hover:text-blue-700"
+                  ? 'font-medium text-[var(--dc-color-text-primary)]'
+                  : 'text-blue-600 hover:text-blue-700'
               }`}
             >
               {crumb.name}
@@ -132,9 +132,9 @@ export function DriveBrowser({
             <div className="flex items-center justify-center gap-2">
               <button
                 onClick={() => {
-                  const f = currentFolder;
-                  setCurrentFolder("");
-                  requestAnimationFrame(() => setCurrentFolder(f));
+                  const f = currentFolder
+                  setCurrentFolder('')
+                  requestAnimationFrame(() => setCurrentFolder(f))
                 }}
                 className="text-xs text-blue-600 hover:text-blue-700 underline min-h-[36px]"
               >
@@ -152,7 +152,7 @@ export function DriveBrowser({
           </div>
         ) : folders.length === 0 && documents.length === 0 ? (
           (() => {
-            const msg = getEmptyMessage();
+            const msg = getEmptyMessage()
             return (
               <div className="px-3 py-6 text-center">
                 <p className="text-sm text-[var(--dc-color-text-placeholder)]">{msg.title}</p>
@@ -162,7 +162,7 @@ export function DriveBrowser({
                   </p>
                 )}
               </div>
-            );
+            )
           })()
         ) : (
           <>
@@ -202,7 +202,7 @@ export function DriveBrowser({
 
             {/* Documents */}
             {documents.map((doc) => {
-              const isTagged = taggedFileIds.has(doc.id);
+              const isTagged = taggedFileIds.has(doc.id)
               return (
                 <div
                   key={doc.id}
@@ -232,12 +232,12 @@ export function DriveBrowser({
                   <button
                     onClick={() => (isTagged ? onUntag(doc) : onTag(doc))}
                     className={`p-2 mr-1 shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center
-                               transition-colors ${isTagged ? "text-blue-600" : "text-[var(--dc-color-border-strong)] hover:text-[var(--dc-color-text-muted)]"}`}
-                    aria-label={isTagged ? "Remove from desk" : "Add to desk"}
+                               transition-colors ${isTagged ? 'text-blue-600' : 'text-[var(--dc-color-border-strong)] hover:text-[var(--dc-color-text-muted)]'}`}
+                    aria-label={isTagged ? 'Remove from desk' : 'Add to desk'}
                   >
                     <svg
                       className="w-5 h-5"
-                      fill={isTagged ? "currentColor" : "none"}
+                      fill={isTagged ? 'currentColor' : 'none'}
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                     >
@@ -250,7 +250,7 @@ export function DriveBrowser({
                     </svg>
                   </button>
                 </div>
-              );
+              )
             })}
 
             {/* Pagination */}
@@ -261,12 +261,12 @@ export function DriveBrowser({
                 className="w-full px-3 py-3 text-xs text-blue-600 hover:bg-[var(--dc-color-surface-secondary)]
                            min-h-[44px] border-t border-gray-100"
               >
-                {isLoading ? "Loading..." : "Load more"}
+                {isLoading ? 'Loading...' : 'Load more'}
               </button>
             )}
           </>
         )}
       </div>
     </div>
-  );
+  )
 }

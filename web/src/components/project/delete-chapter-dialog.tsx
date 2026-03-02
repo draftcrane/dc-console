@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { useState } from "react";
+import { useState } from 'react'
 
 interface DeleteChapterDialogProps {
   /** The chapter title to display in the confirmation message */
-  chapterTitle: string;
+  chapterTitle: string
   /** Whether the dialog is open */
-  isOpen: boolean;
+  isOpen: boolean
   /** Called when the user confirms deletion */
-  onConfirm: () => Promise<void>;
+  onConfirm: () => Promise<void>
   /** Called when the user cancels */
-  onCancel: () => void;
+  onCancel: () => void
 }
 
 /**
@@ -28,16 +28,16 @@ export function DeleteChapterDialog({
   onConfirm,
   onCancel,
 }: DeleteChapterDialogProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   async function handleConfirm() {
-    setIsDeleting(true);
+    setIsDeleting(true)
     try {
-      await onConfirm();
+      await onConfirm()
     } finally {
-      setIsDeleting(false);
+      setIsDeleting(false)
     }
   }
 
@@ -103,12 +103,12 @@ export function DeleteChapterDialog({
                        hover:bg-red-700 transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isDeleting ? "Deleting..." : "Delete Chapter"}
+            {isDeleting ? 'Deleting...' : 'Delete Chapter'}
           </button>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default DeleteChapterDialog;
+export default DeleteChapterDialog

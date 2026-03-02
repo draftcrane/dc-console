@@ -1,70 +1,70 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import type { Editor } from "@tiptap/react";
-import { countWordsInText } from "@/utils/word-count";
+import { useState, useEffect, useCallback, useRef } from 'react'
+import type { Editor } from '@tiptap/react'
+import { countWordsInText } from '@/utils/word-count'
 
 export interface FloatingBarPosition {
   /** Top position relative to the container element */
-  top: number;
+  top: number
   /** Left position relative to the container element (centered) */
-  left: number;
+  left: number
 }
 
 export interface TextSelectionState {
   /** Whether text is currently selected within the editor */
-  hasSelection: boolean;
+  hasSelection: boolean
   /** The selected plain text */
-  selectedText: string;
+  selectedText: string
   /** Word count of the selected text */
-  wordCount: number;
+  wordCount: number
   /** Whether the selection exceeds the maximum word limit */
-  exceedsLimit: boolean;
+  exceedsLimit: boolean
   /** Computed position for the floating bar, relative to the container */
-  floatingBarPosition: FloatingBarPosition | null;
+  floatingBarPosition: FloatingBarPosition | null
 }
 
-const MAX_WORDS = 2000;
+const MAX_WORDS = 2000
 
 /**
  * Gets the bounding rectangle of the current DOM selection,
  * merging all client rects into a single envelope.
  */
 function getSelectionBounds(
-  selection: Selection,
+  selection: Selection
 ): { top: number; bottom: number; left: number; right: number; centerX: number } | null {
-  if (selection.rangeCount === 0) return null;
+  if (selection.rangeCount === 0) return null
 
-  const range = selection.getRangeAt(0);
-  const rects = range.getClientRects();
+  const range = selection.getRangeAt(0)
+  const rects = range.getClientRects()
 
   if (rects.length === 0) {
-    const rect = range.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) return null;
+    const rect = range.getBoundingClientRect()
+    if (rect.width === 0 && rect.height === 0) return null
     return {
       top: rect.top,
       bottom: rect.bottom,
       left: rect.left,
       right: rect.right,
       centerX: rect.left + rect.width / 2,
-    };
+    }
   }
 
-  let top = Infinity;
-  let bottom = -Infinity;
-  let left = Infinity;
-  let right = -Infinity;
+  let top = Infinity
+  let bottom = -Infinity
+  let left = Infinity
+  let right = -Infinity
 
   for (let i = 0; i < rects.length; i++) {
-    const rect = rects[i];
-    if (rect.width === 0 && rect.height === 0) continue;
-    top = Math.min(top, rect.top);
-    bottom = Math.max(bottom, rect.bottom);
-    left = Math.min(left, rect.left);
-    right = Math.max(right, rect.right);
+    const rect = rects[i]
+    if (rect.width === 0 && rect.height === 0) continue
+    top = Math.min(top, rect.top)
+    bottom = Math.max(bottom, rect.bottom)
+    left = Math.min(left, rect.left)
+    right = Math.max(right, rect.right)
   }
 
-  if (top === Infinity) return null;
+  if (top === Infinity) return null
 
   return {
     top,
@@ -72,7 +72,7 @@ function getSelectionBounds(
     left,
     right,
     centerX: left + (right - left) / 2,
-  };
+  }
 }
 
 /**
@@ -81,30 +81,30 @@ function getSelectionBounds(
  */
 function computeFloatingBarPosition(
   selectionBounds: { top: number; bottom: number; centerX: number },
-  container: HTMLElement,
+  container: HTMLElement
 ): FloatingBarPosition {
-  const containerRect = container.getBoundingClientRect();
-  const barHeight = 48;
-  const gap = 8;
+  const containerRect = container.getBoundingClientRect()
+  const barHeight = 48
+  const gap = 8
 
   // Position below the selection (opposite side from native iPadOS menu which appears above)
-  let top = selectionBounds.bottom + gap - containerRect.top + container.scrollTop;
-  const left = selectionBounds.centerX - containerRect.left;
+  let top = selectionBounds.bottom + gap - containerRect.top + container.scrollTop
+  const left = selectionBounds.centerX - containerRect.left
 
   // Clamp horizontal position to stay within the container
-  const barWidthEstimate = 160;
-  const halfBar = barWidthEstimate / 2;
-  const minLeft = halfBar + 8;
-  const maxLeft = containerRect.width - halfBar - 8;
-  const clampedLeft = Math.max(minLeft, Math.min(maxLeft, left));
+  const barWidthEstimate = 160
+  const halfBar = barWidthEstimate / 2
+  const minLeft = halfBar + 8
+  const maxLeft = containerRect.width - halfBar - 8
+  const clampedLeft = Math.max(minLeft, Math.min(maxLeft, left))
 
   // If the bar would go below the visible area, show it above the selection instead
-  const visibleBottom = container.scrollTop + containerRect.height;
+  const visibleBottom = container.scrollTop + containerRect.height
   if (top + barHeight > visibleBottom) {
-    top = selectionBounds.top - barHeight - gap - containerRect.top + container.scrollTop;
+    top = selectionBounds.top - barHeight - gap - containerRect.top + container.scrollTop
   }
 
-  return { top, left: clampedLeft };
+  return { top, left: clampedLeft }
 }
 
 /**
@@ -123,62 +123,62 @@ function computeFloatingBarPosition(
 export function useTextSelection(
   editor: Editor | null,
   containerRef: React.RefObject<HTMLElement | null>,
-  delay = 200,
+  delay = 200
 ): TextSelectionState {
   const [state, setState] = useState<TextSelectionState>({
     hasSelection: false,
-    selectedText: "",
+    selectedText: '',
     wordCount: 0,
     exceedsLimit: false,
     floatingBarPosition: null,
-  });
+  })
 
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+      clearTimeout(timerRef.current)
+      timerRef.current = null
     }
-  }, []);
+  }, [])
 
   const updateSelection = useCallback(() => {
     if (!editor) {
       setState({
         hasSelection: false,
-        selectedText: "",
+        selectedText: '',
         wordCount: 0,
         exceedsLimit: false,
         floatingBarPosition: null,
-      });
-      return;
+      })
+      return
     }
 
-    const { from, to, empty } = editor.state.selection;
+    const { from, to, empty } = editor.state.selection
 
     if (empty || from === to) {
       setState({
         hasSelection: false,
-        selectedText: "",
+        selectedText: '',
         wordCount: 0,
         exceedsLimit: false,
         floatingBarPosition: null,
-      });
-      return;
+      })
+      return
     }
 
     // Get the selected text from the editor document
-    const selectedText = editor.state.doc.textBetween(from, to, " ");
-    const words = countWordsInText(selectedText);
+    const selectedText = editor.state.doc.textBetween(from, to, ' ')
+    const words = countWordsInText(selectedText)
 
     // Get DOM selection bounds and compute floating bar position
-    const domSelection = window.getSelection();
-    const bounds = domSelection ? getSelectionBounds(domSelection) : null;
-    const container = containerRef.current;
+    const domSelection = window.getSelection()
+    const bounds = domSelection ? getSelectionBounds(domSelection) : null
+    const container = containerRef.current
 
-    let floatingBarPosition: FloatingBarPosition | null = null;
+    let floatingBarPosition: FloatingBarPosition | null = null
     if (bounds && container) {
-      floatingBarPosition = computeFloatingBarPosition(bounds, container);
+      floatingBarPosition = computeFloatingBarPosition(bounds, container)
     }
 
     setState({
@@ -187,55 +187,55 @@ export function useTextSelection(
       wordCount: words,
       exceedsLimit: words > MAX_WORDS,
       floatingBarPosition,
-    });
-  }, [editor, containerRef]);
+    })
+  }, [editor, containerRef])
 
   useEffect(() => {
-    if (!editor) return;
+    if (!editor) return
 
     // Listen to Tiptap's selection update event
     const handleSelectionUpdate = () => {
-      clearTimer();
-      timerRef.current = setTimeout(updateSelection, delay);
-    };
+      clearTimer()
+      timerRef.current = setTimeout(updateSelection, delay)
+    }
 
     // Listen to Tiptap's blur event to clear selection state
     const handleBlur = () => {
-      clearTimer();
+      clearTimer()
       // Small delay to allow for click-on-floating-bar to register
       timerRef.current = setTimeout(() => {
         setState({
           hasSelection: false,
-          selectedText: "",
+          selectedText: '',
           wordCount: 0,
           exceedsLimit: false,
           floatingBarPosition: null,
-        });
-      }, 150);
-    };
+        })
+      }, 150)
+    }
 
-    editor.on("selectionUpdate", handleSelectionUpdate);
-    editor.on("blur", handleBlur);
+    editor.on('selectionUpdate', handleSelectionUpdate)
+    editor.on('blur', handleBlur)
 
     // Also listen to native selectionchange for handle-drag tracking
     const handleNativeSelectionChange = () => {
-      if (!editor.isFocused) return;
-      const { empty } = editor.state.selection;
+      if (!editor.isFocused) return
+      const { empty } = editor.state.selection
       if (!empty) {
-        clearTimer();
-        timerRef.current = setTimeout(updateSelection, delay);
+        clearTimer()
+        timerRef.current = setTimeout(updateSelection, delay)
       }
-    };
+    }
 
-    document.addEventListener("selectionchange", handleNativeSelectionChange);
+    document.addEventListener('selectionchange', handleNativeSelectionChange)
 
     return () => {
-      clearTimer();
-      editor.off("selectionUpdate", handleSelectionUpdate);
-      editor.off("blur", handleBlur);
-      document.removeEventListener("selectionchange", handleNativeSelectionChange);
-    };
-  }, [editor, delay, updateSelection, clearTimer]);
+      clearTimer()
+      editor.off('selectionUpdate', handleSelectionUpdate)
+      editor.off('blur', handleBlur)
+      document.removeEventListener('selectionchange', handleNativeSelectionChange)
+    }
+  }, [editor, delay, updateSelection, clearTimer])
 
-  return state;
+  return state
 }

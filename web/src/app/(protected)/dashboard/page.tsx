@@ -1,33 +1,33 @@
-"use client";
+'use client'
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
-import Link from "next/link";
-import { useSignOut } from "@/hooks/use-sign-out";
-import { useBackup } from "@/hooks/use-backup";
-import { useProjectActions, type ProjectSummary } from "@/hooks/use-project-actions";
-import { DeleteProjectDialog } from "@/components/project/delete-project-dialog";
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
+import Link from 'next/link'
+import { useSignOut } from '@/hooks/use-sign-out'
+import { useBackup } from '@/hooks/use-backup'
+import { useProjectActions, type ProjectSummary } from '@/hooks/use-project-actions'
+import { DeleteProjectDialog } from '@/components/project/delete-project-dialog'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 /**
  * Format a date string as relative time ("2 hours ago", "3 days ago", etc.)
  */
 function relativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSeconds = Math.floor(diffMs / 1000);
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  const diffHours = Math.floor(diffMinutes / 60);
-  const diffDays = Math.floor(diffHours / 24);
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffSeconds = Math.floor(diffMs / 1000)
+  const diffMinutes = Math.floor(diffSeconds / 60)
+  const diffHours = Math.floor(diffMinutes / 60)
+  const diffDays = Math.floor(diffHours / 24)
 
-  if (diffMinutes < 1) return "just now";
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 30) return `${diffDays}d ago`;
-  return date.toLocaleDateString();
+  if (diffMinutes < 1) return 'just now'
+  if (diffMinutes < 60) return `${diffMinutes}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 30) return `${diffDays}d ago`
+  return date.toLocaleDateString()
 }
 
 /**
@@ -38,11 +38,11 @@ function relativeTime(dateString: string): string {
  * Zero-project state shows the original welcome screen with "Create Your First Book".
  */
 export default function DashboardPage() {
-  const router = useRouter();
-  const { getToken } = useAuth();
-  const { handleSignOut, isSigningOut } = useSignOut();
-  const { importBackup, isImporting, error: importError } = useBackup();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter()
+  const { getToken } = useAuth()
+  const { handleSignOut, isSigningOut } = useSignOut()
+  const { importBackup, isImporting, error: importError } = useBackup()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const {
     projects,
@@ -54,81 +54,81 @@ export default function DashboardPage() {
     isRenaming,
     duplicateProject,
     isDuplicating,
-  } = useProjectActions({ getToken: getToken as () => Promise<string | null> });
+  } = useProjectActions({ getToken: getToken as () => Promise<string | null> })
 
   // Card overflow menu state
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   // Rename dialog state
-  const [renameTarget, setRenameTarget] = useState<ProjectSummary | null>(null);
-  const [renameValue, setRenameValue] = useState("");
+  const [renameTarget, setRenameTarget] = useState<ProjectSummary | null>(null)
+  const [renameValue, setRenameValue] = useState('')
 
   // Duplicate dialog state
-  const [duplicateTarget, setDuplicateTarget] = useState<ProjectSummary | null>(null);
+  const [duplicateTarget, setDuplicateTarget] = useState<ProjectSummary | null>(null)
 
   // Delete dialog state
-  const [deleteTarget, setDeleteTarget] = useState<ProjectSummary | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProjectSummary | null>(null)
 
   // Close overflow menu on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpenMenuId(null);
+        setOpenMenuId(null)
       }
     }
     if (openMenuId) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [openMenuId]);
+  }, [openMenuId])
 
   // Close overflow menu on Escape
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpenMenuId(null);
+      if (event.key === 'Escape') {
+        setOpenMenuId(null)
       }
     }
     if (openMenuId) {
-      document.addEventListener("keydown", handleKeyDown);
-      return () => document.removeEventListener("keydown", handleKeyDown);
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [openMenuId]);
+  }, [openMenuId])
 
   const handleRenameSubmit = useCallback(async () => {
-    if (!renameTarget || !renameValue.trim()) return;
-    const success = await renameProject(renameTarget.id, renameValue.trim());
+    if (!renameTarget || !renameValue.trim()) return
+    const success = await renameProject(renameTarget.id, renameValue.trim())
     if (success) {
-      setRenameTarget(null);
+      setRenameTarget(null)
     }
-  }, [renameTarget, renameValue, renameProject]);
+  }, [renameTarget, renameValue, renameProject])
 
   const handleDuplicateConfirm = useCallback(async () => {
-    if (!duplicateTarget) return;
-    const newProjectId = await duplicateProject(duplicateTarget.id);
-    setDuplicateTarget(null);
+    if (!duplicateTarget) return
+    const newProjectId = await duplicateProject(duplicateTarget.id)
+    setDuplicateTarget(null)
     if (newProjectId) {
-      router.push(`/editor/${newProjectId}`);
+      router.push(`/editor/${newProjectId}`)
     }
-  }, [duplicateTarget, duplicateProject, router]);
+  }, [duplicateTarget, duplicateProject, router])
 
   const handleDeleteProject = useCallback(async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget) return
     try {
-      const token = await getToken();
+      const token = await getToken()
       const response = await fetch(`${API_URL}/projects/${deleteTarget.id}`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error("Failed to delete project");
-      setDeleteTarget(null);
-      await fetchProjects();
+      })
+      if (!response.ok) throw new Error('Failed to delete project')
+      setDeleteTarget(null)
+      await fetchProjects()
     } catch (err) {
-      console.error("Failed to delete project:", err);
-      setDeleteTarget(null);
+      console.error('Failed to delete project:', err)
+      setDeleteTarget(null)
     }
-  }, [deleteTarget, getToken, fetchProjects]);
+  }, [deleteTarget, getToken, fetchProjects])
 
   // Loading state
   if (isLoadingProjects) {
@@ -136,7 +136,7 @@ export default function DashboardPage() {
       <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
       </div>
-    );
+    )
   }
 
   // Error state
@@ -147,8 +147,8 @@ export default function DashboardPage() {
           <p className="text-red-600 mb-4">{projectsError}</p>
           <button
             onClick={() => {
-              clearProjectsError();
-              fetchProjects();
+              clearProjectsError()
+              fetchProjects()
             }}
             className="px-4 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800"
           >
@@ -156,7 +156,7 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   // Zero-project state — preserve original welcome screen exactly
@@ -191,13 +191,13 @@ export default function DashboardPage() {
               accept=".zip"
               className="hidden"
               onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const projectId = await importBackup(file);
+                const file = e.target.files?.[0]
+                if (!file) return
+                const projectId = await importBackup(file)
                 if (projectId) {
-                  router.push(`/editor/${projectId}`);
+                  router.push(`/editor/${projectId}`)
                 }
-                e.target.value = "";
+                e.target.value = ''
               }}
             />
             <button
@@ -206,7 +206,7 @@ export default function DashboardPage() {
               className="text-sm text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-secondary)] transition-colors
                          disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isImporting ? "Importing..." : "Import from a backup file"}
+              {isImporting ? 'Importing...' : 'Import from a backup file'}
             </button>
             {importError && <p className="text-sm text-red-600 mt-1">{importError}</p>}
           </div>
@@ -218,12 +218,12 @@ export default function DashboardPage() {
               className="text-sm text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-secondary)] transition-colors
                          disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSigningOut ? "Signing out\u2026" : "Sign out"}
+              {isSigningOut ? 'Signing out\u2026' : 'Sign out'}
             </button>
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   // Project card grid
@@ -254,7 +254,7 @@ export default function DashboardPage() {
               </h2>
               <div className="mt-2 flex items-center gap-3 text-sm text-muted-foreground">
                 <span>
-                  {project.chapterCount} {project.chapterCount === 1 ? "chapter" : "chapters"}
+                  {project.chapterCount} {project.chapterCount === 1 ? 'chapter' : 'chapters'}
                 </span>
                 <span className="text-[var(--dc-color-border-strong)]">&middot;</span>
                 <span className="tabular-nums">{project.wordCount.toLocaleString()} words</span>
@@ -271,9 +271,9 @@ export default function DashboardPage() {
             >
               <button
                 onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setOpenMenuId(openMenuId === project.id ? null : project.id);
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setOpenMenuId(openMenuId === project.id ? null : project.id)
                 }}
                 className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-[var(--dc-color-surface-tertiary)]
                            transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
@@ -300,9 +300,9 @@ export default function DashboardPage() {
                 >
                   <button
                     onClick={() => {
-                      setOpenMenuId(null);
-                      setRenameValue(project.title);
-                      setRenameTarget(project);
+                      setOpenMenuId(null)
+                      setRenameValue(project.title)
+                      setRenameTarget(project)
                     }}
                     className="w-full text-left px-4 py-2.5 text-sm text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-tertiary)]
                                transition-colors min-h-[44px] flex items-center gap-2"
@@ -325,8 +325,8 @@ export default function DashboardPage() {
                   </button>
                   <button
                     onClick={() => {
-                      setOpenMenuId(null);
-                      setDuplicateTarget(project);
+                      setOpenMenuId(null)
+                      setDuplicateTarget(project)
                     }}
                     className="w-full text-left px-4 py-2.5 text-sm text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-tertiary)]
                                transition-colors min-h-[44px] flex items-center gap-2"
@@ -350,8 +350,8 @@ export default function DashboardPage() {
                   <div className="my-1 border-t border-gray-200" role="separator" />
                   <button
                     onClick={() => {
-                      setOpenMenuId(null);
-                      setDeleteTarget(project);
+                      setOpenMenuId(null)
+                      setDeleteTarget(project)
                     }}
                     className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50
                                transition-colors min-h-[44px] flex items-center gap-2"
@@ -387,13 +387,13 @@ export default function DashboardPage() {
           accept=".zip"
           className="hidden"
           onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            const projectId = await importBackup(file);
+            const file = e.target.files?.[0]
+            if (!file) return
+            const projectId = await importBackup(file)
             if (projectId) {
-              router.push(`/editor/${projectId}`);
+              router.push(`/editor/${projectId}`)
             }
-            e.target.value = "";
+            e.target.value = ''
           }}
         />
         <button
@@ -402,7 +402,7 @@ export default function DashboardPage() {
           className="text-sm text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-secondary)] transition-colors
                      disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isImporting ? "Importing..." : "Import from a backup file"}
+          {isImporting ? 'Importing...' : 'Import from a backup file'}
         </button>
         {importError && <p className="text-sm text-red-600 mt-1">{importError}</p>}
         <div className="mt-2">
@@ -435,8 +435,8 @@ export default function DashboardPage() {
               value={renameValue}
               onChange={(e) => setRenameValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleRenameSubmit();
-                if (e.key === "Escape") setRenameTarget(null);
+                if (e.key === 'Enter') handleRenameSubmit()
+                if (e.key === 'Escape') setRenameTarget(null)
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -460,7 +460,7 @@ export default function DashboardPage() {
                            hover:bg-gray-800 transition-colors min-h-[44px]
                            disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isRenaming ? "Saving..." : "Save"}
+                {isRenaming ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
@@ -503,7 +503,7 @@ export default function DashboardPage() {
                            hover:bg-gray-800 transition-colors min-h-[44px]
                            disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isDuplicating ? "Duplicating..." : "Duplicate"}
+                {isDuplicating ? 'Duplicating...' : 'Duplicate'}
               </button>
             </div>
           </div>
@@ -512,11 +512,11 @@ export default function DashboardPage() {
 
       {/* Delete confirmation dialog — reuses existing component */}
       <DeleteProjectDialog
-        projectTitle={deleteTarget?.title || ""}
+        projectTitle={deleteTarget?.title || ''}
         isOpen={!!deleteTarget}
         onConfirm={handleDeleteProject}
         onCancel={() => setDeleteTarget(null)}
       />
     </div>
-  );
+  )
 }

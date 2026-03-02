@@ -110,7 +110,7 @@
 .workspace-shell {
   grid-template-columns: 1fr;
   grid-template-rows: 1fr;
-  grid-template-areas: "center";
+  grid-template-areas: 'center';
 }
 
 .workspace-sidebar {
@@ -152,7 +152,7 @@
     /* Two columns: sidebar + flexible center area */
     grid-template-columns: var(--workspace-sidebar-width) 1fr;
     grid-template-rows: 1fr;
-    grid-template-areas: "sidebar center";
+    grid-template-areas: 'sidebar center';
   }
 
   .workspace-sidebar {
@@ -167,21 +167,21 @@
   }
 
   /* Sidebar collapsed state */
-  .workspace-shell[data-sidebar-collapsed="true"] {
+  .workspace-shell[data-sidebar-collapsed='true'] {
     grid-template-columns: 0 1fr;
   }
 
-  .workspace-shell[data-sidebar-collapsed="true"] .workspace-sidebar {
+  .workspace-shell[data-sidebar-collapsed='true'] .workspace-sidebar {
     display: none;
   }
 
   /* Single panel persistent (either editor OR library, not both) */
-  .workspace-shell[data-editor-panel="persistent"] {
+  .workspace-shell[data-editor-panel='persistent'] {
     grid-template-columns: var(--workspace-sidebar-width) var(--workspace-panel-width) 1fr;
-    grid-template-areas: "sidebar editor-panel center";
+    grid-template-areas: 'sidebar editor-panel center';
   }
 
-  .workspace-shell[data-editor-panel="persistent"] .workspace-editor-panel {
+  .workspace-shell[data-editor-panel='persistent'] .workspace-editor-panel {
     display: flex;
     flex-direction: column;
     grid-area: editor-panel;
@@ -195,12 +195,12 @@
     container-name: editor-panel;
   }
 
-  .workspace-shell[data-library-panel="persistent"] {
+  .workspace-shell[data-library-panel='persistent'] {
     grid-template-columns: var(--workspace-sidebar-width) 1fr var(--workspace-panel-width);
-    grid-template-areas: "sidebar center library-panel";
+    grid-template-areas: 'sidebar center library-panel';
   }
 
-  .workspace-shell[data-library-panel="persistent"] .workspace-library-panel {
+  .workspace-shell[data-library-panel='persistent'] .workspace-library-panel {
     display: flex;
     flex-direction: column;
     grid-area: library-panel;
@@ -216,13 +216,13 @@
 
   /* Panel layout algorithm: ensure center never < 400px in landscape */
   /* When both panels try to be persistent, only one can be */
-  .workspace-shell[data-editor-panel="persistent"][data-library-panel="persistent"] {
+  .workspace-shell[data-editor-panel='persistent'][data-library-panel='persistent'] {
     /* In landscape, if both want to be persistent, library becomes overlay */
     grid-template-columns: var(--workspace-sidebar-width) var(--workspace-panel-width) 1fr;
-    grid-template-areas: "sidebar editor-panel center";
+    grid-template-areas: 'sidebar editor-panel center';
   }
 
-  .workspace-shell[data-editor-panel="persistent"][data-library-panel="persistent"]
+  .workspace-shell[data-editor-panel='persistent'][data-library-panel='persistent']
     .workspace-library-panel {
     /* Library panel forced to overlay in landscape when editor is persistent */
     display: none;
@@ -242,20 +242,20 @@
   .workspace-shell {
     /* Sidebar + flexible center */
     grid-template-columns: var(--workspace-sidebar-width) 1fr;
-    grid-template-areas: "sidebar center";
+    grid-template-areas: 'sidebar center';
   }
 
   /* Both panels can now be persistent */
-  .workspace-shell[data-editor-panel="persistent"][data-library-panel="persistent"] {
+  .workspace-shell[data-editor-panel='persistent'][data-library-panel='persistent'] {
     grid-template-columns:
       var(--workspace-sidebar-width)
       var(--workspace-panel-width)
       minmax(var(--workspace-center-min-width), 1fr)
       var(--workspace-panel-width);
-    grid-template-areas: "sidebar editor-panel center library-panel";
+    grid-template-areas: 'sidebar editor-panel center library-panel';
   }
 
-  .workspace-shell[data-editor-panel="persistent"][data-library-panel="persistent"]
+  .workspace-shell[data-editor-panel='persistent'][data-library-panel='persistent']
     .workspace-library-panel {
     /* Library panel now visible in desktop */
     display: flex;
@@ -270,21 +270,21 @@
   }
 
   /* Single editor panel */
-  .workspace-shell[data-editor-panel="persistent"]:not([data-library-panel="persistent"]) {
+  .workspace-shell[data-editor-panel='persistent']:not([data-library-panel='persistent']) {
     grid-template-columns:
       var(--workspace-sidebar-width)
       var(--workspace-panel-width)
       minmax(var(--workspace-center-min-width), 1fr);
-    grid-template-areas: "sidebar editor-panel center";
+    grid-template-areas: 'sidebar editor-panel center';
   }
 
   /* Single library panel */
-  .workspace-shell[data-library-panel="persistent"]:not([data-editor-panel="persistent"]) {
+  .workspace-shell[data-library-panel='persistent']:not([data-editor-panel='persistent']) {
     grid-template-columns:
       var(--workspace-sidebar-width)
       minmax(var(--workspace-center-min-width), 1fr)
       var(--workspace-panel-width);
-    grid-template-areas: "sidebar center library-panel";
+    grid-template-areas: 'sidebar center library-panel';
   }
 }
 
@@ -475,19 +475,19 @@
  * --------------------------------------------------------------------- */
 
 /* Show/hide based on panel state - for use with data attributes */
-.workspace-shell[data-editor-panel="hidden"] .show-when-editor-open {
+.workspace-shell[data-editor-panel='hidden'] .show-when-editor-open {
   display: none;
 }
 
-.workspace-shell[data-library-panel="hidden"] .show-when-library-open {
+.workspace-shell[data-library-panel='hidden'] .show-when-library-open {
   display: none;
 }
 
-.workspace-shell:not([data-editor-panel="hidden"]) .hide-when-editor-open {
+.workspace-shell:not([data-editor-panel='hidden']) .hide-when-editor-open {
   display: none;
 }
 
-.workspace-shell:not([data-library-panel="hidden"]) .hide-when-library-open {
+.workspace-shell:not([data-library-panel='hidden']) .hide-when-library-open {
   display: none;
 }
 

@@ -11,13 +11,13 @@
 
 /** A single event from an AI completion stream */
 export type AIStreamEvent =
-  | { type: "token"; text: string }
-  | { type: "done" }
-  | { type: "error"; message: string };
+  | { type: 'token'; text: string }
+  | { type: 'done' }
+  | { type: 'error'; message: string }
 
 /** Options for a streaming completion request */
 export interface CompletionOptions {
-  maxTokens?: number;
+  maxTokens?: number
 }
 
 /** Provider-agnostic AI interface */
@@ -26,22 +26,22 @@ export interface AIProvider {
   streamCompletion(
     systemPrompt: string,
     userMessage: string,
-    options?: CompletionOptions,
-  ): Promise<ReadableStream<AIStreamEvent>>;
+    options?: CompletionOptions
+  ): Promise<ReadableStream<AIStreamEvent>>
 
   /** Non-streaming completion — returns the full response text */
   completion(
     systemPrompt: string,
     userMessage: string,
-    options?: CompletionOptions,
-  ): Promise<string>;
+    options?: CompletionOptions
+  ): Promise<string>
 
   /** The model identifier used by this provider */
-  readonly model: string;
+  readonly model: string
 }
 
-const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-const DEFAULT_MODEL = "gpt-4o";
+const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions'
+const DEFAULT_MODEL = 'gpt-4o'
 
 /**
  * OpenAI implementation of AIProvider.
@@ -51,24 +51,24 @@ const DEFAULT_MODEL = "gpt-4o";
  * handle chunk boundaries that split across SSE events.
  */
 export class OpenAIProvider implements AIProvider {
-  readonly model: string;
+  readonly model: string
 
   constructor(
     private readonly apiKey: string,
-    model?: string,
+    model?: string
   ) {
-    this.model = model || DEFAULT_MODEL;
+    this.model = model || DEFAULT_MODEL
   }
 
   async streamCompletion(
     systemPrompt: string,
     userMessage: string,
-    options?: CompletionOptions,
+    options?: CompletionOptions
   ): Promise<ReadableStream<AIStreamEvent>> {
     const response = await fetch(OPENAI_API_URL, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
@@ -76,35 +76,35 @@ export class OpenAIProvider implements AIProvider {
         max_tokens: options?.maxTokens ?? 4096,
         stream: true,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
         ],
       }),
-    });
+    })
 
     if (!response.ok) {
-      const errorBody = await response.text().catch(() => "Unknown error");
-      console.error("OpenAI API error:", response.status, errorBody);
-      throw new Error(`AI provider error: ${response.status}`);
+      const errorBody = await response.text().catch(() => 'Unknown error')
+      console.error('OpenAI API error:', response.status, errorBody)
+      throw new Error(`AI provider error: ${response.status}`)
     }
 
-    const body = response.body;
+    const body = response.body
     if (!body) {
-      throw new Error("No response body from AI provider");
+      throw new Error('No response body from AI provider')
     }
 
-    return body.pipeThrough(createSSETransform());
+    return body.pipeThrough(createSSETransform())
   }
 
   async completion(
     systemPrompt: string,
     userMessage: string,
-    options?: CompletionOptions,
+    options?: CompletionOptions
   ): Promise<string> {
     const response = await fetch(OPENAI_API_URL, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
@@ -112,22 +112,22 @@ export class OpenAIProvider implements AIProvider {
         max_tokens: options?.maxTokens ?? 4096,
         stream: false,
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
         ],
       }),
-    });
+    })
 
     if (!response.ok) {
-      const errorBody = await response.text().catch(() => "Unknown error");
-      console.error("OpenAI API error:", response.status, errorBody);
-      throw new Error(`AI provider error: ${response.status}`);
+      const errorBody = await response.text().catch(() => 'Unknown error')
+      console.error('OpenAI API error:', response.status, errorBody)
+      throw new Error(`AI provider error: ${response.status}`)
     }
 
     const data = (await response.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    return data.choices?.[0]?.message?.content ?? "";
+      choices?: { message?: { content?: string } }[]
+    }
+    return data.choices?.[0]?.message?.content ?? ''
   }
 }
 
@@ -142,30 +142,30 @@ export class OpenAIProvider implements AIProvider {
  * (delimited by \n\n).
  */
 function createSSETransform(): TransformStream<Uint8Array, AIStreamEvent> {
-  const decoder = new TextDecoder();
-  let buffer = "";
+  const decoder = new TextDecoder()
+  let buffer = ''
 
   return new TransformStream<Uint8Array, AIStreamEvent>({
     transform(chunk, controller) {
-      buffer += decoder.decode(chunk, { stream: true });
+      buffer += decoder.decode(chunk, { stream: true })
 
       // Process all complete events (delimited by \n\n)
-      const parts = buffer.split("\n\n");
+      const parts = buffer.split('\n\n')
       // Last element may be incomplete - keep it in the buffer
-      buffer = parts.pop() || "";
+      buffer = parts.pop() || ''
 
       for (const eventBlock of parts) {
-        processSSEBlock(eventBlock, controller);
+        processSSEBlock(eventBlock, controller)
       }
     },
 
     flush(controller) {
       // Process any remaining buffered data
       if (buffer.trim()) {
-        processSSEBlock(buffer, controller);
+        processSSEBlock(buffer, controller)
       }
     },
-  });
+  })
 }
 
 /**
@@ -173,28 +173,28 @@ function createSSETransform(): TransformStream<Uint8Array, AIStreamEvent> {
  */
 function processSSEBlock(
   eventBlock: string,
-  controller: TransformStreamDefaultController<AIStreamEvent>,
+  controller: TransformStreamDefaultController<AIStreamEvent>
 ): void {
-  for (const line of eventBlock.split("\n")) {
-    if (!line.startsWith("data: ")) continue;
+  for (const line of eventBlock.split('\n')) {
+    if (!line.startsWith('data: ')) continue
 
-    const data = line.slice(6).trim();
-    if (data === "[DONE]") {
-      controller.enqueue({ type: "done" });
-      return;
+    const data = line.slice(6).trim()
+    if (data === '[DONE]') {
+      controller.enqueue({ type: 'done' })
+      return
     }
 
     try {
-      const parsed = JSON.parse(data);
-      const delta = parsed.choices?.[0]?.delta;
+      const parsed = JSON.parse(data)
+      const delta = parsed.choices?.[0]?.delta
 
       if (delta?.content) {
-        controller.enqueue({ type: "token", text: delta.content });
+        controller.enqueue({ type: 'token', text: delta.content })
       }
 
       // OpenAI signals completion via finish_reason
-      if (parsed.choices?.[0]?.finish_reason === "stop") {
-        controller.enqueue({ type: "done" });
+      if (parsed.choices?.[0]?.finish_reason === 'stop') {
+        controller.enqueue({ type: 'done' })
       }
     } catch {
       // Skip malformed JSON
@@ -202,7 +202,7 @@ function processSSEBlock(
   }
 }
 
-const WORKERS_AI_MODEL = "@cf/mistralai/mistral-small-3.1-24b-instruct";
+const WORKERS_AI_MODEL = '@cf/mistralai/mistral-small-3.1-24b-instruct'
 
 /**
  * Cloudflare Workers AI implementation of AIProvider.
@@ -212,51 +212,51 @@ const WORKERS_AI_MODEL = "@cf/mistralai/mistral-small-3.1-24b-instruct";
  * A separate transform function handles this format.
  */
 export class WorkersAIProvider implements AIProvider {
-  readonly model: string;
+  readonly model: string
 
   constructor(private readonly ai: Ai) {
-    this.model = WORKERS_AI_MODEL;
+    this.model = WORKERS_AI_MODEL
   }
 
   async streamCompletion(
     systemPrompt: string,
     userMessage: string,
-    options?: CompletionOptions,
+    options?: CompletionOptions
   ): Promise<ReadableStream<AIStreamEvent>> {
-    const response = await this.ai.run(this.model as Parameters<Ai["run"]>[0], {
+    const response = await this.ai.run(this.model as Parameters<Ai['run']>[0], {
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
       ],
       max_tokens: options?.maxTokens ?? 4096,
       stream: true,
-    });
+    })
 
     // Workers AI with stream: true returns a ReadableStream
     if (!(response instanceof ReadableStream)) {
-      throw new Error("Expected streaming response from Workers AI");
+      throw new Error('Expected streaming response from Workers AI')
     }
 
-    return (response as ReadableStream<Uint8Array>).pipeThrough(createWorkersAITransform());
+    return (response as ReadableStream<Uint8Array>).pipeThrough(createWorkersAITransform())
   }
 
   async completion(
     systemPrompt: string,
     userMessage: string,
-    options?: CompletionOptions,
+    options?: CompletionOptions
   ): Promise<string> {
-    const response = await this.ai.run(this.model as Parameters<Ai["run"]>[0], {
+    const response = await this.ai.run(this.model as Parameters<Ai['run']>[0], {
       messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
       ],
       max_tokens: options?.maxTokens ?? 4096,
       stream: false,
-    });
+    })
 
     // Non-streaming returns an object with a response field
-    const result = response as { response?: string };
-    return result.response ?? "";
+    const result = response as { response?: string }
+    return result.response ?? ''
   }
 }
 
@@ -270,27 +270,27 @@ export class WorkersAIProvider implements AIProvider {
  * This is different from OpenAI's format (which uses choices[0].delta.content).
  */
 function createWorkersAITransform(): TransformStream<Uint8Array, AIStreamEvent> {
-  const decoder = new TextDecoder();
-  let buffer = "";
+  const decoder = new TextDecoder()
+  let buffer = ''
 
   return new TransformStream<Uint8Array, AIStreamEvent>({
     transform(chunk, controller) {
-      buffer += decoder.decode(chunk, { stream: true });
+      buffer += decoder.decode(chunk, { stream: true })
 
-      const parts = buffer.split("\n\n");
-      buffer = parts.pop() || "";
+      const parts = buffer.split('\n\n')
+      buffer = parts.pop() || ''
 
       for (const eventBlock of parts) {
-        processWorkersAIBlock(eventBlock, controller);
+        processWorkersAIBlock(eventBlock, controller)
       }
     },
 
     flush(controller) {
       if (buffer.trim()) {
-        processWorkersAIBlock(buffer, controller);
+        processWorkersAIBlock(buffer, controller)
       }
     },
-  });
+  })
 }
 
 /**
@@ -298,21 +298,21 @@ function createWorkersAITransform(): TransformStream<Uint8Array, AIStreamEvent> 
  */
 function processWorkersAIBlock(
   eventBlock: string,
-  controller: TransformStreamDefaultController<AIStreamEvent>,
+  controller: TransformStreamDefaultController<AIStreamEvent>
 ): void {
-  for (const line of eventBlock.split("\n")) {
-    if (!line.startsWith("data: ")) continue;
+  for (const line of eventBlock.split('\n')) {
+    if (!line.startsWith('data: ')) continue
 
-    const data = line.slice(6).trim();
-    if (data === "[DONE]") {
-      controller.enqueue({ type: "done" });
-      return;
+    const data = line.slice(6).trim()
+    if (data === '[DONE]') {
+      controller.enqueue({ type: 'done' })
+      return
     }
 
     try {
-      const parsed = JSON.parse(data) as { response?: string };
+      const parsed = JSON.parse(data) as { response?: string }
       if (parsed.response) {
-        controller.enqueue({ type: "token", text: parsed.response });
+        controller.enqueue({ type: 'token', text: parsed.response })
       }
     } catch {
       // Skip malformed JSON

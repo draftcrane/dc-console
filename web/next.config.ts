@@ -1,21 +1,21 @@
-import type { NextConfig } from "next";
-import { withSerwist } from "@serwist/turbopack";
-import { createRequire } from "module";
+import type { NextConfig } from 'next'
+import { withSerwist } from '@serwist/turbopack'
+import { createRequire } from 'module'
 
 // Read version from package.json at build time for NEXT_PUBLIC_APP_VERSION.
 // createRequire is used because next.config.ts is processed as ESM by Next.js.
-const require = createRequire(import.meta.url);
-const pkg = require("./package.json") as { version: string };
+const require = createRequire(import.meta.url)
+const pkg = require('./package.json') as { version: string }
 
 /**
  * Security headers applied to all routes.
  * 'unsafe-eval' is required by Clerk in development but not in production.
  */
-const isDev = process.env.NODE_ENV !== "production";
+const isDev = process.env.NODE_ENV !== 'production'
 
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://*.clerk.accounts.dev https://*.clerk.com https://apis.google.com;
+  script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ''}https://*.clerk.accounts.dev https://*.clerk.com https://apis.google.com;
   style-src 'self' 'unsafe-inline';
   img-src 'self' blob: data: https://*.clerk.com https://img.clerk.com https://lh3.googleusercontent.com;
   font-src 'self';
@@ -27,35 +27,35 @@ const ContentSecurityPolicy = `
   form-action 'self';
   frame-ancestors 'none';
 `
-  .replace(/\s{2,}/g, " ")
-  .trim();
+  .replace(/\s{2,}/g, ' ')
+  .trim()
 
 const securityHeaders = [
   {
-    key: "X-Frame-Options",
-    value: "DENY",
+    key: 'X-Frame-Options',
+    value: 'DENY',
   },
   {
-    key: "X-Content-Type-Options",
-    value: "nosniff",
+    key: 'X-Content-Type-Options',
+    value: 'nosniff',
   },
   {
-    key: "Strict-Transport-Security",
-    value: "max-age=63072000; includeSubDomains; preload",
+    key: 'Strict-Transport-Security',
+    value: 'max-age=63072000; includeSubDomains; preload',
   },
   {
-    key: "Referrer-Policy",
-    value: "strict-origin-when-cross-origin",
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin',
   },
   {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=()',
   },
   {
-    key: "Content-Security-Policy",
+    key: 'Content-Security-Policy',
     value: ContentSecurityPolicy,
   },
-];
+]
 
 const nextConfig: NextConfig = {
   env: {
@@ -64,19 +64,19 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
       },
     ],
   },
   async headers() {
     return [
       {
-        source: "/(.*)",
+        source: '/(.*)',
         headers: securityHeaders,
       },
-    ];
+    ]
   },
-};
+}
 
-export default withSerwist(nextConfig);
+export default withSerwist(nextConfig)
