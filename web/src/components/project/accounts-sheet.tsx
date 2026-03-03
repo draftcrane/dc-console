@@ -1,15 +1,15 @@
-"use client";
+'use client'
 
-import { useEffect } from "react";
-import type { DriveAccount } from "@/hooks/use-drive-accounts";
-import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
+import { useEffect } from 'react'
+import type { DriveAccount } from '@/hooks/use-drive-accounts'
+import { useDelayedUnmount } from '@/hooks/use-delayed-unmount'
 
 interface AccountsSheetProps {
-  isOpen: boolean;
-  accounts: DriveAccount[];
-  onClose: () => void;
-  onConnectAccount: () => void;
-  onDisconnectAccount: (connectionId: string) => void;
+  isOpen: boolean
+  accounts: DriveAccount[]
+  onClose: () => void
+  onConnectAccount: () => void
+  onDisconnectAccount: (connectionId: string) => void
 }
 
 /**
@@ -28,34 +28,34 @@ export function AccountsSheet({
   onConnectAccount,
   onDisconnectAccount,
 }: AccountsSheetProps) {
-  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
+  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200)
 
   // Close on Escape
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === 'Escape') onClose()
     }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
-  if (!shouldRender) return null;
+  if (!shouldRender) return null
 
   const formatDate = (dateStr: string): string => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  };
+    const date = new Date(dateStr)
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  }
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black/20 z-50 ${isClosing ? "backdrop-fade-out" : "backdrop-fade-in"}`}
+        className={`fixed inset-0 bg-black/20 z-50 ${isClosing ? 'backdrop-fade-out' : 'backdrop-fade-in'}`}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -63,7 +63,7 @@ export function AccountsSheet({
       {/* Panel */}
       <div
         className={`fixed top-0 right-0 h-full w-full max-w-sm bg-[var(--dc-color-surface-primary)] shadow-xl z-50
-                   flex flex-col ${isClosing ? "sheet-slide-right-out" : "sheet-slide-right"}`}
+                   flex flex-col ${isClosing ? 'sheet-slide-right-out' : 'sheet-slide-right'}`}
         role="dialog"
         aria-label="Google Accounts"
       >
@@ -132,10 +132,10 @@ export function AccountsSheet({
                   <button
                     onClick={() => {
                       const confirmed = window.confirm(
-                        `Disconnect ${account.email}? Sources from this account will be archived.`,
-                      );
+                        `Disconnect ${account.email}? Sources from this account will be archived.`
+                      )
                       if (confirmed) {
-                        onDisconnectAccount(account.id);
+                        onDisconnectAccount(account.id)
                       }
                     }}
                     className="ml-3 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-md
@@ -173,5 +173,5 @@ export function AccountsSheet({
         )}
       </div>
     </>
-  );
+  )
 }

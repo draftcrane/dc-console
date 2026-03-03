@@ -11,35 +11,35 @@
  * - .pdf (via unpdf, 20MB limit) -- ADR-008
  */
 
-import { ulid } from "ulidx";
-import { notFound, validationError } from "../middleware/error-handler.js";
-import { type SourceMaterial, type SourceRow, rowToSource } from "./source-types.js";
-import { extractFromFile, storeExtractionResult } from "./text-extraction.js";
+import { ulid } from 'ulidx'
+import { notFound, validationError } from '../middleware/error-handler.js'
+import { type SourceMaterial, type SourceRow, rowToSource } from './source-types.js'
+import { extractFromFile, storeExtractionResult } from './text-extraction.js'
 
 /** Max file size per format per ADR-008 */
-const MAX_TEXT_FILE_SIZE = 5 * 1024 * 1024; // 5MB for .txt/.md
-const MAX_BINARY_FILE_SIZE = 20 * 1024 * 1024; // 20MB for .pdf/.docx
+const MAX_TEXT_FILE_SIZE = 5 * 1024 * 1024 // 5MB for .txt/.md
+const MAX_BINARY_FILE_SIZE = 20 * 1024 * 1024 // 20MB for .pdf/.docx
 
-const ALLOWED_LOCAL_EXTENSIONS = [".txt", ".md", ".docx", ".pdf"];
+const ALLOWED_LOCAL_EXTENSIONS = ['.txt', '.md', '.docx', '.pdf']
 
 /** MIME type mapping for supported local formats */
 const MIME_TYPE_MAP: Record<string, string> = {
-  ".txt": "text/plain",
-  ".md": "text/markdown",
-  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ".pdf": "application/pdf",
-};
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.pdf': 'application/pdf',
+}
 
 function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 function formatInlineMarkdown(text: string): string {
   return escapeHtml(text)
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/__(.+?)__/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/_(.+?)_/g, "<em>$1</em>");
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/_(.+?)_/g, '<em>$1</em>')
 }
 
 /** Convert plain text to simple HTML paragraphs */
@@ -48,65 +48,65 @@ export function textToHtml(text: string): string {
     .split(/\n\n+/)
     .filter((p) => p.trim().length > 0)
     .map((p) => `<p>${escapeHtml(p).trim()}</p>`)
-    .join("\n");
+    .join('\n')
 }
 
 /** Lightweight Markdown to HTML (headings, bold, italic, lists, paragraphs) */
 export function markdownToHtml(md: string): string {
-  const lines = md.split("\n");
-  const htmlLines: string[] = [];
-  let inList = false;
+  const lines = md.split('\n')
+  const htmlLines: string[] = []
+  let inList = false
 
   for (const rawLine of lines) {
-    const line = rawLine;
+    const line = rawLine
 
     // Headings
-    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/)
     if (headingMatch) {
       if (inList) {
-        htmlLines.push("</ul>");
-        inList = false;
+        htmlLines.push('</ul>')
+        inList = false
       }
-      const level = headingMatch[1].length;
-      htmlLines.push(`<h${level}>${formatInlineMarkdown(headingMatch[2].trim())}</h${level}>`);
-      continue;
+      const level = headingMatch[1].length
+      htmlLines.push(`<h${level}>${formatInlineMarkdown(headingMatch[2].trim())}</h${level}>`)
+      continue
     }
 
     // Unordered list items
-    const listMatch = line.match(/^[-*+]\s+(.+)$/);
+    const listMatch = line.match(/^[-*+]\s+(.+)$/)
     if (listMatch) {
       if (!inList) {
-        htmlLines.push("<ul>");
-        inList = true;
+        htmlLines.push('<ul>')
+        inList = true
       }
-      htmlLines.push(`<li>${formatInlineMarkdown(listMatch[1].trim())}</li>`);
-      continue;
+      htmlLines.push(`<li>${formatInlineMarkdown(listMatch[1].trim())}</li>`)
+      continue
     }
 
     // Close list if not a list item
     if (inList) {
-      htmlLines.push("</ul>");
-      inList = false;
+      htmlLines.push('</ul>')
+      inList = false
     }
 
     // Empty lines
-    if (line.trim() === "") {
-      continue;
+    if (line.trim() === '') {
+      continue
     }
 
     // Regular paragraph - apply inline formatting
-    const formatted = formatInlineMarkdown(line);
-    htmlLines.push(`<p>${formatted}</p>`);
+    const formatted = formatInlineMarkdown(line)
+    htmlLines.push(`<p>${formatted}</p>`)
   }
 
-  if (inList) htmlLines.push("</ul>");
-  return htmlLines.join("\n");
+  if (inList) htmlLines.push('</ul>')
+  return htmlLines.join('\n')
 }
 
 export class SourceLocalService {
   constructor(
     private readonly db: D1Database,
-    private readonly bucket: R2Bucket,
+    private readonly bucket: R2Bucket
   ) {}
 
   /**
@@ -119,102 +119,102 @@ export class SourceLocalService {
   async addLocalSource(
     userId: string,
     projectId: string,
-    file: { name: string; content: ArrayBuffer },
+    file: { name: string; content: ArrayBuffer }
   ): Promise<SourceMaterial> {
     // Verify project ownership
     const project = await this.db
       .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
       .bind(projectId, userId)
-      .first<{ id: string }>();
+      .first<{ id: string }>()
 
     if (!project) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
 
     // Validate extension
     const ext =
-      file.name.lastIndexOf(".") >= 0
-        ? file.name.slice(file.name.lastIndexOf(".")).toLowerCase()
-        : "";
+      file.name.lastIndexOf('.') >= 0
+        ? file.name.slice(file.name.lastIndexOf('.')).toLowerCase()
+        : ''
     if (!ALLOWED_LOCAL_EXTENSIONS.includes(ext)) {
-      validationError(`Only ${ALLOWED_LOCAL_EXTENSIONS.join(", ")} files are supported`);
+      validationError(`Only ${ALLOWED_LOCAL_EXTENSIONS.join(', ')} files are supported`)
     }
 
     // Validate file size (different limits per format per ADR-008)
-    const maxSize = ext === ".txt" || ext === ".md" ? MAX_TEXT_FILE_SIZE : MAX_BINARY_FILE_SIZE;
+    const maxSize = ext === '.txt' || ext === '.md' ? MAX_TEXT_FILE_SIZE : MAX_BINARY_FILE_SIZE
     if (file.content.byteLength > maxSize) {
-      validationError(`File must be under ${maxSize / 1024 / 1024}MB`);
+      validationError(`File must be under ${maxSize / 1024 / 1024}MB`)
     }
 
     // Compute content hash for dedup (SHA-256 via Web Crypto)
-    const hashBuffer = await crypto.subtle.digest("SHA-256", file.content);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const contentHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    const hashBuffer = await crypto.subtle.digest('SHA-256', file.content)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const contentHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
 
     // Check for existing source with same hash in this project
     const existing = await this.db
       .prepare(
         `SELECT id FROM source_materials
-         WHERE project_id = ? AND content_hash = ? AND source_type = 'local' AND status = 'active'`,
+         WHERE project_id = ? AND content_hash = ? AND source_type = 'local' AND status = 'active'`
       )
       .bind(projectId, contentHash)
-      .first<{ id: string }>();
+      .first<{ id: string }>()
 
     if (existing) {
       // Return the existing source
       const row = await this.db
         .prepare(`SELECT * FROM source_materials WHERE id = ?`)
         .bind(existing.id)
-        .first<SourceRow>();
-      return rowToSource(row!);
+        .first<SourceRow>()
+      return rowToSource(row!)
     }
 
     // Extract content (HTML + plain text)
-    let extractionResult;
+    let extractionResult
     try {
-      extractionResult = await extractFromFile(file.content, ext);
+      extractionResult = await extractFromFile(file.content, ext)
     } catch (err) {
       // Extraction failed -- create source in error state
-      const id = ulid();
-      const now = new Date().toISOString();
-      const mimeType = MIME_TYPE_MAP[ext] || "application/octet-stream";
-      const title = file.name.replace(/\.[^.]+$/, "");
+      const id = ulid()
+      const now = new Date().toISOString()
+      const mimeType = MIME_TYPE_MAP[ext] || 'application/octet-stream'
+      const title = file.name.replace(/\.[^.]+$/, '')
 
       const maxSort = await this.db
         .prepare(
           `SELECT MAX(sort_order) as max_sort FROM source_materials
-           WHERE project_id = ? AND status = 'active'`,
+           WHERE project_id = ? AND status = 'active'`
         )
         .bind(projectId)
-        .first<{ max_sort: number | null }>();
-      const sortOrder = (maxSort?.max_sort || 0) + 1;
+        .first<{ max_sort: number | null }>()
+      const sortOrder = (maxSort?.max_sort || 0) + 1
 
-      const errorMessage = err instanceof Error ? err.message : "Unknown extraction error";
+      const errorMessage = err instanceof Error ? err.message : 'Unknown extraction error'
 
       await this.db
         .prepare(
           `INSERT INTO source_materials (id, project_id, source_type, title, mime_type, original_filename, content_hash, status, sort_order, created_at, updated_at)
-           VALUES (?, ?, 'local', ?, ?, ?, ?, 'error', ?, ?, ?)`,
+           VALUES (?, ?, 'local', ?, ?, ?, ?, 'error', ?, ?, ?)`
         )
         .bind(id, projectId, title, mimeType, file.name, contentHash, sortOrder, now, now)
-        .run();
+        .run()
 
       console.error(
         JSON.stringify({
-          level: "error",
-          event: "source_extraction_failed",
+          level: 'error',
+          event: 'source_extraction_failed',
           source_id: id,
           project_id: projectId,
           filename: file.name,
           extension: ext,
           error: errorMessage,
-        }),
-      );
+        })
+      )
 
       return {
         id,
         projectId,
-        sourceType: "local",
+        sourceType: 'local',
         driveConnectionId: null,
         driveFileId: null,
         title,
@@ -224,33 +224,33 @@ export class SourceLocalService {
         wordCount: 0,
         r2Key: null,
         cachedAt: null,
-        status: "error",
+        status: 'error',
         sortOrder,
         createdAt: now,
         updatedAt: now,
-      };
+      }
     }
 
-    const mimeType = MIME_TYPE_MAP[ext] || "application/octet-stream";
-    const title = file.name.replace(/\.[^.]+$/, "");
+    const mimeType = MIME_TYPE_MAP[ext] || 'application/octet-stream'
+    const title = file.name.replace(/\.[^.]+$/, '')
 
     // Get next sort_order
     const maxSort = await this.db
       .prepare(
         `SELECT MAX(sort_order) as max_sort FROM source_materials
-         WHERE project_id = ? AND status = 'active'`,
+         WHERE project_id = ? AND status = 'active'`
       )
       .bind(projectId)
-      .first<{ max_sort: number | null }>();
+      .first<{ max_sort: number | null }>()
 
-    const sortOrder = (maxSort?.max_sort || 0) + 1;
-    const id = ulid();
+    const sortOrder = (maxSort?.max_sort || 0) + 1
+    const id = ulid()
 
     // Store original file in R2
     await this.bucket.put(`sources/${id}/original${ext}`, file.content, {
       httpMetadata: { contentType: mimeType },
       customMetadata: { sourceId: id, originalFilename: file.name },
-    });
+    })
 
     // Store extraction results (HTML + plain text) in R2 and populate FTS
     const { r2Key, cachedAt } = await storeExtractionResult(
@@ -258,16 +258,16 @@ export class SourceLocalService {
       title,
       extractionResult,
       this.bucket,
-      this.db,
-    );
+      this.db
+    )
 
-    const now = cachedAt; // Use the same timestamp
+    const now = cachedAt // Use the same timestamp
 
     // Insert into D1
     await this.db
       .prepare(
         `INSERT INTO source_materials (id, project_id, source_type, title, mime_type, original_filename, content_hash, word_count, r2_key, cached_at, sort_order, created_at, updated_at)
-         VALUES (?, ?, 'local', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, 'local', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         id,
@@ -281,14 +281,14 @@ export class SourceLocalService {
         now,
         sortOrder,
         now,
-        now,
+        now
       )
-      .run();
+      .run()
 
     return {
       id,
       projectId,
-      sourceType: "local",
+      sourceType: 'local',
       driveConnectionId: null,
       driveFileId: null,
       title,
@@ -298,10 +298,10 @@ export class SourceLocalService {
       wordCount: extractionResult.wordCount,
       r2Key,
       cachedAt: now,
-      status: "active",
+      status: 'active',
       sortOrder,
       createdAt: now,
       updatedAt: now,
-    };
+    }
   }
 }

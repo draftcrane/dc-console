@@ -1,47 +1,47 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback } from "react";
-import type { ProjectData } from "@/types/editor";
-import type { SaveStatus } from "@/hooks/use-auto-save";
-import type { ProjectSummary } from "@/hooks/use-project-actions";
-import { ProjectSwitcher } from "@/components/project/project-switcher";
-import { SaveIndicator } from "./save-indicator";
-import { ExportMenu } from "@/components/project/export-menu";
-import { SettingsMenu } from "@/components/project/settings-menu";
-import { useSourcesContext } from "@/contexts/sources-context";
-import { WorkspaceToggle, type ViewMode } from "./workspace-toggle";
-import { PanelToggleButton } from "./panel-toggle-button";
+import { useState, useEffect, useCallback } from 'react'
+import type { ProjectData } from '@/types/editor'
+import type { SaveStatus } from '@/hooks/use-auto-save'
+import type { ProjectSummary } from '@/hooks/use-project-actions'
+import { ProjectSwitcher } from '@/components/project/project-switcher'
+import { SaveIndicator } from './save-indicator'
+import { ExportMenu } from '@/components/project/export-menu'
+import { SettingsMenu } from '@/components/project/settings-menu'
+import { useSourcesContext } from '@/contexts/sources-context'
+import { WorkspaceToggle, type ViewMode } from './workspace-toggle'
+import { PanelToggleButton } from './panel-toggle-button'
 
 interface EditorToolbarProps {
-  projectData: ProjectData;
-  allProjects: ProjectSummary[];
-  totalWordCount: number;
+  projectData: ProjectData
+  allProjects: ProjectSummary[]
+  totalWordCount: number
 
   // Save
-  saveStatus: SaveStatus;
-  onSaveRetry: () => void;
+  saveStatus: SaveStatus
+  onSaveRetry: () => void
 
   // View mode (#318)
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
+  viewMode: ViewMode
+  onViewModeChange: (mode: ViewMode) => void
 
   // Editor Panel (#317)
-  isEditorPanelOpen?: boolean;
-  onToggleEditorPanel?: () => void;
+  isEditorPanelOpen?: boolean
+  onToggleEditorPanel?: () => void
 
   // Export
-  projectId: string;
-  activeChapterId: string | null;
-  getToken: () => Promise<string | null>;
-  apiUrl: string;
+  projectId: string
+  activeChapterId: string | null
+  getToken: () => Promise<string | null>
+  apiUrl: string
 
   // Settings
-  onRenameBook: () => void;
-  onDuplicateBook: () => void;
-  isDuplicating: boolean;
-  onDeleteProject: () => void;
-  onSignOut: () => void;
-  isSigningOut: boolean;
+  onRenameBook: () => void
+  onDuplicateBook: () => void
+  isDuplicating: boolean
+  onDeleteProject: () => void
+  onSignOut: () => void
+  isSigningOut: boolean
 }
 
 /**
@@ -71,58 +71,58 @@ export function EditorToolbar({
   onSignOut,
   isSigningOut,
 }: EditorToolbarProps) {
-  const { isPanelOpen, togglePanel, connections } = useSourcesContext();
-  const [announcement, setAnnouncement] = useState("");
+  const { isPanelOpen, togglePanel, connections } = useSourcesContext()
+  const [announcement, setAnnouncement] = useState('')
 
   // Keyboard shortcuts (#394)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      const isMod = e.metaKey || e.ctrlKey;
-      if (!isMod || !e.shiftKey) return;
+      const isMod = e.metaKey || e.ctrlKey
+      if (!isMod || !e.shiftKey) return
 
       switch (e.key.toLowerCase()) {
-        case "e":
-          e.preventDefault();
-          onToggleEditorPanel?.();
-          break;
-        case "l":
-          e.preventDefault();
-          togglePanel();
-          break;
-        case "b":
-          e.preventDefault();
-          onViewModeChange(viewMode === "chapter" ? "book" : "chapter");
-          break;
+        case 'e':
+          e.preventDefault()
+          onToggleEditorPanel?.()
+          break
+        case 'l':
+          e.preventDefault()
+          togglePanel()
+          break
+        case 'b':
+          e.preventDefault()
+          onViewModeChange(viewMode === 'chapter' ? 'book' : 'chapter')
+          break
       }
     }
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onToggleEditorPanel, togglePanel, viewMode, onViewModeChange]);
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onToggleEditorPanel, togglePanel, viewMode, onViewModeChange])
 
   // aria-live announcements (#393)
   const announce = useCallback((msg: string) => {
-    setAnnouncement("");
-    requestAnimationFrame(() => setAnnouncement(msg));
-  }, []);
+    setAnnouncement('')
+    requestAnimationFrame(() => setAnnouncement(msg))
+  }, [])
 
   const handleViewModeChange = useCallback(
     (mode: ViewMode) => {
-      onViewModeChange(mode);
-      announce(`Switched to ${mode === "chapter" ? "Chapter" : "Book"} view`);
+      onViewModeChange(mode)
+      announce(`Switched to ${mode === 'chapter' ? 'Chapter' : 'Book'} view`)
     },
-    [onViewModeChange, announce],
-  );
+    [onViewModeChange, announce]
+  )
 
   const handleToggleEditor = useCallback(() => {
-    onToggleEditorPanel?.();
-    announce(isEditorPanelOpen ? "Editor panel closed" : "Editor panel opened");
-  }, [onToggleEditorPanel, isEditorPanelOpen, announce]);
+    onToggleEditorPanel?.()
+    announce(isEditorPanelOpen ? 'Editor panel closed' : 'Editor panel opened')
+  }, [onToggleEditorPanel, isEditorPanelOpen, announce])
 
   const handleToggleLibrary = useCallback(() => {
-    togglePanel();
-    announce(isPanelOpen ? "Library panel closed" : "Library panel opened");
-  }, [togglePanel, isPanelOpen, announce]);
+    togglePanel()
+    announce(isPanelOpen ? 'Library panel closed' : 'Library panel opened')
+  }, [togglePanel, isPanelOpen, announce])
 
   return (
     <div
@@ -217,5 +217,5 @@ export function EditorToolbar({
         {announcement}
       </div>
     </div>
-  );
+  )
 }

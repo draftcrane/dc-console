@@ -1,56 +1,56 @@
-import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Lora } from "next/font/google";
-import "./globals.css";
-import { Providers } from "./providers";
+import type { Metadata, Viewport } from 'next'
+import { Geist, Geist_Mono, Lora } from 'next/font/google'
+import './globals.css'
+import { Providers } from './providers'
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+  variable: '--font-geist-sans',
+  subsets: ['latin'],
+})
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  variable: '--font-geist-mono',
+  subsets: ['latin'],
+})
 
 const lora = Lora({
-  variable: "--font-lora",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
+  variable: '--font-lora',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+})
 
 export const metadata: Metadata = {
-  title: "DraftCrane",
-  description: "Your book. Your files. Your cloud. With an AI writing partner.",
-  manifest: "/manifest.webmanifest",
+  title: 'DraftCrane',
+  description: 'Your book. Your files. Your cloud. With an AI writing partner.',
+  manifest: '/manifest.webmanifest',
   icons: {
     icon: [
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "DraftCrane",
+    statusBarStyle: 'default',
+    title: 'DraftCrane',
   },
-};
+}
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
-  viewportFit: "cover",
+  viewportFit: 'cover',
   // Per ADR-001: interactive-widget=resizes-content keeps cursor visible
   // above the virtual keyboard on iPad Safari
-  interactiveWidget: "resizes-content",
-  themeColor: "#1a1a2e",
-};
+  interactiveWidget: 'resizes-content',
+  themeColor: '#1a1a2e',
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en">
@@ -58,5 +58,5 @@ export default function RootLayout({
         <Providers>{children}</Providers>
       </body>
     </html>
-  );
+  )
 }

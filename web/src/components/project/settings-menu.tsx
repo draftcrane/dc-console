@@ -1,22 +1,22 @@
-"use client";
+'use client'
 
-import { useCallback } from "react";
-import Link from "next/link";
-import { useDropdown } from "@/hooks/use-dropdown";
+import { useCallback } from 'react'
+import Link from 'next/link'
+import { useDropdown } from '@/hooks/use-dropdown'
 
 interface SettingsMenuProps {
   /** Open rename book dialog */
-  onRenameBook: () => void;
+  onRenameBook: () => void
   /** Open duplicate book dialog */
-  onDuplicateBook: () => void;
+  onDuplicateBook: () => void
   /** Whether a duplication is in progress */
-  isDuplicating: boolean;
+  isDuplicating: boolean
   /** Open delete project dialog */
-  onDeleteProject: () => void;
+  onDeleteProject: () => void
   /** Sign out handler */
-  onSignOut: () => void;
+  onSignOut: () => void
   /** Whether sign-out is in progress */
-  isSigningOut: boolean;
+  isSigningOut: boolean
 }
 
 /**
@@ -32,15 +32,15 @@ export function SettingsMenu({
   onSignOut,
   isSigningOut,
 }: SettingsMenuProps) {
-  const { isOpen, ref: menuRef, toggle, close } = useDropdown();
+  const { isOpen, ref: menuRef, toggle, close } = useDropdown()
 
   const handleMenuItem = useCallback(
     (action: () => void) => {
-      close();
-      action();
+      close()
+      action()
     },
-    [close],
-  );
+    [close]
+  )
 
   return (
     <div className="relative" ref={menuRef}>
@@ -113,7 +113,7 @@ export function SettingsMenu({
                 d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
               />
             </svg>
-            {isDuplicating ? "Duplicating..." : "Duplicate Book"}
+            {isDuplicating ? 'Duplicating...' : 'Duplicate Book'}
           </button>
 
           <div className="my-1 border-t border-gray-200" role="separator" />
@@ -174,10 +174,10 @@ export function SettingsMenu({
                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
               />
             </svg>
-            {isSigningOut ? "Signing out\u2026" : "Sign Out"}
+            {isSigningOut ? 'Signing out\u2026' : 'Sign Out'}
           </button>
         </div>
       )}
     </div>
-  );
+  )
 }

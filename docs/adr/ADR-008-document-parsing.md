@@ -140,34 +140,34 @@ Mammoth HTML output must pass through `sanitize-html` (already a dc-api dependen
 
 ```typescript
 const ALLOWED_TAGS = [
-  "p",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "strong",
-  "em",
-  "ul",
-  "ol",
-  "li",
-  "table",
-  "thead",
-  "tbody",
-  "tr",
-  "th",
-  "td",
-  "a",
-  "br",
-  "sup",
-  "sub",
-  "blockquote",
-];
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'strong',
+  'em',
+  'ul',
+  'ol',
+  'li',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'th',
+  'td',
+  'a',
+  'br',
+  'sup',
+  'sub',
+  'blockquote',
+]
 
 const ALLOWED_ATTRIBUTES = {
-  a: ["href"],
-};
+  a: ['href'],
+}
 ```
 
 ### Integration Path

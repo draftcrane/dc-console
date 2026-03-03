@@ -1,26 +1,26 @@
-"use client";
+'use client'
 
-import { useCallback, useEffect, useState } from "react";
-import { countWordsInHtml } from "@/utils/word-count";
+import { useCallback, useEffect, useState } from 'react'
+import { countWordsInHtml } from '@/utils/word-count'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 interface UseChapterContentOptions {
-  activeChapterId: string | null;
-  getToken: () => Promise<string | null>;
+  activeChapterId: string | null
+  getToken: () => Promise<string | null>
   /** setContent from useAutoSave — populates the editor when chapter content arrives */
-  setContent: (html: string) => void;
+  setContent: (html: string) => void
   /** Current content HTML from useAutoSave */
-  currentContent: string;
+  currentContent: string
 }
 
 interface UseChapterContentReturn {
   /** Word count of the current editor content */
-  currentWordCount: number;
+  currentWordCount: number
   /** Word count of the active text selection */
-  selectionWordCount: number;
+  selectionWordCount: number
   /** Callback for the editor to report selection word count changes */
-  handleSelectionWordCountChange: (count: number) => void;
+  handleSelectionWordCountChange: (count: number) => void
 }
 
 /**
@@ -35,53 +35,53 @@ export function useChapterContent({
   setContent,
   currentContent,
 }: UseChapterContentOptions): UseChapterContentReturn {
-  const [selectionWordCount, setSelectionWordCount] = useState(0);
+  const [selectionWordCount, setSelectionWordCount] = useState(0)
 
   // Load chapter content from API when active chapter changes
   useEffect(() => {
-    if (!activeChapterId) return;
+    if (!activeChapterId) return
 
-    let cancelled = false;
+    let cancelled = false
 
     async function loadContent() {
       try {
-        const token = await getToken();
+        const token = await getToken()
         const response = await fetch(`${API_URL}/chapters/${activeChapterId}/content`, {
           headers: { Authorization: `Bearer ${token}` },
-        });
+        })
 
-        if (cancelled) return;
+        if (cancelled) return
 
         if (response.ok) {
-          const data = (await response.json()) as { content: string; version: number };
-          setContent(data.content || "");
+          const data = (await response.json()) as { content: string; version: number }
+          setContent(data.content || '')
         } else if (response.status === 404) {
-          setContent("");
+          setContent('')
         }
       } catch (err) {
-        console.error("Failed to load chapter content:", err);
+        console.error('Failed to load chapter content:', err)
         if (!cancelled) {
-          setContent("");
+          setContent('')
         }
       }
     }
 
-    loadContent();
+    loadContent()
 
     return () => {
-      cancelled = true;
-    };
-  }, [activeChapterId, getToken, setContent]);
+      cancelled = true
+    }
+  }, [activeChapterId, getToken, setContent])
 
   const handleSelectionWordCountChange = useCallback((count: number) => {
-    setSelectionWordCount(count);
-  }, []);
+    setSelectionWordCount(count)
+  }, [])
 
-  const currentWordCount = countWordsInHtml(currentContent);
+  const currentWordCount = countWordsInHtml(currentContent)
 
   return {
     currentWordCount,
     selectionWordCount,
     handleSelectionWordCountChange,
-  };
+  }
 }

@@ -695,12 +695,12 @@ Tapping "Add Source" opens the Source Type Picker:
 
 ```typescript
 interface SourceType {
-  id: string; // "google-drive" | "local-files" | "icloud" | "dropbox" | "box" | "onedrive"
-  label: string; // "Google Drive"
-  description: string; // "Browse and add documents from your Google Drive"
-  icon: ReactElement;
-  status: "available" | "coming_soon";
-  onSelect: () => void; // Only for "available" types
+  id: string // "google-drive" | "local-files" | "icloud" | "dropbox" | "box" | "onedrive"
+  label: string // "Google Drive"
+  description: string // "Browse and add documents from your Google Drive"
+  icon: ReactElement
+  status: 'available' | 'coming_soon'
+  onSelect: () => void // Only for "available" types
 }
 ```
 
@@ -821,11 +821,11 @@ Identical to landscape iPad but with more editor space. No additional desktop-sp
 
 ```typescript
 interface ResearchPanelProps {
-  projectId: string;
-  isOpen: boolean;
-  onClose: () => void;
-  onInsertSnippet: (text: string, sourceTitle: string, sourceId: string | null) => void;
-  canInsert: boolean;
+  projectId: string
+  isOpen: boolean
+  onClose: () => void
+  onInsertSnippet: (text: string, sourceTitle: string, sourceId: string | null) => void
+  canInsert: boolean
 }
 ```
 
@@ -850,7 +850,7 @@ interface ResearchPanelProps {
 
 ```typescript
 interface SourcesTabProps {
-  projectId: string;
+  projectId: string
 }
 ```
 
@@ -873,16 +873,16 @@ interface SourcesTabProps {
 
 ```typescript
 interface AskTabProps {
-  projectId: string;
+  projectId: string
   onSaveClip: (clip: {
-    content: string;
-    sourceId: string | null;
-    sourceTitle: string;
-    sourceLocation: string | null;
-    chapterId?: string;
-  }) => Promise<void>;
-  onInsertSnippet: (text: string, sourceTitle: string, sourceId: string | null) => void;
-  canInsert: boolean;
+    content: string
+    sourceId: string | null
+    sourceTitle: string
+    sourceLocation: string | null
+    chapterId?: string
+  }) => Promise<void>
+  onInsertSnippet: (text: string, sourceTitle: string, sourceId: string | null) => void
+  canInsert: boolean
 }
 ```
 
@@ -906,10 +906,10 @@ interface AskTabProps {
 
 ```typescript
 interface ClipsTabProps {
-  projectId: string;
-  chapters: Array<{ id: string; title: string }>;
-  onInsertSnippet: (text: string, sourceTitle: string, sourceId: string | null) => void;
-  canInsert: boolean;
+  projectId: string
+  chapters: Array<{ id: string; title: string }>
+  onInsertSnippet: (text: string, sourceTitle: string, sourceId: string | null) => void
+  canInsert: boolean
 }
 ```
 
@@ -932,10 +932,10 @@ interface ClipsTabProps {
 
 ```typescript
 interface SourceCardProps {
-  source: SourceMaterial;
-  onTap: () => void;
-  onRemove: () => void;
-  onImportAsChapter: () => void;
+  source: SourceMaterial
+  onTap: () => void
+  onRemove: () => void
+  onImportAsChapter: () => void
 }
 ```
 
@@ -953,11 +953,11 @@ interface SourceCardProps {
 
 ```typescript
 interface SourceAddFlowProps {
-  projectId: string;
-  driveAccounts: DriveAccount[];
-  onSourcesAdded: () => void;
-  onBack: () => void;
-  onConnectAccount: () => void;
+  projectId: string
+  driveAccounts: DriveAccount[]
+  onSourcesAdded: () => void
+  onBack: () => void
+  onConnectAccount: () => void
 }
 ```
 
@@ -977,20 +977,20 @@ interface SourceAddFlowProps {
 
 ```typescript
 interface SourceDetailViewProps {
-  sourceId: string;
-  title: string;
-  onBack: () => void;
+  sourceId: string
+  title: string
+  onBack: () => void
   /** Custom back label for cross-tab navigation */
-  backLabel?: string;
-  onImportAsChapter: (sourceId: string) => void;
+  backLabel?: string
+  onImportAsChapter: (sourceId: string) => void
   onSaveClip: (clip: {
-    content: string;
-    sourceId: string;
-    sourceTitle: string;
-    sourceLocation: string | null;
-  }) => Promise<void>;
+    content: string
+    sourceId: string
+    sourceTitle: string
+    sourceLocation: string | null
+  }) => Promise<void>
   /** Optional: scroll to this text position on load */
-  scrollToPosition?: number;
+  scrollToPosition?: number
 }
 ```
 
@@ -1008,12 +1008,12 @@ interface SourceDetailViewProps {
 
 ```typescript
 interface QueryInputProps {
-  placeholder: string;
-  value: string;
-  onChange: (value: string) => void;
-  onSubmit: () => void;
-  isLoading: boolean;
-  disabled?: boolean;
+  placeholder: string
+  value: string
+  onChange: (value: string) => void
+  onSubmit: () => void
+  isLoading: boolean
+  disabled?: boolean
 }
 ```
 
@@ -1031,15 +1031,15 @@ interface QueryInputProps {
 
 ```typescript
 interface ResultCardProps {
-  content: string;
-  sourceTitle: string;
-  sourceId: string | null;
-  sourceLocation: string | null;
-  onSaveToClips: () => void;
-  onInsert: () => void;
-  onViewSource: () => void;
-  isSaved: boolean;
-  canInsert: boolean;
+  content: string
+  sourceTitle: string
+  sourceId: string | null
+  sourceLocation: string | null
+  onSaveToClips: () => void
+  onInsert: () => void
+  onViewSource: () => void
+  isSaved: boolean
+  canInsert: boolean
 }
 ```
 
@@ -1057,11 +1057,11 @@ interface ResultCardProps {
 
 ```typescript
 interface ClipCardProps {
-  clip: ResearchClip;
-  onInsert: () => void;
-  onDelete: () => void;
-  onViewSource: () => void;
-  canInsert: boolean;
+  clip: ResearchClip
+  onInsert: () => void
+  onDelete: () => void
+  onViewSource: () => void
+  canInsert: boolean
 }
 ```
 
@@ -1079,12 +1079,12 @@ interface ClipCardProps {
 
 ```typescript
 interface SnippetInsertButtonProps {
-  text: string;
-  sourceTitle: string;
-  sourceId: string | null;
-  onInsert: (text: string, sourceTitle: string, sourceId: string | null) => void;
-  disabled?: boolean;
-  variant?: "default" | "compact";
+  text: string
+  sourceTitle: string
+  sourceId: string | null
+  onInsert: (text: string, sourceTitle: string, sourceId: string | null) => void
+  disabled?: boolean
+  variant?: 'default' | 'compact'
 }
 ```
 
@@ -1103,37 +1103,37 @@ interface SnippetInsertButtonProps {
 ```typescript
 interface ResearchPanelContextValue {
   // Panel state
-  isOpen: boolean;
-  activeTab: "sources" | "ask" | "clips";
-  openPanel: (tab?: "sources" | "ask" | "clips") => void;
-  closePanel: () => void;
-  setActiveTab: (tab: "sources" | "ask" | "clips") => void;
+  isOpen: boolean
+  activeTab: 'sources' | 'ask' | 'clips'
+  openPanel: (tab?: 'sources' | 'ask' | 'clips') => void
+  closePanel: () => void
+  setActiveTab: (tab: 'sources' | 'ask' | 'clips') => void
 
   // Sources
-  sources: SourceMaterial[];
-  isSourcesLoading: boolean;
-  sourcesError: string | null;
-  fetchSources: () => Promise<void>;
-  removeSource: (sourceId: string) => Promise<void>;
+  sources: SourceMaterial[]
+  isSourcesLoading: boolean
+  sourcesError: string | null
+  fetchSources: () => Promise<void>
+  removeSource: (sourceId: string) => Promise<void>
 
   // Source navigation
-  sourcesView: "list" | "detail" | "add";
-  activeSourceId: string | null;
-  viewSource: (sourceId: string) => void;
-  backToSourceList: () => void;
-  startAddFlow: () => void;
+  sourcesView: 'list' | 'detail' | 'add'
+  activeSourceId: string | null
+  viewSource: (sourceId: string) => void
+  backToSourceList: () => void
+  startAddFlow: () => void
 
   // Cross-tab navigation
-  returnTab: "ask" | "clips" | null;
-  navigateToSourceFromTab: (sourceId: string, returnTo: "ask" | "clips") => void;
-  returnToPreviousTab: () => void;
+  returnTab: 'ask' | 'clips' | null
+  navigateToSourceFromTab: (sourceId: string, returnTo: 'ask' | 'clips') => void
+  returnToPreviousTab: () => void
 
   // Clips
-  clips: ResearchClip[];
-  isClipsLoading: boolean;
-  saveClip: (clip: Omit<ResearchClip, "id" | "createdAt">) => Promise<void>;
-  deleteClip: (clipId: string) => Promise<void>;
-  clipCount: number;
+  clips: ResearchClip[]
+  isClipsLoading: boolean
+  saveClip: (clip: Omit<ResearchClip, 'id' | 'createdAt'>) => Promise<void>
+  deleteClip: (clipId: string) => Promise<void>
+  clipCount: number
 }
 ```
 
@@ -1147,10 +1147,10 @@ interface ResearchPanelContextValue {
 
 ```typescript
 interface FirstUseNudgeProps {
-  projectId: string;
-  hasAnySources: boolean;
-  isResearchPanelOpen: boolean;
-  targetRef: React.RefObject<HTMLButtonElement>;
+  projectId: string
+  hasAnySources: boolean
+  isResearchPanelOpen: boolean
+  targetRef: React.RefObject<HTMLButtonElement>
 }
 ```
 
@@ -1297,9 +1297,9 @@ Natural-language query against project sources. Streams structured results with 
 ```typescript
 // Request
 interface ResearchQueryRequest {
-  query: string;
+  query: string
   /** Optional: limit search to specific source IDs */
-  sourceIds?: string[];
+  sourceIds?: string[]
 }
 
 // Response (SSE stream, Content-Type: text/event-stream)
@@ -1319,13 +1319,13 @@ interface ResearchQueryRequest {
 // Non-streaming fallback (Accept: application/json)
 interface ResearchQueryResponse {
   results: Array<{
-    content: string;
-    sourceId: string;
-    sourceTitle: string;
-    sourceLocation: string | null;
-  }>;
-  summary: string;
-  processingTimeMs: number;
+    content: string
+    sourceId: string
+    sourceTitle: string
+    sourceLocation: string | null
+  }>
+  summary: string
+  processingTimeMs: number
 }
 ```
 
@@ -1349,16 +1349,16 @@ List saved clips for a project. Supports chapter filtering.
 // Query params: ?chapterId=xxx (optional, filters by chapter tag)
 interface ClipsListResponse {
   clips: Array<{
-    id: string;
-    projectId: string;
-    sourceId: string | null;
-    sourceTitle: string;
-    content: string;
-    sourceLocation: string | null;
-    chapterId: string | null;
-    chapterTitle: string | null;
-    createdAt: string;
-  }>;
+    id: string
+    projectId: string
+    sourceId: string | null
+    sourceTitle: string
+    content: string
+    sourceLocation: string | null
+    chapterId: string | null
+    chapterTitle: string | null
+    createdAt: string
+  }>
 }
 ```
 
@@ -1368,25 +1368,25 @@ Save a new clip.
 
 ```typescript
 interface SaveClipRequest {
-  content: string;
-  sourceId?: string;
-  sourceTitle: string;
-  sourceLocation?: string;
-  chapterId?: string;
+  content: string
+  sourceId?: string
+  sourceTitle: string
+  sourceLocation?: string
+  chapterId?: string
 }
 
 // Response (201 Created, or 200 if duplicate)
 interface SaveClipResponse {
   clip: {
-    id: string;
-    projectId: string;
-    sourceId: string | null;
-    sourceTitle: string;
-    content: string;
-    sourceLocation: string | null;
-    chapterId: string | null;
-    createdAt: string;
-  };
+    id: string
+    projectId: string
+    sourceId: string | null
+    sourceTitle: string
+    content: string
+    sourceLocation: string | null
+    chapterId: string | null
+    createdAt: string
+  }
 }
 ```
 
@@ -1397,7 +1397,7 @@ interface SaveClipResponse {
 ```typescript
 // Response (200)
 interface DeleteClipResponse {
-  success: boolean;
+  success: boolean
 }
 ```
 
@@ -1411,11 +1411,11 @@ Full-text search across source content. For Sources tab search field.
 // Query params: ?q=keyword
 interface SourceSearchResponse {
   results: Array<{
-    sourceId: string;
-    title: string;
-    snippet: string;
-    position: number;
-  }>;
+    sourceId: string
+    title: string
+    snippet: string
+    position: number
+  }>
 }
 ```
 
@@ -1427,79 +1427,79 @@ interface SourceSearchResponse {
 // === Core Types ===
 
 interface SourceMaterial {
-  id: string;
-  projectId: string;
-  title: string;
-  driveFileId: string | null;
-  driveConnectionId: string | null;
-  mimeType: string;
-  wordCount: number | null;
-  r2Key: string | null;
-  cachedAt: string | null;
-  status: "pending" | "processing" | "cached" | "error";
-  errorMessage: string | null;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  projectId: string
+  title: string
+  driveFileId: string | null
+  driveConnectionId: string | null
+  mimeType: string
+  wordCount: number | null
+  r2Key: string | null
+  cachedAt: string | null
+  status: 'pending' | 'processing' | 'cached' | 'error'
+  errorMessage: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 interface ResearchClip {
-  id: string;
-  projectId: string;
-  sourceId: string | null;
-  sourceTitle: string;
-  content: string;
-  sourceLocation: string | null;
-  chapterId: string | null;
-  chapterTitle?: string | null;
-  createdAt: string;
+  id: string
+  projectId: string
+  sourceId: string | null
+  sourceTitle: string
+  content: string
+  sourceLocation: string | null
+  chapterId: string | null
+  chapterTitle?: string | null
+  createdAt: string
 }
 
 interface AISearchResult {
-  content: string;
-  sourceId: string | null;
-  sourceTitle: string;
-  sourceLocation: string | null;
-  isSaved: boolean;
+  content: string
+  sourceId: string | null
+  sourceTitle: string
+  sourceLocation: string | null
+  isSaved: boolean
 }
 
 interface ConversationEntry {
-  id: string;
-  type: "query" | "response";
-  content: string;
-  results?: AISearchResult[];
-  timestamp: string;
+  id: string
+  type: 'query' | 'response'
+  content: string
+  results?: AISearchResult[]
+  timestamp: string
 }
 
 interface DriveAccount {
-  connectionId: string;
-  email: string;
-  provider: "google";
+  connectionId: string
+  email: string
+  provider: 'google'
 }
 
 // === State Types ===
 
-type ResearchTab = "sources" | "ask" | "clips";
-type SourcesView = "list" | "detail" | "add";
+type ResearchTab = 'sources' | 'ask' | 'clips'
+type SourcesView = 'list' | 'detail' | 'add'
 
 interface ResearchPanelState {
-  isOpen: boolean;
-  activeTab: ResearchTab;
-  sourcesView: SourcesView;
-  activeSourceId: string | null;
-  driveConnectionId: string | null;
-  returnTab: "ask" | "clips" | null;
+  isOpen: boolean
+  activeTab: ResearchTab
+  sourcesView: SourcesView
+  activeSourceId: string | null
+  driveConnectionId: string | null
+  returnTab: 'ask' | 'clips' | null
 }
 
 type ResearchPanelAction =
-  | { type: "OPEN_PANEL"; tab?: ResearchTab }
-  | { type: "CLOSE_PANEL" }
-  | { type: "SET_TAB"; tab: ResearchTab }
-  | { type: "VIEW_SOURCE"; sourceId: string; returnTo?: "ask" | "clips" }
-  | { type: "BACK_TO_LIST" }
-  | { type: "RETURN_TO_TAB" }
-  | { type: "START_ADD_FLOW" }
-  | { type: "SET_DRIVE_CONNECTION"; connectionId: string }
-  | { type: "FINISH_ADD" };
+  | { type: 'OPEN_PANEL'; tab?: ResearchTab }
+  | { type: 'CLOSE_PANEL' }
+  | { type: 'SET_TAB'; tab: ResearchTab }
+  | { type: 'VIEW_SOURCE'; sourceId: string; returnTo?: 'ask' | 'clips' }
+  | { type: 'BACK_TO_LIST' }
+  | { type: 'RETURN_TO_TAB' }
+  | { type: 'START_ADD_FLOW' }
+  | { type: 'SET_DRIVE_CONNECTION'; connectionId: string }
+  | { type: 'FINISH_ADD' }
 ```
 
 ---

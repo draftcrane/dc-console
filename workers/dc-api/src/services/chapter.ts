@@ -1,5 +1,5 @@
-import { ulid } from "ulidx";
-import { notFound, validationError, AppError } from "../middleware/error-handler.js";
+import { ulid } from 'ulidx'
+import { notFound, validationError, AppError } from '../middleware/error-handler.js'
 
 /**
  * ChapterService - Business logic for chapter CRUD operations
@@ -15,44 +15,44 @@ import { notFound, validationError, AppError } from "../middleware/error-handler
  */
 
 export interface Chapter {
-  id: string;
-  projectId: string;
-  title: string;
-  sortOrder: number;
-  r2Key: string | null;
-  wordCount: number;
-  version: number;
-  status: "draft" | "review" | "final";
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  projectId: string
+  title: string
+  sortOrder: number
+  r2Key: string | null
+  wordCount: number
+  version: number
+  status: 'draft' | 'review' | 'final'
+  createdAt: string
+  updatedAt: string
 }
 
 export interface CreateChapterInput {
-  title?: string;
+  title?: string
 }
 
 export interface UpdateChapterInput {
-  title?: string;
-  status?: "draft" | "review" | "final";
+  title?: string
+  status?: 'draft' | 'review' | 'final'
 }
 
 export interface ReorderChaptersInput {
   /** Array of chapter IDs in the new order */
-  chapterIds: string[];
+  chapterIds: string[]
 }
 
 /** DB row type */
 export interface ChapterRow {
-  id: string;
-  project_id: string;
-  title: string;
-  sort_order: number;
-  r2_key: string | null;
-  word_count: number;
-  version: number;
-  status: string;
-  created_at: string;
-  updated_at: string;
+  id: string
+  project_id: string
+  title: string
+  sort_order: number
+  r2_key: string | null
+  word_count: number
+  version: number
+  status: string
+  created_at: string
+  updated_at: string
 }
 
 /**
@@ -70,10 +70,10 @@ export function mapChapterRow(row: ChapterRow): Chapter {
     r2Key: row.r2_key,
     wordCount: row.word_count,
     version: row.version,
-    status: row.status as "draft" | "review" | "final",
+    status: row.status as 'draft' | 'review' | 'final',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  };
+  }
 }
 
 /**
@@ -89,47 +89,47 @@ export class ChapterService {
   async createChapter(
     userId: string,
     projectId: string,
-    input?: CreateChapterInput,
+    input?: CreateChapterInput
   ): Promise<Chapter> {
     // Verify project ownership
     const project = await this.db
       .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
       .bind(projectId, userId)
-      .first();
+      .first()
 
     if (!project) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
 
     // Validate title if provided
-    const title = input?.title?.trim() || "Untitled Chapter";
+    const title = input?.title?.trim() || 'Untitled Chapter'
     if (title.length > 200) {
-      validationError("Chapter title must be at most 200 characters");
+      validationError('Chapter title must be at most 200 characters')
     }
 
     // Get the highest sort_order
     const maxSort = await this.db
       .prepare(`SELECT MAX(sort_order) as max_sort FROM chapters WHERE project_id = ?`)
       .bind(projectId)
-      .first<{ max_sort: number | null }>();
+      .first<{ max_sort: number | null }>()
 
-    const sortOrder = (maxSort?.max_sort || 0) + 1;
-    const chapterId = ulid();
-    const now = new Date().toISOString();
+    const sortOrder = (maxSort?.max_sort || 0) + 1
+    const chapterId = ulid()
+    const now = new Date().toISOString()
 
     await this.db
       .prepare(
         `INSERT INTO chapters (id, project_id, title, sort_order, word_count, version, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 0, 1, 'draft', ?, ?)`,
+         VALUES (?, ?, ?, ?, 0, 1, 'draft', ?, ?)`
       )
       .bind(chapterId, projectId, title, sortOrder, now, now)
-      .run();
+      .run()
 
     // Update project updated_at
     await this.db
       .prepare(`UPDATE projects SET updated_at = ? WHERE id = ?`)
       .bind(now, projectId)
-      .run();
+      .run()
 
     return {
       id: chapterId,
@@ -139,10 +139,10 @@ export class ChapterService {
       r2Key: null,
       wordCount: 0,
       version: 1,
-      status: "draft",
+      status: 'draft',
       createdAt: now,
       updatedAt: now,
-    };
+    }
   }
 
   /**
@@ -154,10 +154,10 @@ export class ChapterService {
     const project = await this.db
       .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
       .bind(projectId, userId)
-      .first();
+      .first()
 
     if (!project) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
 
     const result = await this.db
@@ -165,12 +165,12 @@ export class ChapterService {
         `SELECT id, project_id, title, sort_order, r2_key, word_count, version, status, created_at, updated_at
          FROM chapters
          WHERE project_id = ?
-         ORDER BY sort_order ASC`,
+         ORDER BY sort_order ASC`
       )
       .bind(projectId)
-      .all<ChapterRow>();
+      .all<ChapterRow>()
 
-    return (result.results ?? []).map(mapChapterRow);
+    return (result.results ?? []).map(mapChapterRow)
   }
 
   /**
@@ -180,7 +180,7 @@ export class ChapterService {
   async updateChapter(
     userId: string,
     chapterId: string,
-    input: UpdateChapterInput,
+    input: UpdateChapterInput
   ): Promise<Chapter> {
     // Verify ownership via project
     const chapter = await this.db
@@ -188,53 +188,53 @@ export class ChapterService {
         `SELECT ch.id, ch.project_id
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`
       )
       .bind(chapterId, userId)
-      .first<{ id: string; project_id: string }>();
+      .first<{ id: string; project_id: string }>()
 
     if (!chapter) {
-      notFound("Chapter not found");
+      notFound('Chapter not found')
     }
 
     // Validate title
     if (input.title !== undefined) {
-      const title = input.title.trim() || "Untitled Chapter";
+      const title = input.title.trim() || 'Untitled Chapter'
       if (title.length > 200) {
-        validationError("Chapter title must be at most 200 characters");
+        validationError('Chapter title must be at most 200 characters')
       }
     }
 
-    const now = new Date().toISOString();
-    const updates: string[] = ["updated_at = ?"];
-    const bindings: (string | number)[] = [now];
+    const now = new Date().toISOString()
+    const updates: string[] = ['updated_at = ?']
+    const bindings: (string | number)[] = [now]
 
     if (input.title !== undefined) {
-      const title = input.title.trim() || "Untitled Chapter";
-      updates.push("title = ?");
-      bindings.push(title);
+      const title = input.title.trim() || 'Untitled Chapter'
+      updates.push('title = ?')
+      bindings.push(title)
     }
 
     if (input.status !== undefined) {
-      if (!["draft", "review", "final"].includes(input.status)) {
-        validationError("Invalid chapter status");
+      if (!['draft', 'review', 'final'].includes(input.status)) {
+        validationError('Invalid chapter status')
       }
-      updates.push("status = ?");
-      bindings.push(input.status);
+      updates.push('status = ?')
+      bindings.push(input.status)
     }
 
-    bindings.push(chapterId);
+    bindings.push(chapterId)
 
     await this.db
-      .prepare(`UPDATE chapters SET ${updates.join(", ")} WHERE id = ?`)
+      .prepare(`UPDATE chapters SET ${updates.join(', ')} WHERE id = ?`)
       .bind(...bindings)
-      .run();
+      .run()
 
     // Update project updated_at
     await this.db
       .prepare(`UPDATE projects SET updated_at = ? WHERE id = ?`)
       .bind(now, chapter.project_id)
-      .run();
+      .run()
 
     // Fetch updated chapter
     const updated = await this.db
@@ -242,16 +242,16 @@ export class ChapterService {
         `SELECT ch.id, ch.project_id, ch.title, ch.sort_order, ch.r2_key, ch.word_count, ch.version, ch.status, ch.created_at, ch.updated_at
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`
       )
       .bind(chapterId, userId)
-      .first<ChapterRow>();
+      .first<ChapterRow>()
 
     if (!updated) {
-      notFound("Chapter not found");
+      notFound('Chapter not found')
     }
 
-    return mapChapterRow(updated);
+    return mapChapterRow(updated)
   }
 
   /**
@@ -265,33 +265,33 @@ export class ChapterService {
         `SELECT ch.id, ch.project_id
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`
       )
       .bind(chapterId, userId)
-      .first<{ id: string; project_id: string }>();
+      .first<{ id: string; project_id: string }>()
 
     if (!chapter) {
-      notFound("Chapter not found");
+      notFound('Chapter not found')
     }
 
     // Check if this is the last chapter
     const chapterCount = await this.db
       .prepare(`SELECT COUNT(*) as count FROM chapters WHERE project_id = ?`)
       .bind(chapter.project_id)
-      .first<{ count: number }>();
+      .first<{ count: number }>()
 
     if (!chapterCount || chapterCount.count <= 1) {
-      throw new AppError(400, "LAST_CHAPTER", "Cannot delete the last chapter of a project");
+      throw new AppError(400, 'LAST_CHAPTER', 'Cannot delete the last chapter of a project')
     }
 
     // Delete the chapter
-    await this.db.prepare(`DELETE FROM chapters WHERE id = ?`).bind(chapterId).run();
+    await this.db.prepare(`DELETE FROM chapters WHERE id = ?`).bind(chapterId).run()
 
     // Update project updated_at
     await this.db
       .prepare(`UPDATE projects SET updated_at = ? WHERE id = ?`)
       .bind(new Date().toISOString(), chapter.project_id)
-      .run();
+      .run()
   }
 
   /**
@@ -301,65 +301,65 @@ export class ChapterService {
   async reorderChapters(
     userId: string,
     projectId: string,
-    input: ReorderChaptersInput,
+    input: ReorderChaptersInput
   ): Promise<Chapter[]> {
     // Verify project ownership
     const project = await this.db
       .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
       .bind(projectId, userId)
-      .first();
+      .first()
 
     if (!project) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
 
     if (!input.chapterIds || input.chapterIds.length === 0) {
-      validationError("chapterIds array is required");
+      validationError('chapterIds array is required')
     }
 
     // Verify all chapters belong to this project
     const existingChapters = await this.db
       .prepare(`SELECT id FROM chapters WHERE project_id = ?`)
       .bind(projectId)
-      .all<{ id: string }>();
+      .all<{ id: string }>()
 
-    const existingIds = new Set((existingChapters.results ?? []).map((c) => c.id));
+    const existingIds = new Set((existingChapters.results ?? []).map((c) => c.id))
     for (const id of input.chapterIds) {
       if (!existingIds.has(id)) {
-        validationError(`Chapter ${id} does not belong to this project`);
+        validationError(`Chapter ${id} does not belong to this project`)
       }
     }
 
     // Verify all existing chapters are included
     if (input.chapterIds.length !== existingIds.size) {
-      validationError("All chapters must be included in the reorder");
+      validationError('All chapters must be included in the reorder')
     }
 
-    const now = new Date().toISOString();
+    const now = new Date().toISOString()
 
     // Two-pass reorder to avoid UNIQUE constraint violations on
     // (project_id, sort_order) when sort orders swap between chapters.
     // Pass 1: clear to negative temporaries. Pass 2: set final values.
     const clearStatements = input.chapterIds.map((id, index) =>
-      this.db.prepare(`UPDATE chapters SET sort_order = ? WHERE id = ?`).bind(-(index + 1), id),
-    );
+      this.db.prepare(`UPDATE chapters SET sort_order = ? WHERE id = ?`).bind(-(index + 1), id)
+    )
     const setStatements = input.chapterIds.map((id, index) =>
       this.db
         .prepare(`UPDATE chapters SET sort_order = ?, updated_at = ? WHERE id = ?`)
-        .bind(index + 1, now, id),
-    );
+        .bind(index + 1, now, id)
+    )
 
     // Execute all updates in a single batch (D1 runs these in a transaction)
-    await this.db.batch([...clearStatements, ...setStatements]);
+    await this.db.batch([...clearStatements, ...setStatements])
 
     // Update project updated_at
     await this.db
       .prepare(`UPDATE projects SET updated_at = ? WHERE id = ?`)
       .bind(now, projectId)
-      .run();
+      .run()
 
     // Return updated chapters
-    return this.listChapters(userId, projectId);
+    return this.listChapters(userId, projectId)
   }
 
   /**
@@ -372,15 +372,15 @@ export class ChapterService {
                 ch.word_count, ch.version, ch.status, ch.created_at, ch.updated_at
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`
       )
       .bind(chapterId, userId)
-      .first<ChapterRow>();
+      .first<ChapterRow>()
 
     if (!chapter) {
-      notFound("Chapter not found");
+      notFound('Chapter not found')
     }
 
-    return mapChapterRow(chapter);
+    return mapChapterRow(chapter)
   }
 }

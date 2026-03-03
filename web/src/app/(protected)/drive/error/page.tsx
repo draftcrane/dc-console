@@ -1,13 +1,13 @@
-"use client";
+'use client'
 
-import { useSearchParams, useRouter } from "next/navigation";
-import { Suspense } from "react";
+import { useSearchParams, useRouter } from 'next/navigation'
+import { Suspense } from 'react'
 
 const ERROR_MESSAGES: Record<string, string> = {
   access_denied:
-    "You declined the Google Drive connection. You can connect anytime from the editor.",
-  token_exchange_failed: "We could not complete the connection to Google Drive. Please try again.",
-};
+    'You declined the Google Drive connection. You can connect anytime from the editor.',
+  token_exchange_failed: 'We could not complete the connection to Google Drive. Please try again.',
+}
 
 /**
  * Drive OAuth Error Page
@@ -18,12 +18,12 @@ const ERROR_MESSAGES: Record<string, string> = {
  * Per PRD Section 8 (US-005): "Maybe later" - Drive connection is optional.
  */
 function DriveErrorContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const errorCode = searchParams.get("error") || "unknown";
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const errorCode = searchParams.get('error') || 'unknown'
   const errorMessage =
     ERROR_MESSAGES[errorCode] ||
-    "Something went wrong connecting to Google Drive. Please try again.";
+    'Something went wrong connecting to Google Drive. Please try again.'
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-4">
@@ -53,7 +53,7 @@ function DriveErrorContent() {
 
         <div className="mt-6 flex flex-col items-center gap-3">
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push('/dashboard')}
             className="inline-flex h-11 items-center justify-center rounded-lg bg-gray-900 px-6 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
           >
             Back to DraftCrane
@@ -65,7 +65,7 @@ function DriveErrorContent() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 export default function DriveErrorPage() {
@@ -79,5 +79,5 @@ export default function DriveErrorPage() {
     >
       <DriveErrorContent />
     </Suspense>
-  );
+  )
 }

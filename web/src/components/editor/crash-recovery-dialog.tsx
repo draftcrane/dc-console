@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import type { RecoveryPrompt } from "@/hooks/use-auto-save";
+import type { RecoveryPrompt } from '@/hooks/use-auto-save'
 
 interface CrashRecoveryDialogProps {
-  recovery: RecoveryPrompt;
-  onAccept: () => void;
-  onDismiss: () => void;
+  recovery: RecoveryPrompt
+  onAccept: () => void
+  onDismiss: () => void
 }
 
 /**
@@ -16,7 +16,7 @@ interface CrashRecoveryDialogProps {
  * - If IndexedDB is newer, prompt user to restore
  */
 export function CrashRecoveryDialog({ recovery, onAccept, onDismiss }: CrashRecoveryDialogProps) {
-  const timeAgo = formatTimeAgo(recovery.localUpdatedAt);
+  const timeAgo = formatTimeAgo(recovery.localUpdatedAt)
 
   return (
     <div
@@ -57,21 +57,21 @@ export function CrashRecoveryDialog({ recovery, onAccept, onDismiss }: CrashReco
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function formatTimeAgo(timestamp: number): string {
-  const diffMs = Date.now() - timestamp;
-  const diffMin = Math.floor(diffMs / 60_000);
+  const diffMs = Date.now() - timestamp
+  const diffMin = Math.floor(diffMs / 60_000)
 
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? "" : "s"} ago`;
+  if (diffMin < 1) return 'just now'
+  if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`
 
-  const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  const diffHours = Math.floor(diffMin / 60)
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
 
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+  const diffDays = Math.floor(diffHours / 24)
+  return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`
 }
 
-export default CrashRecoveryDialog;
+export default CrashRecoveryDialog

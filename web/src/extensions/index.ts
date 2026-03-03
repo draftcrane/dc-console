@@ -11,9 +11,9 @@
  * - HighlightFlash: Temporary decoration for AI rewrite feedback
  */
 
-export { FootnoteRef } from "./footnote-ref";
-export { FootnoteContent } from "./footnote-content";
-export { FootnoteSection } from "./footnote-section";
-export { FootnotePlugin } from "./footnote-plugin";
-export { insertFootnote, insertClipWithFootnote } from "./footnote-commands";
-export { HighlightFlash } from "./highlight-flash";
+export { FootnoteRef } from './footnote-ref'
+export { FootnoteContent } from './footnote-content'
+export { FootnoteSection } from './footnote-section'
+export { FootnotePlugin } from './footnote-plugin'
+export { insertFootnote, insertClipWithFootnote } from './footnote-commands'
+export { HighlightFlash } from './highlight-flash'

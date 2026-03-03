@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { useState } from "react";
+import { useState } from 'react'
 
 interface DeleteProjectDialogProps {
   /** The project title to display in the confirmation message */
-  projectTitle: string;
+  projectTitle: string
   /** Whether the dialog is open */
-  isOpen: boolean;
+  isOpen: boolean
   /** Called when the user confirms deletion */
-  onConfirm: () => Promise<void>;
+  onConfirm: () => Promise<void>
   /** Called when the user cancels */
-  onCancel: () => void;
+  onCancel: () => void
 }
 
 /**
@@ -28,16 +28,16 @@ export function DeleteProjectDialog({
   onConfirm,
   onCancel,
 }: DeleteProjectDialogProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   async function handleConfirm() {
-    setIsDeleting(true);
+    setIsDeleting(true)
     try {
-      await onConfirm();
+      await onConfirm()
     } finally {
-      setIsDeleting(false);
+      setIsDeleting(false)
     }
   }
 
@@ -102,12 +102,12 @@ export function DeleteProjectDialog({
                        hover:bg-red-700 transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isDeleting ? "Deleting..." : "Delete Project"}
+            {isDeleting ? 'Deleting...' : 'Delete Project'}
           </button>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default DeleteProjectDialog;
+export default DeleteProjectDialog

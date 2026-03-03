@@ -126,7 +126,7 @@ components:
 
     ProjectWithChapters:
       allOf:
-        - $ref: "#/components/schemas/Project"
+        - $ref: '#/components/schemas/Project'
         - type: object
           required:
             - chapters
@@ -135,7 +135,7 @@ components:
             chapters:
               type: array
               items:
-                $ref: "#/components/schemas/Chapter"
+                $ref: '#/components/schemas/Chapter'
             totalWordCount:
               type: integer
 
@@ -689,7 +689,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           example:
             error: Authentication required
             code: AUTH_REQUIRED
@@ -700,7 +700,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           example:
             error: Not found
             code: NOT_FOUND
@@ -711,7 +711,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           example:
             error: Title is required
             code: VALIDATION_ERROR
@@ -722,7 +722,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           example:
             error: Rate limit exceeded
             code: RATE_LIMITED
@@ -733,7 +733,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           example:
             error: Internal server error
             code: INTERNAL_ERROR
@@ -752,7 +752,7 @@ paths:
       operationId: getHealth
       security: []
       responses:
-        "200":
+        '200':
           description: Service is healthy
           content:
             application/json:
@@ -833,7 +833,7 @@ paths:
                     last_name:
                       type: string
       responses:
-        "200":
+        '200':
           description: Webhook processed
           content:
             application/json:
@@ -845,8 +845,8 @@ paths:
                     example: true
                   warning:
                     type: string
-        "400":
-          $ref: "#/components/responses/ValidationError"
+        '400':
+          $ref: '#/components/responses/ValidationError'
 
   # ─── Users ────────────────────────────────────────────────────────────
   /users/me:
@@ -858,7 +858,7 @@ paths:
         active projects with word counts, and total word count across all projects.
       operationId: getCurrentUser
       responses:
-        "200":
+        '200':
           description: User profile with Drive status and projects
           content:
             application/json:
@@ -871,7 +871,7 @@ paths:
                   - totalWordCount
                 properties:
                   user:
-                    $ref: "#/components/schemas/UserProfile"
+                    $ref: '#/components/schemas/UserProfile'
                   drive:
                     type: object
                     required:
@@ -888,13 +888,13 @@ paths:
                   projects:
                     type: array
                     items:
-                      $ref: "#/components/schemas/ProjectSummary"
+                      $ref: '#/components/schemas/ProjectSummary'
                   totalWordCount:
                     type: integer
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ─── Drive ────────────────────────────────────────────────────────────
   /drive/authorize:
@@ -921,7 +921,7 @@ paths:
             type: string
           description: Project ID to auto-link after OAuth completes
       responses:
-        "200":
+        '200':
           description: OAuth authorization URL
           content:
             application/json:
@@ -933,10 +933,10 @@ paths:
                   authorizationUrl:
                     type: string
                     format: uri
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /drive/callback:
     get:
@@ -969,15 +969,15 @@ paths:
             type: string
           description: Error code if user denied access
       responses:
-        "302":
+        '302':
           description: Redirects to frontend success or error page
           headers:
             Location:
               schema:
                 type: string
                 format: uri
-        "400":
-          $ref: "#/components/responses/ValidationError"
+        '400':
+          $ref: '#/components/responses/ValidationError'
 
   /drive/connection:
     get:
@@ -990,7 +990,7 @@ paths:
         support. Tokens are never exposed.
       operationId: getDriveConnections
       responses:
-        "200":
+        '200':
           description: Drive connection status
           content:
             application/json:
@@ -1013,11 +1013,11 @@ paths:
                   connections:
                     type: array
                     items:
-                      $ref: "#/components/schemas/DriveConnection"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                      $ref: '#/components/schemas/DriveConnection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     delete:
       tags: [Drive]
@@ -1029,7 +1029,7 @@ paths:
         Legacy endpoint -- prefer DELETE /drive/connection/:connectionId.
       operationId: disconnectAllDrive
       responses:
-        "200":
+        '200':
           description: All Drive accounts disconnected
           content:
             application/json:
@@ -1043,10 +1043,10 @@ paths:
                     type: boolean
                   message:
                     type: string
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /drive/connection/{connectionId}:
     delete:
@@ -1064,7 +1064,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Drive connection disconnected
           content:
             application/json:
@@ -1078,12 +1078,12 @@ paths:
                     type: boolean
                   message:
                     type: string
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /drive/connection/{connectionId}/files:
     get:
@@ -1112,7 +1112,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Files in the specified location
           content:
             application/json:
@@ -1124,16 +1124,16 @@ paths:
                   files:
                     type: array
                     items:
-                      $ref: "#/components/schemas/DriveFile"
+                      $ref: '#/components/schemas/DriveFile'
                   nextPageToken:
                     type: string
                     nullable: true
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /drive/connection/{connectionId}/files/{fileId}/content:
     get:
@@ -1156,7 +1156,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Parsed file content
           content:
             application/json:
@@ -1170,12 +1170,12 @@ paths:
                     type: string
                   wordCount:
                     type: integer
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /drive/picker-token/{connectionId}:
     get:
@@ -1193,7 +1193,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Picker access token
           content:
             application/json:
@@ -1209,16 +1209,16 @@ paths:
                   expiresIn:
                     type: integer
                     description: Remaining token lifetime in seconds
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "422":
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
           description: Drive not connected
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /drive/picker-token:
     get:
@@ -1231,7 +1231,7 @@ paths:
         Rate limited to 10 requests per minute.
       operationId: getPickerToken
       responses:
-        "200":
+        '200':
           description: Picker access token
           content:
             application/json:
@@ -1245,16 +1245,16 @@ paths:
                     type: string
                   expiresIn:
                     type: integer
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "422":
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
           description: Drive not connected
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /drive/folders/{folderId}/children:
     get:
@@ -1271,7 +1271,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Files in the folder
           content:
             application/json:
@@ -1283,23 +1283,23 @@ paths:
                   files:
                     type: array
                     items:
-                      $ref: "#/components/schemas/DriveFile"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "422":
+                      $ref: '#/components/schemas/DriveFile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
           description: Drive not connected
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "429":
-          $ref: "#/components/responses/RateLimited"
-        "502":
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
           description: Google Drive API error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Error'
 
   /drive/browse:
     get:
@@ -1331,7 +1331,7 @@ paths:
             type: string
           description: Pagination token from previous response
       responses:
-        "200":
+        '200':
           description: Folders and Docs in the specified location
           content:
             application/json:
@@ -1343,26 +1343,26 @@ paths:
                   files:
                     type: array
                     items:
-                      $ref: "#/components/schemas/DriveFile"
+                      $ref: '#/components/schemas/DriveFile'
                   nextPageToken:
                     type: string
                     nullable: true
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "422":
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
           description: Drive not connected
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
-        "429":
-          $ref: "#/components/responses/RateLimited"
-        "502":
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '502':
           description: Google Drive API error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Error'
 
   # ─── Projects ─────────────────────────────────────────────────────────
   /projects:
@@ -1389,18 +1389,18 @@ paths:
                   type: string
                   maxLength: 1000
       responses:
-        "201":
+        '201':
           description: Project created with default chapter
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Project"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     get:
       tags: [Projects]
@@ -1410,7 +1410,7 @@ paths:
         word counts and chapter counts.
       operationId: listProjects
       responses:
-        "200":
+        '200':
           description: List of active projects
           content:
             application/json:
@@ -1422,11 +1422,11 @@ paths:
                   projects:
                     type: array
                     items:
-                      $ref: "#/components/schemas/ProjectSummary"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                      $ref: '#/components/schemas/ProjectSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/import:
     post:
@@ -1451,18 +1451,18 @@ paths:
                   format: binary
                   description: ZIP backup file (max 50MB)
       responses:
-        "201":
+        '201':
           description: Project imported
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ImportBackupResult"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/ImportBackupResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}:
     get:
@@ -1478,18 +1478,18 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Project with chapters
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProjectWithChapters"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/ProjectWithChapters'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     patch:
       tags: [Projects]
@@ -1518,20 +1518,20 @@ paths:
                   type: string
                   maxLength: 1000
       responses:
-        "200":
+        '200':
           description: Updated project
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Project"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     delete:
       tags: [Projects]
@@ -1547,7 +1547,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Project archived
           content:
             application/json:
@@ -1558,12 +1558,12 @@ paths:
                 properties:
                   success:
                     type: boolean
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}/duplicate:
     post:
@@ -1580,18 +1580,18 @@ paths:
           schema:
             type: string
       responses:
-        "201":
+        '201':
           description: Project duplicated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Project"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/Project'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}/backup:
     get:
@@ -1609,7 +1609,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: ZIP backup file
           content:
             application/zip:
@@ -1621,12 +1621,12 @@ paths:
               schema:
                 type: string
                 example: attachment; filename="My Book - 2026-02-19.zip"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   # ─── Chapters ─────────────────────────────────────────────────────────
   /projects/{projectId}/chapters:
@@ -1654,18 +1654,18 @@ paths:
                   type: string
                   maxLength: 200
       responses:
-        "201":
+        '201':
           description: Chapter created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Chapter"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/Chapter'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     get:
       tags: [Chapters]
@@ -1681,7 +1681,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: List of chapters
           content:
             application/json:
@@ -1693,13 +1693,13 @@ paths:
                   chapters:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Chapter"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                      $ref: '#/components/schemas/Chapter'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}/chapters/reorder:
     patch:
@@ -1730,7 +1730,7 @@ paths:
                     type: string
                   description: Chapter IDs in the desired sort order
       responses:
-        "200":
+        '200':
           description: Chapters reordered
           content:
             application/json:
@@ -1742,15 +1742,15 @@ paths:
                   chapters:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Chapter"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                      $ref: '#/components/schemas/Chapter'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /chapters/{chapterId}:
     get:
@@ -1765,18 +1765,18 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Chapter details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Chapter"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/Chapter'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     patch:
       tags: [Chapters]
@@ -1805,20 +1805,20 @@ paths:
                   type: string
                   enum: [draft, review, final]
       responses:
-        "200":
+        '200':
           description: Updated chapter
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Chapter"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/Chapter'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     delete:
       tags: [Chapters]
@@ -1834,7 +1834,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Chapter deleted
           content:
             application/json:
@@ -1845,22 +1845,22 @@ paths:
                 properties:
                   success:
                     type: boolean
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
           description: Cannot delete the last chapter
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Error'
               example:
                 error: Cannot delete the last chapter
                 code: LAST_CHAPTER
                 requestId: 01HXYZ...
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /chapters/{chapterId}/content:
     put:
@@ -1894,30 +1894,30 @@ paths:
                   type: integer
                   description: Expected version for optimistic locking
       responses:
-        "200":
+        '200':
           description: Content saved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SaveContentResult"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "409":
+                $ref: '#/components/schemas/SaveContentResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
           description: Version conflict (optimistic locking)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: '#/components/schemas/Error'
               example:
                 error: Version conflict
                 code: CONFLICT
                 requestId: 01HXYZ...
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     get:
       tags: [Chapters]
@@ -1933,18 +1933,18 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Chapter content and version
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ChapterContent"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/ChapterContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   # ─── Sources ──────────────────────────────────────────────────────────
   /projects/{projectId}/sources:
@@ -1990,7 +1990,7 @@ paths:
                   type: string
                   description: Drive connection ID for multi-account tracking
       responses:
-        "201":
+        '201':
           description: Sources added
           content:
             application/json:
@@ -2002,7 +2002,7 @@ paths:
                   sources:
                     type: array
                     items:
-                      $ref: "#/components/schemas/SourceMaterial"
+                      $ref: '#/components/schemas/SourceMaterial'
                   expandedCounts:
                     type: object
                     properties:
@@ -2012,14 +2012,14 @@ paths:
                         type: integer
                       docsInserted:
                         type: integer
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     get:
       tags: [Sources]
@@ -2033,7 +2033,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Sources list
           content:
             application/json:
@@ -2045,13 +2045,13 @@ paths:
                   sources:
                     type: array
                     items:
-                      $ref: "#/components/schemas/SourceMaterial"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                      $ref: '#/components/schemas/SourceMaterial'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}/sources/upload:
     post:
@@ -2081,7 +2081,7 @@ paths:
                   format: binary
                   description: Text or Markdown file (max 5MB)
       responses:
-        "201":
+        '201':
           description: Source uploaded
           content:
             application/json:
@@ -2091,15 +2091,15 @@ paths:
                   - source
                 properties:
                   source:
-                    $ref: "#/components/schemas/SourceMaterial"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                    $ref: '#/components/schemas/SourceMaterial'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /sources/{sourceId}/content:
     get:
@@ -2116,18 +2116,18 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Source content
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SourceContentResult"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/SourceContentResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /sources/{sourceId}:
     delete:
@@ -2142,7 +2142,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Source removed
           content:
             application/json:
@@ -2153,12 +2153,12 @@ paths:
                 properties:
                   success:
                     type: boolean
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /sources/{sourceId}/restore:
     patch:
@@ -2173,7 +2173,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Source restored
           content:
             application/json:
@@ -2184,12 +2184,12 @@ paths:
                 properties:
                   success:
                     type: boolean
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /sources/{sourceId}/import-as-chapter:
     post:
@@ -2205,7 +2205,7 @@ paths:
           schema:
             type: string
       responses:
-        "201":
+        '201':
           description: Chapter created from source
           content:
             application/json:
@@ -2222,12 +2222,12 @@ paths:
                     type: string
                   wordCount:
                     type: integer
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   # ─── Source Connections (project-scoped) ──────────────────────────────
   /projects/{projectId}/source-connections:
@@ -2244,7 +2244,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Source connections
           content:
             application/json:
@@ -2256,13 +2256,13 @@ paths:
                   connections:
                     type: array
                     items:
-                      $ref: "#/components/schemas/SourceConnection"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                      $ref: '#/components/schemas/SourceConnection'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     post:
       tags: [Sources]
@@ -2289,20 +2289,20 @@ paths:
                 driveConnectionId:
                   type: string
       responses:
-        "201":
+        '201':
           description: Connection linked
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SourceConnection"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/SourceConnection'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}/source-connections/{connId}:
     delete:
@@ -2324,7 +2324,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Connection unlinked
           content:
             application/json:
@@ -2335,12 +2335,12 @@ paths:
                 properties:
                   success:
                     type: boolean
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   # ─── Linked Folders ──────────────────────────────────────────────────
   /projects/{projectId}/linked-folders:
@@ -2375,20 +2375,20 @@ paths:
                 folderName:
                   type: string
       responses:
-        "201":
+        '201':
           description: Folder linked
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LinkedFolder"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/LinkedFolder'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     get:
       tags: [Sources]
@@ -2402,7 +2402,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Linked folders
           content:
             application/json:
@@ -2414,13 +2414,13 @@ paths:
                   folders:
                     type: array
                     items:
-                      $ref: "#/components/schemas/LinkedFolder"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                      $ref: '#/components/schemas/LinkedFolder'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}/linked-folders/{id}:
     delete:
@@ -2440,7 +2440,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Folder unlinked
           content:
             application/json:
@@ -2451,12 +2451,12 @@ paths:
                 properties:
                   success:
                     type: boolean
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}/linked-folders/sync:
     post:
@@ -2474,7 +2474,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Sync completed
           content:
             application/json:
@@ -2486,12 +2486,12 @@ paths:
                   synced:
                     type: integer
                     description: Number of folders synced
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   # ─── Research ─────────────────────────────────────────────────────────
   /projects/{projectId}/research/sources/search:
@@ -2515,7 +2515,7 @@ paths:
             type: string
           description: Search query
       responses:
-        "200":
+        '200':
           description: Search results
           content:
             application/json:
@@ -2528,14 +2528,14 @@ paths:
                     type: array
                     items:
                       type: object
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}/research/clips:
     post:
@@ -2569,20 +2569,20 @@ paths:
                 sourceTitle:
                   type: string
       responses:
-        "201":
+        '201':
           description: Clip saved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ResearchClip"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/ResearchClip'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     get:
       tags: [Research]
@@ -2603,7 +2603,7 @@ paths:
             type: string
           description: Filter clips by chapter
       responses:
-        "200":
+        '200':
           description: Clips list
           content:
             application/json:
@@ -2615,13 +2615,13 @@ paths:
                   clips:
                     type: array
                     items:
-                      $ref: "#/components/schemas/ResearchClip"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                      $ref: '#/components/schemas/ResearchClip'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /research/clips/{clipId}:
     delete:
@@ -2636,7 +2636,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Clip deleted
           content:
             application/json:
@@ -2647,10 +2647,10 @@ paths:
                 properties:
                   success:
                     type: boolean
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /projects/{projectId}/research/query:
     post:
@@ -2684,20 +2684,20 @@ paths:
                   type: string
                   description: Custom instruction ID to use
       responses:
-        "200":
+        '200':
           description: SSE stream of research results
           content:
             text/event-stream:
               schema:
                 type: string
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}/research/analyze:
     post:
@@ -2728,20 +2728,20 @@ paths:
                   type: string
                   description: Custom instruction ID to use
       responses:
-        "200":
+        '200':
           description: SSE stream of analysis
           content:
             text/event-stream:
               schema:
                 type: string
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   # ─── AI ───────────────────────────────────────────────────────────────
   /ai/rewrite:
@@ -2802,18 +2802,18 @@ paths:
                   enum: [edge, frontier]
                   description: AI tier (default from environment config)
       responses:
-        "200":
+        '200':
           description: SSE stream of rewrite tokens
           content:
             text/event-stream:
               schema:
                 type: string
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /ai/interactions/{interactionId}/accept:
     post:
@@ -2830,16 +2830,16 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Interaction accepted
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AIInteraction"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+                $ref: '#/components/schemas/AIInteraction'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /ai/interactions/{interactionId}/reject:
     post:
@@ -2856,16 +2856,16 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Interaction rejected
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AIInteraction"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+                $ref: '#/components/schemas/AIInteraction'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ─── AI Instructions ─────────────────────────────────────────────────
   /ai/instructions:
@@ -2885,7 +2885,7 @@ paths:
             enum: [rewrite, analysis]
           description: Filter by instruction type
       responses:
-        "200":
+        '200':
           description: Instructions list
           content:
             application/json:
@@ -2897,9 +2897,9 @@ paths:
                   instructions:
                     type: array
                     items:
-                      $ref: "#/components/schemas/AIInstruction"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
+                      $ref: '#/components/schemas/AIInstruction'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
     post:
       tags: [AI]
@@ -2926,16 +2926,16 @@ paths:
                 prompt:
                   type: string
       responses:
-        "201":
+        '201':
           description: Instruction created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AIInstruction"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
+                $ref: '#/components/schemas/AIInstruction'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /ai/instructions/{id}:
     patch:
@@ -2961,16 +2961,16 @@ paths:
                 prompt:
                   type: string
       responses:
-        "200":
+        '200':
           description: Instruction updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AIInstruction"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+                $ref: '#/components/schemas/AIInstruction'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
     delete:
       tags: [AI]
@@ -2984,7 +2984,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Instruction deleted
           content:
             application/json:
@@ -2995,10 +2995,10 @@ paths:
                 properties:
                   success:
                     type: boolean
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   # ─── Exports ──────────────────────────────────────────────────────────
   /projects/{projectId}/export:
@@ -3030,26 +3030,26 @@ paths:
                   type: string
                   enum: [pdf, epub]
       responses:
-        "201":
+        '201':
           description: Export completed
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExportJobResult"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
-        "500":
+                $ref: '#/components/schemas/ExportJobResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
           description: Export generation failed
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExportJobResult"
+                $ref: '#/components/schemas/ExportJobResult'
 
   /projects/{projectId}/chapters/{chapterId}/export:
     post:
@@ -3083,26 +3083,26 @@ paths:
                   type: string
                   enum: [pdf, epub]
       responses:
-        "201":
+        '201':
           description: Export completed
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExportJobResult"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
-        "500":
+                $ref: '#/components/schemas/ExportJobResult'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
           description: Export generation failed
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExportJobResult"
+                $ref: '#/components/schemas/ExportJobResult'
 
   /exports/{jobId}:
     get:
@@ -3120,16 +3120,16 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Export job status
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExportJobStatus"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+                $ref: '#/components/schemas/ExportJobStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /exports/{jobId}/download:
     get:
@@ -3147,7 +3147,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Export file binary
           content:
             application/pdf:
@@ -3166,10 +3166,10 @@ paths:
               schema:
                 type: string
                 example: private, max-age=3600
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /exports/{jobId}/to-drive:
     post:
@@ -3199,18 +3199,18 @@ paths:
                 folderId:
                   type: string
       responses:
-        "200":
+        '200':
           description: Export saved to Drive
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExportToDriveResult"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                $ref: '#/components/schemas/ExportToDriveResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
   /projects/{projectId}/export-preferences:
     get:
@@ -3225,7 +3225,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Export preference (or null if not set)
           content:
             application/json:
@@ -3236,14 +3236,14 @@ paths:
                 properties:
                   preference:
                     allOf:
-                      - $ref: "#/components/schemas/ExportPreference"
+                      - $ref: '#/components/schemas/ExportPreference'
                     nullable: true
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     put:
       tags: [Exports]
@@ -3261,9 +3261,9 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ExportPreferenceInput"
+              $ref: '#/components/schemas/ExportPreferenceInput'
       responses:
-        "200":
+        '200':
           description: Updated export preference
           content:
             application/json:
@@ -3273,15 +3273,15 @@ paths:
                   - preference
                 properties:
                   preference:
-                    $ref: "#/components/schemas/ExportPreference"
-        "400":
-          $ref: "#/components/responses/ValidationError"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+                    $ref: '#/components/schemas/ExportPreference'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
 
     delete:
       tags: [Exports]
@@ -3295,7 +3295,7 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Preference cleared
           content:
             application/json:
@@ -3307,9 +3307,9 @@ paths:
                   success:
                     type: boolean
                     example: true
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "429":
-          $ref: "#/components/responses/RateLimited"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'

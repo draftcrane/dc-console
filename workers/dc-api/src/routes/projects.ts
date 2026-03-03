@@ -1,10 +1,10 @@
-import { Hono } from "hono";
-import type { Env } from "../types/index.js";
-import { standardRateLimit, exportRateLimit } from "../middleware/rate-limit.js";
-import { validationError } from "../middleware/error-handler.js";
-import { ProjectService } from "../services/project.js";
-import { BackupService } from "../services/backup.js";
-import { safeContentDisposition } from "../utils/file-names.js";
+import { Hono } from 'hono'
+import type { Env } from '../types/index.js'
+import { standardRateLimit, exportRateLimit } from '../middleware/rate-limit.js'
+import { validationError } from '../middleware/error-handler.js'
+import { ProjectService } from '../services/project.js'
+import { BackupService } from '../services/backup.js'
+import { safeContentDisposition } from '../utils/file-names.js'
 
 /**
  * Projects API routes
@@ -19,10 +19,10 @@ import { safeContentDisposition } from "../utils/file-names.js";
  * All routes require authentication (enforced globally in index.ts).
  * Authorization: All queries include WHERE user_id = ?
  */
-const projects = new Hono<{ Bindings: Env }>();
+const projects = new Hono<{ Bindings: Env }>()
 
 // Auth is enforced globally in index.ts
-projects.use("*", standardRateLimit);
+projects.use('*', standardRateLimit)
 
 /**
  * POST /projects
@@ -30,118 +30,118 @@ projects.use("*", standardRateLimit);
  *
  * Per PRD US-009: Title (required, max 500 chars) and description (optional, max 1000 chars)
  */
-projects.post("/", async (c) => {
-  const { userId } = c.get("auth");
+projects.post('/', async (c) => {
+  const { userId } = c.get('auth')
   const body = (await c.req.json().catch(() => ({}))) as {
-    title?: string;
-    description?: string;
-  };
-
-  if (!body.title) {
-    validationError("Title is required");
+    title?: string
+    description?: string
   }
 
-  const service = new ProjectService(c.env.DB);
+  if (!body.title) {
+    validationError('Title is required')
+  }
+
+  const service = new ProjectService(c.env.DB)
   const project = await service.createProject(userId, {
     title: body.title,
     description: body.description,
-  });
+  })
 
-  return c.json(project, 201);
-});
+  return c.json(project, 201)
+})
 
 /**
  * POST /projects/import
  * Import a project from a ZIP backup file.
  * Registered before /:projectId routes to avoid parameter matching.
  */
-projects.post("/import", exportRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const formData = await c.req.formData();
-  const file = formData.get("file");
+projects.post('/import', exportRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const formData = await c.req.formData()
+  const file = formData.get('file')
 
   if (!file || !(file instanceof File)) {
-    validationError("A .zip file is required");
+    validationError('A .zip file is required')
   }
 
   if (file.size > 50 * 1024 * 1024) {
-    validationError("Backup file must be under 50MB");
+    validationError('Backup file must be under 50MB')
   }
 
-  if (!file.name.endsWith(".zip")) {
-    validationError("File must be a .zip file");
+  if (!file.name.endsWith('.zip')) {
+    validationError('File must be a .zip file')
   }
 
-  const service = new BackupService(c.env.DB, c.env.EXPORTS_BUCKET);
-  const result = await service.importBackup(userId, await file.arrayBuffer());
+  const service = new BackupService(c.env.DB, c.env.EXPORTS_BUCKET)
+  const result = await service.importBackup(userId, await file.arrayBuffer())
 
-  return c.json(result, 201);
-});
+  return c.json(result, 201)
+})
 
 /**
  * POST /projects/:projectId/duplicate
  * Duplicate a project with all chapters and content.
  * Registered before /:projectId routes to avoid parameter matching.
  */
-projects.post("/:projectId/duplicate", exportRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
+projects.post('/:projectId/duplicate', exportRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
 
-  const service = new ProjectService(c.env.DB, c.env.EXPORTS_BUCKET);
-  const result = await service.duplicateProject(userId, projectId);
+  const service = new ProjectService(c.env.DB, c.env.EXPORTS_BUCKET)
+  const result = await service.duplicateProject(userId, projectId)
 
-  return c.json(result, 201);
-});
+  return c.json(result, 201)
+})
 
 /**
  * GET /projects
  * List user's active projects with word counts
  */
-projects.get("/", async (c) => {
-  const { userId } = c.get("auth");
+projects.get('/', async (c) => {
+  const { userId } = c.get('auth')
 
-  const service = new ProjectService(c.env.DB);
-  const projectList = await service.listProjects(userId);
+  const service = new ProjectService(c.env.DB)
+  const projectList = await service.listProjects(userId)
 
-  return c.json({ projects: projectList });
-});
+  return c.json({ projects: projectList })
+})
 
 /**
  * GET /projects/:projectId
  * Get project details with chapter list
  */
-projects.get("/:projectId", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
+projects.get('/:projectId', async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
 
-  const service = new ProjectService(c.env.DB);
-  const project = await service.getProject(userId, projectId);
+  const service = new ProjectService(c.env.DB)
+  const project = await service.getProject(userId, projectId)
 
-  return c.json(project);
-});
+  return c.json(project)
+})
 
 /**
  * PATCH /projects/:projectId
  * Update project title and/or description
  */
-projects.patch("/:projectId", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
+projects.patch('/:projectId', async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
   const body = (await c.req.json().catch(() => ({}))) as {
-    title?: string;
-    description?: string;
-  };
+    title?: string
+    description?: string
+  }
 
   // At least one field should be provided
   if (body.title === undefined && body.description === undefined) {
-    validationError("At least one of title or description must be provided");
+    validationError('At least one of title or description must be provided')
   }
 
-  const service = new ProjectService(c.env.DB);
-  const project = await service.updateProject(userId, projectId, body);
+  const service = new ProjectService(c.env.DB)
+  const project = await service.updateProject(userId, projectId, body)
 
-  return c.json(project);
-});
+  return c.json(project)
+})
 
 /**
  * DELETE /projects/:projectId
@@ -149,32 +149,32 @@ projects.patch("/:projectId", async (c) => {
  *
  * Per PRD US-023: Soft delete, Drive files preserved
  */
-projects.delete("/:projectId", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
+projects.delete('/:projectId', async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
 
-  const service = new ProjectService(c.env.DB);
-  await service.deleteProject(userId, projectId);
+  const service = new ProjectService(c.env.DB)
+  await service.deleteProject(userId, projectId)
 
-  return c.json({ success: true });
-});
+  return c.json({ success: true })
+})
 
 /**
  * GET /projects/:projectId/backup
  * Download a ZIP backup of the project (manifest + chapter HTML)
  */
-projects.get("/:projectId/backup", exportRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const service = new BackupService(c.env.DB, c.env.EXPORTS_BUCKET);
-  const { data, fileName } = await service.generateBackup(userId, c.req.param("projectId"));
+projects.get('/:projectId/backup', exportRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const service = new BackupService(c.env.DB, c.env.EXPORTS_BUCKET)
+  const { data, fileName } = await service.generateBackup(userId, c.req.param('projectId'))
 
   return new Response(data, {
     headers: {
-      "Content-Type": "application/zip",
-      "Content-Disposition": safeContentDisposition(fileName),
-      "Cache-Control": "no-store",
+      'Content-Type': 'application/zip',
+      'Content-Disposition': safeContentDisposition(fileName),
+      'Cache-Control': 'no-store',
     },
-  });
-});
+  })
+})
 
-export { projects };
+export { projects }

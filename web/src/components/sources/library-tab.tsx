@@ -1,21 +1,21 @@
-"use client";
+'use client'
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { useSourcesContext } from "@/contexts/sources-context";
-import { DriveBrowser } from "./drive-browser";
-import { SourcePicker } from "./source-picker";
-import { SourcesSection } from "./sources-section";
-import { SourceDetailView } from "./review-tab";
-import { DocumentPeekView } from "./document-peek-view";
-import { EmptyState } from "./empty-state";
-import { useToast } from "@/components/toast";
-import type { SourceConnection } from "@/hooks/use-sources";
-import type { DriveFile } from "@/hooks/use-drive-files";
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { useSourcesContext } from '@/contexts/sources-context'
+import { DriveBrowser } from './drive-browser'
+import { SourcePicker } from './source-picker'
+import { SourcesSection } from './sources-section'
+import { SourceDetailView } from './review-tab'
+import { DocumentPeekView } from './document-peek-view'
+import { EmptyState } from './empty-state'
+import { useToast } from '@/components/toast'
+import type { SourceConnection } from '@/hooks/use-sources'
+import type { DriveFile } from '@/hooks/use-drive-files'
 
-type ViewMode = "browse" | "detail" | "connect" | "peek";
+type ViewMode = 'browse' | 'detail' | 'connect' | 'peek'
 
-const SOURCE_LINK_KEY = "dc_pending_source_link";
-const POST_OAUTH_CONNECTION_KEY = "dc_post_oauth_connection";
+const SOURCE_LINK_KEY = 'dc_pending_source_link'
+const POST_OAUTH_CONNECTION_KEY = 'dc_post_oauth_connection'
 
 /**
  * Library tab - Source Manager with four view modes.
@@ -41,204 +41,204 @@ export function LibraryTab() {
     projectId,
     detailSourceId,
     setDetailSourceId,
-  } = useSourcesContext();
-  const { showToast } = useToast();
+  } = useSourcesContext()
+  const { showToast } = useToast()
 
-  const [viewMode, setViewMode] = useState<ViewMode>("browse");
-  const [, setIsUploading] = useState(false);
-  const [selectedConnectionIndex, setSelectedConnectionIndex] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('browse')
+  const [, setIsUploading] = useState(false)
+  const [selectedConnectionIndex, setSelectedConnectionIndex] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [peekFile, setPeekFile] = useState<{
-    fileId: string;
-    fileName: string;
-    mimeType: string;
-    connectionId: string;
-  } | null>(null);
+    fileId: string
+    fileName: string
+    mimeType: string
+    connectionId: string
+  } | null>(null)
 
   // Post-OAuth signal: read connection ID from sessionStorage on mount
   const [postOAuthConnectionId, setPostOAuthConnectionId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
+    if (typeof window === 'undefined') return null
     try {
-      return sessionStorage.getItem(POST_OAUTH_CONNECTION_KEY);
+      return sessionStorage.getItem(POST_OAUTH_CONNECTION_KEY)
     } catch {
-      return null;
+      return null
     }
-  });
+  })
 
   // Show toast when post-OAuth signal is detected.
   // Immediately clear sessionStorage to prevent re-fire on remount.
   useEffect(() => {
     if (postOAuthConnectionId) {
-      showToast("Google Drive connected");
+      showToast('Google Drive connected')
       try {
-        sessionStorage.removeItem(POST_OAUTH_CONNECTION_KEY);
+        sessionStorage.removeItem(POST_OAUTH_CONNECTION_KEY)
       } catch {
         // ignore
       }
     }
-  }, [postOAuthConnectionId, showToast]);
+  }, [postOAuthConnectionId, showToast])
 
   // Auto-browse: when the post-OAuth connection appears in connections, switch to browse mode
   useEffect(() => {
-    if (!postOAuthConnectionId) return;
+    if (!postOAuthConnectionId) return
 
-    const matchIndex = connections.findIndex((c) => c.driveConnectionId === postOAuthConnectionId);
+    const matchIndex = connections.findIndex((c) => c.driveConnectionId === postOAuthConnectionId)
     if (matchIndex >= 0) {
-      setSelectedConnectionIndex(matchIndex);
-      setViewMode("browse");
-      setPostOAuthConnectionId(null);
+      setSelectedConnectionIndex(matchIndex)
+      setViewMode('browse')
+      setPostOAuthConnectionId(null)
       try {
-        sessionStorage.removeItem(POST_OAUTH_CONNECTION_KEY);
+        sessionStorage.removeItem(POST_OAUTH_CONNECTION_KEY)
       } catch {
         // ignore
       }
-      return;
+      return
     }
 
     // Safety timeout: clear stale signal after 10s if connection never arrives
     const timeout = setTimeout(() => {
-      setPostOAuthConnectionId(null);
+      setPostOAuthConnectionId(null)
       try {
-        sessionStorage.removeItem(POST_OAUTH_CONNECTION_KEY);
+        sessionStorage.removeItem(POST_OAUTH_CONNECTION_KEY)
       } catch {
         // ignore
       }
-    }, 10_000);
-    return () => clearTimeout(timeout);
-  }, [postOAuthConnectionId, connections]);
+    }, 10_000)
+    return () => clearTimeout(timeout)
+  }, [postOAuthConnectionId, connections])
 
   // React to detailSourceId changes (e.g., from openSourceReview in other components)
   useEffect(() => {
     if (detailSourceId) {
-      setViewMode("detail");
+      setViewMode('detail')
     }
-  }, [detailSourceId]);
+  }, [detailSourceId])
 
   // Determine which project-scoped connection to use for the Drive browser
   // CRITICAL: Use driveConnectionId for Drive API, NOT id (junction row)
-  const safeIndex = Math.min(selectedConnectionIndex, Math.max(connections.length - 1, 0));
-  const activeConnection = connections[safeIndex] ?? null;
-  const activeConnectionId = activeConnection?.driveConnectionId ?? null;
-  const activeAccountEmail = activeConnection?.email ?? null;
+  const safeIndex = Math.min(selectedConnectionIndex, Math.max(connections.length - 1, 0))
+  const activeConnection = connections[safeIndex] ?? null
+  const activeConnectionId = activeConnection?.driveConnectionId ?? null
+  const activeAccountEmail = activeConnection?.email ?? null
 
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+      const file = e.target.files?.[0]
+      if (!file) return
 
-      setIsUploading(true);
+      setIsUploading(true)
       try {
-        await uploadLocalFile(file);
+        await uploadLocalFile(file)
       } catch (err) {
-        console.error("Upload failed:", err);
+        console.error('Upload failed:', err)
       } finally {
-        setIsUploading(false);
-        setViewMode("browse");
-        if (fileInputRef.current) fileInputRef.current.value = "";
+        setIsUploading(false)
+        setViewMode('browse')
+        if (fileInputRef.current) fileInputRef.current.value = ''
       }
     },
-    [uploadLocalFile],
-  );
+    [uploadLocalFile]
+  )
 
   const handleBrowseConnection = useCallback(
     (connection: SourceConnection) => {
       const index = connections.findIndex(
-        (c) => c.driveConnectionId === connection.driveConnectionId,
-      );
-      setSelectedConnectionIndex(index >= 0 ? index : 0);
-      setViewMode("browse");
+        (c) => c.driveConnectionId === connection.driveConnectionId
+      )
+      setSelectedConnectionIndex(index >= 0 ? index : 0)
+      setViewMode('browse')
     },
-    [connections],
-  );
+    [connections]
+  )
 
   const handleSelectConnection = useCallback(
     (connection: SourceConnection) => {
       const index = connections.findIndex(
-        (c) => c.driveConnectionId === connection.driveConnectionId,
-      );
-      setSelectedConnectionIndex(index >= 0 ? index : 0);
-      setViewMode("browse");
+        (c) => c.driveConnectionId === connection.driveConnectionId
+      )
+      setSelectedConnectionIndex(index >= 0 ? index : 0)
+      setViewMode('browse')
     },
-    [connections],
-  );
+    [connections]
+  )
 
   const handleUploadLocal = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
+    fileInputRef.current?.click()
+  }, [])
 
   // Go straight to OAuth - no intermediate screen showing user-level account emails.
   // After OAuth return, the account is auto-linked to this project via pid in state.
   const handleConnectDriveOAuth = useCallback(() => {
     try {
-      sessionStorage.setItem(SOURCE_LINK_KEY, projectId);
+      sessionStorage.setItem(SOURCE_LINK_KEY, projectId)
     } catch {
       // sessionStorage unavailable - pid fallback in OAuth state handles this
     }
-    connectDrive(undefined, projectId);
-  }, [connectDrive, projectId]);
+    connectDrive(undefined, projectId)
+  }, [connectDrive, projectId])
 
   const handleBackToList = useCallback(() => {
-    setViewMode("browse");
-    setDetailSourceId(null);
-  }, [setDetailSourceId]);
+    setViewMode('browse')
+    setDetailSourceId(null)
+  }, [setDetailSourceId])
 
   const handleDocumentTap = useCallback(
     (file: DriveFile) => {
-      if (!activeConnectionId) return;
+      if (!activeConnectionId) return
       setPeekFile({
         fileId: file.id,
         fileName: file.name,
         mimeType: file.mimeType,
         connectionId: activeConnectionId,
-      });
-      setViewMode("peek");
+      })
+      setViewMode('peek')
     },
-    [activeConnectionId],
-  );
+    [activeConnectionId]
+  )
 
   const handleBackToBrowse = useCallback(() => {
-    setViewMode("browse");
-    setPeekFile(null);
-  }, []);
+    setViewMode('browse')
+    setPeekFile(null)
+  }, [])
 
   // Tagged documents: driveFileIds that are on the Desk
   const taggedFileIds = useMemo(
     () =>
       new Set(
-        sources.filter((s) => s.driveFileId && s.status === "active").map((s) => s.driveFileId!),
+        sources.filter((s) => s.driveFileId && s.status === 'active').map((s) => s.driveFileId!)
       ),
-    [sources],
-  );
+    [sources]
+  )
 
   const handleTag = useCallback(
     async (file: DriveFile) => {
-      if (!activeConnectionId) return;
+      if (!activeConnectionId) return
       try {
         await addDriveSources(
           [{ driveFileId: file.id, title: file.name, mimeType: file.mimeType }],
-          activeConnectionId,
-        );
-        showToast(`Added "${file.name}" to desk`);
+          activeConnectionId
+        )
+        showToast(`Added "${file.name}" to desk`)
       } catch (err) {
-        console.error("Failed to tag document:", err);
+        console.error('Failed to tag document:', err)
       }
     },
-    [addDriveSources, activeConnectionId, showToast],
-  );
+    [addDriveSources, activeConnectionId, showToast]
+  )
 
   const handleUntag = useCallback(
     async (file: DriveFile) => {
-      const source = sources.find((s) => s.driveFileId === file.id && s.status === "active");
-      if (!source) return;
+      const source = sources.find((s) => s.driveFileId === file.id && s.status === 'active')
+      if (!source) return
       try {
-        await removeSource(source.id);
-        showToast(`Removed "${file.name}" from desk`);
+        await removeSource(source.id)
+        showToast(`Removed "${file.name}" from desk`)
       } catch (err) {
-        console.error("Failed to untag document:", err);
+        console.error('Failed to untag document:', err)
       }
     },
-    [sources, removeSource, showToast],
-  );
+    [sources, removeSource, showToast]
+  )
 
   // Loading state
   if (isLoadingSources) {
@@ -246,7 +246,7 @@ export function LibraryTab() {
       <div className="px-3 py-8 text-center">
         <p className="text-sm text-[var(--dc-color-text-muted)]">Loading...</p>
       </div>
-    );
+    )
   }
 
   // Hidden file input (always rendered for upload)
@@ -258,10 +258,10 @@ export function LibraryTab() {
       onChange={handleUpload}
       className="hidden"
     />
-  );
+  )
 
   // ── CONNECT MODE (source type picker for new connections) ──
-  if (viewMode === "connect") {
+  if (viewMode === 'connect') {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {fileInput}
@@ -273,11 +273,11 @@ export function LibraryTab() {
           onCancel={handleBackToList}
         />
       </div>
-    );
+    )
   }
 
   // ── BROWSE MODE (default when connected) ──
-  if (viewMode === "browse" && activeConnectionId) {
+  if (viewMode === 'browse' && activeConnectionId) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {fileInput}
@@ -322,7 +322,7 @@ export function LibraryTab() {
           connectionId={activeConnectionId}
           onReconnect={() => connectDrive(activeAccountEmail ?? undefined)}
           rootLabel={activeAccountEmail ?? undefined}
-          accountEmail={activeAccountEmail ?? ""}
+          accountEmail={activeAccountEmail ?? ''}
           onDocumentTap={handleDocumentTap}
           taggedFileIds={taggedFileIds}
           onTag={handleTag}
@@ -332,14 +332,14 @@ export function LibraryTab() {
         {/* Footer: manage connections */}
         <SourcesSection
           onBrowseConnection={handleBrowseConnection}
-          onAddSource={() => setViewMode("connect")}
+          onAddSource={() => setViewMode('connect')}
         />
       </div>
-    );
+    )
   }
 
   // ── PEEK MODE (live Drive document preview) ──
-  if (viewMode === "peek" && peekFile) {
+  if (viewMode === 'peek' && peekFile) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {fileInput}
@@ -351,17 +351,17 @@ export function LibraryTab() {
           onBack={handleBackToBrowse}
         />
       </div>
-    );
+    )
   }
 
   // ── DETAIL MODE (source content viewer, inline) ──
-  if (viewMode === "detail" && detailSourceId) {
+  if (viewMode === 'detail' && detailSourceId) {
     return (
       <div className="flex flex-col flex-1 min-h-0">
         {fileInput}
         <SourceDetailView onBack={handleBackToList} />
       </div>
-    );
+    )
   }
 
   // ── NO CONNECTIONS (fallback) ──
@@ -381,8 +381,8 @@ export function LibraryTab() {
         }
         message="Add documents to reference while you write."
         description="Your originals are never changed."
-        action={{ label: "Add Source", onClick: () => setViewMode("connect") }}
+        action={{ label: 'Add Source', onClick: () => setViewMode('connect') }}
       />
     </div>
-  );
+  )
 }

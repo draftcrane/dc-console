@@ -1,5 +1,5 @@
-import { ulid } from "ulidx";
-import type { AIProvider, AIStreamEvent } from "./ai-provider.js";
+import { ulid } from 'ulidx'
+import type { AIProvider, AIStreamEvent } from './ai-provider.js'
 
 /**
  * AIRewriteService - Handles AI rewrite requests via provider-agnostic AIProvider
@@ -15,32 +15,32 @@ import type { AIProvider, AIStreamEvent } from "./ai-provider.js";
 
 export interface RewriteInput {
   /** The selected text to rewrite */
-  selectedText: string;
+  selectedText: string
   /** Freeform instruction or chip label */
-  instruction: string;
+  instruction: string
   /** Up to 500 chars before the selection */
-  contextBefore: string;
+  contextBefore: string
   /** Up to 500 chars after the selection */
-  contextAfter: string;
+  contextAfter: string
   /** Chapter title for context */
-  chapterTitle: string;
+  chapterTitle: string
   /** Project description for context */
-  projectDescription: string;
+  projectDescription: string
   /** Chapter ID for logging */
-  chapterId: string;
+  chapterId: string
   /** Parent interaction ID for retry chains (links retries to original request) */
-  parentInteractionId?: string;
+  parentInteractionId?: string
   /** AI tier: "edge" (Workers AI) or "frontier" (OpenAI) */
-  tier?: "edge" | "frontier";
+  tier?: 'edge' | 'frontier'
 }
 
 export interface RewriteStreamResult {
-  stream: ReadableStream<Uint8Array>;
-  interactionId: string;
+  stream: ReadableStream<Uint8Array>
+  interactionId: string
 }
 
-const MAX_SELECTED_TEXT_CHARS = 10000;
-const MAX_CONTEXT_CHARS = 500;
+const MAX_SELECTED_TEXT_CHARS = 10000
+const MAX_CONTEXT_CHARS = 500
 
 /**
  * Build the system prompt for a rewrite request.
@@ -48,27 +48,27 @@ const MAX_CONTEXT_CHARS = 500;
  */
 export function buildSystemPrompt(input: RewriteInput): string {
   const parts = [
-    "You are a professional writing assistant helping an author rewrite selected text from their book.",
+    'You are a professional writing assistant helping an author rewrite selected text from their book.',
     "Rewrite ONLY the selected text according to the author's instruction.",
-    "Maintain the original meaning and tone unless the instruction specifically asks to change it.",
-    "Return ONLY the rewritten text with no preamble, explanation, or quotes.",
-    "Match the original formatting style (paragraphs, line breaks).",
-    "",
-    "STRICT RULES:",
-    "- Do NOT add new sentences, ideas, or content beyond what is in the selected text.",
-    "- Surrounding context is for reference ONLY. NEVER include it in your response.",
-    "- NEVER include labels, tags, or prompt formatting in your response.",
-  ];
+    'Maintain the original meaning and tone unless the instruction specifically asks to change it.',
+    'Return ONLY the rewritten text with no preamble, explanation, or quotes.',
+    'Match the original formatting style (paragraphs, line breaks).',
+    '',
+    'STRICT RULES:',
+    '- Do NOT add new sentences, ideas, or content beyond what is in the selected text.',
+    '- Surrounding context is for reference ONLY. NEVER include it in your response.',
+    '- NEVER include labels, tags, or prompt formatting in your response.',
+  ]
 
   if (input.projectDescription?.trim()) {
-    parts.push(`\nBook description: ${input.projectDescription.trim()}`);
+    parts.push(`\nBook description: ${input.projectDescription.trim()}`)
   }
 
   if (input.chapterTitle?.trim()) {
-    parts.push(`Chapter: ${input.chapterTitle.trim()}`);
+    parts.push(`Chapter: ${input.chapterTitle.trim()}`)
   }
 
-  return parts.join("\n");
+  return parts.join('\n')
 }
 
 /**
@@ -76,34 +76,34 @@ export function buildSystemPrompt(input: RewriteInput): string {
  * Exported for use by the quality gate script.
  */
 export function buildUserMessage(input: RewriteInput): string {
-  const parts: string[] = [];
+  const parts: string[] = []
 
-  const contextBefore = input.contextBefore?.slice(-MAX_CONTEXT_CHARS) || "";
-  const contextAfter = input.contextAfter?.slice(0, MAX_CONTEXT_CHARS) || "";
+  const contextBefore = input.contextBefore?.slice(-MAX_CONTEXT_CHARS) || ''
+  const contextAfter = input.contextAfter?.slice(0, MAX_CONTEXT_CHARS) || ''
 
   if (contextBefore) {
-    parts.push(`<context-before>\n${contextBefore}\n</context-before>\n`);
+    parts.push(`<context-before>\n${contextBefore}\n</context-before>\n`)
   }
 
-  parts.push(`<selected-text>\n${input.selectedText}\n</selected-text>\n`);
+  parts.push(`<selected-text>\n${input.selectedText}\n</selected-text>\n`)
 
   if (contextAfter) {
-    parts.push(`<context-after>\n${contextAfter}\n</context-after>\n`);
+    parts.push(`<context-after>\n${contextAfter}\n</context-after>\n`)
   }
 
-  parts.push(`<instruction>\n${input.instruction}\n</instruction>`);
+  parts.push(`<instruction>\n${input.instruction}\n</instruction>`)
 
   parts.push(
-    "\nRewrite ONLY the text inside <selected-text>. Output the rewritten text and nothing else.",
-  );
+    '\nRewrite ONLY the text inside <selected-text>. Output the rewritten text and nothing else.'
+  )
 
-  return parts.join("\n");
+  return parts.join('\n')
 }
 
 export class AIRewriteService {
   constructor(
     private readonly db: D1Database,
-    private readonly aiProvider: AIProvider,
+    private readonly aiProvider: AIProvider
   ) {}
 
   /**
@@ -111,26 +111,26 @@ export class AIRewriteService {
    */
   validateInput(input: RewriteInput): string | null {
     if (!input.selectedText?.trim()) {
-      return "Selected text is required";
+      return 'Selected text is required'
     }
 
     if (input.selectedText.length > MAX_SELECTED_TEXT_CHARS) {
-      return `Selected text must be at most ${MAX_SELECTED_TEXT_CHARS} characters`;
+      return `Selected text must be at most ${MAX_SELECTED_TEXT_CHARS} characters`
     }
 
     if (!input.instruction?.trim()) {
-      return "Instruction is required";
+      return 'Instruction is required'
     }
 
     if (input.instruction.length > 500) {
-      return "Instruction must be at most 500 characters";
+      return 'Instruction must be at most 500 characters'
     }
 
     if (!input.chapterId?.trim()) {
-      return "Chapter ID is required";
+      return 'Chapter ID is required'
     }
 
-    return null;
+    return null
   }
 
   /**
@@ -138,30 +138,30 @@ export class AIRewriteService {
    * Returns an SSE-compatible ReadableStream with normalized events.
    */
   async streamRewrite(userId: string, input: RewriteInput): Promise<RewriteStreamResult> {
-    const interactionId = ulid();
-    const startTime = Date.now();
+    const interactionId = ulid()
+    const startTime = Date.now()
 
     // Compute attempt number: if this is a retry, count prior attempts in the chain
-    let attemptNumber = 1;
-    const parentId = input.parentInteractionId ?? null;
+    let attemptNumber = 1
+    const parentId = input.parentInteractionId ?? null
     if (parentId) {
       const row = await this.db
         .prepare(
           `SELECT COUNT(*) as count FROM ai_interactions
-           WHERE (id = ? OR parent_interaction_id = ?) AND user_id = ?`,
+           WHERE (id = ? OR parent_interaction_id = ?) AND user_id = ?`
         )
         .bind(parentId, parentId, userId)
-        .first<{ count: number }>();
-      attemptNumber = (row?.count ?? 0) + 1;
+        .first<{ count: number }>()
+      attemptNumber = (row?.count ?? 0) + 1
     }
 
-    const tier = input.tier ?? "frontier";
+    const tier = input.tier ?? 'frontier'
 
     // Record the interaction start (output_chars and latency_ms will be updated)
     await this.db
       .prepare(
         `INSERT INTO ai_interactions (id, user_id, chapter_id, action, instruction, input_chars, output_chars, model, latency_ms, attempt_number, parent_interaction_id, tier, created_at)
-         VALUES (?, ?, ?, 'rewrite', ?, ?, 0, ?, 0, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))`,
+         VALUES (?, ?, ?, 'rewrite', ?, ?, 0, ?, 0, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))`
       )
       .bind(
         interactionId,
@@ -172,71 +172,71 @@ export class AIRewriteService {
         this.aiProvider.model,
         attemptNumber,
         parentId,
-        tier,
+        tier
       )
-      .run();
+      .run()
 
     // Get the normalized AI stream
     const aiStream = await this.aiProvider.streamCompletion(
       buildSystemPrompt(input),
       buildUserMessage(input),
-      { maxTokens: 4096 },
-    );
+      { maxTokens: 4096 }
+    )
 
     // Transform AIStreamEvents into SSE-formatted bytes for the client
-    let outputChars = 0;
-    const db = this.db;
-    const encoder = new TextEncoder();
+    let outputChars = 0
+    const db = this.db
+    const encoder = new TextEncoder()
 
     const sseTransform = new TransformStream<AIStreamEvent, Uint8Array>({
       start(controller) {
         // Emit interactionId immediately so the frontend can track it before tokens arrive
         controller.enqueue(
           encoder.encode(
-            `data: ${JSON.stringify({ type: "start", interactionId, attemptNumber, tier })}\n\n`,
-          ),
-        );
+            `data: ${JSON.stringify({ type: 'start', interactionId, attemptNumber, tier })}\n\n`
+          )
+        )
       },
 
       transform(event, controller) {
         switch (event.type) {
-          case "token":
-            outputChars += event.text.length;
+          case 'token':
+            outputChars += event.text.length
             controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: "token", text: event.text })}\n\n`),
-            );
-            break;
-          case "done":
+              encoder.encode(`data: ${JSON.stringify({ type: 'token', text: event.text })}\n\n`)
+            )
+            break
+          case 'done':
             controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: "done", interactionId })}\n\n`),
-            );
-            break;
-          case "error":
+              encoder.encode(`data: ${JSON.stringify({ type: 'done', interactionId })}\n\n`)
+            )
+            break
+          case 'error':
             controller.enqueue(
               encoder.encode(
-                `data: ${JSON.stringify({ type: "error", message: event.message })}\n\n`,
-              ),
-            );
-            break;
+                `data: ${JSON.stringify({ type: 'error', message: event.message })}\n\n`
+              )
+            )
+            break
         }
       },
 
       async flush() {
         // Update the interaction record with final stats
-        const latencyMs = Date.now() - startTime;
+        const latencyMs = Date.now() - startTime
         try {
           await db
             .prepare(`UPDATE ai_interactions SET output_chars = ?, latency_ms = ? WHERE id = ?`)
             .bind(outputChars, latencyMs, interactionId)
-            .run();
+            .run()
         } catch (err) {
-          console.error("Failed to update ai_interaction record:", err);
+          console.error('Failed to update ai_interaction record:', err)
         }
       },
-    });
+    })
 
-    const stream = aiStream.pipeThrough(sseTransform);
+    const stream = aiStream.pipeThrough(sseTransform)
 
-    return { stream, interactionId };
+    return { stream, interactionId }
   }
 }

@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
-import Link from "next/link";
+import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: "Terms of Service - DraftCrane",
-  description: "Terms of service for using DraftCrane, the nonfiction book writing environment.",
-};
+  title: 'Terms of Service - DraftCrane',
+  description: 'Terms of service for using DraftCrane, the nonfiction book writing environment.',
+}
 
 /**
  * Terms of Service page.
@@ -87,10 +87,10 @@ export default function TermsOfServicePage() {
               Google Drive Access
             </h2>
             <p>
-              DraftCrane stores your manuscripts in your Google Drive account using the{" "}
+              DraftCrane stores your manuscripts in your Google Drive account using the{' '}
               <code className="rounded bg-[var(--dc-color-surface-tertiary)] px-1.5 py-0.5 text-sm">
                 drive.file
-              </code>{" "}
+              </code>{' '}
               scope. This means DraftCrane can only access files and folders that it creates. It
               cannot access any other files in your Drive.
             </p>
@@ -246,7 +246,7 @@ export default function TermsOfServicePage() {
               Contact
             </h2>
             <p>
-              If you have questions about these terms, contact us at{" "}
+              If you have questions about these terms, contact us at{' '}
               <a
                 href="mailto:support@draftcrane.app"
                 className="text-[var(--dc-color-text-primary)] underline hover:text-[var(--dc-color-text-secondary)]"
@@ -271,5 +271,5 @@ export default function TermsOfServicePage() {
         </footer>
       </article>
     </div>
-  );
+  )
 }

@@ -11,29 +11,29 @@
  * - Book editor (future): type='book' instructions for cross-chapter analysis
  */
 
-import { ulid } from "ulidx";
-import { notFound, validationError } from "../middleware/error-handler.js";
+import { ulid } from 'ulidx'
+import { notFound, validationError } from '../middleware/error-handler.js'
 
 export interface AIInstruction {
-  id: string;
-  userId: string;
-  label: string;
-  instructionText: string;
-  type: "desk" | "book" | "chapter";
-  lastUsedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  userId: string
+  label: string
+  instructionText: string
+  type: 'desk' | 'book' | 'chapter'
+  lastUsedAt: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 interface AIInstructionRow {
-  id: string;
-  user_id: string;
-  label: string;
-  instruction_text: string;
-  type: string;
-  last_used_at: string | null;
-  created_at: string;
-  updated_at: string;
+  id: string
+  user_id: string
+  label: string
+  instruction_text: string
+  type: string
+  last_used_at: string | null
+  created_at: string
+  updated_at: string
 }
 
 function rowToInstruction(row: AIInstructionRow): AIInstruction {
@@ -42,119 +42,119 @@ function rowToInstruction(row: AIInstructionRow): AIInstruction {
     userId: row.user_id,
     label: row.label,
     instructionText: row.instruction_text,
-    type: row.type as "desk" | "book" | "chapter",
+    type: row.type as 'desk' | 'book' | 'chapter',
     lastUsedAt: row.last_used_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  };
+  }
 }
 
 export interface CreateInstructionInput {
-  label: string;
-  instructionText: string;
-  type: "desk" | "book" | "chapter";
+  label: string
+  instructionText: string
+  type: 'desk' | 'book' | 'chapter'
 }
 
 export interface UpdateInstructionInput {
-  label?: string;
-  instructionText?: string;
+  label?: string
+  instructionText?: string
 }
 
-const MAX_LABEL_LENGTH = 100;
-const MAX_INSTRUCTION_LENGTH = 2000;
-const VALID_TYPES = ["desk", "book", "chapter"];
+const MAX_LABEL_LENGTH = 100
+const MAX_INSTRUCTION_LENGTH = 2000
+const VALID_TYPES = ['desk', 'book', 'chapter']
 
 /**
  * Default instructions seeded for new users.
  * 5 chapter + 4 desk + 4 book = 13 total.
  */
 const DEFAULT_INSTRUCTIONS: Array<{
-  label: string;
-  instructionText: string;
-  type: "desk" | "book" | "chapter";
+  label: string
+  instructionText: string
+  type: 'desk' | 'book' | 'chapter'
 }> = [
   // Chapter (5)
   {
-    label: "Simpler language",
+    label: 'Simpler language',
     instructionText:
-      "Rewrite using simpler, more accessible vocabulary. Prefer common words over jargon. Aim for an 8th-grade reading level while preserving the core meaning and technical accuracy.",
-    type: "chapter",
+      'Rewrite using simpler, more accessible vocabulary. Prefer common words over jargon. Aim for an 8th-grade reading level while preserving the core meaning and technical accuracy.',
+    type: 'chapter',
   },
   {
-    label: "More concise",
+    label: 'More concise',
     instructionText:
-      "Make this more concise. Remove filler words, redundant phrases, and unnecessary qualifiers. Keep the essential meaning in fewer words.",
-    type: "chapter",
+      'Make this more concise. Remove filler words, redundant phrases, and unnecessary qualifiers. Keep the essential meaning in fewer words.',
+    type: 'chapter',
   },
   {
-    label: "More conversational",
+    label: 'More conversational',
     instructionText:
-      "Rewrite in a more conversational, friendly tone. Use contractions, shorter sentences, and direct address where appropriate. It should sound like one person talking to another.",
-    type: "chapter",
+      'Rewrite in a more conversational, friendly tone. Use contractions, shorter sentences, and direct address where appropriate. It should sound like one person talking to another.',
+    type: 'chapter',
   },
   {
-    label: "More direct",
+    label: 'More direct',
     instructionText:
       "Make this more direct and assertive. Lead with the main point. Remove hedging language like 'perhaps', 'maybe', 'it seems', 'in my opinion'. State claims confidently.",
-    type: "chapter",
+    type: 'chapter',
   },
   {
-    label: "Expand",
+    label: 'Expand',
     instructionText:
-      "Expand this passage with more detail. Add examples, explanations, or supporting points. Develop the ideas more fully while maintaining the original voice and structure.",
-    type: "chapter",
+      'Expand this passage with more detail. Add examples, explanations, or supporting points. Develop the ideas more fully while maintaining the original voice and structure.',
+    type: 'chapter',
   },
   // Desk (4)
   {
-    label: "Summarize",
+    label: 'Summarize',
     instructionText:
       "Provide a concise summary of this document. Capture the main argument, key findings, and conclusions in 2-3 paragraphs. Focus on what's most relevant for a nonfiction book author.",
-    type: "desk",
+    type: 'desk',
   },
   {
-    label: "Find key points",
+    label: 'Find key points',
     instructionText:
-      "Extract the key points, main arguments, and notable claims from this document as a bulleted list. Include page numbers or section references where possible.",
-    type: "desk",
+      'Extract the key points, main arguments, and notable claims from this document as a bulleted list. Include page numbers or section references where possible.',
+    type: 'desk',
   },
   {
-    label: "Extract quotes",
+    label: 'Extract quotes',
     instructionText:
-      "Find quotable passages in this document — memorable phrases, strong claims, vivid examples, or statistics that could be cited in a book. List each quote with its context.",
-    type: "desk",
+      'Find quotable passages in this document — memorable phrases, strong claims, vivid examples, or statistics that could be cited in a book. List each quote with its context.',
+    type: 'desk',
   },
   {
-    label: "Suggest connections",
+    label: 'Suggest connections',
     instructionText:
-      "Analyze how this source connects to the other selected documents. Identify shared themes, complementary perspectives, or contrasting viewpoints. Suggest how these sources could be synthesized.",
-    type: "desk",
+      'Analyze how this source connects to the other selected documents. Identify shared themes, complementary perspectives, or contrasting viewpoints. Suggest how these sources could be synthesized.',
+    type: 'desk',
   },
   // Book (4)
   {
-    label: "Find redundancies",
+    label: 'Find redundancies',
     instructionText:
-      "Analyze these chapters for redundant content. Identify passages that repeat the same ideas, examples, or explanations. List specific locations and suggest which to keep or consolidate.",
-    type: "book",
+      'Analyze these chapters for redundant content. Identify passages that repeat the same ideas, examples, or explanations. List specific locations and suggest which to keep or consolidate.',
+    type: 'book',
   },
   {
-    label: "Find contradictions",
+    label: 'Find contradictions',
     instructionText:
-      "Scan these chapters for contradictions or inconsistencies. Flag any places where claims, data, or recommendations conflict with each other. Quote the specific passages that contradict.",
-    type: "book",
+      'Scan these chapters for contradictions or inconsistencies. Flag any places where claims, data, or recommendations conflict with each other. Quote the specific passages that contradict.',
+    type: 'book',
   },
   {
-    label: "Find recurring topics",
+    label: 'Find recurring topics',
     instructionText:
-      "Identify recurring themes, topics, or concepts across these chapters. List each recurring element with the chapters where it appears. Note if any topic deserves its own dedicated chapter.",
-    type: "book",
+      'Identify recurring themes, topics, or concepts across these chapters. List each recurring element with the chapters where it appears. Note if any topic deserves its own dedicated chapter.',
+    type: 'book',
   },
   {
-    label: "Suggest connections",
+    label: 'Suggest connections',
     instructionText:
-      "Analyze the relationships between these chapters. Suggest transitions, cross-references, or connections that could strengthen the narrative flow. Identify ideas in one chapter that could be referenced or built upon in another.",
-    type: "book",
+      'Analyze the relationships between these chapters. Suggest transitions, cross-references, or connections that could strengthen the narrative flow. Identify ideas in one chapter that could be referenced or built upon in another.',
+    type: 'book',
   },
-];
+]
 
 export class AIInstructionsService {
   constructor(private readonly db: D1Database) {}
@@ -163,23 +163,23 @@ export class AIInstructionsService {
    * List instructions for a user, optionally filtered by type.
    */
   async list(userId: string, type?: string): Promise<AIInstruction[]> {
-    let query: string;
-    let params: string[];
+    let query: string
+    let params: string[]
 
     if (type && VALID_TYPES.includes(type)) {
-      query = `SELECT * FROM ai_instructions WHERE user_id = ? AND type = ? ORDER BY created_at ASC`;
-      params = [userId, type];
+      query = `SELECT * FROM ai_instructions WHERE user_id = ? AND type = ? ORDER BY created_at ASC`
+      params = [userId, type]
     } else {
-      query = `SELECT * FROM ai_instructions WHERE user_id = ? ORDER BY created_at ASC`;
-      params = [userId];
+      query = `SELECT * FROM ai_instructions WHERE user_id = ? ORDER BY created_at ASC`
+      params = [userId]
     }
 
     const result = await this.db
       .prepare(query)
       .bind(...params)
-      .all<AIInstructionRow>();
+      .all<AIInstructionRow>()
 
-    return (result.results ?? []).map(rowToInstruction);
+    return (result.results ?? []).map(rowToInstruction)
   }
 
   /**
@@ -187,35 +187,35 @@ export class AIInstructionsService {
    */
   async create(userId: string, input: CreateInstructionInput): Promise<AIInstruction> {
     if (!input.label?.trim()) {
-      validationError("Label is required");
+      validationError('Label is required')
     }
 
     if (input.label.length > MAX_LABEL_LENGTH) {
-      validationError(`Label must be at most ${MAX_LABEL_LENGTH} characters`);
+      validationError(`Label must be at most ${MAX_LABEL_LENGTH} characters`)
     }
 
     if (!input.instructionText?.trim()) {
-      validationError("Instruction text is required");
+      validationError('Instruction text is required')
     }
 
     if (input.instructionText.length > MAX_INSTRUCTION_LENGTH) {
-      validationError(`Instruction text must be at most ${MAX_INSTRUCTION_LENGTH} characters`);
+      validationError(`Instruction text must be at most ${MAX_INSTRUCTION_LENGTH} characters`)
     }
 
     if (!VALID_TYPES.includes(input.type)) {
-      validationError("Type must be 'desk', 'book', or 'chapter'");
+      validationError("Type must be 'desk', 'book', or 'chapter'")
     }
 
-    const id = ulid();
-    const now = new Date().toISOString();
+    const id = ulid()
+    const now = new Date().toISOString()
 
     await this.db
       .prepare(
         `INSERT INTO ai_instructions (id, user_id, label, instruction_text, type, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(id, userId, input.label.trim(), input.instructionText.trim(), input.type, now, now)
-      .run();
+      .run()
 
     return {
       id,
@@ -226,7 +226,7 @@ export class AIInstructionsService {
       lastUsedAt: null,
       createdAt: now,
       updatedAt: now,
-    };
+    }
   }
 
   /**
@@ -236,54 +236,52 @@ export class AIInstructionsService {
     const existing = await this.db
       .prepare(`SELECT * FROM ai_instructions WHERE id = ? AND user_id = ?`)
       .bind(id, userId)
-      .first<AIInstructionRow>();
+      .first<AIInstructionRow>()
 
     if (!existing) {
-      notFound("Instruction not found");
+      notFound('Instruction not found')
     }
 
     if (input.label !== undefined) {
       if (!input.label.trim()) {
-        validationError("Label cannot be empty");
+        validationError('Label cannot be empty')
       }
       if (input.label.length > MAX_LABEL_LENGTH) {
-        validationError(`Label must be at most ${MAX_LABEL_LENGTH} characters`);
+        validationError(`Label must be at most ${MAX_LABEL_LENGTH} characters`)
       }
     }
 
     if (input.instructionText !== undefined) {
       if (!input.instructionText.trim()) {
-        validationError("Instruction text cannot be empty");
+        validationError('Instruction text cannot be empty')
       }
       if (input.instructionText.length > MAX_INSTRUCTION_LENGTH) {
-        validationError(`Instruction text must be at most ${MAX_INSTRUCTION_LENGTH} characters`);
+        validationError(`Instruction text must be at most ${MAX_INSTRUCTION_LENGTH} characters`)
       }
     }
 
-    const now = new Date().toISOString();
-    const label = input.label !== undefined ? input.label.trim() : existing.label;
+    const now = new Date().toISOString()
+    const label = input.label !== undefined ? input.label.trim() : existing.label
     const instructionText =
-      input.instructionText !== undefined
-        ? input.instructionText.trim()
-        : existing.instruction_text;
+      input.instructionText !== undefined ? input.instructionText.trim() : existing.instruction_text
 
     await this.db
       .prepare(
-        `UPDATE ai_instructions SET label = ?, instruction_text = ?, updated_at = ? WHERE id = ? AND user_id = ?`,
+        `UPDATE ai_instructions SET label = ?, instruction_text = ?, updated_at = ? WHERE id = ? AND user_id = ?`
       )
       .bind(label, instructionText, now, id, userId)
-      .run();
+      .run()
 
     return {
       id: existing.id,
       userId: existing.user_id,
       label,
       instructionText,
-      type: existing.type as "desk" | "book" | "chapter",
+      type: existing.type as 'desk' | 'book' | 'chapter',
       lastUsedAt: existing.last_used_at,
       createdAt: existing.created_at,
       updatedAt: now,
-    };
+    }
   }
 
   /**
@@ -293,33 +291,33 @@ export class AIInstructionsService {
     const existing = await this.db
       .prepare(`SELECT id FROM ai_instructions WHERE id = ? AND user_id = ?`)
       .bind(id, userId)
-      .first<{ id: string }>();
+      .first<{ id: string }>()
 
     if (!existing) {
-      notFound("Instruction not found");
+      notFound('Instruction not found')
     }
 
     await this.db
       .prepare(`DELETE FROM ai_instructions WHERE id = ? AND user_id = ?`)
       .bind(id, userId)
-      .run();
+      .run()
   }
 
   /**
    * Touch last_used_at timestamp for an instruction. Verifies ownership.
    */
   async touchLastUsed(userId: string, id: string): Promise<void> {
-    const now = new Date().toISOString();
+    const now = new Date().toISOString()
 
     const result = await this.db
       .prepare(
-        `UPDATE ai_instructions SET last_used_at = ?, updated_at = ? WHERE id = ? AND user_id = ?`,
+        `UPDATE ai_instructions SET last_used_at = ?, updated_at = ? WHERE id = ? AND user_id = ?`
       )
       .bind(now, now, id, userId)
-      .run();
+      .run()
 
     if (!result.meta.changes || result.meta.changes === 0) {
-      notFound("Instruction not found");
+      notFound('Instruction not found')
     }
   }
 
@@ -331,20 +329,20 @@ export class AIInstructionsService {
     const existing = await this.db
       .prepare(`SELECT COUNT(*) as count FROM ai_instructions WHERE user_id = ?`)
       .bind(userId)
-      .first<{ count: number }>();
+      .first<{ count: number }>()
 
-    if (existing && existing.count > 0) return;
+    if (existing && existing.count > 0) return
 
-    const now = new Date().toISOString();
+    const now = new Date().toISOString()
     const statements = DEFAULT_INSTRUCTIONS.map((inst) =>
       this.db
         .prepare(
           `INSERT INTO ai_instructions (id, user_id, label, instruction_text, type, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
         )
-        .bind(ulid(), userId, inst.label, inst.instructionText, inst.type, now, now),
-    );
+        .bind(ulid(), userId, inst.label, inst.instructionText, inst.type, now, now)
+    )
 
-    await this.db.batch(statements);
+    await this.db.batch(statements)
   }
 }

@@ -1,5 +1,5 @@
-import { notFound, conflict } from "../middleware/error-handler.js";
-import { countWords } from "../utils/word-count.js";
+import { notFound, conflict } from '../middleware/error-handler.js'
+import { countWords } from '../utils/word-count.js'
 
 /**
  * ContentService - Manages chapter content storage (Tier 2 & 3 of auto-save).
@@ -13,32 +13,32 @@ import { countWords } from "../utils/word-count.js";
  */
 
 interface ChapterOwnershipRow {
-  id: string;
-  project_id: string;
-  version: number;
-  r2_key: string | null;
+  id: string
+  project_id: string
+  version: number
+  r2_key: string | null
 }
 
 interface SaveContentInput {
-  content: string;
-  version: number;
+  content: string
+  version: number
 }
 
 interface SaveContentResult {
-  version: number;
-  wordCount: number;
-  updatedAt: string;
+  version: number
+  wordCount: number
+  updatedAt: string
 }
 
 interface GetContentResult {
-  content: string;
-  version: number;
+  content: string
+  version: number
 }
 
 export class ContentService {
   constructor(
     private readonly db: D1Database,
-    private readonly bucket: R2Bucket,
+    private readonly bucket: R2Bucket
   ) {}
 
   /**
@@ -57,7 +57,7 @@ export class ContentService {
   async saveContent(
     userId: string,
     chapterId: string,
-    input: SaveContentInput,
+    input: SaveContentInput
   ): Promise<SaveContentResult> {
     // Verify ownership and get current version
     const chapter = await this.db
@@ -65,13 +65,13 @@ export class ContentService {
         `SELECT ch.id, ch.project_id, ch.version, ch.r2_key
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`
       )
       .bind(chapterId, userId)
-      .first<ChapterOwnershipRow>();
+      .first<ChapterOwnershipRow>()
 
     if (!chapter) {
-      notFound("Chapter not found");
+      notFound('Chapter not found')
     }
 
     // Version conflict detection (optimistic locking)
@@ -79,50 +79,50 @@ export class ContentService {
     if (input.version !== chapter.version) {
       conflict(
         `Version mismatch: expected ${chapter.version}, got ${input.version}. ` +
-          `Another save may have occurred.`,
-      );
+          `Another save may have occurred.`
+      )
     }
 
-    const newVersion = chapter.version + 1;
-    const now = new Date().toISOString();
-    const wordCount = countWords(input.content);
-    const r2Key = `chapters/${chapterId}/content.html`;
+    const newVersion = chapter.version + 1
+    const now = new Date().toISOString()
+    const wordCount = countWords(input.content)
+    const r2Key = `chapters/${chapterId}/content.html`
 
     // Tier 2: Write content to R2 (fast cache per ADR-005)
     // Drive write-through is handled at the route layer (chapters.ts PUT handler)
     // with 30s coalescing to avoid hammering Google API on 2s auto-save cadence.
     await this.bucket.put(r2Key, input.content, {
       httpMetadata: {
-        contentType: "text/html; charset=utf-8",
+        contentType: 'text/html; charset=utf-8',
       },
       customMetadata: {
         chapterId,
         version: String(newVersion),
         updatedAt: now,
       },
-    });
+    })
 
     // Tier 3: Update D1 metadata (no content stored in D1)
     await this.db
       .prepare(
         `UPDATE chapters
          SET word_count = ?, version = ?, r2_key = ?, updated_at = ?
-         WHERE id = ?`,
+         WHERE id = ?`
       )
       .bind(wordCount, newVersion, r2Key, now, chapterId)
-      .run();
+      .run()
 
     // Update project updated_at
     await this.db
       .prepare(`UPDATE projects SET updated_at = ? WHERE id = ?`)
       .bind(now, chapter.project_id)
-      .run();
+      .run()
 
     return {
       version: newVersion,
       wordCount,
       updatedAt: now,
-    };
+    }
   }
 
   /**
@@ -139,38 +139,38 @@ export class ContentService {
         `SELECT ch.id, ch.version, ch.r2_key
          FROM chapters ch
          JOIN projects p ON p.id = ch.project_id
-         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`,
+         WHERE ch.id = ? AND p.user_id = ? AND p.status = 'active'`
       )
       .bind(chapterId, userId)
-      .first<{ id: string; version: number; r2_key: string | null }>();
+      .first<{ id: string; version: number; r2_key: string | null }>()
 
     if (!chapter) {
-      notFound("Chapter not found");
+      notFound('Chapter not found')
     }
 
     // If no r2_key set yet, return empty content
     if (!chapter.r2_key) {
       return {
-        content: "",
+        content: '',
         version: chapter.version,
-      };
+      }
     }
 
     // Read from R2
-    const object = await this.bucket.get(chapter.r2_key);
+    const object = await this.bucket.get(chapter.r2_key)
     if (!object) {
       // R2 object missing but metadata exists - return empty
       return {
-        content: "",
+        content: '',
         version: chapter.version,
-      };
+      }
     }
 
-    const content = await object.text();
+    const content = await object.text()
 
     return {
       content,
       version: chapter.version,
-    };
+    }
   }
 }

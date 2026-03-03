@@ -1,10 +1,10 @@
-"use client";
+'use client'
 
-import { useCallback, useState, useRef } from "react";
-import { useSourcesContext } from "@/contexts/sources-context";
-import { SourceItem } from "./source-item";
-import { EmptyState } from "./empty-state";
-import { useToast } from "@/components/toast";
+import { useCallback, useState, useRef } from 'react'
+import { useSourcesContext } from '@/contexts/sources-context'
+import { SourceItem } from './source-item'
+import { EmptyState } from './empty-state'
+import { useToast } from '@/components/toast'
 
 /**
  * Project source list with search, view, analyze, and remove actions.
@@ -22,51 +22,51 @@ export function ProjectSourceList() {
     restoreSource,
     openSourceReview,
     openSourceAnalysis,
-  } = useSourcesContext();
+  } = useSourcesContext()
 
-  const { showToast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
-  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { showToast } = useToast()
+  const [searchQuery, setSearchQuery] = useState('')
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleSearch = useCallback(
     (value: string) => {
-      setSearchQuery(value);
+      setSearchQuery(value)
       if (value.trim().length >= 2) {
-        search(value);
+        search(value)
       } else {
-        clearSearch();
+        clearSearch()
       }
     },
-    [search, clearSearch],
-  );
+    [search, clearSearch]
+  )
 
   const handleRemove = useCallback(
     async (sourceId: string, title: string) => {
-      await removeSource(sourceId);
+      await removeSource(sourceId)
 
       // Show undo toast (5s window)
       showToast(`"${title}" removed`, 5000, {
-        label: "Undo",
+        label: 'Undo',
         onClick: async () => {
-          if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-          await restoreSource(sourceId);
+          if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+          await restoreSource(sourceId)
         },
-      });
+      })
     },
-    [removeSource, restoreSource, showToast],
-  );
+    [removeSource, restoreSource, showToast]
+  )
 
   const displaySources =
     searchResults !== null
       ? sources.filter((s) => searchResults.some((r) => r.sourceId === s.id))
-      : sources;
+      : sources
 
   if (isLoadingSources) {
     return (
       <div className="px-3 py-6 text-center">
         <p className="text-sm text-[var(--dc-color-text-muted)]">Loading sources...</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -98,7 +98,7 @@ export function ProjectSourceList() {
             />
             {searchQuery && (
               <button
-                onClick={() => handleSearch("")}
+                onClick={() => handleSearch('')}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--dc-color-text-placeholder)] hover:text-[var(--dc-color-text-muted)]
                            min-h-[32px] min-w-[32px] flex items-center justify-center"
                 aria-label="Clear search"
@@ -189,5 +189,5 @@ export function ProjectSourceList() {
         </div>
       )}
     </div>
-  );
+  )
 }

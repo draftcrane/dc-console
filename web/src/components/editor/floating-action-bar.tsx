@@ -1,12 +1,12 @@
-"use client";
+'use client'
 
-import type { TextSelectionState } from "@/hooks/use-text-selection";
+import type { TextSelectionState } from '@/hooks/use-text-selection'
 
 interface FloatingActionBarProps {
   /** Current text selection state from useTextSelection hook */
-  selection: TextSelectionState;
+  selection: TextSelectionState
   /** Callback when the AI Rewrite button is clicked */
-  onRewrite?: (selectedText: string) => void;
+  onRewrite?: (selectedText: string) => void
 }
 
 /**
@@ -23,19 +23,19 @@ interface FloatingActionBarProps {
  */
 export function FloatingActionBar({ selection, onRewrite }: FloatingActionBarProps) {
   if (!selection.hasSelection || !selection.floatingBarPosition) {
-    return null;
+    return null
   }
 
-  const { top, left } = selection.floatingBarPosition;
+  const { top, left } = selection.floatingBarPosition
 
   const handleRewriteClick = (e: React.MouseEvent | React.TouchEvent) => {
     // Prevent the click from propagating to the editor and clearing selection
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault()
+    e.stopPropagation()
 
-    if (selection.exceedsLimit) return;
-    onRewrite?.(selection.selectedText);
-  };
+    if (selection.exceedsLimit) return
+    onRewrite?.(selection.selectedText)
+  }
 
   return (
     <div
@@ -85,7 +85,7 @@ export function FloatingActionBar({ selection, onRewrite }: FloatingActionBarPro
         </button>
       )}
     </div>
-  );
+  )
 }
 
-export default FloatingActionBar;
+export default FloatingActionBar

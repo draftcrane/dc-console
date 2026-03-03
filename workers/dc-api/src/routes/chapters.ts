@@ -1,9 +1,9 @@
-import { Hono } from "hono";
-import type { Env } from "../types/index.js";
-import { standardRateLimit } from "../middleware/rate-limit.js";
-import { validationError } from "../middleware/error-handler.js";
-import { ChapterService } from "../services/chapter.js";
-import { ContentService } from "../services/content.js";
+import { Hono } from 'hono'
+import type { Env } from '../types/index.js'
+import { standardRateLimit } from '../middleware/rate-limit.js'
+import { validationError } from '../middleware/error-handler.js'
+import { ChapterService } from '../services/chapter.js'
+import { ContentService } from '../services/content.js'
 
 /**
  * Chapters API routes
@@ -22,10 +22,10 @@ import { ContentService } from "../services/content.js";
  * All routes require authentication (enforced globally in index.ts).
  * Authorization: All queries include WHERE user_id = ? via project ownership
  */
-const chapters = new Hono<{ Bindings: Env }>();
+const chapters = new Hono<{ Bindings: Env }>()
 
 // Auth is enforced globally in index.ts
-chapters.use("*", standardRateLimit);
+chapters.use('*', standardRateLimit)
 
 /**
  * POST /projects/:projectId/chapters
@@ -33,32 +33,32 @@ chapters.use("*", standardRateLimit);
  *
  * Per PRD US-010: "+" button creates chapter at end of list with editable title
  */
-chapters.post("/projects/:projectId/chapters", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-  const body = (await c.req.json().catch(() => ({}))) as { title?: string };
+chapters.post('/projects/:projectId/chapters', async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
+  const body = (await c.req.json().catch(() => ({}))) as { title?: string }
 
-  const service = new ChapterService(c.env.DB);
+  const service = new ChapterService(c.env.DB)
   const chapter = await service.createChapter(userId, projectId, {
     title: body.title,
-  });
+  })
 
-  return c.json(chapter, 201);
-});
+  return c.json(chapter, 201)
+})
 
 /**
  * GET /projects/:projectId/chapters
  * List chapters for a project (metadata only)
  */
-chapters.get("/projects/:projectId/chapters", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
+chapters.get('/projects/:projectId/chapters', async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
 
-  const service = new ChapterService(c.env.DB);
-  const chapterList = await service.listChapters(userId, projectId);
+  const service = new ChapterService(c.env.DB)
+  const chapterList = await service.listChapters(userId, projectId)
 
-  return c.json({ chapters: chapterList });
-});
+  return c.json({ chapters: chapterList })
+})
 
 /**
  * PATCH /projects/:projectId/chapters/reorder
@@ -66,36 +66,36 @@ chapters.get("/projects/:projectId/chapters", async (c) => {
  *
  * Per PRD US-012A: Long-press-and-drag reorder
  */
-chapters.patch("/projects/:projectId/chapters/reorder", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-  const body = (await c.req.json().catch(() => ({}))) as { chapterIds?: string[] };
+chapters.patch('/projects/:projectId/chapters/reorder', async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
+  const body = (await c.req.json().catch(() => ({}))) as { chapterIds?: string[] }
 
   if (!body.chapterIds || !Array.isArray(body.chapterIds)) {
-    validationError("chapterIds array is required");
+    validationError('chapterIds array is required')
   }
 
-  const service = new ChapterService(c.env.DB);
+  const service = new ChapterService(c.env.DB)
   const reorderedChapters = await service.reorderChapters(userId, projectId, {
     chapterIds: body.chapterIds,
-  });
+  })
 
-  return c.json({ chapters: reorderedChapters });
-});
+  return c.json({ chapters: reorderedChapters })
+})
 
 /**
  * GET /chapters/:chapterId
  * Get a single chapter by ID
  */
-chapters.get("/chapters/:chapterId", async (c) => {
-  const { userId } = c.get("auth");
-  const chapterId = c.req.param("chapterId");
+chapters.get('/chapters/:chapterId', async (c) => {
+  const { userId } = c.get('auth')
+  const chapterId = c.req.param('chapterId')
 
-  const service = new ChapterService(c.env.DB);
-  const chapter = await service.getChapter(userId, chapterId);
+  const service = new ChapterService(c.env.DB)
+  const chapter = await service.getChapter(userId, chapterId)
 
-  return c.json(chapter);
-});
+  return c.json(chapter)
+})
 
 /**
  * PATCH /chapters/:chapterId
@@ -103,24 +103,24 @@ chapters.get("/chapters/:chapterId", async (c) => {
  *
  * Per PRD US-013: Inline editing via double-tap. Max 200 characters.
  */
-chapters.patch("/chapters/:chapterId", async (c) => {
-  const { userId } = c.get("auth");
-  const chapterId = c.req.param("chapterId");
+chapters.patch('/chapters/:chapterId', async (c) => {
+  const { userId } = c.get('auth')
+  const chapterId = c.req.param('chapterId')
   const body = (await c.req.json().catch(() => ({}))) as {
-    title?: string;
-    status?: "draft" | "review" | "final";
-  };
+    title?: string
+    status?: 'draft' | 'review' | 'final'
+  }
 
   // At least one field should be provided
   if (body.title === undefined && body.status === undefined) {
-    validationError("At least one of title or status must be provided");
+    validationError('At least one of title or status must be provided')
   }
 
-  const service = new ChapterService(c.env.DB);
-  const chapter = await service.updateChapter(userId, chapterId, body);
+  const service = new ChapterService(c.env.DB)
+  const chapter = await service.updateChapter(userId, chapterId, body)
 
-  return c.json(chapter);
-});
+  return c.json(chapter)
+})
 
 /**
  * DELETE /chapters/:chapterId
@@ -129,15 +129,15 @@ chapters.patch("/chapters/:chapterId", async (c) => {
  * Per PRD US-014: Confirmation required. Hard delete in D1.
  * Minimum one chapter per project - rejects if last chapter.
  */
-chapters.delete("/chapters/:chapterId", async (c) => {
-  const { userId } = c.get("auth");
-  const chapterId = c.req.param("chapterId");
+chapters.delete('/chapters/:chapterId', async (c) => {
+  const { userId } = c.get('auth')
+  const chapterId = c.req.param('chapterId')
 
-  const service = new ChapterService(c.env.DB);
-  await service.deleteChapter(userId, chapterId);
+  const service = new ChapterService(c.env.DB)
+  await service.deleteChapter(userId, chapterId)
 
-  return c.json({ success: true });
-});
+  return c.json({ success: true })
+})
 
 /**
  * PUT /chapters/:chapterId/content
@@ -149,30 +149,30 @@ chapters.delete("/chapters/:chapterId", async (c) => {
  * - Returns 409 CONFLICT on version mismatch
  * - No content stored in D1 (Tier 3 metadata only)
  */
-chapters.put("/chapters/:chapterId/content", async (c) => {
-  const { userId } = c.get("auth");
-  const chapterId = c.req.param("chapterId");
+chapters.put('/chapters/:chapterId/content', async (c) => {
+  const { userId } = c.get('auth')
+  const chapterId = c.req.param('chapterId')
   const body = (await c.req.json().catch(() => ({}))) as {
-    content?: string;
-    version?: number;
-  };
+    content?: string
+    version?: number
+  }
 
   if (body.content === undefined) {
-    validationError("content is required");
+    validationError('content is required')
   }
 
-  if (body.version === undefined || typeof body.version !== "number") {
-    validationError("version number is required");
+  if (body.version === undefined || typeof body.version !== 'number') {
+    validationError('version number is required')
   }
 
-  const service = new ContentService(c.env.DB, c.env.EXPORTS_BUCKET);
+  const service = new ContentService(c.env.DB, c.env.EXPORTS_BUCKET)
   const result = await service.saveContent(userId, chapterId, {
     content: body.content,
     version: body.version,
-  });
+  })
 
-  return c.json(result);
-});
+  return c.json(result)
+})
 
 /**
  * GET /chapters/:chapterId/content
@@ -180,14 +180,14 @@ chapters.put("/chapters/:chapterId/content", async (c) => {
  *
  * Per US-015: Used by editor to load content and for crash recovery comparison.
  */
-chapters.get("/chapters/:chapterId/content", async (c) => {
-  const { userId } = c.get("auth");
-  const chapterId = c.req.param("chapterId");
+chapters.get('/chapters/:chapterId/content', async (c) => {
+  const { userId } = c.get('auth')
+  const chapterId = c.req.param('chapterId')
 
-  const service = new ContentService(c.env.DB, c.env.EXPORTS_BUCKET);
-  const result = await service.getContent(userId, chapterId);
+  const service = new ContentService(c.env.DB, c.env.EXPORTS_BUCKET)
+  const result = await service.getContent(userId, chapterId)
 
-  return c.json(result);
-});
+  return c.json(result)
+})
 
-export { chapters };
+export { chapters }

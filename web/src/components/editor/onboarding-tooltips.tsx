@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react'
 
-const ONBOARDING_KEY = "dc_onboarding_completed";
+const ONBOARDING_KEY = 'dc_onboarding_completed'
 
 interface OnboardingStep {
   /** Unique key for the step */
-  key: string;
+  key: string
   /** Main text shown to the user */
-  text: string;
+  text: string
   /** Which region of the editor this step points to */
-  target: "editor" | "sidebar" | "text-selection" | "sources";
+  target: 'editor' | 'sidebar' | 'text-selection' | 'sources'
 }
 
 /**
@@ -22,26 +22,26 @@ interface OnboardingStep {
  */
 const STEPS: OnboardingStep[] = [
   {
-    key: "chapter",
-    text: "This is your chapter. Start writing here, or paste what you already have.",
-    target: "editor",
+    key: 'chapter',
+    text: 'This is your chapter. Start writing here, or paste what you already have.',
+    target: 'editor',
   },
   {
-    key: "sidebar",
-    text: "Your chapters live here. Switch between them, add new ones, or drag to reorder.",
-    target: "sidebar",
+    key: 'sidebar',
+    text: 'Your chapters live here. Switch between them, add new ones, or drag to reorder.',
+    target: 'sidebar',
   },
   {
-    key: "sources",
-    text: "Your documents are here \u2014 anything you have added from Google Drive or your device.",
-    target: "sources",
+    key: 'sources',
+    text: 'Your documents are here \u2014 anything you have added from Google Drive or your device.',
+    target: 'sources',
   },
   {
-    key: "ai",
-    text: "Your Editor is here. Select any text, then tap Editor for a rewrite.",
-    target: "text-selection",
+    key: 'ai',
+    text: 'Your Editor is here. Select any text, then tap Editor for a rewrite.',
+    target: 'text-selection',
   },
-];
+]
 
 /**
  * Clear onboarding completion state so the tour replays on next editor visit.
@@ -49,7 +49,7 @@ const STEPS: OnboardingStep[] = [
  */
 export function resetOnboarding(): void {
   try {
-    localStorage.removeItem(ONBOARDING_KEY);
+    localStorage.removeItem(ONBOARDING_KEY)
   } catch {
     // Silently fail if localStorage unavailable
   }
@@ -77,78 +77,78 @@ export function resetOnboarding(): void {
  * rather than measuring DOM elements, for reliability across iPad Safari.
  */
 export function OnboardingTooltips() {
-  const [currentStep, setCurrentStep] = useState<number | null>(null);
-  const [isExiting, setIsExiting] = useState(false);
+  const [currentStep, setCurrentStep] = useState<number | null>(null)
+  const [isExiting, setIsExiting] = useState(false)
 
   // Check localStorage on mount - only show if not completed
   useEffect(() => {
     try {
-      const completed = localStorage.getItem(ONBOARDING_KEY);
+      const completed = localStorage.getItem(ONBOARDING_KEY)
       if (!completed) {
         // Delay slightly so the editor has time to render
-        const timer = setTimeout(() => setCurrentStep(0), 800);
-        return () => clearTimeout(timer);
+        const timer = setTimeout(() => setCurrentStep(0), 800)
+        return () => clearTimeout(timer)
       }
     } catch {
       // localStorage unavailable (private browsing, etc.) - skip onboarding
     }
-  }, []);
+  }, [])
 
   /** Whether to skip animation delays for prefers-reduced-motion */
   const prefersReducedMotion = useCallback(() => {
     return (
-      typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    );
-  }, []);
+      typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    )
+  }, [])
 
   const handleNext = useCallback(() => {
-    if (isExiting) return;
-    const delay = prefersReducedMotion() ? 0 : 150;
+    if (isExiting) return
+    const delay = prefersReducedMotion() ? 0 : 150
 
-    setIsExiting(true);
+    setIsExiting(true)
     setTimeout(() => {
       setCurrentStep((prev) => {
-        if (prev === null) return null;
+        if (prev === null) return null
         if (prev >= STEPS.length - 1) {
           try {
-            localStorage.setItem(ONBOARDING_KEY, "true");
+            localStorage.setItem(ONBOARDING_KEY, 'true')
           } catch {
             // Silently fail if localStorage unavailable
           }
-          return null;
+          return null
         }
-        return prev + 1;
-      });
-      setIsExiting(false);
-    }, delay);
-  }, [isExiting, prefersReducedMotion]);
+        return prev + 1
+      })
+      setIsExiting(false)
+    }, delay)
+  }, [isExiting, prefersReducedMotion])
 
   const handleSkip = useCallback(() => {
-    if (isExiting) return;
-    const delay = prefersReducedMotion() ? 0 : 150;
+    if (isExiting) return
+    const delay = prefersReducedMotion() ? 0 : 150
 
-    setIsExiting(true);
+    setIsExiting(true)
     setTimeout(() => {
       try {
-        localStorage.setItem(ONBOARDING_KEY, "true");
+        localStorage.setItem(ONBOARDING_KEY, 'true')
       } catch {
         // Silently fail
       }
-      setCurrentStep(null);
-      setIsExiting(false);
-    }, delay);
-  }, [isExiting, prefersReducedMotion]);
+      setCurrentStep(null)
+      setIsExiting(false)
+    }, delay)
+  }, [isExiting, prefersReducedMotion])
 
   if (currentStep === null || currentStep >= STEPS.length) {
-    return null;
+    return null
   }
 
-  const step = STEPS[currentStep];
-  const isLastStep = currentStep === STEPS.length - 1;
+  const step = STEPS[currentStep]
+  const isLastStep = currentStep === STEPS.length - 1
 
   // Position classes based on target
-  const positionClasses = getPositionClasses(step.target);
-  const arrowPosition = getArrowPosition(step.target);
+  const positionClasses = getPositionClasses(step.target)
+  const arrowPosition = getArrowPosition(step.target)
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[100]">
@@ -162,7 +162,7 @@ export function OnboardingTooltips() {
       {/* Tooltip card */}
       <div
         key={currentStep}
-        className={`pointer-events-auto absolute ${positionClasses} ${isExiting ? "tooltip-exit" : "tooltip-enter"}`}
+        className={`pointer-events-auto absolute ${positionClasses} ${isExiting ? 'tooltip-exit' : 'tooltip-enter'}`}
         role="dialog"
         aria-label={`Tip ${currentStep + 1} of ${STEPS.length}`}
         aria-live="polite"
@@ -185,7 +185,7 @@ export function OnboardingTooltips() {
               <div
                 key={i}
                 className={`h-1.5 rounded-full transition-all duration-200 ${
-                  i === currentStep ? "w-6 bg-blue-600" : "w-1.5 bg-[var(--dc-color-border-strong)]"
+                  i === currentStep ? 'w-6 bg-blue-600' : 'w-1.5 bg-[var(--dc-color-border-strong)]'
                 }`}
                 aria-hidden="true"
               />
@@ -210,52 +210,52 @@ export function OnboardingTooltips() {
               onClick={handleNext}
               className="min-h-[44px] min-w-[80px] rounded-lg bg-gray-900 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-800 active:bg-gray-950"
             >
-              {isLastStep ? "Done" : "Next"}
+              {isLastStep ? 'Done' : 'Next'}
             </button>
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 /**
  * Pointer arrow rendered as a CSS border triangle.
  * Positioned based on which edge the arrow should point from.
  */
-type ArrowPosition = "top" | "left" | "right";
+type ArrowPosition = 'top' | 'left' | 'right'
 
 function PointerArrow({ position }: { position: ArrowPosition }) {
   const classes: Record<ArrowPosition, string> = {
-    top: "absolute -top-2 left-1/2 -translate-x-1/2 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-white",
-    left: "absolute top-6 -left-2 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[8px] border-r-white",
+    top: 'absolute -top-2 left-1/2 -translate-x-1/2 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[8px] border-b-white',
+    left: 'absolute top-6 -left-2 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[8px] border-r-white',
     right:
-      "absolute top-6 -right-2 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[8px] border-l-white",
-  };
+      'absolute top-6 -right-2 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[8px] border-l-white',
+  }
 
-  return <div className={classes[position]} aria-hidden="true" />;
+  return <div className={classes[position]} aria-hidden="true" />
 }
 
 /**
  * Returns Tailwind positioning classes based on which area the tooltip targets.
  * Uses safe, responsive positioning that works on iPad in both orientations.
  */
-function getPositionClasses(target: OnboardingStep["target"]): string {
+function getPositionClasses(target: OnboardingStep['target']): string {
   switch (target) {
-    case "editor":
+    case 'editor':
       // Center of the content area, slightly above middle
-      return "top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2";
-    case "sidebar":
+      return 'top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2'
+    case 'sidebar':
       // Near the left edge where the sidebar lives
-      return "top-1/3 left-4 lg:left-[270px]";
-    case "sources":
+      return 'top-1/3 left-4 lg:left-[270px]'
+    case 'sources':
       // Near the top-right where the Library button is in the toolbar
-      return "top-16 right-4 lg:right-[200px]";
-    case "text-selection":
+      return 'top-16 right-4 lg:right-[200px]'
+    case 'text-selection':
       // Center of the content area, slightly below middle
-      return "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2";
+      return 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'
     default:
-      return "top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2";
+      return 'top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2'
   }
 }
 
@@ -263,19 +263,19 @@ function getPositionClasses(target: OnboardingStep["target"]): string {
  * Returns which edge the pointer arrow should appear on,
  * based on where the tooltip is positioned relative to its target.
  */
-function getArrowPosition(target: OnboardingStep["target"]): ArrowPosition {
+function getArrowPosition(target: OnboardingStep['target']): ArrowPosition {
   switch (target) {
-    case "editor":
-      return "top";
-    case "sidebar":
-      return "left";
-    case "sources":
-      return "right";
-    case "text-selection":
-      return "top";
+    case 'editor':
+      return 'top'
+    case 'sidebar':
+      return 'left'
+    case 'sources':
+      return 'right'
+    case 'text-selection':
+      return 'top'
     default:
-      return "top";
+      return 'top'
   }
 }
 
-export default OnboardingTooltips;
+export default OnboardingTooltips

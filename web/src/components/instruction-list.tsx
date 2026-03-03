@@ -1,33 +1,33 @@
-"use client";
+'use client'
 
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import type { AIInstruction } from "@/hooks/use-ai-instructions";
-import { useToast } from "@/components/toast";
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import type { AIInstruction } from '@/hooks/use-ai-instructions'
+import { useToast } from '@/components/toast'
 
 // ── Types ──
 
 interface InstructionListProps {
-  instructions: AIInstruction[];
-  type: "desk" | "book" | "chapter";
-  onSelect: (instruction: AIInstruction) => void;
+  instructions: AIInstruction[]
+  type: 'desk' | 'book' | 'chapter'
+  onSelect: (instruction: AIInstruction) => void
   onCreate: (input: {
-    label: string;
-    instructionText: string;
-    type: "desk" | "book" | "chapter";
-  }) => Promise<AIInstruction>;
-  onUpdate?: (id: string, input: { label?: string; instructionText?: string }) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
-  onTouch?: (id: string) => void;
-  isLoading: boolean;
-  disabled?: boolean;
-  variant?: "primary" | "escalation";
+    label: string
+    instructionText: string
+    type: 'desk' | 'book' | 'chapter'
+  }) => Promise<AIInstruction>
+  onUpdate?: (id: string, input: { label?: string; instructionText?: string }) => Promise<void>
+  onDelete?: (id: string) => Promise<void>
+  onTouch?: (id: string) => void
+  isLoading: boolean
+  disabled?: boolean
+  variant?: 'primary' | 'escalation'
 }
 
 // ── Constants ──
 
-const SEARCH_THRESHOLD = 6;
-const RECENTS_COUNT = 3;
-const DELETE_UNDO_DURATION = 5000;
+const SEARCH_THRESHOLD = 6
+const RECENTS_COUNT = 3
+const DELETE_UNDO_DURATION = 5000
 
 // ── Component ──
 
@@ -48,108 +48,108 @@ export function InstructionList({
   onTouch,
   isLoading,
   disabled = false,
-  variant = "primary",
+  variant = 'primary',
 }: InstructionListProps) {
-  const { showToast } = useToast();
+  const { showToast } = useToast()
 
   // State
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isManaging, setIsManaging] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editLabel, setEditLabel] = useState("");
-  const [editText, setEditText] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-  const [newLabel, setNewLabel] = useState("");
-  const [newText, setNewText] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isManaging, setIsManaging] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editLabel, setEditLabel] = useState('')
+  const [editText, setEditText] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
+  const [newLabel, setNewLabel] = useState('')
+  const [newText, setNewText] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [focusedIndex, setFocusedIndex] = useState(-1)
 
   // Refs
-  const listboxRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const newLabelRef = useRef<HTMLInputElement>(null);
+  const listboxRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const newLabelRef = useRef<HTMLInputElement>(null)
 
   // Variant tokens
-  const tokens = variant === "escalation" ? escalationTokens : primaryTokens;
+  const tokens = variant === 'escalation' ? escalationTokens : primaryTokens
 
   // ── Derived data ──
 
-  const showSearch = instructions.length >= SEARCH_THRESHOLD;
+  const showSearch = instructions.length >= SEARCH_THRESHOLD
 
   const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return instructions;
-    const q = searchQuery.toLowerCase();
-    return instructions.filter((inst) => inst.label.toLowerCase().includes(q));
-  }, [instructions, searchQuery]);
+    if (!searchQuery.trim()) return instructions
+    const q = searchQuery.toLowerCase()
+    return instructions.filter((inst) => inst.label.toLowerCase().includes(q))
+  }, [instructions, searchQuery])
 
   const recents = useMemo(() => {
     return instructions
       .filter((inst) => inst.lastUsedAt !== null)
-      .sort((a, b) => (b.lastUsedAt ?? "").localeCompare(a.lastUsedAt ?? ""))
-      .slice(0, RECENTS_COUNT);
-  }, [instructions]);
+      .sort((a, b) => (b.lastUsedAt ?? '').localeCompare(a.lastUsedAt ?? ''))
+      .slice(0, RECENTS_COUNT)
+  }, [instructions])
 
   const alphabetical = useMemo(() => {
-    return [...filtered].sort((a, b) => a.label.localeCompare(b.label));
-  }, [filtered]);
+    return [...filtered].sort((a, b) => a.label.localeCompare(b.label))
+  }, [filtered])
 
   // Recents only shown when not searching and not managing
-  const showRecents = recents.length > 0 && !searchQuery.trim() && !isManaging;
+  const showRecents = recents.length > 0 && !searchQuery.trim() && !isManaging
 
   // All visible items for keyboard navigation
   const visibleItems = useMemo(() => {
-    const items: AIInstruction[] = [];
+    const items: AIInstruction[] = []
     if (showRecents) {
-      items.push(...recents);
+      items.push(...recents)
     }
-    items.push(...alphabetical);
-    return items;
-  }, [showRecents, recents, alphabetical]);
+    items.push(...alphabetical)
+    return items
+  }, [showRecents, recents, alphabetical])
 
   // ── Handlers ──
 
   const handleSelect = useCallback(
     (instruction: AIInstruction) => {
-      if (disabled || isManaging) return;
-      onTouch?.(instruction.id);
-      onSelect(instruction);
+      if (disabled || isManaging) return
+      onTouch?.(instruction.id)
+      onSelect(instruction)
     },
-    [disabled, isManaging, onSelect, onTouch],
-  );
+    [disabled, isManaging, onSelect, onTouch]
+  )
 
   const handleStartEdit = useCallback((instruction: AIInstruction) => {
-    setEditingId(instruction.id);
-    setEditLabel(instruction.label);
-    setEditText(instruction.instructionText);
-  }, []);
+    setEditingId(instruction.id)
+    setEditLabel(instruction.label)
+    setEditText(instruction.instructionText)
+  }, [])
 
   const handleSaveEdit = useCallback(async () => {
-    if (!editingId || !onUpdate) return;
-    if (!editLabel.trim() || !editText.trim()) return;
-    setIsSaving(true);
+    if (!editingId || !onUpdate) return
+    if (!editLabel.trim() || !editText.trim()) return
+    setIsSaving(true)
     try {
-      await onUpdate(editingId, { label: editLabel.trim(), instructionText: editText.trim() });
-      setEditingId(null);
+      await onUpdate(editingId, { label: editLabel.trim(), instructionText: editText.trim() })
+      setEditingId(null)
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  }, [editingId, editLabel, editText, onUpdate]);
+  }, [editingId, editLabel, editText, onUpdate])
 
   const handleDelete = useCallback(
     async (instruction: AIInstruction) => {
-      if (!onDelete) return;
+      if (!onDelete) return
 
       // Store for undo
-      const { id, label } = instruction;
-      let undone = false;
+      const { id, label } = instruction
+      let undone = false
 
       // Optimistic delete — the hook handles it
-      await onDelete(id);
+      await onDelete(id)
 
       showToast(`Deleted "${label}"`, DELETE_UNDO_DURATION, {
-        label: "Undo",
+        label: 'Undo',
         onClick: () => {
-          undone = true;
+          undone = true
           // Re-create the instruction to undo
           onCreate({
             label: instruction.label,
@@ -157,96 +157,96 @@ export function InstructionList({
             type,
           }).catch(() => {
             // Best-effort undo
-          });
+          })
         },
-      });
+      })
 
       // The undone variable is used by the closure above
-      void undone;
+      void undone
     },
-    [onDelete, onCreate, type, showToast],
-  );
+    [onDelete, onCreate, type, showToast]
+  )
 
   const handleCreate = useCallback(async () => {
-    if (!newLabel.trim() || !newText.trim()) return;
-    setIsSaving(true);
+    if (!newLabel.trim() || !newText.trim()) return
+    setIsSaving(true)
     try {
       await onCreate({
         label: newLabel.trim(),
         instructionText: newText.trim(),
         type,
-      });
-      setNewLabel("");
-      setNewText("");
-      setIsCreating(false);
+      })
+      setNewLabel('')
+      setNewText('')
+      setIsCreating(false)
     } finally {
-      setIsSaving(false);
+      setIsSaving(false)
     }
-  }, [newLabel, newText, type, onCreate]);
+  }, [newLabel, newText, type, onCreate])
 
   const handleCancelCreate = useCallback(() => {
-    setIsCreating(false);
-    setNewLabel("");
-    setNewText("");
-  }, []);
+    setIsCreating(false)
+    setNewLabel('')
+    setNewText('')
+  }, [])
 
   // ── Keyboard navigation ──
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (disabled) return;
-      const count = visibleItems.length;
-      if (count === 0) return;
+      if (disabled) return
+      const count = visibleItems.length
+      if (count === 0) return
 
       switch (e.key) {
-        case "ArrowDown":
-          e.preventDefault();
-          setFocusedIndex((prev) => (prev + 1) % count);
-          break;
-        case "ArrowUp":
-          e.preventDefault();
-          setFocusedIndex((prev) => (prev - 1 + count) % count);
-          break;
-        case "Home":
-          e.preventDefault();
-          setFocusedIndex(0);
-          break;
-        case "End":
-          e.preventDefault();
-          setFocusedIndex(count - 1);
-          break;
-        case "Enter":
-        case " ":
+        case 'ArrowDown':
+          e.preventDefault()
+          setFocusedIndex((prev) => (prev + 1) % count)
+          break
+        case 'ArrowUp':
+          e.preventDefault()
+          setFocusedIndex((prev) => (prev - 1 + count) % count)
+          break
+        case 'Home':
+          e.preventDefault()
+          setFocusedIndex(0)
+          break
+        case 'End':
+          e.preventDefault()
+          setFocusedIndex(count - 1)
+          break
+        case 'Enter':
+        case ' ':
           if (focusedIndex >= 0 && focusedIndex < count && !isManaging) {
-            e.preventDefault();
-            handleSelect(visibleItems[focusedIndex]);
+            e.preventDefault()
+            handleSelect(visibleItems[focusedIndex])
           }
-          break;
-        case "Escape":
-          setFocusedIndex(-1);
-          searchRef.current?.blur();
-          break;
+          break
+        case 'Escape':
+          setFocusedIndex(-1)
+          searchRef.current?.blur()
+          break
       }
     },
-    [disabled, visibleItems, focusedIndex, isManaging, handleSelect],
-  );
+    [disabled, visibleItems, focusedIndex, isManaging, handleSelect]
+  )
 
   // Focus the item when focusedIndex changes
   useEffect(() => {
     if (focusedIndex >= 0 && listboxRef.current) {
-      const items = listboxRef.current.querySelectorAll('[role="option"]');
+      const items = listboxRef.current.querySelectorAll('[role="option"]')
       if (items[focusedIndex]) {
-        (items[focusedIndex] as HTMLElement).focus();
+        ;(items[focusedIndex] as HTMLElement).focus()
       }
     }
-  }, [focusedIndex]);
+  }, [focusedIndex])
 
   // Focus new label input when create form opens
   useEffect(() => {
     if (isCreating && newLabelRef.current) {
-      newLabelRef.current.focus();
+      newLabelRef.current.focus()
     }
-  }, [isCreating]);
+  }, [isCreating])
 
   // ── Loading state ──
 
@@ -260,7 +260,7 @@ export function InstructionList({
           />
         ))}
       </div>
-    );
+    )
   }
 
   // ── Empty state ──
@@ -279,7 +279,7 @@ export function InstructionList({
           Create your first instruction
         </button>
       </div>
-    );
+    )
   }
 
   // ── Render ──
@@ -309,8 +309,8 @@ export function InstructionList({
               type="text"
               value={searchQuery}
               onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setFocusedIndex(-1);
+                setSearchQuery(e.target.value)
+                setFocusedIndex(-1)
               }}
               placeholder="Search instructions"
               className="w-full pl-8 pr-7 py-1.5 text-xs border border-[var(--dc-color-border-strong)] rounded-lg
@@ -321,8 +321,8 @@ export function InstructionList({
               <button
                 type="button"
                 onClick={() => {
-                  setSearchQuery("");
-                  searchRef.current?.focus();
+                  setSearchQuery('')
+                  searchRef.current?.focus()
                 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)]"
                 aria-label="Clear search"
@@ -343,13 +343,13 @@ export function InstructionList({
           <button
             type="button"
             onClick={() => {
-              setIsManaging(!isManaging);
-              setEditingId(null);
+              setIsManaging(!isManaging)
+              setEditingId(null)
             }}
             className={`text-xs font-medium min-h-[32px] px-2 transition-colors
-                       ${isManaging ? tokens.textInteractive : "text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)]"}`}
+                       ${isManaging ? tokens.textInteractive : 'text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)]'}`}
           >
-            {isManaging ? "Done" : "Manage"}
+            {isManaging ? 'Done' : 'Manage'}
           </button>
         )}
       </div>
@@ -357,8 +357,8 @@ export function InstructionList({
       {/* SR-only status */}
       <div className="sr-only" aria-live="polite" role="status">
         {searchQuery
-          ? `${filtered.length} instruction${filtered.length !== 1 ? "s" : ""} found`
-          : `${instructions.length} instruction${instructions.length !== 1 ? "s" : ""}`}
+          ? `${filtered.length} instruction${filtered.length !== 1 ? 's' : ''} found`
+          : `${instructions.length} instruction${instructions.length !== 1 ? 's' : ''}`}
       </div>
 
       {/* Listbox */}
@@ -405,7 +405,7 @@ export function InstructionList({
           </p>
         ) : (
           alphabetical.map((inst, idx) => {
-            const globalIdx = showRecents ? recents.length + idx : idx;
+            const globalIdx = showRecents ? recents.length + idx : idx
             return (
               <InstructionRow
                 key={inst.id}
@@ -426,7 +426,7 @@ export function InstructionList({
                 onEditLabelChange={setEditLabel}
                 onEditTextChange={setEditText}
               />
-            );
+            )
           })
         )}
 
@@ -460,7 +460,7 @@ export function InstructionList({
                 className={`text-xs font-medium ${tokens.textInteractive} min-h-[32px]
                            disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {isSaving ? "Saving..." : "Save"}
+                {isSaving ? 'Saving...' : 'Save'}
               </button>
               <button
                 type="button"
@@ -486,28 +486,28 @@ export function InstructionList({
         )}
       </div>
     </div>
-  );
+  )
 }
 
 // ── InstructionRow ──
 
 interface InstructionRowProps {
-  instruction: AIInstruction;
-  isManaging: boolean;
-  isEditing: boolean;
-  editLabel: string;
-  editText: string;
-  isSaving: boolean;
-  disabled: boolean;
-  tokens: TokenSet;
-  tabIndex: number;
-  onSelect: () => void;
-  onStartEdit: () => void;
-  onSaveEdit: () => void;
-  onCancelEdit: () => void;
-  onDelete: () => void;
-  onEditLabelChange: (value: string) => void;
-  onEditTextChange: (value: string) => void;
+  instruction: AIInstruction
+  isManaging: boolean
+  isEditing: boolean
+  editLabel: string
+  editText: string
+  isSaving: boolean
+  disabled: boolean
+  tokens: TokenSet
+  tabIndex: number
+  onSelect: () => void
+  onStartEdit: () => void
+  onSaveEdit: () => void
+  onCancelEdit: () => void
+  onDelete: () => void
+  onEditLabelChange: (value: string) => void
+  onEditTextChange: (value: string) => void
 }
 
 function InstructionRow({
@@ -558,7 +558,7 @@ function InstructionRow({
             className={`text-xs font-medium ${tokens.textInteractive} min-h-[32px]
                        disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            {isSaving ? "Saving..." : "Save"}
+            {isSaving ? 'Saving...' : 'Save'}
           </button>
           <button
             type="button"
@@ -569,7 +569,7 @@ function InstructionRow({
           </button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -581,9 +581,9 @@ function InstructionRow({
       className={`flex items-center gap-2 px-3 min-h-[48px] transition-colors
                   ${
                     isManaging
-                      ? ""
+                      ? ''
                       : disabled
-                        ? "opacity-50 cursor-not-allowed"
+                        ? 'opacity-50 cursor-not-allowed'
                         : `cursor-pointer ${tokens.rowHover} ${tokens.rowActive}`
                   }`}
     >
@@ -627,25 +627,25 @@ function InstructionRow({
         </div>
       )}
     </div>
-  );
+  )
 }
 
 // ── Variant tokens ──
 
 interface TokenSet {
-  textInteractive: string;
-  rowHover: string;
-  rowActive: string;
+  textInteractive: string
+  rowHover: string
+  rowActive: string
 }
 
 const primaryTokens: TokenSet = {
-  textInteractive: "text-[var(--dc-color-interactive-primary)]",
-  rowHover: "hover:bg-[var(--dc-color-surface-secondary)]",
-  rowActive: "active:bg-[var(--dc-color-surface-tertiary)]",
-};
+  textInteractive: 'text-[var(--dc-color-interactive-primary)]',
+  rowHover: 'hover:bg-[var(--dc-color-surface-secondary)]',
+  rowActive: 'active:bg-[var(--dc-color-surface-tertiary)]',
+}
 
 const escalationTokens: TokenSet = {
-  textInteractive: "text-[var(--dc-color-interactive-escalation)]",
-  rowHover: "hover:bg-[var(--dc-color-interactive-escalation-subtle)]",
-  rowActive: "active:bg-[var(--dc-color-interactive-escalation-subtle)]",
-};
+  textInteractive: 'text-[var(--dc-color-interactive-escalation)]',
+  rowHover: 'hover:bg-[var(--dc-color-interactive-escalation-subtle)]',
+  rowActive: 'active:bg-[var(--dc-color-interactive-escalation-subtle)]',
+}

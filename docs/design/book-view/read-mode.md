@@ -315,24 +315,24 @@ Per acceptance criteria, BookReadView uses `role="article"`:
 ```typescript
 interface BookReadViewProps {
   /** List of chapters with content */
-  chapters: ChapterReadData[];
+  chapters: ChapterReadData[]
   /** Callback when user wants to edit a paragraph */
-  onEditRequest: (chapterId: string, paragraphIndex: number) => void;
+  onEditRequest: (chapterId: string, paragraphIndex: number) => void
   /** Currently highlighted chapter (from sidebar selection) */
-  highlightChapterId?: string;
+  highlightChapterId?: string
   /** Scroll to this chapter on mount */
-  initialScrollToChapterId?: string;
+  initialScrollToChapterId?: string
 }
 
 interface ChapterReadData {
-  id: string;
-  title: string;
+  id: string
+  title: string
   /** HTML content of the chapter */
-  content: string;
+  content: string
   /** Word count for optional display */
-  wordCount: number;
+  wordCount: number
   /** Sort order for rendering sequence */
-  sortOrder: number;
+  sortOrder: number
 }
 ```
 
@@ -347,19 +347,19 @@ Internal component for interactive paragraphs:
 ```typescript
 interface ParagraphWithTooltipProps {
   /** Paragraph HTML content */
-  html: string;
+  html: string
   /** Paragraph index within chapter */
-  index: number;
+  index: number
   /** Chapter ID for edit navigation */
-  chapterId: string;
+  chapterId: string
   /** Callback when edit is requested */
-  onEditRequest: () => void;
+  onEditRequest: () => void
   /** Whether tooltip is currently visible */
-  isTooltipVisible: boolean;
+  isTooltipVisible: boolean
   /** Toggle tooltip visibility */
-  onTooltipToggle: () => void;
+  onTooltipToggle: () => void
   /** Keyboard focus state */
-  isFocused: boolean;
+  isFocused: boolean
 }
 ```
 
@@ -372,13 +372,13 @@ interface ParagraphWithTooltipProps {
 ```typescript
 interface EditTooltipProps {
   /** Callback when user clicks "Edit in Chapter View" */
-  onEdit: () => void;
+  onEdit: () => void
   /** Callback when tooltip should be dismissed */
-  onDismiss: () => void;
+  onDismiss: () => void
   /** Position anchor element ref */
-  anchorRef: RefObject<HTMLParagraphElement>;
+  anchorRef: RefObject<HTMLParagraphElement>
   /** Visibility state */
-  isVisible: boolean;
+  isVisible: boolean
 }
 ```
 
@@ -545,7 +545,7 @@ Add to `globals.css`:
 
 /* Tooltip pointer arrow */
 .book-read-edit-tooltip::before {
-  content: "";
+  content: '';
   position: absolute;
   top: -8px;
   left: 50%;
@@ -556,7 +556,7 @@ Add to `globals.css`:
 }
 
 .book-read-edit-tooltip::after {
-  content: "";
+  content: '';
   position: absolute;
   top: -6px;
   left: 50%;

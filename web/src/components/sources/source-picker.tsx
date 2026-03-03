@@ -1,19 +1,19 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import type { SourceConnection } from "@/hooks/use-sources";
+import { useState } from 'react'
+import type { SourceConnection } from '@/hooks/use-sources'
 
 interface SourcePickerProps {
   /** Project-scoped Drive connections */
-  connections: SourceConnection[];
+  connections: SourceConnection[]
   /** Called when user picks a project-linked connection to browse */
-  onSelectConnection: (connection: SourceConnection) => void;
+  onSelectConnection: (connection: SourceConnection) => void
   /** Called when user wants to connect Google Drive (initiates OAuth directly) */
-  onConnectDrive: () => void;
+  onConnectDrive: () => void
   /** Called when user wants to upload from this device */
-  onUploadLocal: () => void;
+  onUploadLocal: () => void
   /** Called when user taps Cancel */
-  onCancel: () => void;
+  onCancel: () => void
 }
 
 /**
@@ -35,15 +35,15 @@ export function SourcePicker({
   onUploadLocal,
   onCancel,
 }: SourcePickerProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false)
 
   const handleDriveClick = () => {
     if (connections.length === 0) {
-      onConnectDrive();
+      onConnectDrive()
     } else {
-      setExpanded((prev) => !prev);
+      setExpanded((prev) => !prev)
     }
-  };
+  }
 
   return (
     <div className="flex flex-col px-4 py-4 flex-1">
@@ -101,7 +101,7 @@ export function SourcePicker({
             </span>
           </div>
           <svg
-            className={`w-4 h-4 text-[var(--dc-color-text-placeholder)] shrink-0 transition-transform ${expanded && connections.length >= 1 ? "rotate-90" : ""}`}
+            className={`w-4 h-4 text-[var(--dc-color-text-placeholder)] shrink-0 transition-transform ${expanded && connections.length >= 1 ? 'rotate-90' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -219,5 +219,5 @@ export function SourcePicker({
         </button>
       </div>
     </div>
-  );
+  )
 }

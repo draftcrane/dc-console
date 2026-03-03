@@ -1,19 +1,19 @@
-"use client";
+'use client'
 
-import type { ReactElement } from "react";
+import type { ReactElement } from 'react'
 
 interface EmptyStateProps {
-  icon: ReactElement;
-  message: string;
-  description?: string;
+  icon: ReactElement
+  message: string
+  description?: string
   action?: {
-    label: string;
-    onClick: () => void;
-  };
+    label: string
+    onClick: () => void
+  }
   secondaryAction?: {
-    label: string;
-    onClick: () => void;
-  };
+    label: string
+    onClick: () => void
+  }
 }
 
 /**
@@ -58,5 +58,5 @@ export function EmptyState({
         </div>
       )}
     </div>
-  );
+  )
 }

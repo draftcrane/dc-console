@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - "docs/process/**/*.md"
+      - 'docs/process/**/*.md'
   workflow_dispatch: # Allow manual trigger
 
 jobs:

@@ -1,5 +1,5 @@
-import { SignIn } from "@clerk/nextjs";
-import Link from "next/link";
+import { SignIn } from '@clerk/nextjs'
+import Link from 'next/link'
 
 /**
  * Sign In page using Clerk's hosted authentication.
@@ -32,29 +32,29 @@ export default function SignInPage() {
       <SignIn
         appearance={{
           elements: {
-            rootBox: "mx-auto w-full max-w-md",
-            card: "shadow-lg rounded-xl border border-gray-100 bg-white",
-            headerTitle: "hidden",
-            headerSubtitle: "hidden",
-            socialButtonsBlockButton: "h-12 text-base font-medium border-gray-200 hover:bg-gray-50",
-            socialButtonsBlockButtonText: "text-gray-700",
-            dividerLine: "bg-gray-200",
-            dividerText: "text-gray-500 text-sm",
-            formFieldLabel: "text-gray-700 font-medium",
+            rootBox: 'mx-auto w-full max-w-md',
+            card: 'shadow-lg rounded-xl border border-gray-100 bg-white',
+            headerTitle: 'hidden',
+            headerSubtitle: 'hidden',
+            socialButtonsBlockButton: 'h-12 text-base font-medium border-gray-200 hover:bg-gray-50',
+            socialButtonsBlockButtonText: 'text-gray-700',
+            dividerLine: 'bg-gray-200',
+            dividerText: 'text-gray-500 text-sm',
+            formFieldLabel: 'text-gray-700 font-medium',
             formFieldInput:
-              "h-12 rounded-lg border-gray-200 focus:border-gray-400 focus:ring-gray-400",
+              'h-12 rounded-lg border-gray-200 focus:border-gray-400 focus:ring-gray-400',
             formButtonPrimary:
-              "h-12 bg-gray-900 hover:bg-gray-800 text-base font-medium rounded-lg",
-            footerActionLink: "text-gray-700 font-medium hover:text-gray-900",
-            identityPreviewEditButton: "text-gray-600 hover:text-gray-800",
+              'h-12 bg-gray-900 hover:bg-gray-800 text-base font-medium rounded-lg',
+            footerActionLink: 'text-gray-700 font-medium hover:text-gray-900',
+            identityPreviewEditButton: 'text-gray-600 hover:text-gray-800',
           },
           layout: {
-            socialButtonsPlacement: "top",
-            socialButtonsVariant: "blockButton",
+            socialButtonsPlacement: 'top',
+            socialButtonsVariant: 'blockButton',
           },
         }}
         forceRedirectUrl="/dashboard"
       />
     </div>
-  );
+  )
 }

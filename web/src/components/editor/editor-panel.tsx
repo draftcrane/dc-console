@@ -1,7 +1,7 @@
-"use client";
+'use client'
 
-import { useEffect, useRef, type ReactNode } from "react";
-import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
+import { useEffect, useRef, type ReactNode } from 'react'
+import { useDelayedUnmount } from '@/hooks/use-delayed-unmount'
 
 /**
  * EditorPanel — Left-side persistent panel shell for the writing environment.
@@ -26,11 +26,11 @@ import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
 
 interface EditorPanelProps {
   /** Whether the panel is currently open */
-  isOpen: boolean;
+  isOpen: boolean
   /** Close the panel */
-  onClose: () => void;
+  onClose: () => void
   /** Panel content (chapter-specific or book-specific) */
-  children: ReactNode;
+  children: ReactNode
 }
 
 /**
@@ -39,32 +39,32 @@ interface EditorPanelProps {
  * Restores focus to trigger element on close (#330).
  */
 export function EditorPanel({ isOpen, onClose, children }: EditorPanelProps) {
-  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
-  const triggerRef = useRef<Element | null>(null);
-  const prevIsOpenRef = useRef(false);
+  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200)
+  const triggerRef = useRef<Element | null>(null)
+  const prevIsOpenRef = useRef(false)
 
   // Focus management: capture trigger on open, restore on close
   useEffect(() => {
-    const wasOpen = prevIsOpenRef.current;
-    prevIsOpenRef.current = isOpen;
+    const wasOpen = prevIsOpenRef.current
+    prevIsOpenRef.current = isOpen
 
     if (isOpen && !wasOpen) {
-      triggerRef.current = document.activeElement;
+      triggerRef.current = document.activeElement
     } else if (!isOpen && wasOpen) {
-      const trigger = triggerRef.current;
-      triggerRef.current = null;
+      const trigger = triggerRef.current
+      triggerRef.current = null
       if (trigger instanceof HTMLElement) {
-        trigger.focus();
+        trigger.focus()
       }
     }
-  }, [isOpen]);
+  }, [isOpen])
 
-  if (!shouldRender) return null;
+  if (!shouldRender) return null
 
   return (
     <div
       className={`hidden lg:flex editor-panel w-[320px] h-full flex-col border-r border-[var(--color-border)] bg-[var(--color-background)] shrink-0
-                  ${isClosing ? "editor-panel-slide-out" : "editor-panel-slide-in"}`}
+                  ${isClosing ? 'editor-panel-slide-out' : 'editor-panel-slide-in'}`}
       role="complementary"
       aria-label="Chapter editor"
     >
@@ -92,7 +92,7 @@ export function EditorPanel({ isOpen, onClose, children }: EditorPanelProps) {
       {/* Content */}
       {children}
     </div>
-  );
+  )
 }
 
 /**
@@ -102,50 +102,50 @@ export function EditorPanel({ isOpen, onClose, children }: EditorPanelProps) {
  * element when the panel closes (#330).
  */
 export function EditorPanelOverlay({ isOpen, onClose, children }: EditorPanelProps) {
-  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200);
-  const triggerRef = useRef<Element | null>(null);
-  const prevIsOpenRef = useRef(false);
-  const panelRef = useRef<HTMLDivElement>(null);
+  const { shouldRender, isClosing } = useDelayedUnmount(isOpen, 200)
+  const triggerRef = useRef<Element | null>(null)
+  const prevIsOpenRef = useRef(false)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   // Focus management: capture trigger on open, restore on close
   useEffect(() => {
-    const wasOpen = prevIsOpenRef.current;
-    prevIsOpenRef.current = isOpen;
+    const wasOpen = prevIsOpenRef.current
+    prevIsOpenRef.current = isOpen
 
     if (isOpen && !wasOpen) {
       // Opening: capture the element that triggered the overlay
-      triggerRef.current = document.activeElement;
+      triggerRef.current = document.activeElement
       // Focus the close button inside the panel
       requestAnimationFrame(() => {
         const firstButton = panelRef.current?.querySelector<HTMLElement>(
-          'button[aria-label="Close editor panel"]',
-        );
-        firstButton?.focus();
-      });
+          'button[aria-label="Close editor panel"]'
+        )
+        firstButton?.focus()
+      })
     } else if (!isOpen && wasOpen) {
       // Closing: return focus to the trigger element
-      const trigger = triggerRef.current;
-      triggerRef.current = null;
+      const trigger = triggerRef.current
+      triggerRef.current = null
       if (trigger instanceof HTMLElement) {
-        trigger.focus();
+        trigger.focus()
       }
     }
-  }, [isOpen]);
+  }, [isOpen])
 
   // Escape key to close
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
       }
-    };
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
-  if (!shouldRender) return null;
+  if (!shouldRender) return null
 
   return (
     <>
@@ -154,7 +154,7 @@ export function EditorPanelOverlay({ isOpen, onClose, children }: EditorPanelPro
         ref={panelRef}
         className={`editor-panel-overlay fixed inset-y-0 left-0 z-50 w-full max-w-[380px]
                    bg-[var(--color-background)] shadow-xl flex flex-col lg:hidden
-                   ${isClosing ? "editor-panel-slide-out" : "editor-panel-slide-in"}`}
+                   ${isClosing ? 'editor-panel-slide-out' : 'editor-panel-slide-in'}`}
         role="complementary"
         aria-label="Chapter editor"
       >
@@ -186,5 +186,5 @@ export function EditorPanelOverlay({ isOpen, onClose, children }: EditorPanelPro
         <div className="h-[env(safe-area-inset-bottom)]" />
       </div>
     </>
-  );
+  )
 }

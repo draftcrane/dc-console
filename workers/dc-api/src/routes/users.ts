@@ -1,38 +1,38 @@
-import { Hono } from "hono";
-import type { Env } from "../types/index.js";
-import { standardRateLimit } from "../middleware/rate-limit.js";
-import { notFound } from "../middleware/index.js";
+import { Hono } from 'hono'
+import type { Env } from '../types/index.js'
+import { standardRateLimit } from '../middleware/rate-limit.js'
+import { notFound } from '../middleware/index.js'
 
-const users = new Hono<{ Bindings: Env }>();
+const users = new Hono<{ Bindings: Env }>()
 
 // Auth is enforced globally in index.ts
-users.use("*", standardRateLimit);
+users.use('*', standardRateLimit)
 
 /**
  * GET /users/me
  * Returns current user profile with Drive status, active projects, and total word count.
  * Per PRD Section 12: Current user profile, Drive status, active projects, total word count
  */
-users.get("/me", async (c) => {
-  const { userId } = c.get("auth");
+users.get('/me', async (c) => {
+  const { userId } = c.get('auth')
 
   // Fetch user
   const user = await c.env.DB.prepare(
-    `SELECT id, email, display_name, created_at, updated_at FROM users WHERE id = ?`,
+    `SELECT id, email, display_name, created_at, updated_at FROM users WHERE id = ?`
   )
     .bind(userId)
-    .first<UserRow>();
+    .first<UserRow>()
 
   if (!user) {
-    notFound("User not found");
+    notFound('User not found')
   }
 
   // Check Drive connection
   const driveConnection = await c.env.DB.prepare(
-    `SELECT id, drive_email, token_expires_at FROM drive_connections WHERE user_id = ?`,
+    `SELECT id, drive_email, token_expires_at FROM drive_connections WHERE user_id = ?`
   )
     .bind(userId)
-    .first<DriveConnectionRow>();
+    .first<DriveConnectionRow>()
 
   // Get active projects with word counts
   const projectsResult = await c.env.DB.prepare(
@@ -47,15 +47,15 @@ users.get("/me", async (c) => {
      LEFT JOIN chapters ch ON ch.project_id = p.id
      WHERE p.user_id = ? AND p.status = 'active'
      GROUP BY p.id
-     ORDER BY p.updated_at DESC`,
+     ORDER BY p.updated_at DESC`
   )
     .bind(userId)
-    .all<ProjectSummaryRow>();
+    .all<ProjectSummaryRow>()
 
-  const projects = projectsResult.results ?? [];
+  const projects = projectsResult.results ?? []
 
   // Calculate total word count across all projects
-  const totalWordCount = projects.reduce((sum, p) => sum + (p.total_words || 0), 0);
+  const totalWordCount = projects.reduce((sum, p) => sum + (p.total_words || 0), 0)
 
   return c.json({
     user: {
@@ -83,31 +83,31 @@ users.get("/me", async (c) => {
       updatedAt: p.updated_at,
     })),
     totalWordCount,
-  });
-});
+  })
+})
 
 /** DB row types */
 interface UserRow {
-  id: string;
-  email: string;
-  display_name: string;
-  created_at: string;
-  updated_at: string;
+  id: string
+  email: string
+  display_name: string
+  created_at: string
+  updated_at: string
 }
 
 interface DriveConnectionRow {
-  id: string;
-  drive_email: string;
-  token_expires_at: string;
+  id: string
+  drive_email: string
+  token_expires_at: string
 }
 
 interface ProjectSummaryRow {
-  id: string;
-  title: string;
-  status: string;
-  updated_at: string;
-  total_words: number;
-  chapter_count: number;
+  id: string
+  title: string
+  status: string
+  updated_at: string
+  total_words: number
+  chapter_count: number
 }
 
-export { users };
+export { users }

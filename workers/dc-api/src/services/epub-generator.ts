@@ -16,8 +16,8 @@
  * - OEBPS/style.css (default stylesheet)
  */
 
-import JSZip from "jszip";
-import type { BookMetadata, ChapterContent } from "./book-template.js";
+import JSZip from 'jszip'
+import type { BookMetadata, ChapterContent } from './book-template.js'
 
 /**
  * E-reader stylesheet for EPUB content.
@@ -108,18 +108,18 @@ hr::before {
   margin-top: 2em;
   color: #888;
 }
-`;
+`
 
 /**
  * Escape XML entities in text content.
  */
 function escapeXml(text: string): string {
   return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
 }
 
 /**
@@ -136,7 +136,7 @@ function wrapXhtml(title: string, bodyContent: string): string {
 <body>
 ${bodyContent}
 </body>
-</html>`;
+</html>`
 }
 
 /**
@@ -148,7 +148,7 @@ function buildContainerXml(): string {
   <rootfiles>
     <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
   </rootfiles>
-</container>`;
+</container>`
 }
 
 /**
@@ -157,23 +157,23 @@ function buildContainerXml(): string {
 function buildContentOpf(
   metadata: BookMetadata,
   chapters: ChapterContent[],
-  bookId: string,
+  bookId: string
 ): string {
   const manifestItems = [
     `    <item id="nav" href="toc.xhtml" media-type="application/xhtml+xml" properties="nav"/>`,
     `    <item id="title-page" href="title.xhtml" media-type="application/xhtml+xml"/>`,
     `    <item id="style" href="style.css" media-type="text/css"/>`,
-  ];
+  ]
 
-  const spineItems = [`    <itemref idref="title-page"/>`, `    <itemref idref="nav"/>`];
+  const spineItems = [`    <itemref idref="title-page"/>`, `    <itemref idref="nav"/>`]
 
   chapters.forEach((ch, index) => {
-    const itemId = `chapter-${index + 1}`;
+    const itemId = `chapter-${index + 1}`
     manifestItems.push(
-      `    <item id="${itemId}" href="${itemId}.xhtml" media-type="application/xhtml+xml"/>`,
-    );
-    spineItems.push(`    <itemref idref="${itemId}"/>`);
-  });
+      `    <item id="${itemId}" href="${itemId}.xhtml" media-type="application/xhtml+xml"/>`
+    )
+    spineItems.push(`    <itemref idref="${itemId}"/>`)
+  })
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="book-id">
@@ -183,15 +183,15 @@ function buildContentOpf(
     <dc:creator>${escapeXml(metadata.authorName)}</dc:creator>
     <dc:language>en</dc:language>
     <dc:date>${escapeXml(metadata.generatedDate)}</dc:date>
-    <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d+Z$/, "Z")}</meta>
+    <meta property="dcterms:modified">${new Date().toISOString().replace(/\.\d+Z$/, 'Z')}</meta>
   </metadata>
   <manifest>
-${manifestItems.join("\n")}
+${manifestItems.join('\n')}
   </manifest>
   <spine>
-${spineItems.join("\n")}
+${spineItems.join('\n')}
   </spine>
-</package>`;
+</package>`
 }
 
 /**
@@ -200,19 +200,19 @@ ${spineItems.join("\n")}
 function buildTocXhtml(metadata: BookMetadata, chapters: ChapterContent[]): string {
   const tocEntries = chapters
     .map((ch, index) => {
-      const href = `chapter-${index + 1}.xhtml`;
-      return `      <li><a href="${href}">${escapeXml(ch.title)}</a></li>`;
+      const href = `chapter-${index + 1}.xhtml`
+      return `      <li><a href="${href}">${escapeXml(ch.title)}</a></li>`
     })
-    .join("\n");
+    .join('\n')
 
   const body = `  <nav xmlns:epub="http://www.idpf.org/2007/ops" epub:type="toc">
     <h1>Contents</h1>
     <ol>
 ${tocEntries}
     </ol>
-  </nav>`;
+  </nav>`
 
-  return wrapXhtml(`${metadata.title} - Contents`, body);
+  return wrapXhtml(`${metadata.title} - Contents`, body)
 }
 
 /**
@@ -223,9 +223,9 @@ function buildTitleXhtml(metadata: BookMetadata): string {
     <h1>${escapeXml(metadata.title)}</h1>
     <div class="author">${escapeXml(metadata.authorName)}</div>
     <div class="date">${escapeXml(metadata.generatedDate)}</div>
-  </div>`;
+  </div>`
 
-  return wrapXhtml(metadata.title, body);
+  return wrapXhtml(metadata.title, body)
 }
 
 /**
@@ -234,9 +234,9 @@ function buildTitleXhtml(metadata: BookMetadata): string {
  */
 function buildChapterXhtml(chapter: ChapterContent): string {
   const body = `  <h1>${escapeXml(chapter.title)}</h1>
-${chapter.html}`;
+${chapter.html}`
 
-  return wrapXhtml(chapter.title, body);
+  return wrapXhtml(chapter.title, body)
 }
 
 /**
@@ -248,45 +248,45 @@ ${chapter.html}`;
  */
 export async function generateEpub(
   metadata: BookMetadata,
-  chapters: ChapterContent[],
+  chapters: ChapterContent[]
 ): Promise<ArrayBuffer> {
-  const sorted = [...chapters].sort((a, b) => a.sortOrder - b.sortOrder);
+  const sorted = [...chapters].sort((a, b) => a.sortOrder - b.sortOrder)
 
   // Generate a unique book identifier
-  const bookId = `urn:draftcrane:${Date.now()}`;
+  const bookId = `urn:draftcrane:${Date.now()}`
 
-  const zip = new JSZip();
+  const zip = new JSZip()
 
   // 1. mimetype - MUST be first entry, uncompressed (EPUB spec requirement)
-  zip.file("mimetype", "application/epub+zip", {
-    compression: "STORE",
-  });
+  zip.file('mimetype', 'application/epub+zip', {
+    compression: 'STORE',
+  })
 
   // 2. META-INF/container.xml
-  zip.file("META-INF/container.xml", buildContainerXml());
+  zip.file('META-INF/container.xml', buildContainerXml())
 
   // 3. OEBPS/content.opf (OPF manifest)
-  zip.file("OEBPS/content.opf", buildContentOpf(metadata, sorted, bookId));
+  zip.file('OEBPS/content.opf', buildContentOpf(metadata, sorted, bookId))
 
   // 4. OEBPS/toc.xhtml (navigation document)
-  zip.file("OEBPS/toc.xhtml", buildTocXhtml(metadata, sorted));
+  zip.file('OEBPS/toc.xhtml', buildTocXhtml(metadata, sorted))
 
   // 5. OEBPS/title.xhtml (title page)
-  zip.file("OEBPS/title.xhtml", buildTitleXhtml(metadata));
+  zip.file('OEBPS/title.xhtml', buildTitleXhtml(metadata))
 
   // 6. OEBPS/chapter-{N}.xhtml (per-chapter content)
   sorted.forEach((chapter, index) => {
-    zip.file(`OEBPS/chapter-${index + 1}.xhtml`, buildChapterXhtml(chapter));
-  });
+    zip.file(`OEBPS/chapter-${index + 1}.xhtml`, buildChapterXhtml(chapter))
+  })
 
   // 7. OEBPS/style.css (default stylesheet)
-  zip.file("OEBPS/style.css", EPUB_CSS);
+  zip.file('OEBPS/style.css', EPUB_CSS)
 
   // Generate ZIP as ArrayBuffer
   return await zip.generateAsync({
-    type: "arraybuffer",
-    mimeType: "application/epub+zip",
-    compression: "DEFLATE",
+    type: 'arraybuffer',
+    mimeType: 'application/epub+zip',
+    compression: 'DEFLATE',
     compressionOptions: { level: 6 },
-  });
+  })
 }

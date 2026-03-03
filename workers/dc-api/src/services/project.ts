@@ -1,6 +1,6 @@
-import { ulid } from "ulidx";
-import { notFound, validationError } from "../middleware/error-handler.js";
-import { type Chapter, type ChapterRow, mapChapterRow } from "./chapter.js";
+import { ulid } from 'ulidx'
+import { notFound, validationError } from '../middleware/error-handler.js'
+import { type Chapter, type ChapterRow, mapChapterRow } from './chapter.js'
 
 /**
  * ProjectService - Business logic for projects
@@ -18,57 +18,57 @@ import { type Chapter, type ChapterRow, mapChapterRow } from "./chapter.js";
  */
 
 export interface Project {
-  id: string;
-  userId: string;
-  title: string;
-  description: string;
-  status: "active" | "archived";
-  createdAt: string;
-  updatedAt: string;
+  id: string
+  userId: string
+  title: string
+  description: string
+  status: 'active' | 'archived'
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ProjectWithChapters extends Project {
-  chapters: Chapter[];
-  totalWordCount: number;
+  chapters: Chapter[]
+  totalWordCount: number
 }
 
 export interface ProjectSummary {
-  id: string;
-  title: string;
-  status: string;
-  wordCount: number;
-  chapterCount: number;
-  updatedAt: string;
+  id: string
+  title: string
+  status: string
+  wordCount: number
+  chapterCount: number
+  updatedAt: string
 }
 
 export interface CreateProjectInput {
-  title: string;
-  description?: string;
+  title: string
+  description?: string
 }
 
 export interface UpdateProjectInput {
-  title?: string;
-  description?: string;
+  title?: string
+  description?: string
 }
 
 /** DB row types */
 interface ProjectRow {
-  id: string;
-  user_id: string;
-  title: string;
-  description: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
+  id: string
+  user_id: string
+  title: string
+  description: string
+  status: string
+  created_at: string
+  updated_at: string
 }
 
 interface ProjectSummaryRow {
-  id: string;
-  title: string;
-  status: string;
-  total_words: number;
-  chapter_count: number;
-  updated_at: string;
+  id: string
+  title: string
+  status: string
+  total_words: number
+  chapter_count: number
+  updated_at: string
 }
 
 /**
@@ -77,7 +77,7 @@ interface ProjectSummaryRow {
 export class ProjectService {
   constructor(
     private readonly db: D1Database,
-    private readonly bucket?: R2Bucket,
+    private readonly bucket?: R2Bucket
   ) {}
 
   /**
@@ -91,61 +91,61 @@ export class ProjectService {
   async createProject(userId: string, input: CreateProjectInput): Promise<ProjectWithChapters> {
     // Validate input
     if (!input.title?.trim()) {
-      validationError("Title is required");
+      validationError('Title is required')
     }
 
     if (input.title.length > 500) {
-      validationError("Title must be at most 500 characters");
+      validationError('Title must be at most 500 characters')
     }
 
     if (input.description && input.description.length > 1000) {
-      validationError("Description must be at most 1000 characters");
+      validationError('Description must be at most 1000 characters')
     }
 
-    const projectId = ulid();
-    const chapterId = ulid();
-    const now = new Date().toISOString();
+    const projectId = ulid()
+    const chapterId = ulid()
+    const now = new Date().toISOString()
 
     // Create project + default chapter atomically.
     await this.db.batch([
       this.db
         .prepare(
           `INSERT INTO projects (id, user_id, title, description, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 'active', ?, ?)`,
+           VALUES (?, ?, ?, ?, 'active', ?, ?)`
         )
-        .bind(projectId, userId, input.title.trim(), input.description?.trim() || "", now, now),
+        .bind(projectId, userId, input.title.trim(), input.description?.trim() || '', now, now),
       this.db
         .prepare(
           `INSERT INTO chapters (id, project_id, title, sort_order, word_count, version, status, created_at, updated_at)
-           VALUES (?, ?, ?, 1, 0, 1, 'draft', ?, ?)`,
+           VALUES (?, ?, ?, 1, 0, 1, 'draft', ?, ?)`
         )
-        .bind(chapterId, projectId, "Chapter 1", now, now),
-    ]);
+        .bind(chapterId, projectId, 'Chapter 1', now, now),
+    ])
 
     return {
       id: projectId,
       userId,
       title: input.title.trim(),
-      description: input.description?.trim() || "",
-      status: "active",
+      description: input.description?.trim() || '',
+      status: 'active',
       createdAt: now,
       updatedAt: now,
       chapters: [
         {
           id: chapterId,
           projectId,
-          title: "Chapter 1",
+          title: 'Chapter 1',
           sortOrder: 1,
           r2Key: null,
           wordCount: 0,
           version: 1,
-          status: "draft",
+          status: 'draft',
           createdAt: now,
           updatedAt: now,
         },
       ],
       totalWordCount: 0,
-    };
+    }
   }
 
   /**
@@ -166,10 +166,10 @@ export class ProjectService {
          LEFT JOIN chapters ch ON ch.project_id = p.id
          WHERE p.user_id = ? AND p.status = 'active'
          GROUP BY p.id
-         ORDER BY p.updated_at DESC`,
+         ORDER BY p.updated_at DESC`
       )
       .bind(userId)
-      .all<ProjectSummaryRow>();
+      .all<ProjectSummaryRow>()
 
     return (result.results ?? []).map((row) => ({
       id: row.id,
@@ -178,7 +178,7 @@ export class ProjectService {
       wordCount: row.total_words || 0,
       chapterCount: row.chapter_count || 0,
       updatedAt: row.updated_at,
-    }));
+    }))
   }
 
   /**
@@ -191,13 +191,13 @@ export class ProjectService {
       .prepare(
         `SELECT id, user_id, title, description, status, created_at, updated_at
          FROM projects
-         WHERE id = ? AND user_id = ? AND status = 'active'`,
+         WHERE id = ? AND user_id = ? AND status = 'active'`
       )
       .bind(projectId, userId)
-      .first<ProjectRow>();
+      .first<ProjectRow>()
 
     if (!project) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
 
     // Fetch chapters
@@ -206,25 +206,25 @@ export class ProjectService {
         `SELECT id, project_id, title, sort_order, r2_key, word_count, version, status, created_at, updated_at
          FROM chapters
          WHERE project_id = ?
-         ORDER BY sort_order ASC`,
+         ORDER BY sort_order ASC`
       )
       .bind(projectId)
-      .all<ChapterRow>();
+      .all<ChapterRow>()
 
-    const chapters = (chaptersResult.results ?? []).map(mapChapterRow);
-    const totalWordCount = chapters.reduce((sum, ch) => sum + ch.wordCount, 0);
+    const chapters = (chaptersResult.results ?? []).map(mapChapterRow)
+    const totalWordCount = chapters.reduce((sum, ch) => sum + ch.wordCount, 0)
 
     return {
       id: project.id,
       userId: project.user_id,
       title: project.title,
       description: project.description,
-      status: project.status as "active" | "archived",
+      status: project.status as 'active' | 'archived',
       createdAt: project.created_at,
       updatedAt: project.updated_at,
       chapters,
       totalWordCount,
-    };
+    }
   }
 
   /**
@@ -234,70 +234,70 @@ export class ProjectService {
   async updateProject(
     userId: string,
     projectId: string,
-    input: UpdateProjectInput,
+    input: UpdateProjectInput
   ): Promise<Project> {
     // Verify ownership
     const existing = await this.db
       .prepare(`SELECT id FROM projects WHERE id = ? AND user_id = ? AND status = 'active'`)
       .bind(projectId, userId)
-      .first();
+      .first()
 
     if (!existing) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
 
     // Validate input
     if (input.title !== undefined) {
       if (!input.title.trim()) {
-        validationError("Title cannot be empty");
+        validationError('Title cannot be empty')
       }
       if (input.title.length > 500) {
-        validationError("Title must be at most 500 characters");
+        validationError('Title must be at most 500 characters')
       }
     }
 
     if (input.description !== undefined && input.description.length > 1000) {
-      validationError("Description must be at most 1000 characters");
+      validationError('Description must be at most 1000 characters')
     }
 
-    const now = new Date().toISOString();
-    const updates: string[] = ["updated_at = ?"];
-    const bindings: (string | null)[] = [now];
+    const now = new Date().toISOString()
+    const updates: string[] = ['updated_at = ?']
+    const bindings: (string | null)[] = [now]
 
     if (input.title !== undefined) {
-      updates.push("title = ?");
-      bindings.push(input.title.trim());
+      updates.push('title = ?')
+      bindings.push(input.title.trim())
     }
 
     if (input.description !== undefined) {
-      updates.push("description = ?");
-      bindings.push(input.description.trim());
+      updates.push('description = ?')
+      bindings.push(input.description.trim())
     }
 
-    bindings.push(projectId, userId);
+    bindings.push(projectId, userId)
 
     await this.db
       .prepare(
-        `UPDATE projects SET ${updates.join(", ")} WHERE id = ? AND user_id = ? AND status = 'active'`,
+        `UPDATE projects SET ${updates.join(', ')} WHERE id = ? AND user_id = ? AND status = 'active'`
       )
       .bind(...bindings)
-      .run();
+      .run()
 
     // Fetch updated project
     const project = await this.db
       .prepare(
         `SELECT id, user_id, title, description, status, created_at, updated_at
          FROM projects
-         WHERE id = ? AND user_id = ? AND status = 'active'`,
+         WHERE id = ? AND user_id = ? AND status = 'active'`
       )
       .bind(projectId, userId)
-      .first<ProjectRow>();
+      .first<ProjectRow>()
 
     if (!project) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
 
-    return this.mapProjectRow(project);
+    return this.mapProjectRow(project)
   }
 
   /**
@@ -307,13 +307,13 @@ export class ProjectService {
   async deleteProject(userId: string, projectId: string): Promise<void> {
     const result = await this.db
       .prepare(
-        `UPDATE projects SET status = 'archived', updated_at = ? WHERE id = ? AND user_id = ? AND status = 'active'`,
+        `UPDATE projects SET status = 'archived', updated_at = ? WHERE id = ? AND user_id = ? AND status = 'active'`
       )
       .bind(new Date().toISOString(), projectId, userId)
-      .run();
+      .run()
 
     if (!result.meta.changes || result.meta.changes === 0) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
   }
 
@@ -329,78 +329,78 @@ export class ProjectService {
    */
   async duplicateProject(userId: string, projectId: string): Promise<ProjectWithChapters> {
     if (!this.bucket) {
-      throw new Error("R2 bucket required for project duplication");
+      throw new Error('R2 bucket required for project duplication')
     }
 
     // 1. Fetch source project (verify ownership + active)
     const source = await this.db
       .prepare(
         `SELECT id, title, description FROM projects
-         WHERE id = ? AND user_id = ? AND status = 'active'`,
+         WHERE id = ? AND user_id = ? AND status = 'active'`
       )
       .bind(projectId, userId)
-      .first<{ id: string; title: string; description: string }>();
+      .first<{ id: string; title: string; description: string }>()
 
     if (!source) {
-      notFound("Project not found");
+      notFound('Project not found')
     }
 
     // 2. Fetch all source chapters
     const chaptersResult = await this.db
       .prepare(
         `SELECT id, title, sort_order, r2_key, word_count, status
-         FROM chapters WHERE project_id = ? ORDER BY sort_order ASC`,
+         FROM chapters WHERE project_id = ? ORDER BY sort_order ASC`
       )
       .bind(projectId)
       .all<{
-        id: string;
-        title: string;
-        sort_order: number;
-        r2_key: string | null;
-        word_count: number;
-        status: string;
-      }>();
+        id: string
+        title: string
+        sort_order: number
+        r2_key: string | null
+        word_count: number
+        status: string
+      }>()
 
-    const sourceChapters = chaptersResult.results ?? [];
+    const sourceChapters = chaptersResult.results ?? []
 
     // 3. Guard: reject if > 200 chapters (R2 subrequest limits)
     if (sourceChapters.length > 200) {
-      validationError("Cannot duplicate projects with more than 200 chapters");
+      validationError('Cannot duplicate projects with more than 200 chapters')
     }
 
-    const now = new Date().toISOString();
-    const newProjectId = ulid();
+    const now = new Date().toISOString()
+    const newProjectId = ulid()
 
     // Generate all new chapter IDs upfront
     const chapterMapping = sourceChapters.map((ch) => ({
       source: ch,
       newId: ulid(),
       newR2Key: ch.r2_key ? `chapters/${ulid()}/content.html` : null,
-    }));
+    }))
 
     // Re-generate R2 keys using the actual new chapter IDs
     for (const mapping of chapterMapping) {
       if (mapping.source.r2_key) {
-        mapping.newR2Key = `chapters/${mapping.newId}/content.html`;
+        mapping.newR2Key = `chapters/${mapping.newId}/content.html`
       }
     }
 
     // 4. Phase 1 — R2 copies (no D1 writes yet)
     for (const mapping of chapterMapping) {
       if (mapping.source.r2_key && mapping.newR2Key) {
-        const object = await this.bucket.get(mapping.source.r2_key);
+        const object = await this.bucket.get(mapping.source.r2_key)
         if (object) {
-          const content = await object.text();
+          const content = await object.text()
           await this.bucket.put(mapping.newR2Key, content, {
             httpMetadata: {
-              contentType: "text/html; charset=utf-8",
+              contentType: 'text/html; charset=utf-8',
             },
             customMetadata: {
               chapterId: mapping.newId,
-              version: "1",
+              version: '1',
               updatedAt: now,
             },
-          });
+          })
         }
       }
     }
@@ -409,15 +409,15 @@ export class ProjectService {
     const projectInsert = this.db
       .prepare(
         `INSERT INTO projects (id, user_id, title, description, status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, 'active', ?, ?)`,
+         VALUES (?, ?, ?, ?, 'active', ?, ?)`
       )
-      .bind(newProjectId, userId, `${source.title} (Copy)`, source.description, now, now);
+      .bind(newProjectId, userId, `${source.title} (Copy)`, source.description, now, now)
 
     const chapterInserts = chapterMapping.map((mapping) =>
       this.db
         .prepare(
           `INSERT INTO chapters (id, project_id, title, sort_order, r2_key, word_count, version, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`
         )
         .bind(
           mapping.newId,
@@ -428,11 +428,11 @@ export class ProjectService {
           mapping.source.word_count,
           mapping.source.status,
           now,
-          now,
-        ),
-    );
+          now
+        )
+    )
 
-    await this.db.batch([projectInsert, ...chapterInserts]);
+    await this.db.batch([projectInsert, ...chapterInserts])
 
     // 6. Return the new project
     const chapters = chapterMapping.map((mapping) => ({
@@ -443,22 +443,22 @@ export class ProjectService {
       r2Key: mapping.newR2Key,
       wordCount: mapping.source.word_count,
       version: 1,
-      status: mapping.source.status as "draft" | "review" | "final",
+      status: mapping.source.status as 'draft' | 'review' | 'final',
       createdAt: now,
       updatedAt: now,
-    }));
+    }))
 
     return {
       id: newProjectId,
       userId,
       title: `${source.title} (Copy)`,
       description: source.description,
-      status: "active",
+      status: 'active',
       createdAt: now,
       updatedAt: now,
       chapters,
       totalWordCount: chapters.reduce((sum, ch) => sum + ch.wordCount, 0),
-    };
+    }
   }
 
   private mapProjectRow(row: ProjectRow): Project {
@@ -467,9 +467,9 @@ export class ProjectService {
       userId: row.user_id,
       title: row.title,
       description: row.description,
-      status: row.status as "active" | "archived",
+      status: row.status as 'active' | 'archived',
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-    };
+    }
   }
 }

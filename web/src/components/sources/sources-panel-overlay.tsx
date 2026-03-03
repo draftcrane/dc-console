@@ -1,39 +1,39 @@
-"use client";
+'use client'
 
-import { useMemo } from "react";
-import { useSourcesContext } from "@/contexts/sources-context";
-import { useDelayedUnmount } from "@/hooks/use-delayed-unmount";
-import { useFocusTrap } from "@/hooks/use-focus-trap";
-import { LibraryTab } from "./library-tab";
-import { DeskTab } from "./desk-tab";
-import type { SourcesTab } from "@/hooks/use-sources-panel";
+import { useMemo } from 'react'
+import { useSourcesContext } from '@/contexts/sources-context'
+import { useDelayedUnmount } from '@/hooks/use-delayed-unmount'
+import { useFocusTrap } from '@/hooks/use-focus-trap'
+import { LibraryTab } from './library-tab'
+import { DeskTab } from './desk-tab'
+import type { SourcesTab } from '@/hooks/use-sources-panel'
 
 /**
  * Portrait/mobile overlay wrapper for the Sources panel.
  * Fixed position, full screen, backdrop + slide-in animation.
  */
 export function SourcesPanelOverlay() {
-  const { activeTab, setActiveTab, isPanelOpen, closePanel, sources } = useSourcesContext();
-  const { shouldRender, isClosing } = useDelayedUnmount(isPanelOpen, 200);
-  const panelRef = useFocusTrap({ isOpen: isPanelOpen, onEscape: closePanel });
+  const { activeTab, setActiveTab, isPanelOpen, closePanel, sources } = useSourcesContext()
+  const { shouldRender, isClosing } = useDelayedUnmount(isPanelOpen, 200)
+  const panelRef = useFocusTrap({ isOpen: isPanelOpen, onEscape: closePanel })
 
-  const deskCount = useMemo(() => sources.filter((s) => s.status === "active").length, [sources]);
+  const deskCount = useMemo(() => sources.filter((s) => s.status === 'active').length, [sources])
 
   const tabs: { id: SourcesTab; label: string }[] = useMemo(
     () => [
-      { id: "library", label: "Library" },
-      { id: "desk", label: deskCount > 0 ? `Desk (${deskCount})` : "Desk" },
+      { id: 'library', label: 'Library' },
+      { id: 'desk', label: deskCount > 0 ? `Desk (${deskCount})` : 'Desk' },
     ],
-    [deskCount],
-  );
+    [deskCount]
+  )
 
-  if (!shouldRender) return null;
+  if (!shouldRender) return null
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-black/30 lg:hidden ${isClosing ? "sources-backdrop-fade-out" : "sources-backdrop-fade-in"}`}
+        className={`fixed inset-0 z-40 bg-black/30 lg:hidden ${isClosing ? 'sources-backdrop-fade-out' : 'sources-backdrop-fade-in'}`}
         onClick={closePanel}
         aria-hidden="true"
       />
@@ -42,7 +42,7 @@ export function SourcesPanelOverlay() {
       <div
         ref={panelRef}
         className={`sources-panel-overlay fixed inset-y-0 right-0 z-50 w-full max-w-[380px]
-                   bg-background shadow-xl flex flex-col lg:hidden ${isClosing ? "sources-panel-slide-out" : "sources-panel-slide-in"}`}
+                   bg-background shadow-xl flex flex-col lg:hidden ${isClosing ? 'sources-panel-slide-out' : 'sources-panel-slide-in'}`}
         role="dialog"
         aria-modal="true"
         aria-label="Library panel"
@@ -57,8 +57,8 @@ export function SourcesPanelOverlay() {
                 className={`h-8 px-3 text-xs font-medium rounded-md transition-colors min-h-[32px]
                            ${
                              activeTab === tab.id
-                               ? "bg-[var(--dc-color-interactive-primary-subtle)] text-[var(--dc-color-interactive-primary-on-subtle)]"
-                               : "text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-primary)] hover:bg-[var(--dc-color-surface-secondary)]"
+                               ? 'bg-[var(--dc-color-interactive-primary-subtle)] text-[var(--dc-color-interactive-primary-on-subtle)]'
+                               : 'text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-primary)] hover:bg-[var(--dc-color-surface-secondary)]'
                            }`}
                 aria-selected={activeTab === tab.id}
                 role="tab"
@@ -86,13 +86,13 @@ export function SourcesPanelOverlay() {
 
         {/* Content */}
         <div className="flex-1 overflow-auto flex flex-col">
-          {activeTab === "library" && <LibraryTab />}
-          {activeTab === "desk" && <DeskTab />}
+          {activeTab === 'library' && <LibraryTab />}
+          {activeTab === 'desk' && <DeskTab />}
         </div>
 
         {/* Safe area */}
         <div className="h-[env(safe-area-inset-bottom)]" />
       </div>
     </>
-  );
+  )
 }

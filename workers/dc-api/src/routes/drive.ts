@@ -19,45 +19,45 @@
  * - DELETE /drive/connection - Disconnects all Drive connections (legacy)
  */
 
-import { Hono } from "hono";
-import { ulid } from "ulidx";
-import type { Env } from "../types/index.js";
-import { validationError, AppError } from "../middleware/index.js";
-import { standardRateLimit, rateLimit } from "../middleware/rate-limit.js";
-import { DriveService } from "../services/drive.js";
-import { SourceMaterialService } from "../services/source-material.js";
-import { resolveReadOnlyConnection } from "../services/drive-connection-resolver.js";
+import { Hono } from 'hono'
+import { ulid } from 'ulidx'
+import type { Env } from '../types/index.js'
+import { validationError, AppError } from '../middleware/index.js'
+import { standardRateLimit, rateLimit } from '../middleware/rate-limit.js'
+import { DriveService } from '../services/drive.js'
+import { SourceMaterialService } from '../services/source-material.js'
+import { resolveReadOnlyConnection } from '../services/drive-connection-resolver.js'
 
 /** Picker token rate limit: 10 req/min (only needed once per Picker open) */
 const pickerTokenRateLimit = rateLimit({
-  prefix: "picker-token",
+  prefix: 'picker-token',
   maxRequests: 10,
   windowSeconds: 60,
-});
+})
 
-const drive = new Hono<{ Bindings: Env }>();
+const drive = new Hono<{ Bindings: Env }>()
 
 /**
  * Public callback sub-app for OAuth redirect.
  * Mounted in index.ts BEFORE the global auth barrier because Google redirects
  * the browser here without a Clerk JWT - it uses a CSRF state token instead.
  */
-const driveCallback = new Hono<{ Bindings: Env }>();
+const driveCallback = new Hono<{ Bindings: Env }>()
 
 /** Helper to throw Drive-specific errors */
 function driveError(message: string): never {
-  throw new AppError(502, "DRIVE_ERROR", message);
+  throw new AppError(502, 'DRIVE_ERROR', message)
 }
 
-function driveNotConnected(message = "Google Drive not connected"): never {
-  throw new AppError(422, "DRIVE_NOT_CONNECTED", message);
+function driveNotConnected(message = 'Google Drive not connected'): never {
+  throw new AppError(422, 'DRIVE_NOT_CONNECTED', message)
 }
 
 /** Validate that a frontend redirect URL is safe (matches configured FRONTEND_URL origin) */
 function validateFrontendUrl(redirectUrl: URL, configuredFrontendUrl: string): void {
-  const allowed = new URL(configuredFrontendUrl);
+  const allowed = new URL(configuredFrontendUrl)
   if (redirectUrl.origin !== allowed.origin) {
-    throw new AppError(500, "INTERNAL_ERROR", "Frontend redirect URL origin mismatch");
+    throw new AppError(500, 'INTERNAL_ERROR', 'Frontend redirect URL origin mismatch')
   }
 }
 
@@ -67,31 +67,31 @@ function validateFrontendUrl(redirectUrl: URL, configuredFrontendUrl: string): v
  * Per PRD Section 8 (US-005): OAuth with drive.file scope, redirect-based flow only.
  * Supports ?loginHint= for multi-account OAuth (pre-selects Google account).
  */
-drive.get("/authorize", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const loginHint = c.req.query("loginHint");
-  const projectId = c.req.query("projectId");
-  const driveService = new DriveService(c.env);
+drive.get('/authorize', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const loginHint = c.req.query('loginHint')
+  const projectId = c.req.query('projectId')
+  const driveService = new DriveService(c.env)
 
   // Generate CSRF state token
   // Format: userId:timestamp:random:projectId to allow validation + auto-linking
   // projectId is optional — empty string when not provided
-  const timestamp = Date.now();
-  const random = crypto.getRandomValues(new Uint8Array(16));
+  const timestamp = Date.now()
+  const random = crypto.getRandomValues(new Uint8Array(16))
   const randomHex = Array.from(random)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  const state = `${userId}:${timestamp}:${randomHex}:${projectId || ""}`;
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+  const state = `${userId}:${timestamp}:${randomHex}:${projectId || ''}`
 
   // Store state in KV with 10 minute expiry for CSRF validation
-  await c.env.CACHE.put(`oauth_state:${state}`, userId, { expirationTtl: 600 });
+  await c.env.CACHE.put(`oauth_state:${state}`, userId, { expirationTtl: 600 })
 
-  const authUrl = driveService.getAuthorizationUrl(state, loginHint || undefined);
+  const authUrl = driveService.getAuthorizationUrl(state, loginHint || undefined)
 
   return c.json({
     authorizationUrl: authUrl,
-  });
-});
+  })
+})
 
 /**
  * GET /drive/callback
@@ -102,81 +102,81 @@ drive.get("/authorize", standardRateLimit, async (c) => {
  * Public route: mounted on driveCallback sub-app (before global auth barrier)
  * because Google redirects the browser here without a Clerk JWT.
  */
-driveCallback.get("/callback", async (c) => {
-  const code = c.req.query("code");
-  const state = c.req.query("state");
-  const error = c.req.query("error");
+driveCallback.get('/callback', async (c) => {
+  const code = c.req.query('code')
+  const state = c.req.query('state')
+  const error = c.req.query('error')
 
   // Handle user denying access
   if (error) {
-    const redirectUrl = new URL(c.env.FRONTEND_URL);
-    redirectUrl.pathname = "/drive/error";
-    redirectUrl.searchParams.set("error", error);
-    validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL);
-    return c.redirect(redirectUrl.toString());
+    const redirectUrl = new URL(c.env.FRONTEND_URL)
+    redirectUrl.pathname = '/drive/error'
+    redirectUrl.searchParams.set('error', error)
+    validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL)
+    return c.redirect(redirectUrl.toString())
   }
 
   if (!code || !state) {
-    validationError("Missing code or state parameter");
+    validationError('Missing code or state parameter')
   }
 
   // Validate CSRF state
-  const storedUserId = await c.env.CACHE.get(`oauth_state:${state}`);
+  const storedUserId = await c.env.CACHE.get(`oauth_state:${state}`)
   if (!storedUserId) {
-    validationError("Invalid or expired state parameter");
+    validationError('Invalid or expired state parameter')
   }
 
   // Delete the state to prevent reuse
-  await c.env.CACHE.delete(`oauth_state:${state}`);
+  await c.env.CACHE.delete(`oauth_state:${state}`)
 
   // Extract userId and optional projectId from state for verification
-  const stateParts = state.split(":");
-  const stateUserId = stateParts[0];
+  const stateParts = state.split(':')
+  const stateUserId = stateParts[0]
   // projectId is the 4th part (index 3) — may be empty string
-  const stateProjectId = stateParts[3] || "";
+  const stateProjectId = stateParts[3] || ''
   if (stateUserId !== storedUserId) {
-    validationError("State user ID mismatch");
+    validationError('State user ID mismatch')
   }
 
-  const driveService = new DriveService(c.env);
+  const driveService = new DriveService(c.env)
 
   try {
     // Exchange code for tokens
-    const tokens = await driveService.exchangeCodeForTokens(code);
+    const tokens = await driveService.exchangeCodeForTokens(code)
 
     // Get the user's Google email
-    const email = await driveService.getUserEmail(tokens.access_token);
+    const email = await driveService.getUserEmail(tokens.access_token)
 
     // Store encrypted tokens (upserts on user_id + email, preserving existing connection ID)
-    const connectionId = ulid();
+    const connectionId = ulid()
     const actualConnectionId = await driveService.storeTokens(
       storedUserId,
       connectionId,
       tokens,
-      email,
-    );
+      email
+    )
 
     // Redirect to success page with connection ID for auto-linking flows
-    const redirectUrl = new URL(c.env.FRONTEND_URL);
-    redirectUrl.pathname = "/drive/success";
-    redirectUrl.searchParams.set("cid", actualConnectionId);
-    redirectUrl.searchParams.set("email", email);
+    const redirectUrl = new URL(c.env.FRONTEND_URL)
+    redirectUrl.pathname = '/drive/success'
+    redirectUrl.searchParams.set('cid', actualConnectionId)
+    redirectUrl.searchParams.set('email', email)
     // Pass projectId as fallback for iPad Safari sessionStorage loss
     if (stateProjectId) {
-      redirectUrl.searchParams.set("pid", stateProjectId);
+      redirectUrl.searchParams.set('pid', stateProjectId)
     }
-    validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL);
-    return c.redirect(redirectUrl.toString());
+    validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL)
+    return c.redirect(redirectUrl.toString())
   } catch (err) {
-    console.error("Drive OAuth callback failed:", err);
+    console.error('Drive OAuth callback failed:', err)
 
-    const redirectUrl = new URL(c.env.FRONTEND_URL);
-    redirectUrl.pathname = "/drive/error";
-    redirectUrl.searchParams.set("error", "token_exchange_failed");
-    validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL);
-    return c.redirect(redirectUrl.toString());
+    const redirectUrl = new URL(c.env.FRONTEND_URL)
+    redirectUrl.pathname = '/drive/error'
+    redirectUrl.searchParams.set('error', 'token_exchange_failed')
+    validateFrontendUrl(redirectUrl, c.env.FRONTEND_URL)
+    return c.redirect(redirectUrl.toString())
   }
-});
+})
 
 /**
  * GET /drive/connection
@@ -185,17 +185,17 @@ driveCallback.get("/callback", async (c) => {
  * Returns { connections: [...] } array for multi-account support.
  * Also returns { connected, email, connectedAt } for backward compatibility.
  */
-drive.get("/connection", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const driveService = new DriveService(c.env);
+drive.get('/connection', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const driveService = new DriveService(c.env)
 
-  const connections = await driveService.getConnectionsForUser(userId);
+  const connections = await driveService.getConnectionsForUser(userId)
 
   if (connections.length === 0) {
     return c.json({
       connected: false,
       connections: [],
-    });
+    })
   }
 
   // Backward compatibility: first connection's data at top level
@@ -204,8 +204,8 @@ drive.get("/connection", standardRateLimit, async (c) => {
     email: connections[0].email,
     connectedAt: connections[0].connectedAt,
     connections,
-  });
-});
+  })
+})
 
 /**
  * GET /drive/picker-token/:connectionId
@@ -221,40 +221,40 @@ drive.get("/connection", standardRateLimit, async (c) => {
  * - Tighter rate limit (10 req/min) since token is only needed once per Picker open
  * - Frontend must use token immediately and never persist it
  */
-drive.get("/picker-token/:connectionId", pickerTokenRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const connectionId = c.req.param("connectionId");
-  const driveService = new DriveService(c.env);
+drive.get('/picker-token/:connectionId', pickerTokenRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const connectionId = c.req.param('connectionId')
+  const driveService = new DriveService(c.env)
 
   // Verify this connection belongs to the user
-  const connections = await driveService.getConnectionsForUser(userId);
+  const connections = await driveService.getConnectionsForUser(userId)
   if (!connections.some((conn) => conn.id === connectionId)) {
-    driveNotConnected("Connection not found for this user");
+    driveNotConnected('Connection not found for this user')
   }
 
-  const tokens = await driveService.getValidTokensByConnection(connectionId);
+  const tokens = await driveService.getValidTokensByConnection(connectionId)
   if (!tokens) {
-    driveNotConnected();
+    driveNotConnected()
   }
 
   // Calculate remaining lifetime in seconds
-  const expiresIn = Math.max(0, Math.floor((tokens.expiresAt.getTime() - Date.now()) / 1000));
+  const expiresIn = Math.max(0, Math.floor((tokens.expiresAt.getTime() - Date.now()) / 1000))
 
   console.info(
     JSON.stringify({
-      level: "info",
-      event: "picker_token_issued",
+      level: 'info',
+      event: 'picker_token_issued',
       user_id: userId,
       connection_id: connectionId,
       expires_in: expiresIn,
-    }),
-  );
+    })
+  )
 
   return c.json({
     accessToken: tokens.accessToken,
     expiresIn,
-  });
-});
+  })
+})
 
 /**
  * Legacy: GET /drive/picker-token (no connectionId)
@@ -262,45 +262,45 @@ drive.get("/picker-token/:connectionId", pickerTokenRateLimit, async (c) => {
  * Rejects with DRIVE_AMBIGUOUS if multiple connections exist (multi-account users
  * must use the connectionId-scoped endpoint).
  */
-drive.get("/picker-token", pickerTokenRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const driveService = new DriveService(c.env);
+drive.get('/picker-token', pickerTokenRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const driveService = new DriveService(c.env)
 
   // Read-only: resolve via single-connection or reject ambiguous
-  const { tokens } = await resolveReadOnlyConnection(driveService.tokenService, userId);
+  const { tokens } = await resolveReadOnlyConnection(driveService.tokenService, userId)
 
-  const expiresIn = Math.max(0, Math.floor((tokens.expiresAt.getTime() - Date.now()) / 1000));
+  const expiresIn = Math.max(0, Math.floor((tokens.expiresAt.getTime() - Date.now()) / 1000))
 
   return c.json({
     accessToken: tokens.accessToken,
     expiresIn,
-  });
-});
+  })
+})
 
 /**
  * GET /drive/folders/:folderId/children
  * Lists DraftCrane-created files in a Book Folder.
  * Per PRD Section 8 (US-007): Read-only listing of DraftCrane-created files.
  */
-drive.get("/folders/:folderId/children", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const folderId = c.req.param("folderId");
-  const connectionId = c.req.query("connectionId") || undefined;
-  const driveService = new DriveService(c.env);
+drive.get('/folders/:folderId/children', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const folderId = c.req.param('folderId')
+  const connectionId = c.req.query('connectionId') || undefined
+  const driveService = new DriveService(c.env)
 
   if (!folderId) {
-    validationError("Folder ID is required");
+    validationError('Folder ID is required')
   }
 
   // Resolve connection: explicit param > single-connection fallback > reject ambiguous
   const { tokens } = await resolveReadOnlyConnection(
     driveService.tokenService,
     userId,
-    connectionId,
-  );
+    connectionId
+  )
 
   try {
-    const files = await driveService.listFolderChildren(tokens.accessToken, folderId);
+    const files = await driveService.listFolderChildren(tokens.accessToken, folderId)
 
     return c.json({
       files: files.map((file) => ({
@@ -311,12 +311,12 @@ drive.get("/folders/:folderId/children", standardRateLimit, async (c) => {
         createdTime: file.createdTime,
         modifiedTime: file.modifiedTime,
       })),
-    });
+    })
   } catch (err) {
-    console.error("List folder children failed:", err);
-    driveError("Failed to list folder contents");
+    console.error('List folder children failed:', err)
+    driveError('Failed to list folder contents')
   }
-});
+})
 
 /**
  * GET /drive/browse
@@ -326,57 +326,57 @@ drive.get("/folders/:folderId/children", standardRateLimit, async (c) => {
  * - connectionId (optional, for multi-account)
  * - pageToken (optional)
  */
-drive.get("/browse", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const driveService = new DriveService(c.env);
+drive.get('/browse', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const driveService = new DriveService(c.env)
 
-  const folderId = c.req.query("folderId") || "root";
-  const connectionId = c.req.query("connectionId") || undefined;
-  const pageToken = c.req.query("pageToken") || undefined;
+  const folderId = c.req.query('folderId') || 'root'
+  const connectionId = c.req.query('connectionId') || undefined
+  const pageToken = c.req.query('pageToken') || undefined
 
   // Read-only: resolve via explicit connectionId or single-connection fallback
   const { tokens } = await resolveReadOnlyConnection(
     driveService.tokenService,
     userId,
-    connectionId,
-  );
+    connectionId
+  )
 
   try {
     const result = await driveService.listFolderChildrenPage(tokens.accessToken, folderId, {
       pageSize: 200,
       pageToken,
-    });
+    })
 
     // Deduplicate by file ID and filter to Docs + Folders only
-    const seen = new Set<string>();
-    const files: typeof result.files = [];
+    const seen = new Set<string>()
+    const files: typeof result.files = []
     for (const file of result.files || []) {
       if (seen.has(file.id)) {
         console.warn(
           JSON.stringify({
-            level: "warn",
-            event: "drive_browse_duplicate",
+            level: 'warn',
+            event: 'drive_browse_duplicate',
             file_id: file.id,
             folder_id: folderId,
-          }),
-        );
-        continue;
+          })
+        )
+        continue
       }
-      seen.add(file.id);
+      seen.add(file.id)
       if (
-        file.mimeType === "application/vnd.google-apps.document" ||
-        file.mimeType === "application/vnd.google-apps.folder"
+        file.mimeType === 'application/vnd.google-apps.document' ||
+        file.mimeType === 'application/vnd.google-apps.folder'
       ) {
-        files.push(file);
+        files.push(file)
       }
     }
 
-    return c.json({ files, nextPageToken: result.nextPageToken });
+    return c.json({ files, nextPageToken: result.nextPageToken })
   } catch (err) {
-    console.error("Drive browse failed:", err);
-    driveError("Failed to browse Drive");
+    console.error('Drive browse failed:', err)
+    driveError('Failed to browse Drive')
   }
-});
+})
 
 /**
  * GET /drive/connection/:connectionId/files
@@ -385,35 +385,35 @@ drive.get("/browse", standardRateLimit, async (c) => {
  * - folderId (optional, default "root")
  * - pageToken (optional)
  */
-drive.get("/connection/:connectionId/files", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const driveService = new DriveService(c.env);
+drive.get('/connection/:connectionId/files', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const driveService = new DriveService(c.env)
 
-  const connectionId = c.req.param("connectionId");
-  const folderId = c.req.query("folderId") || "root";
-  const pageToken = c.req.query("pageToken") || undefined;
-  const foldersOnly = c.req.query("foldersOnly") === "true";
+  const connectionId = c.req.param('connectionId')
+  const folderId = c.req.query('folderId') || 'root'
+  const pageToken = c.req.query('pageToken') || undefined
+  const foldersOnly = c.req.query('foldersOnly') === 'true'
 
   // Resolve connection, ensuring it belongs to the user
   const { tokens } = await resolveReadOnlyConnection(
     driveService.tokenService,
     userId,
-    connectionId,
-  );
+    connectionId
+  )
 
   try {
     const result = await driveService.browseFolder(tokens.accessToken, folderId, {
       pageSize: 100,
       pageToken,
       foldersOnly,
-    });
+    })
 
-    return c.json({ files: result.files, nextPageToken: result.nextPageToken });
+    return c.json({ files: result.files, nextPageToken: result.nextPageToken })
   } catch (err) {
-    console.error("Drive file browser failed:", err);
-    driveError("Failed to browse Drive files");
+    console.error('Drive file browser failed:', err)
+    driveError('Failed to browse Drive files')
   }
-});
+})
 
 /**
  * POST /drive/connection/:connectionId/folders
@@ -426,73 +426,73 @@ drive.get("/connection/:connectionId/files", standardRateLimit, async (c) => {
  *
  * Response: { id, name }
  */
-drive.post("/connection/:connectionId/folders", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const driveService = new DriveService(c.env);
-  const connectionId = c.req.param("connectionId");
+drive.post('/connection/:connectionId/folders', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const driveService = new DriveService(c.env)
+  const connectionId = c.req.param('connectionId')
 
   const body = (await c.req.json().catch(() => ({}))) as {
-    name?: string;
-    parentFolderId?: string;
-  };
-
-  if (!body.name?.trim()) {
-    validationError("Folder name is required");
+    name?: string
+    parentFolderId?: string
   }
 
-  const parentFolderId = body.parentFolderId || "root";
+  if (!body.name?.trim()) {
+    validationError('Folder name is required')
+  }
+
+  const parentFolderId = body.parentFolderId || 'root'
 
   const { tokens } = await resolveReadOnlyConnection(
     driveService.tokenService,
     userId,
-    connectionId,
-  );
+    connectionId
+  )
 
   try {
-    let folderId: string;
-    if (parentFolderId === "root") {
-      folderId = await driveService.findOrCreateRootFolder(tokens.accessToken, body.name.trim());
+    let folderId: string
+    if (parentFolderId === 'root') {
+      folderId = await driveService.findOrCreateRootFolder(tokens.accessToken, body.name.trim())
     } else {
       folderId = await driveService.findOrCreateSubfolder(
         tokens.accessToken,
         parentFolderId,
-        body.name.trim(),
-      );
+        body.name.trim()
+      )
     }
 
-    return c.json({ id: folderId, name: body.name.trim() }, 201);
+    return c.json({ id: folderId, name: body.name.trim() }, 201)
   } catch (err) {
-    console.error("Drive folder creation failed:", err);
-    driveError("Failed to create folder");
+    console.error('Drive folder creation failed:', err)
+    driveError('Failed to create folder')
   }
-});
+})
 
 /**
  * GET /drive/connection/:connectionId/files/:fileId/content
  * Gets the parsed content of a specific file.
  */
-drive.get("/connection/:connectionId/files/:fileId/content", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const driveService = new DriveService(c.env);
+drive.get('/connection/:connectionId/files/:fileId/content', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const driveService = new DriveService(c.env)
 
-  const connectionId = c.req.param("connectionId");
-  const fileId = c.req.param("fileId");
+  const connectionId = c.req.param('connectionId')
+  const fileId = c.req.param('fileId')
 
   // Resolve connection, ensuring it belongs to the user
   const { tokens } = await resolveReadOnlyConnection(
     driveService.tokenService,
     userId,
-    connectionId,
-  );
+    connectionId
+  )
 
   try {
-    const result = await driveService.getFileContent(tokens.accessToken, fileId);
-    return c.json(result);
+    const result = await driveService.getFileContent(tokens.accessToken, fileId)
+    return c.json(result)
   } catch (err) {
-    console.error("Get file content failed:", err);
-    driveError("Failed to get file content");
+    console.error('Get file content failed:', err)
+    driveError('Failed to get file content')
   }
-});
+})
 
 /**
  * DELETE /drive/connection/:connectionId
@@ -500,117 +500,117 @@ drive.get("/connection/:connectionId/files/:fileId/content", standardRateLimit, 
  * Cascade: archives sources, clears project output drive.
  * Per plan: simplified 3-step cascade (D1 batch + token revoke + skip R2 cleanup).
  */
-drive.delete("/connection/:connectionId", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const connectionId = c.req.param("connectionId");
-  const driveService = new DriveService(c.env);
+drive.delete('/connection/:connectionId', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const connectionId = c.req.param('connectionId')
+  const driveService = new DriveService(c.env)
 
   // Verify connection belongs to user and get tokens for revocation
-  const connections = await driveService.getConnectionsForUser(userId);
-  const connection = connections.find((conn) => conn.id === connectionId);
+  const connections = await driveService.getConnectionsForUser(userId)
+  const connection = connections.find((conn) => conn.id === connectionId)
   if (!connection) {
-    throw new AppError(404, "NOT_FOUND", "Drive connection not found");
+    throw new AppError(404, 'NOT_FOUND', 'Drive connection not found')
   }
 
   // Fetch tokens BEFORE deletion for revocation
-  const tokens = await driveService.getStoredTokens(connectionId).catch(() => null);
+  const tokens = await driveService.getStoredTokens(connectionId).catch(() => null)
 
   // Step 1: D1 batch -- archive sources, clear project refs, delete connection
-  const sourceService = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
-  await sourceService.archiveByConnection(connectionId);
+  const sourceService = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET)
+  await sourceService.archiveByConnection(connectionId)
 
   // Clear chapter drive_file_ids for projects using this connection
   await c.env.DB.prepare(
     `UPDATE chapters SET drive_file_id = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-     WHERE project_id IN (SELECT id FROM projects WHERE drive_connection_id = ?)`,
+     WHERE project_id IN (SELECT id FROM projects WHERE drive_connection_id = ?)`
   )
     .bind(connectionId)
-    .run();
+    .run()
 
   // Clear project output drive references
   await c.env.DB.prepare(
     `UPDATE projects SET drive_connection_id = NULL, drive_folder_id = NULL,
      updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-     WHERE drive_connection_id = ?`,
+     WHERE drive_connection_id = ?`
   )
     .bind(connectionId)
-    .run();
+    .run()
 
   // Delete the connection
-  await driveService.deleteConnectionById(connectionId, userId);
+  await driveService.deleteConnectionById(connectionId, userId)
 
   // Step 2: Best-effort token revocation (non-blocking)
   if (tokens) {
     driveService.revokeToken(tokens.accessToken).catch((err) => {
-      console.warn("Token revocation failed (non-blocking):", err);
-    });
+      console.warn('Token revocation failed (non-blocking):', err)
+    })
   }
 
   // Step 3: Skip R2 cleanup at Phase 0 (orphaned objects cost fractions of a cent)
 
   console.info(
     JSON.stringify({
-      level: "info",
-      event: "drive_connection_disconnected",
+      level: 'info',
+      event: 'drive_connection_disconnected',
       user_id: userId,
       connection_id: connectionId,
       email: connection.email,
-    }),
-  );
+    })
+  )
 
   return c.json({
     success: true,
-    message: "Google Drive account disconnected. Your files in Drive remain untouched.",
-  });
-});
+    message: 'Google Drive account disconnected. Your files in Drive remain untouched.',
+  })
+})
 
 /**
  * Legacy: DELETE /drive/connection (no connectionId)
  * Disconnects all Drive connections for backward compatibility.
  */
-drive.delete("/connection", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const driveService = new DriveService(c.env);
+drive.delete('/connection', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const driveService = new DriveService(c.env)
 
-  const connections = await driveService.getConnectionsForUser(userId);
+  const connections = await driveService.getConnectionsForUser(userId)
 
   for (const conn of connections) {
     // Fetch tokens BEFORE deletion for revocation
-    const tokens = await driveService.getStoredTokens(conn.id).catch(() => null);
+    const tokens = await driveService.getStoredTokens(conn.id).catch(() => null)
 
     // Archive sources and links per connection
-    const sourceService = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET);
-    await sourceService.archiveByConnection(conn.id);
+    const sourceService = new SourceMaterialService(c.env.DB, c.env.EXPORTS_BUCKET)
+    await sourceService.archiveByConnection(conn.id)
 
     // Delete the connection
-    await driveService.deleteConnectionById(conn.id, userId);
+    await driveService.deleteConnectionById(conn.id, userId)
 
     // Best-effort token revocation (non-blocking)
     if (tokens) {
-      driveService.revokeToken(tokens.accessToken).catch(() => {});
+      driveService.revokeToken(tokens.accessToken).catch(() => {})
     }
   }
 
   // Clear all project drive references
   await c.env.DB.prepare(
     `UPDATE projects SET drive_connection_id = NULL, drive_folder_id = NULL,
-     updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE user_id = ?`,
+     updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE user_id = ?`
   )
     .bind(userId)
-    .run();
+    .run()
 
   // Clear all chapter drive_file_ids
   await c.env.DB.prepare(
     `UPDATE chapters SET drive_file_id = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-     WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)`,
+     WHERE project_id IN (SELECT id FROM projects WHERE user_id = ?)`
   )
     .bind(userId)
-    .run();
+    .run()
 
   return c.json({
     success: true,
-    message: "Google Drive disconnected. Your files in Drive remain untouched.",
-  });
-});
+    message: 'Google Drive disconnected. Your files in Drive remain untouched.',
+  })
+})
 
-export { drive, driveCallback };
+export { drive, driveCallback }

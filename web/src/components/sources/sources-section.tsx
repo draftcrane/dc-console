@@ -1,8 +1,8 @@
-"use client";
+'use client'
 
-import { useState, useCallback } from "react";
-import { useSourcesContext } from "@/contexts/sources-context";
-import type { SourceConnection } from "@/hooks/use-sources";
+import { useState, useCallback } from 'react'
+import { useSourcesContext } from '@/contexts/sources-context'
+import type { SourceConnection } from '@/hooks/use-sources'
 
 /**
  * SourcesSection - always-visible connections section in the Library tab.
@@ -17,31 +17,31 @@ import type { SourceConnection } from "@/hooks/use-sources";
  */
 interface SourcesSectionProps {
   /** Called when user taps "Browse" on a connection */
-  onBrowseConnection: (connection: SourceConnection) => void;
+  onBrowseConnection: (connection: SourceConnection) => void
   /** Called when user taps "+ Connect a Source" */
-  onAddSource: () => void;
+  onAddSource: () => void
 }
 
 export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSectionProps) {
-  const { connections, unlinkConnection } = useSourcesContext();
+  const { connections, unlinkConnection } = useSourcesContext()
 
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [isUnlinking, setIsUnlinking] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [isUnlinking, setIsUnlinking] = useState(false)
 
   const handleUnlink = useCallback(
     async (connectionId: string) => {
-      setIsUnlinking(true);
+      setIsUnlinking(true)
       try {
-        await unlinkConnection(connectionId);
-        setConfirmingId(null);
+        await unlinkConnection(connectionId)
+        setConfirmingId(null)
       } catch (err) {
-        console.error("Failed to remove source:", err);
+        console.error('Failed to remove source:', err)
       } finally {
-        setIsUnlinking(false);
+        setIsUnlinking(false)
       }
     },
-    [unlinkConnection],
-  );
+    [unlinkConnection]
+  )
 
   return (
     <div className="border-t border-gray-100 px-3 py-2">
@@ -79,7 +79,7 @@ export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSecti
                   </span>
                   {connection.documentCount > 0 && (
                     <span className="text-[10px] text-[var(--dc-color-text-placeholder)]">
-                      {connection.documentCount} document{connection.documentCount !== 1 ? "s" : ""}
+                      {connection.documentCount} document{connection.documentCount !== 1 ? 's' : ''}
                     </span>
                   )}
                 </div>
@@ -119,7 +119,7 @@ export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSecti
                       className="text-xs font-medium text-red-600 hover:text-red-700
                                    min-h-[36px] px-2 disabled:opacity-50"
                     >
-                      {isUnlinking ? "Removing..." : "Confirm"}
+                      {isUnlinking ? 'Removing...' : 'Confirm'}
                     </button>
                     <button
                       onClick={() => setConfirmingId(null)}
@@ -149,5 +149,5 @@ export function SourcesSection({ onBrowseConnection, onAddSource }: SourcesSecti
         Connect a Source
       </button>
     </div>
-  );
+  )
 }

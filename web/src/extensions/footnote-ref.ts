@@ -1,4 +1,4 @@
-import { Node, mergeAttributes } from "@tiptap/core";
+import { Node, mergeAttributes } from '@tiptap/core'
 
 /**
  * FootnoteRef - Inline node for superscript footnote references in text.
@@ -13,9 +13,9 @@ import { Node, mergeAttributes } from "@tiptap/core";
  * Per design-spec.md Decision 9: blockquote + footnote insertion format.
  */
 export const FootnoteRef = Node.create({
-  name: "footnoteRef",
+  name: 'footnoteRef',
 
-  group: "inline",
+  group: 'inline',
   inline: true,
   atom: true,
 
@@ -23,31 +23,31 @@ export const FootnoteRef = Node.create({
     return {
       footnoteId: {
         default: null,
-        parseHTML: (element) => element.getAttribute("data-footnote-id"),
+        parseHTML: (element) => element.getAttribute('data-footnote-id'),
         renderHTML: (attributes) => ({
-          "data-footnote-id": attributes.footnoteId as string,
+          'data-footnote-id': attributes.footnoteId as string,
         }),
       },
       label: {
-        default: "0",
-        parseHTML: (element) => element.getAttribute("data-footnote-label") || "0",
+        default: '0',
+        parseHTML: (element) => element.getAttribute('data-footnote-label') || '0',
         renderHTML: (attributes) => ({
-          "data-footnote-label": attributes.label as string,
+          'data-footnote-label': attributes.label as string,
         }),
       },
-    };
+    }
   },
 
   parseHTML() {
     return [
       {
-        tag: "sup[data-footnote-id]",
+        tag: 'sup[data-footnote-id]',
       },
-    ];
+    ]
   },
 
   renderHTML({ HTMLAttributes }) {
-    const label = (HTMLAttributes["data-footnote-label"] as string) || "0";
-    return ["sup", mergeAttributes(HTMLAttributes, { class: "footnote-ref" }), `[${label}]`];
+    const label = (HTMLAttributes['data-footnote-label'] as string) || '0'
+    return ['sup', mergeAttributes(HTMLAttributes, { class: 'footnote-ref' }), `[${label}]`]
   },
-});
+})

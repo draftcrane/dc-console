@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
   --background: #ffffff;
@@ -392,8 +392,8 @@ body {
   --keyboard-height: 0px;
 }
 
-@import "./styles/editor.css";
-@import "./styles/sources.css";
-@import "./styles/editor-panel.css";
-@import "./styles/components.css";
-@import "./styles/workspace.css";
+@import './styles/editor.css';
+@import './styles/sources.css';
+@import './styles/editor-panel.css';
+@import './styles/components.css';
+@import './styles/workspace.css';

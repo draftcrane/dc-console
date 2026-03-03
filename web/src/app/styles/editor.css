@@ -101,7 +101,7 @@
 }
 
 .text-editor-content .footnote-content::before {
-  content: "[" attr(data-footnote-label) "] ";
+  content: '[' attr(data-footnote-label) '] ';
   font-weight: 600;
   color: var(--dc-color-text-secondary);
 }

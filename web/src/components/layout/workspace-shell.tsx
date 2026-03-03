@@ -1,6 +1,6 @@
-"use client";
+'use client'
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import {
   useWorkspaceLayout,
   type Breakpoint,
@@ -8,8 +8,8 @@ import {
   type PanelState,
   type WorkspaceLayoutState,
   type UseWorkspaceLayoutOptions,
-} from "@/hooks/use-workspace-layout";
-import { useFocusTrap } from "@/hooks/use-focus-trap";
+} from '@/hooks/use-workspace-layout'
+import { useFocusTrap } from '@/hooks/use-focus-trap'
 
 /**
  * WorkspaceShell CSS Grid Layout System (#316)
@@ -37,38 +37,38 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 // Re-export types from hook
 // -----------------------------------------------------------------------------
 
-export type { Breakpoint, PanelMode, PanelState, WorkspaceLayoutState };
+export type { Breakpoint, PanelMode, PanelState, WorkspaceLayoutState }
 
 // -----------------------------------------------------------------------------
 // Context
 // -----------------------------------------------------------------------------
 
 interface WorkspaceShellContextValue {
-  state: WorkspaceLayoutState;
+  state: WorkspaceLayoutState
   /** Toggle sidebar collapsed state */
-  toggleSidebar: () => void;
+  toggleSidebar: () => void
   /** Set sidebar collapsed state */
-  setSidebarCollapsed: (collapsed: boolean) => void;
+  setSidebarCollapsed: (collapsed: boolean) => void
   /** Open a panel (respects breakpoint rules) */
-  openPanel: (panel: "editor" | "library") => void;
+  openPanel: (panel: 'editor' | 'library') => void
   /** Close a panel */
-  closePanel: (panel: "editor" | "library") => void;
+  closePanel: (panel: 'editor' | 'library') => void
   /** Toggle a panel */
-  togglePanel: (panel: "editor" | "library") => void;
+  togglePanel: (panel: 'editor' | 'library') => void
   /** Set panel mode directly */
-  setPanelMode: (panel: "editor" | "library", mode: PanelMode) => void;
+  setPanelMode: (panel: 'editor' | 'library', mode: PanelMode) => void
   /** Data attributes for the shell element */
-  dataAttributes: Record<string, string>;
+  dataAttributes: Record<string, string>
 }
 
-const WorkspaceShellContext = createContext<WorkspaceShellContextValue | null>(null);
+const WorkspaceShellContext = createContext<WorkspaceShellContextValue | null>(null)
 
 export function useWorkspaceShell(): WorkspaceShellContextValue {
-  const context = useContext(WorkspaceShellContext);
+  const context = useContext(WorkspaceShellContext)
   if (!context) {
-    throw new Error("useWorkspaceShell must be used within a WorkspaceShellProvider");
+    throw new Error('useWorkspaceShell must be used within a WorkspaceShellProvider')
   }
-  return context;
+  return context
 }
 
 // -----------------------------------------------------------------------------
@@ -76,17 +76,17 @@ export function useWorkspaceShell(): WorkspaceShellContextValue {
 // -----------------------------------------------------------------------------
 
 interface WorkspaceShellProviderProps extends UseWorkspaceLayoutOptions {
-  children: ReactNode;
+  children: ReactNode
 }
 
 interface WorkspaceShellProps {
-  children: ReactNode;
-  className?: string;
+  children: ReactNode
+  className?: string
 }
 
 interface GridAreaProps {
-  children: ReactNode;
-  className?: string;
+  children: ReactNode
+  className?: string
 }
 
 // -----------------------------------------------------------------------------
@@ -111,7 +111,7 @@ export function WorkspaceShellProvider({
     initialEditorPanel,
     initialLibraryPanel,
     onStateChange,
-  });
+  })
 
   const value = useMemo<WorkspaceShellContextValue>(
     () => ({
@@ -124,10 +124,10 @@ export function WorkspaceShellProvider({
       setPanelMode: layout.setPanelMode,
       dataAttributes: layout.dataAttributes,
     }),
-    [layout],
-  );
+    [layout]
+  )
 
-  return <WorkspaceShellContext.Provider value={value}>{children}</WorkspaceShellContext.Provider>;
+  return <WorkspaceShellContext.Provider value={value}>{children}</WorkspaceShellContext.Provider>
 }
 
 // -----------------------------------------------------------------------------
@@ -146,8 +146,8 @@ export function WorkspaceShellProvider({
  *
  * Must be used within a WorkspaceShellProvider.
  */
-export function WorkspaceShell({ children, className = "" }: WorkspaceShellProps) {
-  const { dataAttributes } = useWorkspaceShell();
+export function WorkspaceShell({ children, className = '' }: WorkspaceShellProps) {
+  const { dataAttributes } = useWorkspaceShell()
 
   return (
     <div
@@ -158,7 +158,7 @@ export function WorkspaceShell({ children, className = "" }: WorkspaceShellProps
     >
       {children}
     </div>
-  );
+  )
 }
 
 // -----------------------------------------------------------------------------
@@ -173,7 +173,7 @@ export function WorkspaceShell({ children, className = "" }: WorkspaceShellProps
  * - Landscape: persistent, collapsible (240-280px)
  * - Desktop: always persistent (260px)
  */
-export function WorkspaceSidebar({ children, className = "" }: GridAreaProps) {
+export function WorkspaceSidebar({ children, className = '' }: GridAreaProps) {
   return (
     <aside
       className={`workspace-sidebar ${className}`}
@@ -182,7 +182,7 @@ export function WorkspaceSidebar({ children, className = "" }: GridAreaProps) {
     >
       {children}
     </aside>
-  );
+  )
 }
 
 /**
@@ -193,7 +193,7 @@ export function WorkspaceSidebar({ children, className = "" }: GridAreaProps) {
  * - Landscape: can be persistent OR overlay (not both with library)
  * - Desktop: can be persistent alongside library panel
  */
-export function WorkspaceEditorPanel({ children, className = "" }: GridAreaProps) {
+export function WorkspaceEditorPanel({ children, className = '' }: GridAreaProps) {
   return (
     <aside
       className={`workspace-editor-panel ${className}`}
@@ -202,7 +202,7 @@ export function WorkspaceEditorPanel({ children, className = "" }: GridAreaProps
     >
       {children}
     </aside>
-  );
+  )
 }
 
 /**
@@ -212,12 +212,12 @@ export function WorkspaceEditorPanel({ children, className = "" }: GridAreaProps
  * - Contains the Tiptap editor
  * - Uses container query for internal adaptation
  */
-export function WorkspaceCenter({ children, className = "" }: GridAreaProps) {
+export function WorkspaceCenter({ children, className = '' }: GridAreaProps) {
   return (
     <main className={`workspace-center ${className}`} role="region" aria-label="Writing area">
       {children}
     </main>
-  );
+  )
 }
 
 /**
@@ -228,7 +228,7 @@ export function WorkspaceCenter({ children, className = "" }: GridAreaProps) {
  * - Landscape: can be persistent OR overlay (not both with editor)
  * - Desktop: can be persistent alongside editor panel
  */
-export function WorkspaceLibraryPanel({ children, className = "" }: GridAreaProps) {
+export function WorkspaceLibraryPanel({ children, className = '' }: GridAreaProps) {
   return (
     <aside
       className={`workspace-library-panel ${className}`}
@@ -237,7 +237,7 @@ export function WorkspaceLibraryPanel({ children, className = "" }: GridAreaProp
     >
       {children}
     </aside>
-  );
+  )
 }
 
 // -----------------------------------------------------------------------------
@@ -245,12 +245,12 @@ export function WorkspaceLibraryPanel({ children, className = "" }: GridAreaProp
 // -----------------------------------------------------------------------------
 
 interface OverlayPanelProps {
-  children: ReactNode;
-  isOpen: boolean;
-  onClose: () => void;
-  position: "left" | "right";
-  ariaLabel: string;
-  className?: string;
+  children: ReactNode
+  isOpen: boolean
+  onClose: () => void
+  position: 'left' | 'right'
+  ariaLabel: string
+  className?: string
 }
 
 /**
@@ -269,15 +269,15 @@ export function OverlayPanel({
   onClose,
   position,
   ariaLabel,
-  className = "",
+  className = '',
 }: OverlayPanelProps) {
-  const panelRef = useFocusTrap({ isOpen, onEscape: onClose });
+  const panelRef = useFocusTrap({ isOpen, onEscape: onClose })
 
-  if (!isOpen) return null;
+  if (!isOpen) return null
 
   const slideClass =
-    position === "left" ? "workspace-overlay-slide-left" : "workspace-overlay-slide-right";
-  const positionClass = position === "left" ? "left-0" : "right-0";
+    position === 'left' ? 'workspace-overlay-slide-left' : 'workspace-overlay-slide-right'
+  const positionClass = position === 'left' ? 'left-0' : 'right-0'
 
   return (
     <div className="workspace-overlay-container">
@@ -295,7 +295,7 @@ export function OverlayPanel({
         {children}
       </div>
     </div>
-  );
+  )
 }
 
 // -----------------------------------------------------------------------------
@@ -303,8 +303,8 @@ export function OverlayPanel({
 // -----------------------------------------------------------------------------
 
 interface SidebarPillProps {
-  label: string;
-  onClick: () => void;
+  label: string
+  onClick: () => void
 }
 
 /**
@@ -322,7 +322,7 @@ export function SidebarPill({ label, onClick }: SidebarPillProps) {
     >
       {label}
     </button>
-  );
+  )
 }
 
 // -----------------------------------------------------------------------------
@@ -330,7 +330,7 @@ export function SidebarPill({ label, onClick }: SidebarPillProps) {
 // -----------------------------------------------------------------------------
 
 interface StandaloneWorkspaceShellProps extends WorkspaceShellProps {
-  dataAttributes?: Record<string, string>;
+  dataAttributes?: Record<string, string>
 }
 
 /**
@@ -341,7 +341,7 @@ interface StandaloneWorkspaceShellProps extends WorkspaceShellProps {
  */
 export function StandaloneWorkspaceShell({
   children,
-  className = "",
+  className = '',
   dataAttributes = {},
 }: StandaloneWorkspaceShellProps) {
   return (
@@ -353,7 +353,7 @@ export function StandaloneWorkspaceShell({
     >
       {children}
     </div>
-  );
+  )
 }
 
-export default WorkspaceShell;
+export default WorkspaceShell

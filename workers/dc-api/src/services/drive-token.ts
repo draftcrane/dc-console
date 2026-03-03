@@ -12,47 +12,47 @@
  * - Multi-account connection management
  */
 
-import { encrypt, decrypt } from "./crypto.js";
-import type { Env } from "../types/index.js";
+import { encrypt, decrypt } from './crypto.js'
+import type { Env } from '../types/index.js'
 
 /** Google OAuth token response */
 export interface GoogleTokenResponse {
-  access_token: string;
-  refresh_token?: string;
-  expires_in: number;
-  token_type: string;
-  scope: string;
+  access_token: string
+  refresh_token?: string
+  expires_in: number
+  token_type: string
+  scope: string
 }
 
 /** Stored token data from D1 */
 export interface StoredTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
+  accessToken: string
+  refreshToken: string
+  expiresAt: Date
 }
 
 /** Result of getting valid tokens (may have been refreshed) */
 export interface ValidTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: Date;
-  wasRefreshed: boolean;
+  accessToken: string
+  refreshToken: string
+  expiresAt: Date
+  wasRefreshed: boolean
 }
 
 /** Drive connection metadata (no tokens) */
 export interface DriveConnection {
-  id: string;
-  email: string;
-  connectedAt: string;
+  id: string
+  email: string
+  connectedAt: string
 }
 
-const GOOGLE_OAUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
-const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
+const GOOGLE_OAUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
+const GOOGLE_REVOKE_URL = 'https://oauth2.googleapis.com/revoke'
+const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo'
 
 // Refresh tokens 5 minutes before expiry per PRD Section 13
-const REFRESH_BUFFER_MS = 5 * 60 * 1000;
+const REFRESH_BUFFER_MS = 5 * 60 * 1000
 
 /**
  * DriveTokenService handles OAuth flow, token management, and connection CRUD.
@@ -72,19 +72,19 @@ export class DriveTokenService {
     const params = new URLSearchParams({
       client_id: this.env.GOOGLE_CLIENT_ID,
       redirect_uri: this.env.GOOGLE_REDIRECT_URI,
-      response_type: "code",
+      response_type: 'code',
       scope:
-        "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly email",
-      access_type: "offline",
-      prompt: "consent", // Always get refresh token
+        'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly email',
+      access_type: 'offline',
+      prompt: 'consent', // Always get refresh token
       state,
-    });
+    })
 
     if (loginHint) {
-      params.set("login_hint", loginHint);
+      params.set('login_hint', loginHint)
     }
 
-    return `${GOOGLE_OAUTH_URL}?${params.toString()}`;
+    return `${GOOGLE_OAUTH_URL}?${params.toString()}`
   }
 
   /**
@@ -95,26 +95,26 @@ export class DriveTokenService {
    */
   async exchangeCodeForTokens(code: string): Promise<GoogleTokenResponse> {
     const response = await fetch(GOOGLE_TOKEN_URL, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
         client_id: this.env.GOOGLE_CLIENT_ID,
         client_secret: this.env.GOOGLE_CLIENT_SECRET,
         code,
-        grant_type: "authorization_code",
+        grant_type: 'authorization_code',
         redirect_uri: this.env.GOOGLE_REDIRECT_URI,
       }),
-    });
+    })
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Token exchange failed:", error);
-      throw new Error("Failed to exchange code for tokens");
+      const error = await response.text()
+      console.error('Token exchange failed:', error)
+      throw new Error('Failed to exchange code for tokens')
     }
 
-    return response.json() as Promise<GoogleTokenResponse>;
+    return response.json() as Promise<GoogleTokenResponse>
   }
 
   /**
@@ -128,14 +128,14 @@ export class DriveTokenService {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-    });
+    })
 
     if (!response.ok) {
-      throw new Error("Failed to get user info");
+      throw new Error('Failed to get user info')
     }
 
-    const data = (await response.json()) as { email: string };
-    return data.email;
+    const data = (await response.json()) as { email: string }
+    return data.email
   }
 
   /**
@@ -153,16 +153,16 @@ export class DriveTokenService {
     userId: string,
     connectionId: string,
     tokens: GoogleTokenResponse,
-    email: string,
+    email: string
   ): Promise<string> {
-    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
-    const encryptedAccess = await encrypt(tokens.access_token, this.env.ENCRYPTION_KEY);
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
+    const encryptedAccess = await encrypt(tokens.access_token, this.env.ENCRYPTION_KEY)
     // Only encrypt refresh_token when Google provides one. Passing literal ''
     // allows the SQL CASE to correctly preserve the existing stored refresh token
     // on re-auth flows where Google omits the refresh_token.
     const encryptedRefresh = tokens.refresh_token
       ? await encrypt(tokens.refresh_token, this.env.ENCRYPTION_KEY)
-      : "";
+      : ''
 
     await this.env.DB.prepare(
       `INSERT INTO drive_connections (id, user_id, access_token, refresh_token, token_expires_at, drive_email, updated_at)
@@ -171,19 +171,19 @@ export class DriveTokenService {
          access_token = excluded.access_token,
          refresh_token = CASE WHEN excluded.refresh_token != '' THEN excluded.refresh_token ELSE drive_connections.refresh_token END,
          token_expires_at = excluded.token_expires_at,
-         updated_at = excluded.updated_at`,
+         updated_at = excluded.updated_at`
     )
       .bind(connectionId, userId, encryptedAccess, encryptedRefresh, expiresAt.toISOString(), email)
-      .run();
+      .run()
 
     // Return the actual connection ID (may differ from input if re-auth of same account)
     const row = await this.env.DB.prepare(
-      `SELECT id FROM drive_connections WHERE user_id = ? AND drive_email = ?`,
+      `SELECT id FROM drive_connections WHERE user_id = ? AND drive_email = ?`
     )
       .bind(userId, email)
-      .first<{ id: string }>();
+      .first<{ id: string }>()
 
-    return row?.id ?? connectionId;
+    return row?.id ?? connectionId
   }
 
   /**
@@ -194,20 +194,20 @@ export class DriveTokenService {
    */
   async getStoredTokens(connectionId: string): Promise<StoredTokens | null> {
     const row = await this.env.DB.prepare(
-      `SELECT access_token, refresh_token, token_expires_at FROM drive_connections WHERE id = ?`,
+      `SELECT access_token, refresh_token, token_expires_at FROM drive_connections WHERE id = ?`
     )
       .bind(connectionId)
-      .first<{ access_token: string; refresh_token: string; token_expires_at: string }>();
+      .first<{ access_token: string; refresh_token: string; token_expires_at: string }>()
 
     if (!row) {
-      return null;
+      return null
     }
 
-    const accessToken = await decrypt(row.access_token, this.env.ENCRYPTION_KEY);
-    const refreshToken = await decrypt(row.refresh_token, this.env.ENCRYPTION_KEY);
-    const expiresAt = new Date(row.token_expires_at);
+    const accessToken = await decrypt(row.access_token, this.env.ENCRYPTION_KEY)
+    const refreshToken = await decrypt(row.refresh_token, this.env.ENCRYPTION_KEY)
+    const expiresAt = new Date(row.token_expires_at)
 
-    return { accessToken, refreshToken, expiresAt };
+    return { accessToken, refreshToken, expiresAt }
   }
 
   /**
@@ -219,28 +219,28 @@ export class DriveTokenService {
    * @returns Decrypted tokens or null if not connected
    */
   async getStoredTokensByUser(
-    userId: string,
+    userId: string
   ): Promise<(StoredTokens & { connectionId: string }) | null> {
     const row = await this.env.DB.prepare(
-      `SELECT id, access_token, refresh_token, token_expires_at FROM drive_connections WHERE user_id = ? LIMIT 1`,
+      `SELECT id, access_token, refresh_token, token_expires_at FROM drive_connections WHERE user_id = ? LIMIT 1`
     )
       .bind(userId)
       .first<{
-        id: string;
-        access_token: string;
-        refresh_token: string;
-        token_expires_at: string;
-      }>();
+        id: string
+        access_token: string
+        refresh_token: string
+        token_expires_at: string
+      }>()
 
     if (!row) {
-      return null;
+      return null
     }
 
-    const accessToken = await decrypt(row.access_token, this.env.ENCRYPTION_KEY);
-    const refreshToken = await decrypt(row.refresh_token, this.env.ENCRYPTION_KEY);
-    const expiresAt = new Date(row.token_expires_at);
+    const accessToken = await decrypt(row.access_token, this.env.ENCRYPTION_KEY)
+    const refreshToken = await decrypt(row.refresh_token, this.env.ENCRYPTION_KEY)
+    const expiresAt = new Date(row.token_expires_at)
 
-    return { connectionId: row.id, accessToken, refreshToken, expiresAt };
+    return { connectionId: row.id, accessToken, refreshToken, expiresAt }
   }
 
   /**
@@ -251,25 +251,25 @@ export class DriveTokenService {
    */
   async refreshAccessToken(refreshToken: string): Promise<GoogleTokenResponse> {
     const response = await fetch(GOOGLE_TOKEN_URL, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: new URLSearchParams({
         client_id: this.env.GOOGLE_CLIENT_ID,
         client_secret: this.env.GOOGLE_CLIENT_SECRET,
         refresh_token: refreshToken,
-        grant_type: "refresh_token",
+        grant_type: 'refresh_token',
       }),
-    });
+    })
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("Token refresh failed:", error);
-      throw new Error("Failed to refresh access token");
+      const error = await response.text()
+      console.error('Token refresh failed:', error)
+      throw new Error('Failed to refresh access token')
     }
 
-    return response.json() as Promise<GoogleTokenResponse>;
+    return response.json() as Promise<GoogleTokenResponse>
   }
 
   /**
@@ -280,12 +280,12 @@ export class DriveTokenService {
    * @returns Valid tokens, or null if connection not found
    */
   async getValidTokensByConnection(connectionId: string): Promise<ValidTokens | null> {
-    const stored = await this.getStoredTokens(connectionId);
+    const stored = await this.getStoredTokens(connectionId)
     if (!stored) {
-      return null;
+      return null
     }
 
-    return this.ensureTokensFresh(connectionId, stored);
+    return this.ensureTokensFresh(connectionId, stored)
   }
 
   /**
@@ -297,15 +297,15 @@ export class DriveTokenService {
    * @returns Valid tokens with connectionId, or null if not connected
    */
   async getValidTokens(userId: string): Promise<(ValidTokens & { connectionId: string }) | null> {
-    const stored = await this.getStoredTokensByUser(userId);
+    const stored = await this.getStoredTokensByUser(userId)
     if (!stored) {
-      return null;
+      return null
     }
 
-    const result = await this.ensureTokensFresh(stored.connectionId, stored);
-    if (!result) return null;
+    const result = await this.ensureTokensFresh(stored.connectionId, stored)
+    if (!result) return null
 
-    return { ...result, connectionId: stored.connectionId };
+    return { ...result, connectionId: stored.connectionId }
   }
 
   /**
@@ -313,35 +313,35 @@ export class DriveTokenService {
    */
   private async ensureTokensFresh(
     connectionId: string,
-    stored: StoredTokens,
+    stored: StoredTokens
   ): Promise<ValidTokens | null> {
-    const now = Date.now();
-    const expiresAt = stored.expiresAt.getTime();
+    const now = Date.now()
+    const expiresAt = stored.expiresAt.getTime()
 
     // Check if token needs refresh (expires within 5 minutes)
     if (expiresAt - now < REFRESH_BUFFER_MS) {
       try {
-        const newTokens = await this.refreshAccessToken(stored.refreshToken);
-        const newExpiresAt = new Date(now + newTokens.expires_in * 1000);
+        const newTokens = await this.refreshAccessToken(stored.refreshToken)
+        const newExpiresAt = new Date(now + newTokens.expires_in * 1000)
 
         // Update stored tokens
-        const encryptedAccess = await encrypt(newTokens.access_token, this.env.ENCRYPTION_KEY);
+        const encryptedAccess = await encrypt(newTokens.access_token, this.env.ENCRYPTION_KEY)
         await this.env.DB.prepare(
           `UPDATE drive_connections
            SET access_token = ?, token_expires_at = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-           WHERE id = ?`,
+           WHERE id = ?`
         )
           .bind(encryptedAccess, newExpiresAt.toISOString(), connectionId)
-          .run();
+          .run()
 
         return {
           accessToken: newTokens.access_token,
           refreshToken: newTokens.refresh_token || stored.refreshToken,
           expiresAt: newExpiresAt,
           wasRefreshed: true,
-        };
+        }
       } catch (err) {
-        console.error("Token refresh failed, using existing token:", err);
+        console.error('Token refresh failed, using existing token:', err)
         // Fall through to use existing token
       }
     }
@@ -349,7 +349,7 @@ export class DriveTokenService {
     return {
       ...stored,
       wasRefreshed: false,
-    };
+    }
   }
 
   /**
@@ -360,16 +360,16 @@ export class DriveTokenService {
    */
   async getConnectionsForUser(userId: string): Promise<DriveConnection[]> {
     const result = await this.env.DB.prepare(
-      `SELECT id, drive_email, created_at FROM drive_connections WHERE user_id = ? ORDER BY created_at ASC`,
+      `SELECT id, drive_email, created_at FROM drive_connections WHERE user_id = ? ORDER BY created_at ASC`
     )
       .bind(userId)
-      .all<{ id: string; drive_email: string; created_at: string }>();
+      .all<{ id: string; drive_email: string; created_at: string }>()
 
     return (result.results ?? []).map((row) => ({
       id: row.id,
       email: row.drive_email,
       connectedAt: row.created_at,
-    }));
+    }))
   }
 
   /**
@@ -380,15 +380,15 @@ export class DriveTokenService {
    */
   async revokeToken(accessToken: string): Promise<void> {
     const response = await fetch(`${GOOGLE_REVOKE_URL}?token=${accessToken}`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-    });
+    })
 
     if (!response.ok) {
       // Log but don't throw - token might already be invalid
-      console.warn("Token revocation returned non-200:", response.status);
+      console.warn('Token revocation returned non-200:', response.status)
     }
   }
 
@@ -401,6 +401,6 @@ export class DriveTokenService {
   async deleteConnectionById(connectionId: string, userId: string): Promise<void> {
     await this.env.DB.prepare(`DELETE FROM drive_connections WHERE id = ? AND user_id = ?`)
       .bind(connectionId, userId)
-      .run();
+      .run()
   }
 }

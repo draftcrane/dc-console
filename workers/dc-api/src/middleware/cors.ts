@@ -1,5 +1,5 @@
-import { cors } from "hono/cors";
-import type { Env } from "../types/index.js";
+import { cors } from 'hono/cors'
+import type { Env } from '../types/index.js'
 
 /**
  * CORS middleware configured per PRD: production frontend origin only, no wildcards.
@@ -11,17 +11,17 @@ import type { Env } from "../types/index.js";
 export function corsMiddleware() {
   return cors({
     origin: (origin, c) => {
-      const frontendUrl = (c.env as Env).FRONTEND_URL;
+      const frontendUrl = (c.env as Env).FRONTEND_URL
       if (!frontendUrl) {
-        console.error("CORS: FRONTEND_URL not configured - rejecting cross-origin request");
-        return "";
+        console.error('CORS: FRONTEND_URL not configured - rejecting cross-origin request')
+        return ''
       }
-      return origin === frontendUrl ? origin : "";
+      return origin === frontendUrl ? origin : ''
     },
-    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-Chapter-Version"],
-    exposeHeaders: ["X-Chapter-Version"],
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Chapter-Version'],
+    exposeHeaders: ['X-Chapter-Version'],
     maxAge: 86400,
     credentials: true,
-  });
+  })
 }

@@ -359,17 +359,17 @@ User message format:
 ```typescript
 interface ResearchQueryResponse {
   snippets: Array<{
-    text: string; // Quoted text from source (verbatim preferred)
-    verbatim: boolean; // True if text is an exact substring of source
-    sourceId: string; // Maps to source_materials.id
-    sourceTitle: string; // Human-readable filename
-    chunkRef: string; // Chunk ID (e.g. "src-001-chunk-3")
-    relevance: string; // Why this answers the query
-    confidence: "high" | "medium" | "low";
-  }>;
-  summary: string | null; // Synthesis across snippets (optional)
-  queryUnderstood: boolean; // False if query is ambiguous
-  noResultsReason: string | null; // Explanation when snippets is empty
+    text: string // Quoted text from source (verbatim preferred)
+    verbatim: boolean // True if text is an exact substring of source
+    sourceId: string // Maps to source_materials.id
+    sourceTitle: string // Human-readable filename
+    chunkRef: string // Chunk ID (e.g. "src-001-chunk-3")
+    relevance: string // Why this answers the query
+    confidence: 'high' | 'medium' | 'low'
+  }>
+  summary: string | null // Synthesis across snippets (optional)
+  queryUnderstood: boolean // False if query is ambiguous
+  noResultsReason: string | null // Explanation when snippets is empty
 }
 ```
 
@@ -399,29 +399,29 @@ interface AIProvider {
   streamCompletion(
     systemPrompt: string,
     userMessage: string,
-    options?: CompletionOptions,
-  ): Promise<ReadableStream<AIStreamEvent>>;
+    options?: CompletionOptions
+  ): Promise<ReadableStream<AIStreamEvent>>
 
   // New: non-streaming JSON completion for structured responses
   jsonCompletion<T>(
     systemPrompt: string,
     userMessage: string,
-    options?: JsonCompletionOptions,
-  ): Promise<JsonCompletionResult<T>>;
+    options?: JsonCompletionOptions
+  ): Promise<JsonCompletionResult<T>>
 
-  readonly model: string;
+  readonly model: string
 }
 
 interface JsonCompletionOptions extends CompletionOptions {
   /** Enable API-level JSON mode (provider-dependent) */
-  jsonMode?: boolean;
+  jsonMode?: boolean
 }
 
 interface JsonCompletionResult<T> {
-  parsed: T | null;
-  raw: string;
-  tokens: { prompt: number; completion: number };
-  latencyMs: number;
+  parsed: T | null
+  raw: string
+  tokens: { prompt: number; completion: number }
+  latencyMs: number
 }
 ```
 

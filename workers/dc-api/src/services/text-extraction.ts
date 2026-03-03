@@ -18,46 +18,46 @@
  * at import time). Dynamic import defers loading to actual usage in production.
  */
 
-import sanitizeHtml from "sanitize-html";
-import { countWords } from "../utils/word-count.js";
-import { textToHtml, markdownToHtml } from "./source-local.js";
+import sanitizeHtml from 'sanitize-html'
+import { countWords } from '../utils/word-count.js'
+import { textToHtml, markdownToHtml } from './source-local.js'
 
 /** Mammoth HTML sanitization whitelist per ADR-008 */
 const MAMMOTH_ALLOWED_TAGS = [
-  "p",
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "strong",
-  "em",
-  "ul",
-  "ol",
-  "li",
-  "table",
-  "thead",
-  "tbody",
-  "tr",
-  "th",
-  "td",
-  "a",
-  "br",
-  "sup",
-  "sub",
-  "blockquote",
-];
+  'p',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'strong',
+  'em',
+  'ul',
+  'ol',
+  'li',
+  'table',
+  'thead',
+  'tbody',
+  'tr',
+  'th',
+  'td',
+  'a',
+  'br',
+  'sup',
+  'sub',
+  'blockquote',
+]
 
 const MAMMOTH_ALLOWED_ATTRIBUTES: Record<string, string[]> = {
-  a: ["href"],
-};
+  a: ['href'],
+}
 
 /** Result of text extraction */
 export interface ExtractionResult {
-  html: string;
-  plainText: string;
-  wordCount: number;
+  html: string
+  plainText: string
+  wordCount: number
 }
 
 /**
@@ -68,7 +68,7 @@ export function sanitizeSourceHtml(html: string): string {
   return sanitizeHtml(html, {
     allowedTags: MAMMOTH_ALLOWED_TAGS,
     allowedAttributes: MAMMOTH_ALLOWED_ATTRIBUTES,
-  });
+  })
 }
 
 /**
@@ -77,35 +77,35 @@ export function sanitizeSourceHtml(html: string): string {
  */
 export function htmlToPlainText(html: string): string {
   return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 /**
  * Extract text and HTML from a .txt file.
  */
 export function extractFromTxt(content: ArrayBuffer): ExtractionResult {
-  const text = new TextDecoder().decode(content);
-  const html = textToHtml(text);
-  const plainText = text.trim();
-  return { html, plainText, wordCount: countWords(html) };
+  const text = new TextDecoder().decode(content)
+  const html = textToHtml(text)
+  const plainText = text.trim()
+  return { html, plainText, wordCount: countWords(html) }
 }
 
 /**
  * Extract text and HTML from a .md file.
  */
 export function extractFromMarkdown(content: ArrayBuffer): ExtractionResult {
-  const text = new TextDecoder().decode(content);
-  const html = markdownToHtml(text);
-  const plainText = htmlToPlainText(html);
-  return { html, plainText, wordCount: countWords(html) };
+  const text = new TextDecoder().decode(content)
+  const html = markdownToHtml(text)
+  const plainText = htmlToPlainText(html)
+  return { html, plainText, wordCount: countWords(html) }
 }
 
 /**
@@ -114,11 +114,11 @@ export function extractFromMarkdown(content: ArrayBuffer): ExtractionResult {
  * Uses dynamic import to avoid module resolution issues in test environment.
  */
 export async function extractFromDocx(content: ArrayBuffer): Promise<ExtractionResult> {
-  const mammoth = await import("mammoth");
-  const result = await mammoth.default.convertToHtml({ arrayBuffer: content });
-  const html = sanitizeSourceHtml(result.value);
-  const plainText = htmlToPlainText(html);
-  return { html, plainText, wordCount: countWords(html) };
+  const mammoth = await import('mammoth')
+  const result = await mammoth.default.convertToHtml({ arrayBuffer: content })
+  const html = sanitizeSourceHtml(result.value)
+  const plainText = htmlToPlainText(html)
+  return { html, plainText, wordCount: countWords(html) }
 }
 
 /**
@@ -127,12 +127,12 @@ export async function extractFromDocx(content: ArrayBuffer): Promise<ExtractionR
  * Uses dynamic import to avoid module resolution issues in test environment.
  */
 export async function extractFromPdf(content: ArrayBuffer): Promise<ExtractionResult> {
-  const { extractText, getDocumentProxy } = await import("unpdf");
-  const doc = await getDocumentProxy(new Uint8Array(content));
-  const { text } = await extractText(doc, { mergePages: true });
-  const plainText = text.trim();
-  const html = textToHtml(plainText);
-  return { html, plainText, wordCount: countWords(html) };
+  const { extractText, getDocumentProxy } = await import('unpdf')
+  const doc = await getDocumentProxy(new Uint8Array(content))
+  const { text } = await extractText(doc, { mergePages: true })
+  const plainText = text.trim()
+  const html = textToHtml(plainText)
+  return { html, plainText, wordCount: countWords(html) }
 }
 
 /**
@@ -140,17 +140,17 @@ export async function extractFromPdf(content: ArrayBuffer): Promise<ExtractionRe
  * Used when we already have HTML but need the plain text version for FTS/AI.
  */
 export function extractPlainTextFromHtml(html: string): ExtractionResult {
-  const plainText = htmlToPlainText(html);
-  return { html, plainText, wordCount: countWords(html) };
+  const plainText = htmlToPlainText(html)
+  return { html, plainText, wordCount: countWords(html) }
 }
 
 /** File extension to extraction format mapping */
-const EXTRACTION_MAP: Record<string, "txt" | "md" | "docx" | "pdf"> = {
-  ".txt": "txt",
-  ".md": "md",
-  ".docx": "docx",
-  ".pdf": "pdf",
-};
+const EXTRACTION_MAP: Record<string, 'txt' | 'md' | 'docx' | 'pdf'> = {
+  '.txt': 'txt',
+  '.md': 'md',
+  '.docx': 'docx',
+  '.pdf': 'pdf',
+}
 
 /**
  * Extract content from a file based on its extension.
@@ -162,22 +162,22 @@ const EXTRACTION_MAP: Record<string, "txt" | "md" | "docx" | "pdf"> = {
  */
 export async function extractFromFile(
   content: ArrayBuffer,
-  extension: string,
+  extension: string
 ): Promise<ExtractionResult> {
-  const format = EXTRACTION_MAP[extension.toLowerCase()];
+  const format = EXTRACTION_MAP[extension.toLowerCase()]
   if (!format) {
-    throw new Error(`Unsupported file extension: ${extension}`);
+    throw new Error(`Unsupported file extension: ${extension}`)
   }
 
   switch (format) {
-    case "txt":
-      return extractFromTxt(content);
-    case "md":
-      return extractFromMarkdown(content);
-    case "docx":
-      return extractFromDocx(content);
-    case "pdf":
-      return extractFromPdf(content);
+    case 'txt':
+      return extractFromTxt(content)
+    case 'md':
+      return extractFromMarkdown(content)
+    case 'docx':
+      return extractFromDocx(content)
+    case 'pdf':
+      return extractFromPdf(content)
   }
 }
 
@@ -199,23 +199,23 @@ export async function storeExtractionResult(
   title: string,
   result: ExtractionResult,
   bucket: R2Bucket,
-  db: D1Database,
+  db: D1Database
 ): Promise<{ r2Key: string; cachedAt: string }> {
-  const now = new Date().toISOString();
-  const r2KeyHtml = `sources/${sourceId}/content.html`;
-  const r2KeyTxt = `sources/${sourceId}/content.txt`;
+  const now = new Date().toISOString()
+  const r2KeyHtml = `sources/${sourceId}/content.html`
+  const r2KeyTxt = `sources/${sourceId}/content.txt`
 
   // Write HTML and plain text to R2 in parallel
   await Promise.all([
     bucket.put(r2KeyHtml, result.html, {
-      httpMetadata: { contentType: "text/html; charset=utf-8" },
+      httpMetadata: { contentType: 'text/html; charset=utf-8' },
       customMetadata: { sourceId, cachedAt: now },
     }),
     bucket.put(r2KeyTxt, result.plainText, {
-      httpMetadata: { contentType: "text/plain; charset=utf-8" },
+      httpMetadata: { contentType: 'text/plain; charset=utf-8' },
       customMetadata: { sourceId, cachedAt: now },
     }),
-  ]);
+  ])
 
   // Update FTS index (delete old entry first, then insert new)
   await db.batch([
@@ -223,9 +223,9 @@ export async function storeExtractionResult(
     db
       .prepare(`INSERT INTO source_content_fts (source_id, title, content) VALUES (?, ?, ?)`)
       .bind(sourceId, title, result.plainText),
-  ]);
+  ])
 
-  return { r2Key: r2KeyHtml, cachedAt: now };
+  return { r2Key: r2KeyHtml, cachedAt: now }
 }
 
 /**
@@ -233,5 +233,5 @@ export async function storeExtractionResult(
  * Called when a source is archived/deleted.
  */
 export async function removeFtsEntry(sourceId: string, db: D1Database): Promise<void> {
-  await db.prepare(`DELETE FROM source_content_fts WHERE source_id = ?`).bind(sourceId).run();
+  await db.prepare(`DELETE FROM source_content_fts WHERE source_id = ?`).bind(sourceId).run()
 }

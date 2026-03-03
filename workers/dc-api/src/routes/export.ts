@@ -1,11 +1,11 @@
-import { Hono } from "hono";
-import type { Env } from "../types/index.js";
-import { exportRateLimit, standardRateLimit } from "../middleware/rate-limit.js";
-import { validationError } from "../middleware/error-handler.js";
-import { ExportService } from "../services/export.js";
-import { safeContentDisposition } from "../utils/file-names.js";
-import { DriveService } from "../services/drive.js";
-import type { ExportPreferenceInput } from "../services/export-delivery.js";
+import { Hono } from 'hono'
+import type { Env } from '../types/index.js'
+import { exportRateLimit, standardRateLimit } from '../middleware/rate-limit.js'
+import { validationError } from '../middleware/error-handler.js'
+import { ExportService } from '../services/export.js'
+import { safeContentDisposition } from '../utils/file-names.js'
+import { DriveService } from '../services/drive.js'
+import type { ExportPreferenceInput } from '../services/export-delivery.js'
 
 /**
  * Export API routes
@@ -23,11 +23,11 @@ import type { ExportPreferenceInput } from "../services/export-delivery.js";
  * Rate limit: 5 req/min per user (exportRateLimit middleware).
  * All routes require authentication (enforced globally in index.ts).
  */
-const exportRoutes = new Hono<{ Bindings: Env }>();
+const exportRoutes = new Hono<{ Bindings: Env }>()
 
 // Auth is enforced globally in index.ts
 // Rate limit export generation endpoints (not downloads)
-exportRoutes.use("/projects/*", exportRateLimit);
+exportRoutes.use('/projects/*', exportRateLimit)
 
 /**
  * POST /projects/:projectId/export
@@ -38,26 +38,26 @@ exportRoutes.use("/projects/*", exportRateLimit);
  *
  * Response: { jobId, status, fileName, downloadUrl, error }
  */
-exportRoutes.post("/projects/:projectId/export", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
+exportRoutes.post('/projects/:projectId/export', async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
 
-  const body = (await c.req.json().catch(() => ({}))) as { format?: string };
+  const body = (await c.req.json().catch(() => ({}))) as { format?: string }
 
-  if (!body.format || (body.format !== "pdf" && body.format !== "epub")) {
-    validationError('format must be "pdf" or "epub"');
+  if (!body.format || (body.format !== 'pdf' && body.format !== 'epub')) {
+    validationError('format must be "pdf" or "epub"')
   }
 
-  const format = body.format as "pdf" | "epub";
-  const service = createExportService(c.env);
-  const result = await service.exportBook(userId, projectId, format);
+  const format = body.format as 'pdf' | 'epub'
+  const service = createExportService(c.env)
+  const result = await service.exportBook(userId, projectId, format)
 
-  if (result.status === "failed") {
-    return c.json(result, 500);
+  if (result.status === 'failed') {
+    return c.json(result, 500)
   }
 
-  return c.json(result, 201);
-});
+  return c.json(result, 201)
+})
 
 /**
  * POST /projects/:projectId/chapters/:chapterId/export
@@ -68,27 +68,27 @@ exportRoutes.post("/projects/:projectId/export", async (c) => {
  *
  * Response: { jobId, status, fileName, downloadUrl, error }
  */
-exportRoutes.post("/projects/:projectId/chapters/:chapterId/export", async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
-  const chapterId = c.req.param("chapterId");
+exportRoutes.post('/projects/:projectId/chapters/:chapterId/export', async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
+  const chapterId = c.req.param('chapterId')
 
-  const body = (await c.req.json().catch(() => ({}))) as { format?: string };
+  const body = (await c.req.json().catch(() => ({}))) as { format?: string }
 
-  if (!body.format || (body.format !== "pdf" && body.format !== "epub")) {
-    validationError('format must be "pdf" or "epub"');
+  if (!body.format || (body.format !== 'pdf' && body.format !== 'epub')) {
+    validationError('format must be "pdf" or "epub"')
   }
 
-  const format = body.format as "pdf" | "epub";
-  const service = createExportService(c.env);
-  const result = await service.exportChapter(userId, projectId, chapterId, format);
+  const format = body.format as 'pdf' | 'epub'
+  const service = createExportService(c.env)
+  const result = await service.exportChapter(userId, projectId, chapterId, format)
 
-  if (result.status === "failed") {
-    return c.json(result, 500);
+  if (result.status === 'failed') {
+    return c.json(result, 500)
   }
 
-  return c.json(result, 201);
-});
+  return c.json(result, 201)
+})
 
 /**
  * GET /exports/:jobId
@@ -100,15 +100,15 @@ exportRoutes.post("/projects/:projectId/chapters/:chapterId/export", async (c) =
  * Response: { jobId, status, format, fileName, downloadUrl, chapterCount,
  *             totalWordCount, error, createdAt, completedAt }
  */
-exportRoutes.get("/exports/:jobId", async (c) => {
-  const { userId } = c.get("auth");
-  const jobId = c.req.param("jobId");
+exportRoutes.get('/exports/:jobId', async (c) => {
+  const { userId } = c.get('auth')
+  const jobId = c.req.param('jobId')
 
-  const service = createExportService(c.env);
-  const status = await service.getExportStatus(userId, jobId);
+  const service = createExportService(c.env)
+  const status = await service.getExportStatus(userId, jobId)
 
-  return c.json(status);
-});
+  return c.json(status)
+})
 
 /**
  * GET /exports/:jobId/download
@@ -117,21 +117,21 @@ exportRoutes.get("/exports/:jobId", async (c) => {
  * Streams the PDF directly from R2 storage.
  * No rate limit on downloads (already generated).
  */
-exportRoutes.get("/exports/:jobId/download", async (c) => {
-  const { userId } = c.get("auth");
-  const jobId = c.req.param("jobId");
+exportRoutes.get('/exports/:jobId/download', async (c) => {
+  const { userId } = c.get('auth')
+  const jobId = c.req.param('jobId')
 
-  const service = createExportService(c.env);
-  const download = await service.getExportDownload(userId, jobId);
+  const service = createExportService(c.env)
+  const download = await service.getExportDownload(userId, jobId)
 
   return new Response(download.data, {
     headers: {
-      "Content-Type": download.contentType,
-      "Content-Disposition": safeContentDisposition(download.fileName),
-      "Cache-Control": "private, max-age=3600",
+      'Content-Type': download.contentType,
+      'Content-Disposition': safeContentDisposition(download.fileName),
+      'Cache-Control': 'private, max-age=3600',
     },
-  });
-});
+  })
+})
 
 /**
  * POST /exports/:jobId/to-drive
@@ -146,26 +146,26 @@ exportRoutes.get("/exports/:jobId/download", async (c) => {
  *
  * Response: { driveFileId, fileName, webViewLink }
  */
-exportRoutes.post("/exports/:jobId/to-drive", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const jobId = c.req.param("jobId");
+exportRoutes.post('/exports/:jobId/to-drive', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const jobId = c.req.param('jobId')
   const body = (await c.req.json().catch(() => ({}))) as {
-    connectionId?: string;
-    folderId?: string;
-  };
+    connectionId?: string
+    folderId?: string
+  }
 
-  const service = createExportService(c.env);
-  const driveService = new DriveService(c.env);
+  const service = createExportService(c.env)
+  const driveService = new DriveService(c.env)
   const result = await service.saveToDrive(
     userId,
     jobId,
     driveService,
     body.connectionId,
-    body.folderId,
-  );
+    body.folderId
+  )
 
-  return c.json(result);
-});
+  return c.json(result)
+})
 
 /**
  * GET /projects/:projectId/export-preferences
@@ -173,15 +173,15 @@ exportRoutes.post("/exports/:jobId/to-drive", standardRateLimit, async (c) => {
  *
  * Response: preference object or null
  */
-exportRoutes.get("/projects/:projectId/export-preferences", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
+exportRoutes.get('/projects/:projectId/export-preferences', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
 
-  const service = createExportService(c.env);
-  const preference = await service.getExportPreference(userId, projectId);
+  const service = createExportService(c.env)
+  const preference = await service.getExportPreference(userId, projectId)
 
-  return c.json({ preference });
-});
+  return c.json({ preference })
+})
 
 /**
  * PUT /projects/:projectId/export-preferences
@@ -195,21 +195,21 @@ exportRoutes.get("/projects/:projectId/export-preferences", standardRateLimit, a
  *
  * Response: preference object
  */
-exportRoutes.put("/projects/:projectId/export-preferences", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
+exportRoutes.put('/projects/:projectId/export-preferences', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
 
-  const body = (await c.req.json().catch(() => ({}))) as ExportPreferenceInput;
+  const body = (await c.req.json().catch(() => ({}))) as ExportPreferenceInput
 
   if (!body.destinationType) {
-    validationError("destinationType is required");
+    validationError('destinationType is required')
   }
 
-  const service = createExportService(c.env);
-  const preference = await service.setExportPreference(userId, projectId, body);
+  const service = createExportService(c.env)
+  const preference = await service.setExportPreference(userId, projectId, body)
 
-  return c.json({ preference });
-});
+  return c.json({ preference })
+})
 
 /**
  * DELETE /projects/:projectId/export-preferences
@@ -217,15 +217,15 @@ exportRoutes.put("/projects/:projectId/export-preferences", standardRateLimit, a
  *
  * Response: { success: true }
  */
-exportRoutes.delete("/projects/:projectId/export-preferences", standardRateLimit, async (c) => {
-  const { userId } = c.get("auth");
-  const projectId = c.req.param("projectId");
+exportRoutes.delete('/projects/:projectId/export-preferences', standardRateLimit, async (c) => {
+  const { userId } = c.get('auth')
+  const projectId = c.req.param('projectId')
 
-  const service = createExportService(c.env);
-  await service.clearExportPreference(userId, projectId);
+  const service = createExportService(c.env)
+  await service.clearExportPreference(userId, projectId)
 
-  return c.json({ success: true });
-});
+  return c.json({ success: true })
+})
 
 /**
  * Create ExportService with environment bindings.
@@ -238,8 +238,8 @@ function createExportService(env: Env): ExportService {
       accountId: env.CF_ACCOUNT_ID,
       apiToken: env.CF_API_TOKEN,
     },
-    env.API_BASE_URL || "",
-  );
+    env.API_BASE_URL || ''
+  )
 }
 
-export { exportRoutes };
+export { exportRoutes }

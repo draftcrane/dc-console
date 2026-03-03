@@ -1,4 +1,4 @@
-import { notFound } from "../middleware/error-handler.js";
+import { notFound } from '../middleware/error-handler.js'
 
 /**
  * AIInteractionService - Business logic for AI interaction logging
@@ -10,37 +10,37 @@ import { notFound } from "../middleware/error-handler.js";
  */
 
 export interface AIInteraction {
-  id: string;
-  userId: string;
-  chapterId: string;
-  action: string;
-  instruction: string;
-  inputChars: number;
-  outputChars: number;
-  model: string;
-  latencyMs: number;
-  accepted: boolean | null;
-  attemptNumber: number;
-  parentInteractionId: string | null;
-  tier: "edge" | "frontier";
-  createdAt: string;
+  id: string
+  userId: string
+  chapterId: string
+  action: string
+  instruction: string
+  inputChars: number
+  outputChars: number
+  model: string
+  latencyMs: number
+  accepted: boolean | null
+  attemptNumber: number
+  parentInteractionId: string | null
+  tier: 'edge' | 'frontier'
+  createdAt: string
 }
 
 interface AIInteractionRow {
-  id: string;
-  user_id: string;
-  chapter_id: string;
-  action: string;
-  instruction: string;
-  input_chars: number;
-  output_chars: number;
-  model: string;
-  latency_ms: number;
-  accepted: number | null;
-  attempt_number: number;
-  parent_interaction_id: string | null;
-  tier: string;
-  created_at: string;
+  id: string
+  user_id: string
+  chapter_id: string
+  action: string
+  instruction: string
+  input_chars: number
+  output_chars: number
+  model: string
+  latency_ms: number
+  accepted: number | null
+  attempt_number: number
+  parent_interaction_id: string | null
+  tier: string
+  created_at: string
 }
 
 export class AIInteractionService {
@@ -57,22 +57,22 @@ export class AIInteractionService {
         `SELECT id, user_id, chapter_id, action, instruction, input_chars, output_chars,
                 model, latency_ms, accepted, attempt_number, parent_interaction_id, tier, created_at
          FROM ai_interactions
-         WHERE id = ? AND user_id = ?`,
+         WHERE id = ? AND user_id = ?`
       )
       .bind(interactionId, userId)
-      .first<AIInteractionRow>();
+      .first<AIInteractionRow>()
 
     if (!interaction) {
-      notFound("AI interaction not found");
+      notFound('AI interaction not found')
     }
 
     // Update accepted status
     await this.db
       .prepare(`UPDATE ai_interactions SET accepted = 1 WHERE id = ? AND user_id = ?`)
       .bind(interactionId, userId)
-      .run();
+      .run()
 
-    return this.mapRow({ ...interaction, accepted: 1 });
+    return this.mapRow({ ...interaction, accepted: 1 })
   }
 
   /**
@@ -86,22 +86,22 @@ export class AIInteractionService {
         `SELECT id, user_id, chapter_id, action, instruction, input_chars, output_chars,
                 model, latency_ms, accepted, attempt_number, parent_interaction_id, tier, created_at
          FROM ai_interactions
-         WHERE id = ? AND user_id = ?`,
+         WHERE id = ? AND user_id = ?`
       )
       .bind(interactionId, userId)
-      .first<AIInteractionRow>();
+      .first<AIInteractionRow>()
 
     if (!interaction) {
-      notFound("AI interaction not found");
+      notFound('AI interaction not found')
     }
 
     // Update accepted status
     await this.db
       .prepare(`UPDATE ai_interactions SET accepted = 0 WHERE id = ? AND user_id = ?`)
       .bind(interactionId, userId)
-      .run();
+      .run()
 
-    return this.mapRow({ ...interaction, accepted: 0 });
+    return this.mapRow({ ...interaction, accepted: 0 })
   }
 
   private mapRow(row: AIInteractionRow): AIInteraction {
@@ -118,8 +118,8 @@ export class AIInteractionService {
       accepted: row.accepted === null ? null : row.accepted === 1,
       attemptNumber: row.attempt_number,
       parentInteractionId: row.parent_interaction_id,
-      tier: (row.tier as "edge" | "frontier") || "frontier",
+      tier: (row.tier as 'edge' | 'frontier') || 'frontier',
       createdAt: row.created_at,
-    };
+    }
   }
 }

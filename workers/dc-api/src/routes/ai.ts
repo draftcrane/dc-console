@@ -1,16 +1,16 @@
-import { Hono } from "hono";
-import type { Env } from "../types/index.js";
-import { validationError } from "../middleware/error-handler.js";
-import { aiRateLimit } from "../middleware/rate-limit.js";
-import { AIRewriteService, type RewriteInput } from "../services/ai-rewrite.js";
-import { AIInteractionService } from "../services/ai-interaction.js";
-import { OpenAIProvider, WorkersAIProvider } from "../services/ai-provider.js";
+import { Hono } from 'hono'
+import type { Env } from '../types/index.js'
+import { validationError } from '../middleware/error-handler.js'
+import { aiRateLimit } from '../middleware/rate-limit.js'
+import { AIRewriteService, type RewriteInput } from '../services/ai-rewrite.js'
+import { AIInteractionService } from '../services/ai-interaction.js'
+import { OpenAIProvider, WorkersAIProvider } from '../services/ai-provider.js'
 
-const ai = new Hono<{ Bindings: Env }>();
+const ai = new Hono<{ Bindings: Env }>()
 
 // Auth is enforced globally in index.ts
 // Rate limit: 10 req/min for AI endpoints (applied after auth)
-ai.use("/rewrite", aiRateLimit);
+ai.use('/rewrite', aiRateLimit)
 
 /**
  * POST /ai/rewrite
@@ -31,79 +31,79 @@ ai.use("/rewrite", aiRateLimit);
  * - { type: "done", interactionId: string } - Stream complete
  * - { type: "error", message: string } - Error occurred
  */
-ai.post("/rewrite", async (c) => {
-  const { userId } = c.get("auth");
+ai.post('/rewrite', async (c) => {
+  const { userId } = c.get('auth')
 
   const body = (await c.req.json().catch(() => ({}))) as Partial<RewriteInput> & {
-    tier?: "edge" | "frontier";
-  };
-
-  const defaultTier = (c.env.AI_DEFAULT_TIER as "edge" | "frontier") || "frontier";
-  const tier = body.tier === "edge" || body.tier === "frontier" ? body.tier : defaultTier;
-
-  const provider =
-    tier === "edge"
-      ? new WorkersAIProvider(c.env.AI)
-      : new OpenAIProvider(c.env.AI_API_KEY, c.env.AI_MODEL);
-
-  const service = new AIRewriteService(c.env.DB, provider);
-
-  const input: RewriteInput = {
-    selectedText: body.selectedText ?? "",
-    instruction: body.instruction ?? "",
-    contextBefore: body.contextBefore ?? "",
-    contextAfter: body.contextAfter ?? "",
-    chapterTitle: body.chapterTitle ?? "",
-    projectDescription: body.projectDescription ?? "",
-    chapterId: body.chapterId ?? "",
-    parentInteractionId: body.parentInteractionId,
-    tier,
-  };
-
-  const validationErr = service.validateInput(input);
-  if (validationErr) {
-    validationError(validationErr);
+    tier?: 'edge' | 'frontier'
   }
 
-  const { stream } = await service.streamRewrite(userId, input);
+  const defaultTier = (c.env.AI_DEFAULT_TIER as 'edge' | 'frontier') || 'frontier'
+  const tier = body.tier === 'edge' || body.tier === 'frontier' ? body.tier : defaultTier
+
+  const provider =
+    tier === 'edge'
+      ? new WorkersAIProvider(c.env.AI)
+      : new OpenAIProvider(c.env.AI_API_KEY, c.env.AI_MODEL)
+
+  const service = new AIRewriteService(c.env.DB, provider)
+
+  const input: RewriteInput = {
+    selectedText: body.selectedText ?? '',
+    instruction: body.instruction ?? '',
+    contextBefore: body.contextBefore ?? '',
+    contextAfter: body.contextAfter ?? '',
+    chapterTitle: body.chapterTitle ?? '',
+    projectDescription: body.projectDescription ?? '',
+    chapterId: body.chapterId ?? '',
+    parentInteractionId: body.parentInteractionId,
+    tier,
+  }
+
+  const validationErr = service.validateInput(input)
+  if (validationErr) {
+    validationError(validationErr)
+  }
+
+  const { stream } = await service.streamRewrite(userId, input)
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
     },
-  });
-});
+  })
+})
 
 /**
  * POST /ai/interactions/:id/accept
  * Record that the user accepted the AI rewrite result.
  * Updates the interaction metadata (accepted = true).
  */
-ai.post("/interactions/:id/accept", async (c) => {
-  const { userId } = c.get("auth");
-  const interactionId = c.req.param("id");
+ai.post('/interactions/:id/accept', async (c) => {
+  const { userId } = c.get('auth')
+  const interactionId = c.req.param('id')
 
-  const service = new AIInteractionService(c.env.DB);
-  const interaction = await service.acceptInteraction(userId, interactionId);
+  const service = new AIInteractionService(c.env.DB)
+  const interaction = await service.acceptInteraction(userId, interactionId)
 
-  return c.json(interaction);
-});
+  return c.json(interaction)
+})
 
 /**
  * POST /ai/interactions/:id/reject
  * Record that the user rejected/discarded the AI rewrite result.
  * Updates the interaction metadata (accepted = false).
  */
-ai.post("/interactions/:id/reject", async (c) => {
-  const { userId } = c.get("auth");
-  const interactionId = c.req.param("id");
+ai.post('/interactions/:id/reject', async (c) => {
+  const { userId } = c.get('auth')
+  const interactionId = c.req.param('id')
 
-  const service = new AIInteractionService(c.env.DB);
-  const interaction = await service.rejectInteraction(userId, interactionId);
+  const service = new AIInteractionService(c.env.DB)
+  const interaction = await service.rejectInteraction(userId, interactionId)
 
-  return c.json(interaction);
-});
+  return c.json(interaction)
+})
 
-export { ai };
+export { ai }

@@ -1,28 +1,28 @@
-"use client";
+'use client'
 
-import { useState, useCallback } from "react";
-import { DriveFolderPicker } from "./drive-folder-picker";
-import type { SourceConnection } from "@/hooks/use-sources";
+import { useState, useCallback } from 'react'
+import { DriveFolderPicker } from './drive-folder-picker'
+import type { SourceConnection } from '@/hooks/use-sources'
 
 export interface ExportDestination {
-  type: "device" | "drive";
-  connectionId?: string;
-  email?: string;
-  folderId?: string;
-  folderPath?: string;
+  type: 'device' | 'drive'
+  connectionId?: string
+  email?: string
+  folderId?: string
+  folderPath?: string
 }
 
 interface ExportDestinationPickerProps {
-  fileName: string;
-  connections: SourceConnection[];
-  projectTitle: string;
+  fileName: string
+  connections: SourceConnection[]
+  projectTitle: string
   /** Current default destination (for edit mode) */
-  currentDefault?: ExportDestination | null;
+  currentDefault?: ExportDestination | null
   /** Whether this is edit mode (opened from menu, not export flow) */
-  editMode?: boolean;
-  onSave: (destination: ExportDestination, rememberDefault: boolean) => void;
-  onClear?: () => void;
-  onDismiss: () => void;
+  editMode?: boolean
+  onSave: (destination: ExportDestination, rememberDefault: boolean) => void
+  onClear?: () => void
+  onDismiss: () => void
 }
 
 /**
@@ -43,77 +43,77 @@ export function ExportDestinationPicker({
   onDismiss,
 }: ExportDestinationPickerProps) {
   const [selected, setSelected] = useState<ExportDestination>(() => {
-    if (currentDefault) return currentDefault;
-    return { type: "device" };
-  });
-  const [rememberDefault, setRememberDefault] = useState(!!currentDefault);
-  const [folderPickerOpen, setFolderPickerOpen] = useState<string | null>(null);
+    if (currentDefault) return currentDefault
+    return { type: 'device' }
+  })
+  const [rememberDefault, setRememberDefault] = useState(!!currentDefault)
+  const [folderPickerOpen, setFolderPickerOpen] = useState<string | null>(null)
 
   // Drive folder state per connection
   const [driveFolders, setDriveFolders] = useState<
     Record<string, { folderId: string; folderPath: string }>
   >(() => {
-    if (currentDefault?.type === "drive" && currentDefault.connectionId) {
+    if (currentDefault?.type === 'drive' && currentDefault.connectionId) {
       return {
         [currentDefault.connectionId]: {
-          folderId: currentDefault.folderId || "",
+          folderId: currentDefault.folderId || '',
           folderPath: currentDefault.folderPath || `${projectTitle} / _exports`,
         },
-      };
+      }
     }
-    return {};
-  });
+    return {}
+  })
 
   const handleSelectDevice = useCallback(() => {
-    setSelected({ type: "device" });
-    setFolderPickerOpen(null);
-  }, []);
+    setSelected({ type: 'device' })
+    setFolderPickerOpen(null)
+  }, [])
 
   const handleSelectDrive = useCallback(
     (connection: SourceConnection) => {
-      const folder = driveFolders[connection.driveConnectionId];
+      const folder = driveFolders[connection.driveConnectionId]
       setSelected({
-        type: "drive",
+        type: 'drive',
         connectionId: connection.driveConnectionId,
         email: connection.email,
         folderId: folder?.folderId,
         folderPath: folder?.folderPath || `${projectTitle} / _exports`,
-      });
-      setFolderPickerOpen(null);
+      })
+      setFolderPickerOpen(null)
     },
-    [driveFolders, projectTitle],
-  );
+    [driveFolders, projectTitle]
+  )
 
   const handleFolderSelected = useCallback(
     (connectionId: string, folderId: string, folderPath: string) => {
       setDriveFolders((prev) => ({
         ...prev,
         [connectionId]: { folderId, folderPath },
-      }));
+      }))
       setSelected((prev) => ({
         ...prev,
         folderId,
         folderPath,
-      }));
-      setFolderPickerOpen(null);
+      }))
+      setFolderPickerOpen(null)
     },
-    [],
-  );
+    []
+  )
 
   const handleSave = useCallback(() => {
-    onSave(selected, rememberDefault);
-  }, [selected, rememberDefault, onSave]);
+    onSave(selected, rememberDefault)
+  }, [selected, rememberDefault, onSave])
 
   // If folder picker is open, show it instead of the main picker
   if (folderPickerOpen) {
-    const folder = driveFolders[folderPickerOpen];
+    const folder = driveFolders[folderPickerOpen]
     return (
       <div className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center">
         <div className="bg-[var(--dc-color-surface-primary)] rounded-t-2xl w-full max-w-lg max-h-[70vh] flex flex-col shadow-xl">
           <DriveFolderPicker
             connectionId={folderPickerOpen}
             initialFolderId={folder?.folderId}
-            initialFolderName={folder?.folderPath?.split(" / ").pop()}
+            initialFolderName={folder?.folderPath?.split(' / ').pop()}
             onSelect={(folderId, folderPath) =>
               handleFolderSelected(folderPickerOpen, folderId, folderPath)
             }
@@ -121,7 +121,7 @@ export function ExportDestinationPicker({
           />
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -131,7 +131,7 @@ export function ExportDestinationPicker({
         <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
           <div>
             <h2 className="text-base font-semibold text-[var(--dc-color-text-primary)]">
-              {editMode ? "Export Destination" : "Save Export"}
+              {editMode ? 'Export Destination' : 'Save Export'}
             </h2>
             {!editMode && (
               <p className="text-xs text-[var(--dc-color-text-muted)] truncate mt-0.5">
@@ -166,9 +166,9 @@ export function ExportDestinationPicker({
           <button
             onClick={handleSelectDevice}
             className={`w-full text-left p-3 rounded-lg border transition-colors min-h-[44px] ${
-              selected.type === "device"
-                ? "border-blue-500 bg-blue-50"
-                : "border-gray-200 hover:border-[var(--dc-color-border-strong)]"
+              selected.type === 'device'
+                ? 'border-blue-500 bg-blue-50'
+                : 'border-gray-200 hover:border-[var(--dc-color-border-strong)]'
             }`}
           >
             <div className="flex items-center gap-3">
@@ -198,9 +198,9 @@ export function ExportDestinationPicker({
 
           {/* Drive accounts */}
           {connections.map((connection) => {
-            const folder = driveFolders[connection.driveConnectionId];
+            const folder = driveFolders[connection.driveConnectionId]
             const isSelected =
-              selected.type === "drive" && selected.connectionId === connection.driveConnectionId;
+              selected.type === 'drive' && selected.connectionId === connection.driveConnectionId
 
             return (
               <button
@@ -208,8 +208,8 @@ export function ExportDestinationPicker({
                 onClick={() => handleSelectDrive(connection)}
                 className={`w-full text-left p-3 rounded-lg border transition-colors min-h-[44px] ${
                   isSelected
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-[var(--dc-color-border-strong)]"
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-[var(--dc-color-border-strong)]'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -233,8 +233,8 @@ export function ExportDestinationPicker({
                     {isSelected && (
                       <button
                         onClick={(e) => {
-                          e.stopPropagation();
-                          setFolderPickerOpen(connection.driveConnectionId);
+                          e.stopPropagation()
+                          setFolderPickerOpen(connection.driveConnectionId)
                         }}
                         className="text-xs text-blue-600 hover:text-blue-700 mt-1 min-h-[32px]"
                       >
@@ -244,7 +244,7 @@ export function ExportDestinationPicker({
                   </div>
                 </div>
               </button>
-            );
+            )
           })}
         </div>
 
@@ -285,5 +285,5 @@ export function ExportDestinationPicker({
         </div>
       </div>
     </div>
-  );
+  )
 }

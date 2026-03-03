@@ -12,15 +12,15 @@
  */
 
 export interface PdfGeneratorConfig {
-  accountId: string;
-  apiToken: string;
+  accountId: string
+  apiToken: string
 }
 
 export interface PdfResult {
   /** Raw PDF binary */
-  data: ArrayBuffer;
+  data: ArrayBuffer
   /** Size in bytes */
-  sizeBytes: number;
+  sizeBytes: number
 }
 
 /**
@@ -35,24 +35,24 @@ export interface PdfResult {
 export async function generatePdf(
   html: string,
   css: string,
-  config: PdfGeneratorConfig,
+  config: PdfGeneratorConfig
 ): Promise<PdfResult> {
-  const url = `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/browser-rendering/pdf`;
+  const url = `https://api.cloudflare.com/client/v4/accounts/${config.accountId}/browser-rendering/pdf`
 
   const body = {
     html,
     addStyleTag: [{ content: css }],
     pdfOptions: {
-      width: "5.5in",
-      height: "8.5in",
+      width: '5.5in',
+      height: '8.5in',
       margin: {
-        top: "0.875in",
-        right: "0.75in",
-        bottom: "1in",
-        left: "0.75in",
+        top: '0.875in',
+        right: '0.75in',
+        bottom: '1in',
+        left: '0.75in',
       },
       displayHeaderFooter: true,
-      headerTemplate: "<span></span>",
+      headerTemplate: '<span></span>',
       footerTemplate: `
         <div style="width: 100%; text-align: center; font-size: 9pt; font-family: Georgia, serif; color: #888;">
           <span class="pageNumber"></span>
@@ -62,27 +62,27 @@ export async function generatePdf(
       preferCSSPageSize: true,
     },
     rejectRequestPattern: [],
-    gotoOptions: { waitUntil: "load" },
-  };
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "Unknown error");
-    throw new Error(`Browser Rendering API failed (${response.status}): ${errorText}`);
+    gotoOptions: { waitUntil: 'load' },
   }
 
-  const data = await response.arrayBuffer();
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${config.apiToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Unknown error')
+    throw new Error(`Browser Rendering API failed (${response.status}): ${errorText}`)
+  }
+
+  const data = await response.arrayBuffer()
 
   return {
     data,
     sizeBytes: data.byteLength,
-  };
+  }
 }

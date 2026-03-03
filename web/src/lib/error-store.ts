@@ -12,35 +12,35 @@
  * @see {@link ../hooks/use-feedback-context.ts}
  */
 
-const MAX_ERRORS = 5;
+const MAX_ERRORS = 5
 
 export interface CapturedError {
   /** Error message */
-  message: string;
+  message: string
   /** Source file (if available from onerror) */
-  source?: string;
+  source?: string
   /** Line number (if available from onerror) */
-  line?: number;
+  line?: number
   /** Column number (if available from onerror) */
-  column?: number;
+  column?: number
   /** ISO 8601 timestamp of when the error was captured */
-  timestamp: string;
+  timestamp: string
 }
 
 /** Ring buffer of recent errors, newest last. */
-const errors: CapturedError[] = [];
+const errors: CapturedError[] = []
 
 /** Whether listeners have been installed. */
-let initialized = false;
+let initialized = false
 
 /**
  * Push an error into the ring buffer.
  * Oldest entries are evicted when the buffer exceeds MAX_ERRORS.
  */
 function pushError(entry: CapturedError): void {
-  errors.push(entry);
+  errors.push(entry)
   if (errors.length > MAX_ERRORS) {
-    errors.shift();
+    errors.shift()
   }
 }
 
@@ -49,7 +49,7 @@ function pushError(entry: CapturedError): void {
  * Safe to serialize — no circular references.
  */
 export function getRecentErrors(): CapturedError[] {
-  return [...errors];
+  return [...errors]
 }
 
 /**
@@ -58,32 +58,32 @@ export function getRecentErrors(): CapturedError[] {
  * Must be called in a browser environment (guards against SSR).
  */
 export function initErrorStore(): void {
-  if (initialized) return;
-  if (typeof window === "undefined") return;
+  if (initialized) return
+  if (typeof window === 'undefined') return
 
-  initialized = true;
+  initialized = true
 
-  window.addEventListener("error", (event: ErrorEvent) => {
+  window.addEventListener('error', (event: ErrorEvent) => {
     pushError({
-      message: event.message || "Unknown error",
+      message: event.message || 'Unknown error',
       source: event.filename || undefined,
       line: event.lineno || undefined,
       column: event.colno || undefined,
       timestamp: new Date().toISOString(),
-    });
-  });
+    })
+  })
 
-  window.addEventListener("unhandledrejection", (event: PromiseRejectionEvent) => {
-    const reason = event.reason;
-    let message = "Unhandled promise rejection";
+  window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+    const reason = event.reason
+    let message = 'Unhandled promise rejection'
 
     if (reason instanceof Error) {
-      message = reason.message;
-    } else if (typeof reason === "string") {
-      message = reason;
+      message = reason.message
+    } else if (typeof reason === 'string') {
+      message = reason
     } else if (reason != null) {
       try {
-        message = String(reason);
+        message = String(reason)
       } catch {
         // Keep the default message
       }
@@ -92,6 +92,6 @@ export function initErrorStore(): void {
     pushError({
       message,
       timestamp: new Date().toISOString(),
-    });
-  });
+    })
+  })
 }

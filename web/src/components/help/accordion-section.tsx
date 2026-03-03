@@ -1,17 +1,17 @@
-"use client";
+'use client'
 
-import { useState, useId, type ReactNode } from "react";
+import { useState, useId, type ReactNode } from 'react'
 
 interface AccordionSectionProps {
   /** URL-friendly identifier for deep linking via hash */
-  id: string;
+  id: string
   /** Section heading text */
-  title: string;
+  title: string
   /** Icon rendered left of the title */
-  icon: ReactNode;
+  icon: ReactNode
   /** Whether the section starts expanded */
-  defaultOpen?: boolean;
-  children: ReactNode;
+  defaultOpen?: boolean
+  children: ReactNode
 }
 
 /**
@@ -34,18 +34,18 @@ export function AccordionSection({
   defaultOpen = false,
   children,
 }: AccordionSectionProps) {
-  const reactId = useId();
-  const headerId = `${reactId}-header`;
-  const panelId = `${reactId}-panel`;
+  const reactId = useId()
+  const headerId = `${reactId}-header`
+  const panelId = `${reactId}-panel`
 
   const [isOpen, setIsOpen] = useState(() => {
-    if (defaultOpen) return true;
+    if (defaultOpen) return true
     // Auto-expand if URL hash matches this section's id
-    if (typeof window !== "undefined" && window.location.hash === `#${id}`) {
-      return true;
+    if (typeof window !== 'undefined' && window.location.hash === `#${id}`) {
+      return true
     }
-    return false;
-  });
+    return false
+  })
 
   return (
     <div id={id} className="border-b border-gray-200">
@@ -66,7 +66,7 @@ export function AccordionSection({
           <span className="flex-1">{title}</span>
           <svg
             className={`h-5 w-5 shrink-0 text-[var(--dc-color-text-placeholder)] transition-transform duration-150 ${
-              isOpen ? "rotate-180" : ""
+              isOpen ? 'rotate-180' : ''
             }`}
             viewBox="0 0 20 20"
             fill="currentColor"
@@ -85,12 +85,12 @@ export function AccordionSection({
         role="region"
         aria-labelledby={headerId}
         className="grid transition-[grid-template-rows] duration-200 ease-out"
-        style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
+        style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden">
           <div className="pb-4 space-y-4">{children}</div>
         </div>
       </div>
     </div>
-  );
+  )
 }

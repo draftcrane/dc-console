@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   createContext,
@@ -8,66 +8,66 @@ import {
   useRef,
   useMemo,
   type ReactNode,
-} from "react";
+} from 'react'
 
 // === Toast Types ===
 
 interface ToastAction {
-  label: string;
-  onClick: () => void;
+  label: string
+  onClick: () => void
 }
 
 interface Toast {
-  id: string;
-  message: string;
+  id: string
+  message: string
   /** Auto-dismiss duration in ms. Default: 2500 */
-  duration: number;
+  duration: number
   /** Optional action button (e.g. "Undo") */
-  action?: ToastAction;
+  action?: ToastAction
 }
 
 interface ToastContextValue {
   /** Show a toast notification. Returns the toast id. */
-  showToast: (message: string, duration?: number, action?: ToastAction) => string;
+  showToast: (message: string, duration?: number, action?: ToastAction) => string
 }
 
 // === Context ===
 
-const ToastContext = createContext<ToastContextValue | null>(null);
+const ToastContext = createContext<ToastContextValue | null>(null)
 
 // === Provider ===
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-    const timer = timersRef.current.get(id);
+    setToasts((prev) => prev.filter((t) => t.id !== id))
+    const timer = timersRef.current.get(id)
     if (timer) {
-      clearTimeout(timer);
-      timersRef.current.delete(id);
+      clearTimeout(timer)
+      timersRef.current.delete(id)
     }
-  }, []);
+  }, [])
 
   const showToast = useCallback(
     (message: string, duration = 2500, action?: ToastAction): string => {
-      const id = crypto.randomUUID();
-      const toast: Toast = { id, message, duration, action };
+      const id = crypto.randomUUID()
+      const toast: Toast = { id, message, duration, action }
 
-      setToasts((prev) => [...prev, toast]);
+      setToasts((prev) => [...prev, toast])
 
       const timer = setTimeout(() => {
-        removeToast(id);
-      }, duration);
-      timersRef.current.set(id, timer);
+        removeToast(id)
+      }, duration)
+      timersRef.current.set(id, timer)
 
-      return id;
+      return id
     },
-    [removeToast],
-  );
+    [removeToast]
+  )
 
-  const value = useMemo(() => ({ showToast }), [showToast]);
+  const value = useMemo(() => ({ showToast }), [showToast])
 
   return (
     <ToastContext.Provider value={value}>
@@ -91,8 +91,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               {toast.action && (
                 <button
                   onClick={() => {
-                    toast.action!.onClick();
-                    removeToast(toast.id);
+                    toast.action!.onClick()
+                    removeToast(toast.id)
                   }}
                   className="text-blue-300 hover:text-blue-200 font-semibold text-sm underline underline-offset-2 shrink-0"
                 >
@@ -104,7 +104,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         </div>
       )}
     </ToastContext.Provider>
-  );
+  )
 }
 
 // === Hook ===
@@ -114,9 +114,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
  * Must be used within a ToastProvider.
  */
 export function useToast(): ToastContextValue {
-  const context = useContext(ToastContext);
+  const context = useContext(ToastContext)
   if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
+    throw new Error('useToast must be used within a ToastProvider')
   }
-  return context;
+  return context
 }

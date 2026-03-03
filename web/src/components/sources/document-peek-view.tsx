@@ -1,17 +1,17 @@
-"use client";
+'use client'
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useDriveContent } from "@/hooks/use-drive-content";
-import { useSourcesContext } from "@/contexts/sources-context";
-import { useToast } from "@/components/toast";
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useDriveContent } from '@/hooks/use-drive-content'
+import { useSourcesContext } from '@/contexts/sources-context'
+import { useToast } from '@/components/toast'
 
 interface DocumentPeekViewProps {
-  fileId: string;
-  fileName: string;
-  mimeType: string;
-  connectionId: string;
-  onBack: () => void;
-  onTagged?: () => void;
+  fileId: string
+  fileName: string
+  mimeType: string
+  connectionId: string
+  onBack: () => void
+  onTagged?: () => void
 }
 
 /**
@@ -31,106 +31,106 @@ export function DocumentPeekView({
   onBack,
   onTagged,
 }: DocumentPeekViewProps) {
-  const { content, format, wordCount, isLoading, error } = useDriveContent(connectionId, fileId);
+  const { content, format, wordCount, isLoading, error } = useDriveContent(connectionId, fileId)
   const { addDriveSources, sources, removeSource, editorRef, isPanelOpen, closePanel } =
-    useSourcesContext();
-  const { showToast } = useToast();
+    useSourcesContext()
+  const { showToast } = useToast()
 
-  const [selectedText, setSelectedText] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
-  const [isRemoving, setIsRemoving] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const [selectedText, setSelectedText] = useState('')
+  const [isAdding, setIsAdding] = useState(false)
+  const [isRemoving, setIsRemoving] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   // Derive tag state from sources
-  const existingSource = sources.find((s) => s.driveFileId === fileId && s.status === "active");
-  const isOnDesk = !!existingSource;
+  const existingSource = sources.find((s) => s.driveFileId === fileId && s.status === 'active')
+  const isOnDesk = !!existingSource
 
   // Listen for text selection (selectionchange is more reliable on iPad than mouseup)
   useEffect(() => {
     const handleSelectionChange = () => {
-      const selection = document.getSelection();
+      const selection = document.getSelection()
       if (!selection || selection.isCollapsed) {
-        setSelectedText("");
-        return;
+        setSelectedText('')
+        return
       }
       if (contentRef.current && contentRef.current.contains(selection.anchorNode)) {
-        setSelectedText(selection.toString());
+        setSelectedText(selection.toString())
       }
-    };
+    }
 
-    document.addEventListener("selectionchange", handleSelectionChange);
-    return () => document.removeEventListener("selectionchange", handleSelectionChange);
-  }, []);
+    document.addEventListener('selectionchange', handleSelectionChange)
+    return () => document.removeEventListener('selectionchange', handleSelectionChange)
+  }, [])
 
   const insertContent = useCallback(
     (html: string) => {
-      const editor = editorRef.current?.getEditor();
+      const editor = editorRef.current?.getEditor()
       if (!editor) {
-        showToast("Editor not available - click in your chapter first");
-        return;
+        showToast('Editor not available - click in your chapter first')
+        return
       }
 
-      const { from, to } = editor.state.selection;
-      const hasSelection = from !== to;
-      const hasCursor = from === to && from > 0;
+      const { from, to } = editor.state.selection
+      const hasSelection = from !== to
+      const hasCursor = from === to && from > 0
 
       if (hasCursor || hasSelection) {
-        editor.chain().focus().insertContent(html).run();
-        showToast("Inserted at cursor");
+        editor.chain().focus().insertContent(html).run()
+        showToast('Inserted at cursor')
       } else {
-        editor.chain().focus("end").insertContent(html).run();
-        showToast("Added to end of chapter");
+        editor.chain().focus('end').insertContent(html).run()
+        showToast('Added to end of chapter')
       }
 
-      const isPortrait = window.matchMedia("(max-width: 1023px)").matches;
+      const isPortrait = window.matchMedia('(max-width: 1023px)').matches
       if (isPortrait && isPanelOpen) {
-        closePanel();
+        closePanel()
       }
     },
-    [editorRef, showToast, isPanelOpen, closePanel],
-  );
+    [editorRef, showToast, isPanelOpen, closePanel]
+  )
 
   const handleInsertSelected = useCallback(() => {
-    if (!selectedText) return;
-    insertContent(`<p>${selectedText}</p>`);
-    document.getSelection()?.removeAllRanges();
-    setSelectedText("");
-  }, [selectedText, insertContent]);
+    if (!selectedText) return
+    insertContent(`<p>${selectedText}</p>`)
+    document.getSelection()?.removeAllRanges()
+    setSelectedText('')
+  }, [selectedText, insertContent])
 
   const handleInsertAll = useCallback(() => {
-    if (!content) return;
-    if (format === "html") {
-      insertContent(content);
+    if (!content) return
+    if (format === 'html') {
+      insertContent(content)
     } else {
-      insertContent(`<pre class="whitespace-pre-wrap">${content}</pre>`);
+      insertContent(`<pre class="whitespace-pre-wrap">${content}</pre>`)
     }
-  }, [content, format, insertContent]);
+  }, [content, format, insertContent])
 
   const handleAddToDesk = useCallback(async () => {
-    setIsAdding(true);
+    setIsAdding(true)
     try {
-      await addDriveSources([{ driveFileId: fileId, title: fileName, mimeType }], connectionId);
-      showToast(`Added "${fileName}" to desk`);
-      onTagged?.();
+      await addDriveSources([{ driveFileId: fileId, title: fileName, mimeType }], connectionId)
+      showToast(`Added "${fileName}" to desk`)
+      onTagged?.()
     } catch {
-      showToast("Couldn't add to desk - try again");
+      showToast("Couldn't add to desk - try again")
     } finally {
-      setIsAdding(false);
+      setIsAdding(false)
     }
-  }, [addDriveSources, fileId, fileName, mimeType, connectionId, showToast, onTagged]);
+  }, [addDriveSources, fileId, fileName, mimeType, connectionId, showToast, onTagged])
 
   const handleRemoveFromDesk = useCallback(async () => {
-    if (!existingSource) return;
-    setIsRemoving(true);
+    if (!existingSource) return
+    setIsRemoving(true)
     try {
-      await removeSource(existingSource.id);
-      showToast(`Removed "${fileName}" from desk`);
+      await removeSource(existingSource.id)
+      showToast(`Removed "${fileName}" from desk`)
     } catch {
-      showToast("Couldn't remove from desk — try again");
+      showToast("Couldn't remove from desk — try again")
     } finally {
-      setIsRemoving(false);
+      setIsRemoving(false)
     }
-  }, [existingSource, removeSource, fileName, showToast]);
+  }, [existingSource, removeSource, fileName, showToast])
 
   return (
     <div className="flex flex-col h-full">
@@ -176,7 +176,7 @@ export function DocumentPeekView({
           </div>
         ) : content ? (
           <div ref={contentRef}>
-            {format === "html" ? (
+            {format === 'html' ? (
               <div className="source-content" dangerouslySetInnerHTML={{ __html: content }} />
             ) : (
               <pre className="whitespace-pre-wrap text-sm text-[var(--dc-color-text-primary)] font-sans">
@@ -196,17 +196,17 @@ export function DocumentPeekView({
             className={`h-10 px-4 rounded-lg border text-sm font-medium transition-colors min-h-[44px]
                        disabled:opacity-50 disabled:cursor-default ${
                          isOnDesk
-                           ? "border-blue-300 text-blue-700 hover:bg-blue-50"
-                           : "border-[var(--dc-color-border-strong)] text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-secondary)]"
+                           ? 'border-blue-300 text-blue-700 hover:bg-blue-50'
+                           : 'border-[var(--dc-color-border-strong)] text-[var(--dc-color-text-secondary)] hover:bg-[var(--dc-color-surface-secondary)]'
                        }`}
           >
             {isAdding
-              ? "Adding..."
+              ? 'Adding...'
               : isRemoving
-                ? "Removing..."
+                ? 'Removing...'
                 : isOnDesk
-                  ? "Remove from Desk"
-                  : "Add to Desk"}
+                  ? 'Remove from Desk'
+                  : 'Add to Desk'}
           </button>
 
           <button
@@ -214,10 +214,10 @@ export function DocumentPeekView({
             className="flex-1 h-10 rounded-lg border border-blue-300 text-sm font-medium text-blue-700
                        hover:bg-blue-50 transition-colors min-h-[44px]"
           >
-            {selectedText ? "Insert Selected" : "Insert All"}
+            {selectedText ? 'Insert Selected' : 'Insert All'}
           </button>
         </div>
       )}
     </div>
-  );
+  )
 }

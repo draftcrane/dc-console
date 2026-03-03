@@ -1,32 +1,32 @@
-"use client";
+'use client'
 
-import type { RefObject } from "react";
-import type { Chapter } from "@/types/editor";
-import { TextEditor, type TextEditorHandle } from "./text-editor";
+import type { RefObject } from 'react'
+import type { Chapter } from '@/types/editor'
+import { TextEditor, type TextEditorHandle } from './text-editor'
 
 interface EditorWritingAreaProps {
-  editorRef: RefObject<TextEditorHandle | null>;
-  currentContent: string;
-  onContentChange: (html: string) => void;
-  onSelectionWordCountChange: (count: number) => void;
+  editorRef: RefObject<TextEditorHandle | null>
+  currentContent: string
+  onContentChange: (html: string) => void
+  onSelectionWordCountChange: (count: number) => void
 
   // Title editing
-  activeChapter: Chapter | undefined;
-  editingTitle: boolean;
-  titleValue: string;
-  onTitleValueChange: (value: string) => void;
-  onTitleEdit: () => void;
-  onTitleSave: () => void;
-  onTitleEditCancel: () => void;
+  activeChapter: Chapter | undefined
+  editingTitle: boolean
+  titleValue: string
+  onTitleValueChange: (value: string) => void
+  onTitleEdit: () => void
+  onTitleSave: () => void
+  onTitleEditCancel: () => void
 
   // Word count display
-  currentWordCount: number;
-  selectionWordCount: number;
+  currentWordCount: number
+  selectionWordCount: number
 
   /** Callback when cursor/selection changes in the editor */
-  onSelectionUpdate?: () => void;
+  onSelectionUpdate?: () => void
   /** Callback when editor loses focus (#357) */
-  onBlur?: () => void;
+  onBlur?: () => void
 }
 
 /**
@@ -60,7 +60,7 @@ export function EditorWritingArea({
       className="flex-1 overflow-auto"
       id="writing-area"
       tabIndex={-1}
-      style={{ outline: "none" }}
+      style={{ outline: 'none' }}
     >
       <div className="max-w-[700px] mx-auto px-6 py-8">
         {/* Chapter title - editable at top of editor (US-011) */}
@@ -71,8 +71,8 @@ export function EditorWritingArea({
             onChange={(e) => onTitleValueChange(e.target.value)}
             onBlur={onTitleSave}
             onKeyDown={(e) => {
-              if (e.key === "Enter") onTitleSave();
-              if (e.key === "Escape") onTitleEditCancel();
+              if (e.key === 'Enter') onTitleSave()
+              if (e.key === 'Escape') onTitleEditCancel()
             }}
             className="text-3xl font-semibold text-foreground mb-6 outline-none w-full
                        border-b-2 border-blue-500 bg-transparent"
@@ -86,17 +86,17 @@ export function EditorWritingArea({
                        rounded px-1 -mx-1 transition-colors"
             onClick={onTitleEdit}
             onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onTitleEdit();
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onTitleEdit()
               }
             }}
             role="button"
             tabIndex={0}
-            aria-label={`Edit chapter title: ${activeChapter?.title || "Untitled Chapter"}`}
+            aria-label={`Edit chapter title: ${activeChapter?.title || 'Untitled Chapter'}`}
             title="Click to edit title"
           >
-            {activeChapter?.title || "Untitled Chapter"}
+            {activeChapter?.title || 'Untitled Chapter'}
           </h1>
         )}
 
@@ -118,5 +118,5 @@ export function EditorWritingArea({
         </div>
       </div>
     </div>
-  );
+  )
 }

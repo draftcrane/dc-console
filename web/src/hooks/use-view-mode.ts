@@ -1,8 +1,8 @@
-"use client";
+'use client'
 
-import { useCallback, useMemo } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import type { ViewMode } from "@/components/editor/workspace-toggle";
+import { useCallback, useMemo } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import type { ViewMode } from '@/components/editor/workspace-toggle'
 
 /**
  * Hook for managing workspace view mode with URL state.
@@ -15,45 +15,45 @@ import type { ViewMode } from "@/components/editor/workspace-toggle";
  * Browser back/forward buttons will restore the previous view mode.
  */
 export function useViewMode() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
 
   // Parse current view mode from URL
   const viewMode: ViewMode = useMemo(() => {
-    const viewParam = searchParams.get("view");
-    if (viewParam === "book") {
-      return "book";
+    const viewParam = searchParams.get('view')
+    if (viewParam === 'book') {
+      return 'book'
     }
     // Default to chapter view
-    return "chapter";
-  }, [searchParams]);
+    return 'chapter'
+  }, [searchParams])
 
   // Update URL when view mode changes
   const setViewMode = useCallback(
     (mode: ViewMode) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchParams.toString())
 
-      if (mode === "book") {
-        params.set("view", "book");
+      if (mode === 'book') {
+        params.set('view', 'book')
       } else {
         // Remove the param for chapter view (default)
-        params.delete("view");
+        params.delete('view')
       }
 
-      const queryString = params.toString();
-      const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
+      const queryString = params.toString()
+      const newUrl = queryString ? `${pathname}?${queryString}` : pathname
 
       // Use push instead of replace to support browser back button
-      router.push(newUrl);
+      router.push(newUrl)
     },
-    [pathname, router, searchParams],
-  );
+    [pathname, router, searchParams]
+  )
 
   return {
     viewMode,
     setViewMode,
-    isBookView: viewMode === "book",
-    isChapterView: viewMode === "chapter",
-  };
+    isBookView: viewMode === 'book',
+    isChapterView: viewMode === 'chapter',
+  }
 }

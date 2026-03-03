@@ -76,20 +76,20 @@ The Cloudflare API token lacks Workers AI REST API scope, so all 48 Mistral runs
 interface ResearchQueryResult {
   snippets: Array<{
     /** Verbatim text extracted from source chunk — must be a contiguous substring */
-    content: string;
+    content: string
     /** Source material ID (from chunk metadata) */
-    sourceId: string;
+    sourceId: string
     /** Human-readable source name */
-    sourceTitle: string;
+    sourceTitle: string
     /** Section/heading location in source */
-    sourceLocation: string;
+    sourceLocation: string
     /** Relevance: why this snippet answers the query */
-    relevance: string;
-  }>;
+    relevance: string
+  }>
   /** Brief synthesis (2-4 sentences) across all snippets */
-  summary: string;
+  summary: string
   /** True if no relevant information found in sources */
-  noResults: boolean;
+  noResults: boolean
 }
 ```
 
@@ -267,55 +267,55 @@ The smaller model treated `noResults: false` as implicit/unnecessary when return
 // POST /projects/:projectId/research/query handler
 
 // 1. Retrieve top-K chunks via hybrid search (ADR-009)
-const chunks = await hybridSearch(query, projectSourceIds);
+const chunks = await hybridSearch(query, projectSourceIds)
 
 // 2. Build prompt from template
-const systemPrompt = RESEARCH_SYSTEM_PROMPT;
-const userMessage = buildUserMessage(query, chunks);
+const systemPrompt = RESEARCH_SYSTEM_PROMPT
+const userMessage = buildUserMessage(query, chunks)
 
 // 3. Call OpenAI non-streaming with json_object mode
-const response = await fetch("https://api.openai.com/v1/chat/completions", {
-  method: "POST",
+const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  method: 'POST',
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
     Authorization: `Bearer ${env.OPENAI_API_KEY}`,
   },
   body: JSON.stringify({
-    model: "gpt-4o",
+    model: 'gpt-4o',
     max_tokens: 4096,
-    response_format: { type: "json_object" },
+    response_format: { type: 'json_object' },
     messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userMessage },
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage },
     ],
   }),
-});
+})
 
 // 4. Parse and validate response
-const data = await response.json();
-const raw = data.choices[0].message.content;
-const result: ResearchQueryResult = JSON.parse(raw);
+const data = await response.json()
+const raw = data.choices[0].message.content
+const result: ResearchQueryResult = JSON.parse(raw)
 
 // 5. Post-validate verbatim extraction (optional safety net)
 for (const snippet of result.snippets) {
-  const sourceChunk = chunks.find((c) => c.sourceId === snippet.sourceId);
+  const sourceChunk = chunks.find((c) => c.sourceId === snippet.sourceId)
   if (sourceChunk && !sourceChunk.text.includes(snippet.content)) {
     // Flag non-verbatim extraction — log but still return to user
-    console.warn(`Non-verbatim snippet detected for source ${snippet.sourceId}`);
+    console.warn(`Non-verbatim snippet detected for source ${snippet.sourceId}`)
   }
 }
 
 // 6. Stream results to client via SSE
 for (const snippet of result.snippets) {
-  stream.write(`event: result\ndata: ${JSON.stringify(snippet)}\n\n`);
+  stream.write(`event: result\ndata: ${JSON.stringify(snippet)}\n\n`)
 }
 stream.write(
   `event: done\ndata: ${JSON.stringify({
     resultCount: result.snippets.length,
     summary: result.summary,
     processingTimeMs: Date.now() - start,
-  })}\n\n`,
-);
+  })}\n\n`
+)
 ```
 
 ### AIProvider Integration

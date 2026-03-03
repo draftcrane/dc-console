@@ -1,36 +1,36 @@
-"use client";
+'use client'
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import type { AIRewriteResult, SheetState } from "@/hooks/use-ai-rewrite";
-import { StreamingResponse } from "./streaming-response";
-import { useSourcesContext } from "@/contexts/sources-context";
-import { InstructionList } from "@/components/instruction-list";
+import { useState, useCallback, useRef, useEffect } from 'react'
+import type { AIRewriteResult, SheetState } from '@/hooks/use-ai-rewrite'
+import { StreamingResponse } from './streaming-response'
+import { useSourcesContext } from '@/contexts/sources-context'
+import { InstructionList } from '@/components/instruction-list'
 
 // ─────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────
 
-export type EditorPanelState = "empty" | "streaming" | "complete" | "error";
+export type EditorPanelState = 'empty' | 'streaming' | 'complete' | 'error'
 
 interface ChapterEditorPanelProps {
   /** Current state of the rewrite sheet */
-  sheetState: SheetState;
+  sheetState: SheetState
   /** The current AI rewrite result being reviewed */
-  result: AIRewriteResult | null;
+  result: AIRewriteResult | null
   /** Error message to display inline */
-  errorMessage: string | null;
+  errorMessage: string | null
   /** The currently selected text from the editor */
-  selectedText: string;
+  selectedText: string
   /** Called when user taps "Use This" — accepts the rewrite */
-  onAccept: (result: AIRewriteResult) => void;
+  onAccept: (result: AIRewriteResult) => void
   /** Called when user taps "Try Again" — sends a new request */
-  onRetry: (result: AIRewriteResult, instruction: string) => void;
+  onRetry: (result: AIRewriteResult, instruction: string) => void
   /** Called when user taps "Discard" / "Cancel" */
-  onDiscard: (result: AIRewriteResult) => void;
+  onDiscard: (result: AIRewriteResult) => void
   /** Called when user taps "Go Deeper" — escalate to frontier */
-  onGoDeeper?: (result: AIRewriteResult) => void;
+  onGoDeeper?: (result: AIRewriteResult) => void
   /** Called when user selects a chip or types instruction and triggers rewrite */
-  onRewriteWithInstruction?: (instruction: string) => void;
+  onRewriteWithInstruction?: (instruction: string) => void
 }
 
 /**
@@ -64,115 +64,115 @@ export function ChapterEditorPanel({
     updateInstruction,
     removeInstruction,
     touchInstructionLastUsed,
-  } = useSourcesContext();
+  } = useSourcesContext()
 
-  const [editedInstruction, setEditedInstruction] = useState("");
-  const [hasUserEdited, setHasUserEdited] = useState(false);
-  const [lastResultId, setLastResultId] = useState<string | null>(null);
-  const [selectedExpanded, setSelectedExpanded] = useState(false);
-  const instructionRef = useRef<HTMLTextAreaElement>(null);
+  const [editedInstruction, setEditedInstruction] = useState('')
+  const [hasUserEdited, setHasUserEdited] = useState(false)
+  const [lastResultId, setLastResultId] = useState<string | null>(null)
+  const [selectedExpanded, setSelectedExpanded] = useState(false)
+  const instructionRef = useRef<HTMLTextAreaElement>(null)
 
-  const isStreaming = sheetState === "streaming";
-  const isComplete = sheetState === "complete";
-  const isIdle = sheetState === "idle";
-  const hasResult = result !== null;
-  const hasSelectedText = selectedText.length > 0;
+  const isStreaming = sheetState === 'streaming'
+  const isComplete = sheetState === 'complete'
+  const isIdle = sheetState === 'idle'
+  const hasResult = result !== null
+  const hasSelectedText = selectedText.length > 0
 
   // Derive panel state
   const panelState: EditorPanelState = (() => {
-    if (errorMessage && !result?.rewriteText) return "error";
-    if (isStreaming) return "streaming";
-    if (isComplete && hasResult) return "complete";
-    return "empty";
-  })();
+    if (errorMessage && !result?.rewriteText) return 'error'
+    if (isStreaming) return 'streaming'
+    if (isComplete && hasResult) return 'complete'
+    return 'empty'
+  })()
 
   // Sync instruction field when new result arrives
-  const resultId = result?.interactionId ?? null;
+  const resultId = result?.interactionId ?? null
   const streamingKey =
-    result && !result.interactionId && sheetState === "streaming" ? "streaming" : null;
-  const trackingKey = resultId || streamingKey;
+    result && !result.interactionId && sheetState === 'streaming' ? 'streaming' : null
+  const trackingKey = resultId || streamingKey
 
   if (trackingKey && trackingKey !== lastResultId) {
-    if (!hasUserEdited) setEditedInstruction("");
-    setHasUserEdited(false);
-    setLastResultId(trackingKey);
+    if (!hasUserEdited) setEditedInstruction('')
+    setHasUserEdited(false)
+    setLastResultId(trackingKey)
     if (resultId) {
-      const isShort = result!.originalText.split(/\s+/).length < 50;
-      setSelectedExpanded(isShort);
+      const isShort = result!.originalText.split(/\s+/).length < 50
+      setSelectedExpanded(isShort)
     }
   }
 
   // Handle chip selection
   const handleChipSelect = useCallback(
     (instruction: string) => {
-      setEditedInstruction(instruction);
-      setHasUserEdited(true);
+      setEditedInstruction(instruction)
+      setHasUserEdited(true)
 
       // If we have a result, treat as retry with new instruction
       if (hasResult && result) {
-        onRetry(result, instruction);
+        onRetry(result, instruction)
       } else if (onRewriteWithInstruction) {
-        onRewriteWithInstruction(instruction);
+        onRewriteWithInstruction(instruction)
       }
     },
-    [hasResult, result, onRetry, onRewriteWithInstruction],
-  );
+    [hasResult, result, onRetry, onRewriteWithInstruction]
+  )
 
   // Handle freeform instruction submit
   const handleInstructionSubmit = useCallback(() => {
-    const instruction = editedInstruction.trim();
-    if (!instruction) return;
+    const instruction = editedInstruction.trim()
+    if (!instruction) return
 
     if (hasResult && result) {
-      onRetry(result, instruction);
+      onRetry(result, instruction)
     } else if (onRewriteWithInstruction) {
-      onRewriteWithInstruction(instruction);
+      onRewriteWithInstruction(instruction)
     }
-  }, [editedInstruction, hasResult, result, onRetry, onRewriteWithInstruction]);
+  }, [editedInstruction, hasResult, result, onRetry, onRewriteWithInstruction])
 
   // Handle keyboard shortcut for instruction submit
   const handleInstructionKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleInstructionSubmit();
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        handleInstructionSubmit()
       }
     },
-    [handleInstructionSubmit],
-  );
+    [handleInstructionSubmit]
+  )
 
   const handleAccept = useCallback(() => {
-    if (result) onAccept(result);
-  }, [result, onAccept]);
+    if (result) onAccept(result)
+  }, [result, onAccept])
 
   const handleRetry = useCallback(() => {
     if (result) {
-      onRetry(result, editedInstruction.trim() || result.instruction);
-      setHasUserEdited(false);
+      onRetry(result, editedInstruction.trim() || result.instruction)
+      setHasUserEdited(false)
     }
-  }, [result, editedInstruction, onRetry]);
+  }, [result, editedInstruction, onRetry])
 
   const handleDiscard = useCallback(() => {
-    if (result) onDiscard(result);
-  }, [result, onDiscard]);
+    if (result) onDiscard(result)
+  }, [result, onDiscard])
 
   const handleGoDeeper = useCallback(() => {
-    if (result && onGoDeeper) onGoDeeper(result);
-  }, [result, onGoDeeper]);
+    if (result && onGoDeeper) onGoDeeper(result)
+  }, [result, onGoDeeper])
 
   // Focus instruction field when panel becomes idle with selected text
   useEffect(() => {
     if (isIdle && hasSelectedText && instructionRef.current) {
-      instructionRef.current.focus();
+      instructionRef.current.focus()
     }
-  }, [isIdle, hasSelectedText]);
+  }, [isIdle, hasSelectedText])
 
   return (
     <div className="flex flex-col h-full">
       {/* Scrollable content */}
       <div className="flex-1 overflow-auto px-4 py-3 space-y-4">
         {/* Empty state — no text selected (#386) */}
-        {!hasSelectedText && panelState === "empty" && (
+        {!hasSelectedText && panelState === 'empty' && (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <svg
               className="w-10 h-10 text-[var(--dc-color-interactive-escalation-border)] mb-3"
@@ -208,7 +208,7 @@ export function ChapterEditorPanel({
               aria-controls="selected-text-content"
             >
               <svg
-                className={`h-3.5 w-3.5 transition-transform duration-150 ${selectedExpanded ? "rotate-90" : ""}`}
+                className={`h-3.5 w-3.5 transition-transform duration-150 ${selectedExpanded ? 'rotate-90' : ''}`}
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 aria-hidden="true"
@@ -263,10 +263,10 @@ export function ChapterEditorPanel({
               <textarea
                 id="editor-panel-instruction"
                 ref={instructionRef}
-                value={editedInstruction || (result?.instruction ?? "")}
+                value={editedInstruction || (result?.instruction ?? '')}
                 onChange={(e) => {
-                  setEditedInstruction(e.target.value);
-                  setHasUserEdited(true);
+                  setEditedInstruction(e.target.value)
+                  setHasUserEdited(true)
                 }}
                 onKeyDown={handleInstructionKeyDown}
                 disabled={isStreaming}
@@ -306,13 +306,13 @@ export function ChapterEditorPanel({
           <div>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-medium text-[var(--dc-color-interactive-escalation)]">
-                {panelState === "streaming"
-                  ? "Rewriting\u2026"
-                  : panelState === "error"
-                    ? "Could not finish the rewrite."
+                {panelState === 'streaming'
+                  ? 'Rewriting\u2026'
+                  : panelState === 'error'
+                    ? 'Could not finish the rewrite.'
                     : result.attemptNumber > 1
-                      ? "Here is another take."
-                      : "Here is a rewrite."}
+                      ? 'Here is another take.'
+                      : 'Here is a rewrite.'}
               </h3>
               {isStreaming && (
                 <span className="text-xs text-[var(--dc-color-interactive-escalation)] flex items-center gap-1">
@@ -360,9 +360,9 @@ export function ChapterEditorPanel({
                        text-[var(--dc-color-text-secondary)]
                        hover:bg-[var(--dc-color-surface-secondary)] transition-colors
                        min-w-[44px] min-h-[44px]"
-            aria-label={isStreaming ? "Cancel rewrite" : "Discard rewrite"}
+            aria-label={isStreaming ? 'Cancel rewrite' : 'Discard rewrite'}
           >
-            {isStreaming ? "Cancel" : "Discard"}
+            {isStreaming ? 'Cancel' : 'Discard'}
           </button>
 
           {/* Try Again */}
@@ -381,7 +381,7 @@ export function ChapterEditorPanel({
           </button>
 
           {/* Go Deeper — shown only for edge tier results that are complete */}
-          {isComplete && result.tier === "edge" && onGoDeeper && (
+          {isComplete && result.tier === 'edge' && onGoDeeper && (
             <button
               type="button"
               onClick={handleGoDeeper}
@@ -412,5 +412,5 @@ export function ChapterEditorPanel({
         </div>
       )}
     </div>
-  );
+  )
 }

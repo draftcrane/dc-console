@@ -9,17 +9,17 @@
  */
 
 export interface BookMetadata {
-  title: string;
-  authorName: string;
-  generatedDate: string;
+  title: string
+  authorName: string
+  generatedDate: string
 }
 
 export interface ChapterContent {
-  id: string;
-  title: string;
-  sortOrder: number;
-  html: string;
-  wordCount: number;
+  id: string
+  title: string
+  sortOrder: number
+  html: string
+  wordCount: number
 }
 
 /**
@@ -176,17 +176,17 @@ h1.chapter-title:first-of-type {
   letter-spacing: 0.5em;
   color: #888;
 }
-`;
+`
 
 /**
  * Escape HTML entities in text content.
  */
 function escapeHtml(text: string): string {
   return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 /**
@@ -194,7 +194,7 @@ function escapeHtml(text: string): string {
  * and all chapters.
  */
 export function assembleBookHtml(metadata: BookMetadata, chapters: ChapterContent[]): string {
-  const sorted = [...chapters].sort((a, b) => a.sortOrder - b.sortOrder);
+  const sorted = [...chapters].sort((a, b) => a.sortOrder - b.sortOrder)
 
   const titlePage = `
     <div class="title-page">
@@ -202,11 +202,11 @@ export function assembleBookHtml(metadata: BookMetadata, chapters: ChapterConten
       <div class="author">${escapeHtml(metadata.authorName)}</div>
       <div class="date">${escapeHtml(metadata.generatedDate)}</div>
     </div>
-  `;
+  `
 
   const tocEntries = sorted
     .map((ch) => `<li><a href="#chapter-${escapeHtml(ch.id)}">${escapeHtml(ch.title)}</a></li>`)
-    .join("\n      ");
+    .join('\n      ')
 
   const toc = `
     <div class="toc">
@@ -215,7 +215,7 @@ export function assembleBookHtml(metadata: BookMetadata, chapters: ChapterConten
       ${tocEntries}
       </ul>
     </div>
-  `;
+  `
 
   const chapterPages = sorted
     .map(
@@ -224,9 +224,9 @@ export function assembleBookHtml(metadata: BookMetadata, chapters: ChapterConten
       <h1 class="chapter-title">${escapeHtml(ch.title)}</h1>
       <div class="chapter-content">${ch.html}</div>
     </div>
-  `,
+  `
     )
-    .join("\n");
+    .join('\n')
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -240,7 +240,7 @@ export function assembleBookHtml(metadata: BookMetadata, chapters: ChapterConten
   ${toc}
   ${chapterPages}
 </body>
-</html>`;
+</html>`
 }
 
 /**
@@ -254,7 +254,7 @@ export function assembleChapterHtml(metadata: BookMetadata, chapter: ChapterCont
       <div class="author">${escapeHtml(chapter.title)}</div>
       <div class="date">${escapeHtml(metadata.authorName)} &mdash; ${escapeHtml(metadata.generatedDate)}</div>
     </div>
-  `;
+  `
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -270,5 +270,5 @@ export function assembleChapterHtml(metadata: BookMetadata, chapter: ChapterCont
     <div class="chapter-content">${chapter.html}</div>
   </div>
 </body>
-</html>`;
+</html>`
 }

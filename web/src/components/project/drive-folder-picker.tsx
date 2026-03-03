@@ -1,22 +1,22 @@
-"use client";
+'use client'
 
-import { useState, useCallback } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { useDriveFiles, type DriveFile } from "@/hooks/use-drive-files";
+import { useState, useCallback } from 'react'
+import { useAuth } from '@clerk/nextjs'
+import { useDriveFiles, type DriveFile } from '@/hooks/use-drive-files'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 interface DriveFolderPickerProps {
-  connectionId: string;
-  initialFolderId?: string;
-  initialFolderName?: string;
-  onSelect: (folderId: string, folderPath: string) => void;
-  onCancel: () => void;
+  connectionId: string
+  initialFolderId?: string
+  initialFolderName?: string
+  onSelect: (folderId: string, folderPath: string) => void
+  onCancel: () => void
 }
 
 interface BreadcrumbItem {
-  id: string;
-  name: string;
+  id: string
+  name: string
 }
 
 /**
@@ -33,79 +33,79 @@ export function DriveFolderPicker({
   onSelect,
   onCancel,
 }: DriveFolderPickerProps) {
-  const { getToken } = useAuth();
-  const [currentFolder, setCurrentFolder] = useState(initialFolderId || "root");
+  const { getToken } = useAuth()
+  const [currentFolder, setCurrentFolder] = useState(initialFolderId || 'root')
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>(() => {
-    const crumbs: BreadcrumbItem[] = [{ id: "root", name: "My Drive" }];
-    if (initialFolderId && initialFolderId !== "root" && initialFolderName) {
-      crumbs.push({ id: initialFolderId, name: initialFolderName });
+    const crumbs: BreadcrumbItem[] = [{ id: 'root', name: 'My Drive' }]
+    if (initialFolderId && initialFolderId !== 'root' && initialFolderName) {
+      crumbs.push({ id: initialFolderId, name: initialFolderName })
     }
-    return crumbs;
-  });
-  const [isCreating, setIsCreating] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [showCreateInput, setShowCreateInput] = useState(false);
+    return crumbs
+  })
+  const [isCreating, setIsCreating] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [showCreateInput, setShowCreateInput] = useState(false)
 
   const { files, isLoading, error, hasMore, loadMore } = useDriveFiles({
     connectionId,
     folderId: currentFolder,
     foldersOnly: true,
-  });
+  })
 
   const navigateToFolder = useCallback((folderId: string, folderName: string) => {
-    setCurrentFolder(folderId);
-    setBreadcrumbs((prev) => [...prev, { id: folderId, name: folderName }]);
-    setShowCreateInput(false);
-  }, []);
+    setCurrentFolder(folderId)
+    setBreadcrumbs((prev) => [...prev, { id: folderId, name: folderName }])
+    setShowCreateInput(false)
+  }, [])
 
   const navigateToBreadcrumb = useCallback(
     (index: number) => {
-      setBreadcrumbs((prev) => prev.slice(0, index + 1));
-      setCurrentFolder(breadcrumbs[index].id);
-      setShowCreateInput(false);
+      setBreadcrumbs((prev) => prev.slice(0, index + 1))
+      setCurrentFolder(breadcrumbs[index].id)
+      setShowCreateInput(false)
     },
-    [breadcrumbs],
-  );
+    [breadcrumbs]
+  )
 
   const handleSelectFolder = useCallback(() => {
-    const path = breadcrumbs.map((b) => b.name).join(" / ");
-    onSelect(currentFolder, path);
-  }, [currentFolder, breadcrumbs, onSelect]);
+    const path = breadcrumbs.map((b) => b.name).join(' / ')
+    onSelect(currentFolder, path)
+  }, [currentFolder, breadcrumbs, onSelect])
 
   const handleCreateFolder = useCallback(async () => {
-    if (!newFolderName.trim()) return;
-    setIsCreating(true);
+    if (!newFolderName.trim()) return
+    setIsCreating(true)
     try {
-      const token = await getToken();
-      if (!token) return;
+      const token = await getToken()
+      if (!token) return
 
       // Use the Drive API to create a folder — POST to browse endpoint won't work,
       // we need to create via the Drive files API. Use the existing folder creation
       // through a simple fetch to our API.
       const response = await fetch(`${API_URL}/drive/connection/${connectionId}/folders`, {
-        method: "POST",
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           name: newFolderName.trim(),
           parentFolderId: currentFolder,
         }),
-      });
+      })
 
       if (response.ok) {
-        const folder = (await response.json()) as { id: string; name: string };
-        navigateToFolder(folder.id, folder.name);
-        setNewFolderName("");
-        setShowCreateInput(false);
+        const folder = (await response.json()) as { id: string; name: string }
+        navigateToFolder(folder.id, folder.name)
+        setNewFolderName('')
+        setShowCreateInput(false)
       }
     } catch {
       // Silently fail — user can retry
     } finally {
-      setIsCreating(false);
+      setIsCreating(false)
     }
-  }, [newFolderName, currentFolder, connectionId, getToken, navigateToFolder]);
+  }, [newFolderName, currentFolder, connectionId, getToken, navigateToFolder])
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -144,8 +144,8 @@ export function DriveFolderPicker({
               onClick={() => navigateToBreadcrumb(i)}
               className={`text-xs min-h-[32px] px-1 rounded transition-colors ${
                 i === breadcrumbs.length - 1
-                  ? "font-medium text-[var(--dc-color-text-primary)]"
-                  : "text-blue-600 hover:text-blue-700"
+                  ? 'font-medium text-[var(--dc-color-text-primary)]'
+                  : 'text-blue-600 hover:text-blue-700'
               }`}
             >
               {crumb.name}
@@ -224,8 +224,8 @@ export function DriveFolderPicker({
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreateFolder();
-                    if (e.key === "Escape") setShowCreateInput(false);
+                    if (e.key === 'Enter') handleCreateFolder()
+                    if (e.key === 'Escape') setShowCreateInput(false)
                   }}
                   placeholder="Folder name"
                   className="flex-1 text-sm border border-[var(--dc-color-border-strong)] rounded-md px-2 py-1.5
@@ -238,12 +238,12 @@ export function DriveFolderPicker({
                   className="text-xs font-medium text-blue-600 hover:text-blue-700
                              disabled:opacity-50 min-h-[36px] px-2"
                 >
-                  {isCreating ? "Creating..." : "Create"}
+                  {isCreating ? 'Creating...' : 'Create'}
                 </button>
                 <button
                   onClick={() => {
-                    setShowCreateInput(false);
-                    setNewFolderName("");
+                    setShowCreateInput(false)
+                    setNewFolderName('')
                   }}
                   className="text-xs text-[var(--dc-color-text-muted)] hover:text-[var(--dc-color-text-secondary)] min-h-[36px] px-1"
                 >
@@ -282,5 +282,5 @@ export function DriveFolderPicker({
         </button>
       </div>
     </div>
-  );
+  )
 }

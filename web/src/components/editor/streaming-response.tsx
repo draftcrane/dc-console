@@ -1,6 +1,6 @@
-"use client";
+'use client'
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react'
 
 /**
  * StreamingResponse — Reusable streaming text display with blinking cursor.
@@ -13,36 +13,36 @@ import { useEffect, useRef } from "react";
 
 interface StreamingResponseProps {
   /** The text content to display (grows during streaming) */
-  text: string;
+  text: string
   /** Whether content is currently streaming */
-  isStreaming: boolean;
+  isStreaming: boolean
   /** Error message to display instead of or alongside content */
-  errorMessage?: string | null;
+  errorMessage?: string | null
   /** Accent color class for the cursor (defaults to violet) */
-  cursorColorClass?: string;
+  cursorColorClass?: string
   /** Optional className for the container */
-  className?: string;
+  className?: string
 }
 
 export function StreamingResponse({
   text,
   isStreaming,
   errorMessage,
-  cursorColorClass = "bg-[var(--dc-color-interactive-escalation)]",
-  className = "",
+  cursorColorClass = 'bg-[var(--dc-color-interactive-escalation)]',
+  className = '',
 }: StreamingResponseProps) {
-  const endRef = useRef<HTMLSpanElement>(null);
+  const endRef = useRef<HTMLSpanElement>(null)
 
   // Auto-scroll to bottom during streaming
   useEffect(() => {
     if (isStreaming && endRef.current?.scrollIntoView) {
-      endRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      endRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
-  }, [isStreaming, text]);
+  }, [isStreaming, text])
 
-  const hasText = text.length > 0;
-  const showErrorOnly = errorMessage && !hasText;
-  const showErrorInline = errorMessage && hasText;
+  const hasText = text.length > 0
+  const showErrorOnly = errorMessage && !hasText
+  const showErrorInline = errorMessage && hasText
 
   return (
     <div
@@ -80,5 +80,5 @@ export function StreamingResponse({
         />
       )}
     </div>
-  );
+  )
 }
